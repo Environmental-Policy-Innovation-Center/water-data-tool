@@ -1,0 +1,297 @@
+.container-intro h2 {
+  font-size: 1.6em;
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+.hide-for-mobile{
+  display:none;
+}
+
+.hide-for-desktop{
+  display:inherit;
+}
+
+.mobile-header{
+  padding: 12px 12px 12px 12px;
+  background-color: #fff;
+  z-index: 9999;
+  text-align: center;
+  position: fixed;
+  top: 0px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.mobile-header h1{
+display: inline-block;
+  font-size: 1.2em;
+  margin: 0px;
+  font-weight: 500;
+  padding: 4px 0px 0px 0px;
+  color:#25325b;
+}
+
+.mobile-header .m-header-left{
+float:left;
+}
+
+.mobile-header .m-header-right{
+  float:right;
+}
+.mobile-header .m-header-right a{
+  display: inline-block;
+  padding: 6px 8px 6px 6px;
+}
+
+.mobile-header img.logo{
+  width:36px;
+  height:auto;
+  display:inline-block;
+}
+
+.mobile-header img.nav{
+display:inline-block;
+}
+
+.mobile-footer{
+position:fixed;
+bottom:0px;
+width:100%;
+padding:0px 10px 10px 10px;
+background-color:#1054A8;
+z-index:99999;
+text-align:center;
+}
+
+.mobile-footer img{
+  margin-top: -20px;
+}
+
+.mobile-footer p{
+  color:#fff;
+  margin:0px;
+  font-size:.9em;
+}
+
+#container-map{
+  top:60px;
+}
+
+#container-map-content-bottom{
+  max-width: inherit;
+  top: 25%;
+  bottom:inherit;
+  margin: 0px 10%;
+}
+
+#container-mobile-menu{
+  position: fixed;
+  left: 0px;
+  background-color: #fff;
+  width: 100%;
+  height: 100%;
+  z-index: 999;
+  overflow: scroll;
+}
+
+.container-mobile-menu-inner{
+  padding: 60px 10px 100px 40px;
+  max-width: 340px;
+}
+
+.container-section-inner {
+  padding-bottom: 100px;
+}
+
+.grid-item,
+.dataset-header .col-1,
+.dataset-header .col-2 {
+  width: 100%;
+  float: none;
+}
+
+.dataset-header .col-2 .inner{
+  width: 100%;
+  max-width: 300px;
+  float: none;
+  text-align: center;
+  margin: 0 auto;
+}
+
+.dataset-header {
+  position: inherit;
+  margin: 80px 10px 20px 10px;
+}
+
+.container-mobile-menu-inner ul li.nav-5 a {
+  background: url("../img/icon-GitHub.png") 30px 11px no-repeat;
+  background-size: auto;
+  background-size: 18px;
+}
+
+.container-mobile-menu-inner ul li.nav-6 a {
+  background: url("../img/icon-feedback.png") 30px 11px no-repeat;
+  background-size: auto;
+  background-size: 18px;
+}
+
+.container-mobile-menu-inner ul li.nav-7 a {
+  background: url("../img/icon-email.png") 30px 11px no-repeat;
+  background-size: auto;
+  background-size: 18px;
+}
+
+#container-mobile-menu .container-mobile-menu-inner ul li a.nav-item img{
+  display: inline-block;
+  width: 16px;
+  margin-left: 5px;
+  margin-bottom: -2px;
+}
+
+#container-mobile-menu .container-mobile-menu-inner ul li a{
+  max-width:216px;
+  margin-left:0px;
+}
+
+#data-table th{
+  min-width:120px;
+}
+
+
+.container-ak-hi-mobile{
+  top: 135px;
+}
+
+.filters-mobile-display{
+  position: absolute;
+  z-index: 7;
+  right: 20px;
+  bottom: 100px;
+}
+
+.filter-menu-mobile{
+  left:0px !important;
+  top:0px;
+  width:100%;
+  max-height: inherit !important;
+  padding-top:60px;
+  padding-bottom:200px;
+  border-radius: 0px;
+}
+
+.mobile-header-map-filters{
+  position: fixed;
+  width: 100%;
+  top: 60px;
+  z-index: 9999999;
+}
+.container-menu h2.map-filter-mobile-header{
+  text-align:center;
+  background-color:#1054A8;
+}
+
+.mobile-header-map-filters .btn-close-map-filters{
+  background: url("../img/icon-close-white.png") 0px 0px no-repeat;
+  position: absolute;
+  top: 22px;
+  right: 20px;
+  background-size: 18px;
+  width: 22px;
+  height: 22px;
+}
+
+.filter-menu-footer{
+  position: fixed;
+  bottom: 60px;
+  border-top: 1px solid #eee;
+  padding: 20px 0px 30px 0px;
+}
+
+.map-content-stats,
+.map-content-wrapper-mobile {
+  position: absolute;
+  bottom: 50px;
+  z-index: 9;
+  border: 1px solid #bfbfbf;
+  border-radius: 20px;
+  padding: 10px 20px;
+  box-sizing: border-box;
+  padding: 5px 15px 5px 20px;
+  box-sizing: border-box;
+  left: 45px;
+  right: 20px;
+  max-width: inherit;
+}
+
+.map-content-stats{
+  padding: 20px 15px 10px 20px;
+}
+
+#mobile-btn-info,
+#mobile-btn-filters{
+  position:absolute;
+  right:20px;
+  z-index:7;
+}
+
+#mobile-btn-filters{
+  bottom:115px;
+}
+
+#mobile-btn-info{
+  bottom:50px;
+}
+
+.map-content-intro .btn-close-map-info,
+.map-content-stats .btn-close-map-info{
+  position: absolute;
+  top: 14px;
+  right: 12px;
+  background-size: 14px;
+  width: 20px;
+  height: 20px;
+}
+
+.map-content-intro .btn-close-map-info{
+  background: url("../img/icon-close-dark.png") 0px 0px no-repeat;
+  background-size: 14px;
+}
+.map-content-stats .btn-close-map-info{
+  background: url("../img/icon-close-white.png") 0px 0px no-repeat;
+  background-size: 14px;
+}
+
+#mobile-btn-info a{
+  background: url("../img/icon-info.png") 14px 14px no-repeat;
+  background-size: 22px;
+  border-radius: 50px;
+  background-color: #fff;
+  border: 1px solid #bfbfbf;
+  z-index: 6;
+  width: 50px;
+  height: 50px;
+  display: block;
+}
+
+#mobile-btn-filters a{
+  background: url("../img/icon-map-filters.png") 15px 18px no-repeat;
+  background-size: 20px;
+  border-radius: 50px;
+  background-color: #fff;
+  border: 1px solid #bfbfbf;
+  width: 50px;
+  height: 50px;
+  display: block;
+}
+
+#container-downloads .container-section-inner {
+  padding:60px 0px 100px 0px;
+  overflow:auto;
+}
+
+#container-downloads .container-section-inner .grid-conatiner .grid-row p {
+  width: 50%;
+  height: auto;
+  float: left;
+}

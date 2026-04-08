@@ -1,0 +1,99 @@
+[
+    {
+    "file_description": "EPA SABs geojson", 
+    "s3_path": "s3://tech-team-data/national-dw-tool/test-staged/epa_sabs_geoms.geojson",
+    "http_path":"https://tech-team-data.s3.us-east-1.amazonaws.com/national-dw-tool/test-staged/epa_sabs_geoms.geojson",
+    "last_updated": "2026-02-20 14:00:00"
+    },
+    {
+    "file_description": "EPA SABs data: ", 
+    "s3_path": "s3://tech-team-data/national-dw-tool/test-staged/epa_sabs.csv",
+    "http_path": "https://tech-team-data.s3.us-east-1.amazonaws.com/national-dw-tool/test-staged/epa_sabs.csv",
+    "last_updated": "2026-02-20 14:00:00"
+    },
+
+    {
+    "file_description": "SDWIS violations: ", 
+    "s3_path": "s3://tech-team-data/national-dw-tool/test-staged/sdwis_viols.csv",
+    "http_path":"https://tech-team-data.s3.us-east-1.amazonaws.com/national-dw-tool/test-staged/sdwis_viols.csv",
+    "last_updated": "2026-02-20 14:00:00"
+    },
+
+    {
+    "file_description": "Funding summaries:", 
+    "s3_path": "s3://tech-team-data/national-dw-tool/test-staged/pwsid_summarized_funding_data.csv",
+    "http_path":"https://tech-team-data.s3.us-east-1.amazonaws.com/national-dw-tool/test-staged/pwsid_summarized_funding_data.csv",
+    "last_updated": "2026-02-20 14:00:00"
+    },
+
+    {
+    "file_description": "Census crosswalk: ", 
+    "s3_path": "s3://tech-team-data/national-dw-tool/test-staged/epa_sabs_xwalk.csv",
+    "http_path":"https://tech-team-data.s3.us-east-1.amazonaws.com/national-dw-tool/test-staged/epa_sabs_xwalk.csv",
+    "last_updated": "2026-02-20 14:00:00"
+    },
+
+    {
+    "file_description": "% change in census variables: ", 
+    "s3_path": "s3://tech-team-data/national-dw-tool/test-staged/xwalk_pct_change_10yr.csv",
+    "http_path":"https://tech-team-data.s3.us-east-1.amazonaws.com/national-dw-tool/test-staged/xwalk_pct_change_10yr.csv",
+    "last_updated": "2026-02-20 14:00:00"
+    },
+
+    {
+    "file_description": "Summary watershed hazards: ", 
+    "s3_path": "s3://tech-team-data/national-dw-tool/test-staged/pwsid_npdes_usts_rmps_imp.csv",
+    "http_path":"https://tech-team-data.s3.us-east-1.amazonaws.com/national-dw-tool/test-staged/pwsid_npdes_usts_rmps_imp.csv",
+    "last_updated": "2026-02-20 14:00:00"
+    },
+
+    {
+    "file_description": "CEJST variables: ", 
+    "s3_path": "s3://tech-team-data/national-dw-tool/test-staged/cejst.csv",
+    "http_path":"https://tech-team-data.s3.us-east-1.amazonaws.com/national-dw-tool/test-staged/cejst.csv",
+    "last_updated": "2026-02-20 14:00:00"
+    },
+
+    {
+    "file_description": "EJScreen variables: ", 
+    "s3_path": "s3://tech-team-data/national-dw-tool/test-staged/ejscreen.csv",
+    "http_path":"https://tech-team-data.s3.us-east-1.amazonaws.com/national-dw-tool/test-staged/ejscreen.csv",
+    "last_updated": "2026-02-20 14:00:00"
+    },
+
+    {
+    "file_description": "SVI variables: ", 
+    "s3_path": "s3://tech-team-data/national-dw-tool/test-staged/svi.csv",
+    "http_path":"https://tech-team-data.s3.us-east-1.amazonaws.com/national-dw-tool/test-staged/svi.csv",
+    "last_updated": "2026-02-20 14:00:00"
+    },
+
+    {
+    "file_description": "CVI variables: ", 
+    "s3_path": "s3://tech-team-data/national-dw-tool/test-staged/cvi.csv",
+    "http_path":"https://tech-team-data.s3.us-east-1.amazonaws.com/national-dw-tool/test-staged/cvi.csv",
+    "last_updated": "2026-02-20 14:00:00"
+    },
+
+    {
+    "file_description": "Summary boil water advisories:", 
+    "s3_path": "s3://tech-team-data/national-dw-tool/test-staged/national_bwn_summary.csv",
+    "http_path":"https://tech-team-data.s3.us-east-1.amazonaws.com/national-dw-tool/test-staged/national_bwn_summary.csv",
+    "last_updated": "2026-02-20 14:00:00"
+    },
+
+    {
+    "file_description": "Summary boil water advisories:", 
+    "s3_path": "s3://tech-team-data/national-dw-tool/test-staged/national_bwn_highlevel_summary.csv",
+    "http_path":"https://tech-team-data.s3.us-east-1.amazonaws.com/national-dw-tool/test-staged/national_bwn_highlevel_summary.csv",
+    "last_updated": "2026-02-20 14:00:00"
+    },
+
+    {
+    "file_description": "Funding summaries:", 
+    "s3_path": "s3://tech-team-data/national-dw-tool/test-staged/pwsid_funded_highlevel_summary.csv",
+    "http_path":"https://tech-team-data.s3.us-east-1.amazonaws.com/national-dw-tool/test-staged/pwsid_funded_highlevel_summary.csv",
+    "last_updated": "2026-02-20 14:00:00"
+    }
+]
+
