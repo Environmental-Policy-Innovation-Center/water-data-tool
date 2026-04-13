@@ -180,7 +180,7 @@ module Filterable
       # --- Bounding box geographic filter ---
       if params[:bounds].present?
         west, south, east, north = params[:bounds].split(",").map(&:to_f)
-        scope, joined = left_join_once(scope, joined, :service_area_geometry)
+        scope, _ = left_join_once(scope, joined, :service_area_geometry)
         scope = scope.where(
           "ST_Intersects(service_area_geometries.geom, ST_MakeEnvelope(?, ?, ?, ?, 4326))",
           west, south, east, north
@@ -195,9 +195,9 @@ module Filterable
     # Adds a left outer join for the given association at most once per query,
     # preventing duplicate joins when multiple filters reference the same table.
     def left_join_once(scope, joined, assoc)
-      return [ scope, joined ] if joined.include?(assoc)
+      return [scope, joined] if joined.include?(assoc)
 
-      [ scope.left_joins(assoc), joined | [ assoc ] ]
+      [scope.left_joins(assoc), joined | [assoc]]
     end
   end
 end

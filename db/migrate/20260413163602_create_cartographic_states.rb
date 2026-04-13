@@ -6,7 +6,7 @@ class CreateCartographicStates < ActiveRecord::Migration[8.1]
       t.string :stusps, limit: 2
       t.string :name
       t.string :geoid, limit: 2
-      t.column :geom, :geometry, geographic: false, srid: 4326, limit: { type: :multi_polygon }
+      t.column :geom, :geometry, geographic: false, srid: 4326, limit: {type: :multi_polygon}
     end
 
     execute "ALTER TABLE cartographic_states ADD PRIMARY KEY (gid)"
