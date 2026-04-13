@@ -1,0 +1,85 @@
+# == Schema Information
+#
+# Table name: public_water_systems
+#
+#  area_sq_miles                :decimal(, )
+#  counties                     :text
+#  detailed_facility_report     :string
+#  ewg_report_link              :string
+#  first_reported_date          :string
+#  gw_sw_code                   :string
+#  is_grant_eligible            :boolean
+#  is_school_or_daycare         :boolean
+#  is_wholesaler                :boolean
+#  open_health_viol             :string
+#  owner_type                   :string
+#  phone_number                 :string
+#  pop_cat_5                    :string
+#  population_served_count      :integer
+#  primacy_agency               :string
+#  primacy_type                 :string
+#  primary_source_code          :string
+#  pws_name                     :string
+#  pwsid                        :string           not null, primary key
+#  service_area_type            :string
+#  service_connections_count    :integer
+#  source_water_protection_code :string
+#  stusps                       :string(2)
+#  symbology_field              :string
+#  years_operating              :integer
+#  created_at                   :datetime         not null
+#  updated_at                   :datetime         not null
+#
+# Indexes
+#
+#  index_public_water_systems_on_gw_sw_code    (gw_sw_code)
+#  index_public_water_systems_on_owner_type    (owner_type)
+#  index_public_water_systems_on_pop_cat_5     (pop_cat_5)
+#  index_public_water_systems_on_primacy_type  (primacy_type)
+#  index_public_water_systems_on_stusps        (stusps)
+#
+require "rails_helper"
+
+RSpec.describe PublicWaterSystem, type: :model do
+  describe "associations" do
+    it { is_expected.to have_one(:service_area_geometry).with_foreign_key("pwsid") }
+    it { is_expected.to have_one(:demographic).with_foreign_key("pwsid") }
+    it { is_expected.to have_one(:violations_summary).with_foreign_key("pwsid") }
+    it { is_expected.to have_one(:environmental_justice).with_foreign_key("pwsid") }
+    it { is_expected.to have_one(:funding_summary).with_foreign_key("pwsid") }
+    it { is_expected.to have_one(:watershed_hazard).with_foreign_key("pwsid") }
+    it { is_expected.to have_one(:boil_water_summary).with_foreign_key("pwsid") }
+    it { is_expected.to have_one(:trend_datum).with_foreign_key("pwsid") }
+    it { is_expected.to have_many(:place_system_crosswalks).with_foreign_key("pwsid") }
+    it { is_expected.to have_many(:cartographic_places).through(:place_system_crosswalks) }
+  end
+
+  describe "validations" do
+    it { is_expected.to validate_presence_of(:pwsid) }
+
+    it "accepts valid pwsid format" do
+      pws = build(:public_water_system, pwsid: "VT0012345")
+      expect(pws).to be_valid
+    end
+
+    it "rejects lowercase state codes" do
+      pws = build(:public_water_system, pwsid: "vt0012345")
+      expect(pws).not_to be_valid
+    end
+
+    it "rejects pwsid with wrong length" do
+      pws = build(:public_water_system, pwsid: "VT123")
+      expect(pws).not_to be_valid
+    end
+
+    it "rejects digits in place of state code" do
+      pws = build(:public_water_system, pwsid: "120012345")
+      expect(pws).not_to be_valid
+    end
+
+    it "rejects non-digit characters in the numeric portion" do
+      pws = build(:public_water_system, pwsid: "VT001234X")
+      expect(pws).not_to be_valid
+    end
+  end
+end

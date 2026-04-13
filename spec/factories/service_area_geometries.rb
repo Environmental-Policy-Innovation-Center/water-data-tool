@@ -1,0 +1,25 @@
+# == Schema Information
+#
+# Table name: service_area_geometries
+#
+#  id         :bigint           not null, primary key
+#  centroid   :geometry         point, 4326
+#  geom       :geometry         multipolygon, 4326
+#  pwsid      :string           not null
+#  created_at :datetime         not null
+#  updated_at :datetime         not null
+#
+# Indexes
+#
+#  index_service_area_geometries_on_centroid  (centroid) USING gist
+#  index_service_area_geometries_on_geom      (geom) USING gist
+#  index_service_area_geometries_on_pwsid     (pwsid) UNIQUE
+#
+FactoryBot.define do
+  factory :service_area_geometry do
+    association :public_water_system
+    pwsid { public_water_system.pwsid }
+    geom { nil }
+    centroid { nil }
+  end
+end
