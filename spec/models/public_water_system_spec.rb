@@ -42,5 +42,4 @@ RSpec.describe PublicWaterSystem, type: :model do
       expect(pws).not_to be_valid
     end
   end
-
 end
