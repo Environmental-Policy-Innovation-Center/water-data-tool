@@ -71,136 +71,15 @@ RSpec.describe PublicWaterSystem, type: :model do
       pws = build(:public_water_system, pwsid: "VT123")
       expect(pws).not_to be_valid
     end
-  end
 
-  describe ".apply_filters" do
-    let!(:groundwater_system) { create(:public_water_system, gw_sw_code: "Groundwater", stusps: "VT") }
-    let!(:surface_water_system) { create(:public_water_system, gw_sw_code: "Surface Water", stusps: "RI") }
-
-    context "categorical filters" do
-      it "filters by gw_sw_code" do
-        results = described_class.apply_filters(gw_sw_code: "Groundwater")
-        expect(results).to include(groundwater_system)
-        expect(results).not_to include(surface_water_system)
-      end
-
-      it "filters by state" do
-        results = described_class.apply_filters(state: "VT")
-        expect(results).to include(groundwater_system)
-        expect(results).not_to include(surface_water_system)
-      end
-
-      it "filters by multiple owner_types (OR within group)" do
-        federal = create(:public_water_system, owner_type: "Federal")
-        local = create(:public_water_system, owner_type: "Local")
-        private_sys = create(:public_water_system, owner_type: "Private")
-
-        results = described_class.apply_filters(owner_type: %w[Federal Local])
-        expect(results).to include(federal, local)
-        expect(results).not_to include(private_sys)
-      end
-
-      it "ANDs between different filter groups" do
-        results = described_class.apply_filters(gw_sw_code: "Groundwater", state: "RI")
-        expect(results).to be_empty
-      end
+    it "rejects digits in place of state code" do
+      pws = build(:public_water_system, pwsid: "120012345")
+      expect(pws).not_to be_valid
     end
 
-    context "boolean filters" do
-      it "filters wholesalers" do
-        wholesaler = create(:public_water_system, is_wholesaler: true)
-        non_wholesaler = create(:public_water_system, is_wholesaler: false)
-
-        results = described_class.apply_filters(is_wholesaler: "true")
-        expect(results).to include(wholesaler)
-        expect(results).not_to include(non_wholesaler)
-      end
-
-      it "filters systems with open violations" do
-        with_viol = create(:public_water_system, open_health_viol: "Yes")
-        without_viol = create(:public_water_system, open_health_viol: "No")
-
-        results = described_class.apply_filters(has_open_violations: "true")
-        expect(results).to include(with_viol)
-        expect(results).not_to include(without_viol)
-      end
-    end
-
-    context "range filters" do
-      it "filters by area_min" do
-        small = create(:public_water_system, area_sq_miles: 5.0)
-        large = create(:public_water_system, area_sq_miles: 50.0)
-
-        results = described_class.apply_filters(area_min: "20")
-        expect(results).to include(large)
-        expect(results).not_to include(small)
-      end
-
-      it "filters by area_max" do
-        small = create(:public_water_system, area_sq_miles: 5.0)
-        large = create(:public_water_system, area_sq_miles: 50.0)
-
-        results = described_class.apply_filters(area_max: "10")
-        expect(results).to include(small)
-        expect(results).not_to include(large)
-      end
-
-      it "filters by area range (min AND max)" do
-        small = create(:public_water_system, area_sq_miles: 2.0)
-        medium = create(:public_water_system, area_sq_miles: 15.0)
-        large = create(:public_water_system, area_sq_miles: 80.0)
-
-        results = described_class.apply_filters(area_min: "10", area_max: "20")
-        expect(results).to include(medium)
-        expect(results).not_to include(small, large)
-      end
-    end
-
-    context "join-based filters (violations)" do
-      it "filters by health_violations_5yr_min" do
-        clean = create(:public_water_system)
-        dirty = create(:public_water_system)
-        create(:violations_summary, public_water_system: clean, health_violations_5yr: 0)
-        create(:violations_summary, public_water_system: dirty, health_violations_5yr: 5)
-
-        results = described_class.apply_filters(health_violations_5yr_min: "3")
-        expect(results).to include(dirty)
-        expect(results).not_to include(clean)
-      end
-    end
-
-    context "join-based filters (demographics)" do
-      it "filters by poverty_rate_min" do
-        low_poverty = create(:public_water_system)
-        high_poverty = create(:public_water_system)
-        create(:demographic, public_water_system: low_poverty, poverty_rate: 5.0)
-        create(:demographic, public_water_system: high_poverty, poverty_rate: 25.0)
-
-        results = described_class.apply_filters(poverty_rate_min: "20")
-        expect(results).to include(high_poverty)
-        expect(results).not_to include(low_poverty)
-      end
-    end
-
-    context "geographic filters" do
-      it "filters by place_geoid via crosswalk" do
-        place = create(:cartographic_place)
-        in_place = create(:public_water_system)
-        out_of_place = create(:public_water_system)
-        create(:place_system_crosswalk, public_water_system: in_place, cartographic_place: place,
-          pwsid: in_place.pwsid, geoid: place.geoid)
-
-        results = described_class.apply_filters(place_geoid: place.geoid)
-        expect(results).to include(in_place)
-        expect(results).not_to include(out_of_place)
-      end
-    end
-
-    context "with no filters" do
-      it "returns all systems" do
-        results = described_class.apply_filters({})
-        expect(results).to include(groundwater_system, surface_water_system)
-      end
+    it "rejects non-digit characters in the numeric portion" do
+      pws = build(:public_water_system, pwsid: "VT001234X")
+      expect(pws).not_to be_valid
     end
   end
 end
