@@ -217,7 +217,7 @@ RSpec.describe Filterable, type: :model do
         in_place = create(:public_water_system)
         out_of_place = create(:public_water_system)
         create(:place_system_crosswalk, public_water_system: in_place, cartographic_place: place,
-                                        pwsid: in_place.pwsid, geoid: place.geoid)
+          pwsid: in_place.pwsid, geoid: place.geoid)
 
         results = PublicWaterSystem.apply_filters(place_geoid: place.geoid)
         expect(results).to include(in_place)
