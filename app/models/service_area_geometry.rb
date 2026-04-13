@@ -1,5 +1,5 @@
 class ServiceAreaGeometry < ApplicationRecord
-  belongs_to :public_water_system, foreign_key: "pwsid", inverse_of: :service_area_geometry
+  belongs_to :public_water_system, foreign_key: "pwsid", primary_key: "pwsid", inverse_of: :service_area_geometry
 
   validates :pwsid, presence: true
 end

@@ -2,6 +2,9 @@ class CreateBoilWaterSummaries < ActiveRecord::Migration[8.1]
   def change
     create_table :boil_water_summaries do |t|
       t.string :pwsid, null: false
+      # Date fields kept as strings intentionally — BWN date formats vary widely
+      # by state (some report full dates, others only years). Parsing to date
+      # would require per-state format handling and would lose original values.
       t.string :first_advisory_date
       t.string :last_advisory_date
       t.integer :total_notices

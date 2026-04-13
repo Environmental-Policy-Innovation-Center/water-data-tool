@@ -12,4 +12,18 @@ RSpec.describe TileCache, type: :model do
     tile = build(:tile_cache, layer: "pws", z: 5, x: 10, y: 12)
     expect(tile).to be_valid
   end
+
+  describe "composite primary key uniqueness" do
+    it "raises on duplicate (layer, z, x, y)" do
+      create(:tile_cache, layer: "pws", z: 5, x: 10, y: 12)
+      duplicate = build(:tile_cache, layer: "pws", z: 5, x: 10, y: 12)
+      expect { duplicate.save!(validate: false) }.to raise_error(ActiveRecord::RecordNotUnique)
+    end
+
+    it "allows same coordinates on a different layer" do
+      create(:tile_cache, layer: "pws", z: 5, x: 10, y: 12)
+      other = build(:tile_cache, layer: "states", z: 5, x: 10, y: 12)
+      expect { other.save!(validate: false) }.not_to raise_error
+    end
+  end
 end

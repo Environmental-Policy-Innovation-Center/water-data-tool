@@ -4,6 +4,8 @@ module Filterable
   class_methods do
     def apply_filters(params)
       scope = all
+      # Tracks which associations have been left-joined to prevent duplicates.
+      joined = Set.new
 
       # --- Direct categorical filters (on public_water_systems) ---
       scope = scope.where(gw_sw_code: params[:gw_sw_code]) if params[:gw_sw_code].present?
@@ -18,9 +20,9 @@ module Filterable
       scope = scope.where(source_water_protection_code: "Yes") if params[:has_source_protection] == "true"
       scope = scope.where(open_health_viol: "Yes") if params[:has_open_violations] == "true"
 
-      # --- Direct range filters ---
-      scope = scope.where("area_sq_miles >= ?", params[:area_min]) if params[:area_min].present?
-      scope = scope.where("area_sq_miles <= ?", params[:area_max]) if params[:area_max].present?
+      # --- Direct range filters (coerce to Decimal to guard against non-numeric input) ---
+      scope = scope.where("area_sq_miles >= ?", params[:area_min].to_d) if params[:area_min].present?
+      scope = scope.where("area_sq_miles <= ?", params[:area_max].to_d) if params[:area_max].present?
 
       # --- State filter ---
       scope = scope.where(stusps: params[:state]) if params[:state].present?
@@ -40,23 +42,23 @@ module Filterable
       ]
 
       if violations_range_filters.any? { |col| params[:"#{col}_min"].present? || params[:"#{col}_max"].present? }
-        scope = scope.left_joins(:violations_summary)
+        scope, joined = left_join_once(scope, joined, :violations_summary)
       end
 
       violations_range_filters.each do |col|
         if params[:"#{col}_min"].present?
-          scope = scope.where("violations_summaries.#{col} >= ?", params[:"#{col}_min"])
+          scope = scope.where("violations_summaries.#{col} >= ?", params[:"#{col}_min"].to_i)
         end
         if params[:"#{col}_max"].present?
-          scope = scope.where("violations_summaries.#{col} <= ?", params[:"#{col}_max"])
+          scope = scope.where("violations_summaries.#{col} <= ?", params[:"#{col}_max"].to_i)
         end
       end
 
       # --- Boil water notice range filter ---
       if params[:boil_water_notices_min].present? || params[:boil_water_notices_max].present?
-        scope = scope.left_joins(:boil_water_summary)
-        scope = scope.where("boil_water_summaries.total_notices >= ?", params[:boil_water_notices_min]) if params[:boil_water_notices_min].present?
-        scope = scope.where("boil_water_summaries.total_notices <= ?", params[:boil_water_notices_max]) if params[:boil_water_notices_max].present?
+        scope, joined = left_join_once(scope, joined, :boil_water_summary)
+        scope = scope.where("boil_water_summaries.total_notices >= ?", params[:boil_water_notices_min].to_i) if params[:boil_water_notices_min].present?
+        scope = scope.where("boil_water_summaries.total_notices <= ?", params[:boil_water_notices_max].to_i) if params[:boil_water_notices_max].present?
       end
 
       # --- Demographic range filters ---
@@ -74,35 +76,35 @@ module Filterable
       demographic_cols_active ||= params[:most_common_rate_tier].present?
 
       if demographic_cols_active
-        scope = scope.left_joins(:demographic)
+        scope, joined = left_join_once(scope, joined, :demographic)
       end
 
       demographic_range_filters.each do |col|
         if params[:"#{col}_min"].present?
-          scope = scope.where("demographics.#{col} >= ?", params[:"#{col}_min"])
+          scope = scope.where("demographics.#{col} >= ?", params[:"#{col}_min"].to_d)
         end
         if params[:"#{col}_max"].present?
-          scope = scope.where("demographics.#{col} <= ?", params[:"#{col}_max"])
+          scope = scope.where("demographics.#{col} <= ?", params[:"#{col}_max"].to_d)
         end
       end
 
-      scope = scope.where("demographics.population_density >= ?", params[:density_min]) if params[:density_min].present?
-      scope = scope.where("demographics.population_density <= ?", params[:density_max]) if params[:density_max].present?
+      scope = scope.where("demographics.population_density >= ?", params[:density_min].to_d) if params[:density_min].present?
+      scope = scope.where("demographics.population_density <= ?", params[:density_max].to_d) if params[:density_max].present?
       scope = scope.where("demographics.most_common_rate_tier = ?", params[:most_common_rate_tier]) if params[:most_common_rate_tier].present?
 
       # --- Environmental justice range filters ---
       ej_range_filters = %i[cejst_disadvantaged_pct svi_overall_pctl cvi_overall_score]
 
       if ej_range_filters.any? { |col| params[:"#{col}_min"].present? || params[:"#{col}_max"].present? }
-        scope = scope.left_joins(:environmental_justice)
+        scope, joined = left_join_once(scope, joined, :environmental_justice)
       end
 
       ej_range_filters.each do |col|
         if params[:"#{col}_min"].present?
-          scope = scope.where("environmental_justices.#{col} >= ?", params[:"#{col}_min"])
+          scope = scope.where("environmental_justices.#{col} >= ?", params[:"#{col}_min"].to_d)
         end
         if params[:"#{col}_max"].present?
-          scope = scope.where("environmental_justices.#{col} <= ?", params[:"#{col}_max"])
+          scope = scope.where("environmental_justices.#{col} <= ?", params[:"#{col}_max"].to_d)
         end
       end
 
@@ -110,15 +112,15 @@ module Filterable
       funding_range_filters = %i[times_funded total_srf_assistance total_principal_forgiveness]
 
       if funding_range_filters.any? { |col| params[:"#{col}_min"].present? || params[:"#{col}_max"].present? }
-        scope = scope.left_joins(:funding_summary)
+        scope, joined = left_join_once(scope, joined, :funding_summary)
       end
 
       funding_range_filters.each do |col|
         if params[:"#{col}_min"].present?
-          scope = scope.where("funding_summaries.#{col} >= ?", params[:"#{col}_min"])
+          scope = scope.where("funding_summaries.#{col} >= ?", params[:"#{col}_min"].to_d)
         end
         if params[:"#{col}_max"].present?
-          scope = scope.where("funding_summaries.#{col} <= ?", params[:"#{col}_max"])
+          scope = scope.where("funding_summaries.#{col} <= ?", params[:"#{col}_max"].to_d)
         end
       end
 
@@ -129,15 +131,15 @@ module Filterable
       ]
 
       if hazard_range_filters.any? { |col| params[:"#{col}_min"].present? || params[:"#{col}_max"].present? }
-        scope = scope.left_joins(:watershed_hazard)
+        scope, joined = left_join_once(scope, joined, :watershed_hazard)
       end
 
       hazard_range_filters.each do |col|
         if params[:"#{col}_min"].present?
-          scope = scope.where("watershed_hazards.#{col} >= ?", params[:"#{col}_min"])
+          scope = scope.where("watershed_hazards.#{col} >= ?", params[:"#{col}_min"].to_i)
         end
         if params[:"#{col}_max"].present?
-          scope = scope.where("watershed_hazards.#{col} <= ?", params[:"#{col}_max"])
+          scope = scope.where("watershed_hazards.#{col} <= ?", params[:"#{col}_max"].to_i)
         end
       end
 
@@ -145,19 +147,19 @@ module Filterable
       trend_range_filters = %i[population_pct_change mhi_pct_change]
 
       if trend_range_filters.any? { |col| params[:"#{col}_min"].present? || params[:"#{col}_max"].present? }
-        scope = scope.left_joins(:trend_datum)
+        scope, joined = left_join_once(scope, joined, :trend_datum)
       end
 
       trend_range_filters.each do |col|
         if params[:"#{col}_min"].present?
-          scope = scope.where("trend_data.#{col} >= ?", params[:"#{col}_min"])
+          scope = scope.where("trend_data.#{col} >= ?", params[:"#{col}_min"].to_d)
         end
         if params[:"#{col}_max"].present?
-          scope = scope.where("trend_data.#{col} <= ?", params[:"#{col}_max"])
+          scope = scope.where("trend_data.#{col} <= ?", params[:"#{col}_max"].to_d)
         end
       end
 
-      # --- Place geographic filter ---
+      # --- Place geographic filter (via place_system_crosswalks) ---
       if params[:place_geoid].present?
         pwsids = PlaceSystemCrosswalk.where(geoid: params[:place_geoid]).select(:pwsid)
         scope = scope.where(pwsid: pwsids)
@@ -178,13 +180,24 @@ module Filterable
       # --- Bounding box geographic filter ---
       if params[:bounds].present?
         west, south, east, north = params[:bounds].split(",").map(&:to_f)
-        scope = scope.left_joins(:service_area_geometry).where(
+        scope, joined = left_join_once(scope, joined, :service_area_geometry)
+        scope = scope.where(
           "ST_Intersects(service_area_geometries.geom, ST_MakeEnvelope(?, ?, ?, ?, 4326))",
           west, south, east, north
         )
       end
 
       scope
+    end
+
+    private
+
+    # Adds a left outer join for the given association at most once per query,
+    # preventing duplicate joins when multiple filters reference the same table.
+    def left_join_once(scope, joined, assoc)
+      return [ scope, joined ] if joined.include?(assoc)
+
+      [ scope.left_joins(assoc), joined | [ assoc ] ]
     end
   end
 end
