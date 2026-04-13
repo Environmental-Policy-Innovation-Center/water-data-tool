@@ -6,6 +6,8 @@ gem "rails", "~> 8.1.3"
 gem "propshaft"
 # Use postgresql as the database for Active Record
 gem "pg", "~> 1.1"
+# CSV parsing (extracted from Ruby stdlib in 3.4)
+gem "csv"
 # PostGIS adapter for ActiveRecord [https://github.com/rgeo/activerecord-postgis-adapter]
 gem "activerecord-postgis-adapter"
 # Use the Puma web server [https://github.com/puma/puma]
