@@ -24,4 +24,5 @@ M1–M4 are fully independent and can be worked in parallel across two people.
 - [ ] M9: Data exports — export_controller.js (CSV + GeoJSON with progress indicator), wired to export endpoint, respects active filters {depends: M3, M7}
 - [ ] M10: Map ↔ filter/table integration — map_controller subscribes to Turbo frame load events, syncs visible features with table results, URL state management, end-to-end flow polish {depends: M5, M6, M7}
 - [ ] M11: ETL ↔ tile cache invalidation — post-ETL TileCache bust, TileCacheWarmJob for common tiles after import {depends: M1, M2}
-- [ ] M12: Kamal deploy config — Dockerfile, deploy.yml, secret management strategy, health check endpoint, production ENV documentation {depends: M4}
+- [ ] M12: Bulk downloads page — DownloadsController + view, lists pre-packaged state/national zip files (GeoJSON + CSVs) served from S3; not filter-respecting — static data only. ETL generates and uploads the zips; this milestone wires the downloads page UI. Reference: `scratch/CO - unzipped/` for expected zip contents. {depends: M1, M4}
+- [ ] M13: Kamal deploy config — Dockerfile, deploy.yml, secret management strategy, health check endpoint, production ENV documentation {depends: M4}
