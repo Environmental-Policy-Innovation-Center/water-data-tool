@@ -104,6 +104,9 @@ GEM
       reline (>= 0.3.8)
     diff-lcs (1.6.2)
     dotenv (3.2.0)
+    dotenv-rails (3.2.0)
+      dotenv (= 3.2.0)
+      railties (>= 6.1)
     drb (2.2.3)
     ed25519 (1.4.0)
     erb (6.0.2)
@@ -204,6 +207,10 @@ GEM
     nokogiri (1.19.2-x86_64-linux-musl)
       racc (~> 1.4)
     ostruct (0.6.3)
+    pagy (43.5.1)
+      json
+      uri
+      yaml
     parallel (1.28.0)
     parser (3.3.11.1)
       ast (~> 2.4.1)
@@ -405,6 +412,7 @@ GEM
       base64
       websocket-extensions (>= 0.1.0)
     websocket-extensions (0.1.5)
+    yaml (0.4.0)
     zeitwerk (2.7.5)
 
 PLATFORMS
@@ -414,6 +422,7 @@ PLATFORMS
   arm-linux-gnu
   arm-linux-musl
   arm64-darwin-24
+  arm64-darwin-25
   x86_64-linux
   x86_64-linux-gnu
   x86_64-linux-musl
@@ -426,10 +435,12 @@ DEPENDENCIES
   bundler-audit
   csv
   debug
+  dotenv-rails
   factory_bot_rails
   image_processing (~> 1.2)
   importmap-rails
   kamal
+  pagy
   pg (~> 1.1)
   propshaft
   puma (>= 5.0)
