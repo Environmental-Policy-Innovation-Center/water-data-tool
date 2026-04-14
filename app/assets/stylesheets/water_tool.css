@@ -84,12 +84,12 @@ body{
 }
 
 .open{
-  background: url(../images/icon-collapse.png) 8px 7px no-repeat;
+  background: url(icon-collapse.png) 8px 7px no-repeat;
   background-size: 18px;
 }
 
 .close{
-  background: url(../images/icon-expand.png) 8px 7px no-repeat;
+  background: url(icon-expand.png) 8px 7px no-repeat;
   background-size: 18px;
 }
 
@@ -181,25 +181,25 @@ body{
 
 .container-sidebar-nav ul.sidebar-nav li.nav-1 a,
 #container-mobile-menu ul li.nav-1 a{
-  background: url("../images/icon-explore-dark.png") 30px 11px no-repeat;
+  background: url("icon-explore-dark.png") 30px 11px no-repeat;
   background-size: 18px;
 }
 
 .container-sidebar-nav ul.sidebar-nav li.nav-2 a,
 #container-mobile-menu ul li.nav-2 a{
-  background: url("../images/icon-data-dark.png") 30px 11px no-repeat;
+  background: url("icon-data-dark.png") 30px 11px no-repeat;
   background-size: 18px;
 }
 
 .container-sidebar-nav ul.sidebar-nav li.nav-3 a,
 #container-mobile-menu ul li.nav-3 a{
-  background: url("../images/icon-documentation-dark.png") 30px 11px no-repeat;
+  background: url("icon-documentation-dark.png") 30px 11px no-repeat;
   background-size: 18px;
 }
 
 .container-sidebar-nav ul.sidebar-nav li.nav-4 a,
 #container-mobile-menu ul li.nav-4 a{
-  background: url("../images/icon-downloads-dark.png") 30px 11px no-repeat;
+  background: url("icon-downloads-dark.png") 30px 11px no-repeat;
   background-size: 18px;
 }
 
@@ -211,7 +211,7 @@ body{
 
 .container-sidebar-nav ul.sidebar-nav li.nav-1 a.active,
 #container-mobile-menu ul li.nav-1 a.active{
-  background: url("../images/icon-explore-white.png") 30px 11px no-repeat;
+  background: url("icon-explore-white.png") 30px 11px no-repeat;
   background-size: 18px;
   background-color:#1054A8;
   border: 1px solid #1054A8;
@@ -219,7 +219,7 @@ body{
 }
 .container-sidebar-nav ul.sidebar-nav li.nav-2 a.active,
 #container-mobile-menu ul li.nav-2 a.active{
-  background: url("../images/icon-data-white.png") 30px 11px no-repeat;
+  background: url("icon-data-white.png") 30px 11px no-repeat;
   background-size: 18px;
   background-color:#1054A8;
   border: 1px solid #1054A8;
@@ -227,7 +227,7 @@ body{
 }
 .container-sidebar-nav ul.sidebar-nav li.nav-3 a.active,
 #container-mobile-menu ul li.nav-3 a.active{
-  background: url("../images/icon-documentation-white.png") 30px 11px no-repeat;
+  background: url("icon-documentation-white.png") 30px 11px no-repeat;
   background-size: 18px;
   background-color:#1054A8;
   border: 1px solid #1054A8;
@@ -235,7 +235,7 @@ body{
 }
 .container-sidebar-nav ul.sidebar-nav li.nav-4 a.active,
 #container-mobile-menu ul li.nav-4 a.active{
-  background: url("../images/icon-downloads-white.png") 30px 11px no-repeat;
+  background: url("icon-downloads-white.png") 30px 11px no-repeat;
   background-size: 18px;
   background-color:#1054A8;
   border: 1px solid #1054A8;
@@ -295,6 +295,10 @@ body{
 #container-map{
   background-color:#ccc;
   position:absolute;
+  top:0;
+  bottom:0;
+  right:0;
+  width:auto;
 }
 
 #map {
@@ -416,6 +420,17 @@ body{
   border: 1px solid #bfbfbf;
 }
 
+/* Geocoder rendered inside the filter bar list item */
+.geocoder-li {
+  vertical-align: middle;
+}
+.geocoder-li .mapboxgl-ctrl-geocoder {
+  min-width: 200px;
+  max-width: 240px;
+  box-shadow: none;
+  margin: 0 6px 0 5px;
+}
+
 #wrapper-map-ui{
   position:relative;
 }
@@ -427,8 +442,16 @@ body{
   z-index: 99;
 }
 
+#container-map-ui-top {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 5;
+}
+
 #container-map-ui-top ul li a{
-  background: url(../images/icon-nav-arrow-down.png) 85% 14px no-repeat;
+  background: url(icon-nav-arrow-down.png) 85% 14px no-repeat;
   background-size: 14px;
   background-color:#fff;
 }
@@ -437,7 +460,7 @@ body{
   background-color: #f5f5f5;
 }
 #container-map-ui-top ul li a.active{
-  background: url(../images/icon-nav-arrow-up.png) 85% 14px no-repeat;
+  background: url(icon-nav-arrow-up.png) 85% 14px no-repeat;
   background-size: 14px;
   background-color: #f5f5f5;
 }
@@ -520,6 +543,7 @@ ul.stats-list li{
 .container-map-ui ul li{
   display:inline-block;
   position: relative;
+  vertical-align: middle;
 }
 
 .container-map-ui ul li a{
@@ -657,64 +681,104 @@ ul.stats-list li{
   left: 10px;
 }
 
-#data-table{
-  width:100%;
-  height:400px;
-  display:block;
-  overflow:scroll;
-  position:relative;
-  border-collapse: collapse;
-  border: 1px solid #eee;
-  scrollbar-gutter: stable both-edges;
-  margin-top:20px;
+/* DataTables wrapper — sits inside .container-section-inner */
+#results-table .dt-container {
+  font-size: 14px;
 }
 
-.first-col{
+/* Search box */
+#results-table .dt-search input {
+  border: 1px solid #bfbfbf;
+  border-radius: 20px;
+  padding: 4px 12px;
+  font-size: 14px;
+  outline: none;
+}
+
+/* Remove default DT label text ("Search:") */
+#results-table .dt-search label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Info text and pagination */
+#results-table .dt-layout-row:last-child {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 0;
+  font-size: 13px;
+}
+
+/* Paging buttons */
+#results-table .dt-paging .dt-paging-button {
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 2px 8px;
+  cursor: pointer;
+  background: #fff;
+  font-size: 13px;
+}
+#results-table .dt-paging .dt-paging-button.current {
+  background: #e7ede2;
+  border-color: #4ea324;
+  color: #333;
+}
+#results-table .dt-paging .dt-paging-button:hover:not(.disabled) {
+  background: #f5f5f5;
+}
+
+/* Processing indicator */
+#results-table .dt-processing {
+  font-size: 13px;
+  color: #666;
+}
+
+/* The table element itself — DataTables scroll handles height */
+#data-table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid #eee;
+}
+
+.first-col {
   position: sticky;
-  left: 0px;
+  left: 0;
   z-index: 1;
   background-color: #fff;
 }
 
-#data-table thead tr{
+#data-table thead tr {
   z-index: 999;
-  position: sticky;
-  top: 0px;
-  font-size:14px;
+  font-size: 14px;
 }
 
-#data-table th{
+#data-table th {
   background-color: #fafafa;
-  position:sticky;
-  top:0;
-  min-width:200px;
-  font-weight:500;
-  font-size:14px;
+  min-width: 200px;
+  font-weight: 500;
+  font-size: 14px;
   vertical-align: baseline;
   text-align: left;
+  white-space: nowrap;
 }
 #data-table th:hover {
-  background-color:#f2f2f2;
-  text-decoration:underline;
-}
-#data-table th:hover :after{
-  visibility:visible;
+  background-color: #f2f2f2;
+  text-decoration: underline;
 }
 
-#data-table tbody tr{
-  border:1px solid #eee;
+#data-table tbody tr {
+  border: 1px solid #eee;
+}
+#data-table tbody tr.active {
+  background-color: #f5f5f5;
 }
 
-#data-table tbody tr.active{
-  background-color:#f5f5f5;
-}
-
-#data-table .col-1{
-  min-width:30px;
-}
-
-#data-table .col-1:after{
-  display:none;
+/* DataTables scroll body border */
+.dt-scroll-body {
+  border: 1px solid #eee;
+  margin-top: 8px;
 }
 
 /* HIGHCHART AREA FILTER */
@@ -1174,6 +1238,47 @@ ul.stats-list li{
   left: 10px;
 }
 
+/* Default state for map/table toggle icons (no inline styles on the img tags) */
+#container-map-ui-bottom .map-dark  { display: none; }
+#container-map-ui-bottom .table-white { display: none; }
+
+/* Swap icon colors when toggle is active */
+#container-map-ui-bottom .nav-map-toggle.active .map-dark,
+#container-map-ui-bottom .nav-table.active .table-white {
+  display: inline !important;
+}
+#container-map-ui-bottom .nav-map-toggle.active .map-white,
+#container-map-ui-bottom .nav-table.active .table-dark {
+  display: none !important;
+}
+
+/* =====================================================================
+   Table-mode: #container-table lives inside #container-map so the
+   filter bar stays visible. Toggled via the .table-mode class on
+   #container-map.
+   ===================================================================== */
+
+/* Table panel — hidden by default, fills the map container */
+#container-map #container-table {
+  display: none;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #fff;
+  z-index: 3; /* above map canvas, below filter bar (z-index: 5) */
+  overflow-y: auto;
+}
+
+/* table-mode: hide map canvas and map-only overlays */
+#container-map.table-mode #map { display: none; }
+#container-map.table-mode .hide-for-table { display: none; }
+#container-map.table-mode .mapboxgl-ctrl-top-left { display: none; }
+
+/* table-mode: show the table panel */
+#container-map.table-mode #container-table { display: block; }
+
 
 /* REPORT */
 
@@ -1372,11 +1477,11 @@ ul.stats-list li{
 }
 
 .dataset-header .btn-ds-filter{
-  background: url("../images/icon-filter.png") 85% 11px no-repeat;
+  background: url("icon-filter.png") 85% 11px no-repeat;
   background-size: 16px;
 }
 .dataset-header .btn-ds-sort{
-  background: url("../images/icon-sort.png") 82% 11px no-repeat;
+  background: url("icon-sort.png") 82% 11px no-repeat;
   background-size: 9px;
   margin-left:30px;
 }
@@ -1507,7 +1612,7 @@ ul.stats-list li{
   -webkit-appearance: none;
   -moz-appearance: none;
   appearance: none;
-  background-image: url('../images/icon-arrow-down-dark.png');
+  background-image: url('icon-arrow-down-dark.png');
   background-repeat: no-repeat;
   background-position: right 15px center;
   padding-right: 35px;
@@ -1519,7 +1624,7 @@ ul.stats-list li{
   background-color: #1054A8;
   border:1px solid #1054A8;
   color:#fff;
-  background-image: url('../images/icon-arrow-down-white.png');
+  background-image: url('icon-arrow-down-white.png');
 }
 
 .container-show-all{
@@ -1611,6 +1716,11 @@ ul.stats-list li{
   border-radius: 20px;
   border: 1px solid #bfbfbf;
   background-color:#fff;
+}
+
+/* Push zoom controls below the filter bar (geocoder moved to filter bar HTML) */
+.mapboxgl-ctrl-top-left {
+  margin-top: 50px;
 }
 
 .mapboxgl-ctrl-top-left .mapboxgl-ctrl{
@@ -1845,17 +1955,17 @@ ul.stats-list li{
   }
 
   .container-mobile-menu-inner ul li.nav-5 a {
-    background: url("../images/icon-GitHub.png") 30px 11px no-repeat;
+    background: url("icon-GitHub.png") 30px 11px no-repeat;
     background-size: 18px;
   }
 
   .container-mobile-menu-inner ul li.nav-6 a {
-    background: url("../images/icon-feedback.png") 30px 11px no-repeat;
+    background: url("icon-feedback.png") 30px 11px no-repeat;
     background-size: 18px;
   }
 
   .container-mobile-menu-inner ul li.nav-7 a {
-    background: url("../images/icon-email.png") 30px 11px no-repeat;
+    background: url("icon-email.png") 30px 11px no-repeat;
     background-size: 18px;
   }
 
@@ -1909,7 +2019,7 @@ ul.stats-list li{
   }
 
   .mobile-header-map-filters .btn-close-map-filters{
-    background: url("../images/icon-close-white.png") 0px 0px no-repeat;
+    background: url("icon-close-white.png") 0px 0px no-repeat;
     position: absolute;
     top: 22px;
     right: 20px;
@@ -1969,16 +2079,16 @@ ul.stats-list li{
   }
 
   .map-content-intro .btn-close-map-info{
-    background: url("../images/icon-close-dark.png") 0px 0px no-repeat;
+    background: url("icon-close-dark.png") 0px 0px no-repeat;
     background-size: 14px;
   }
   .map-content-stats .btn-close-map-info{
-    background: url("../images/icon-close-white.png") 0px 0px no-repeat;
+    background: url("icon-close-white.png") 0px 0px no-repeat;
     background-size: 14px;
   }
 
   #mobile-btn-info a{
-    background: url("../images/icon-info.png") 14px 14px no-repeat;
+    background: url("icon-info.png") 14px 14px no-repeat;
     background-size: 22px;
     border-radius: 50px;
     background-color: #fff;
@@ -1990,7 +2100,7 @@ ul.stats-list li{
   }
 
   #mobile-btn-filters a{
-    background: url("../images/icon-map-filters.png") 15px 18px no-repeat;
+    background: url("icon-map-filters.png") 15px 18px no-repeat;
     background-size: 20px;
     border-radius: 50px;
     background-color: #fff;

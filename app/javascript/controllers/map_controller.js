@@ -12,6 +12,7 @@ export default class extends Controller {
     const token = document.head.querySelector('meta[name="mapbox-token"]')?.content
     if (!token) {
       console.warn("[map] No mapbox-token meta tag found — map will not initialize")
+      this.#hideLoadingMask()
       return
     }
 
@@ -19,9 +20,10 @@ export default class extends Controller {
 
     this.map = new window.mapboxgl.Map({
       container: "map",
-      style: "mapbox://styles/cntgrid/cke9g093i0b3p1amudlyqay3t",
+      style: "mapbox://styles/mapbox/light-v11",
       center: [-97.6, 40.27],
-      zoom: 2
+      zoom: 2,
+      projection: "mercator"
     })
 
     this.map.dragRotate.disable()
@@ -46,9 +48,10 @@ export default class extends Controller {
     this.#addLayers()
     this.#bindEvents()
 
-    // Once the initial tiles settle, animate to working zoom
+    // Once the initial tiles settle, animate to working zoom and reveal the UI
     this.map.once("idle", () => {
       this.map.setZoom(3.5)
+      this.#hideLoadingMask()
     })
   }
 
@@ -65,7 +68,13 @@ export default class extends Controller {
         countries: "US",
         placeholder: "Search map..."
       })
-      this.map.addControl(geocoder, "top-left")
+      // Render geocoder into the filter bar list item rather than as a floating map control
+      const geocoderLi = document.getElementById("geocoder-li")
+      if (geocoderLi) {
+        geocoderLi.appendChild(geocoder.onAdd(this.map))
+      } else {
+        this.map.addControl(geocoder, "top-left")
+      }
     }
   }
 
@@ -351,6 +360,28 @@ export default class extends Controller {
     })
   }
 
+  zoom48() {
+    const input = document.querySelector(".mapboxgl-ctrl-geocoder--input")
+    if (input) input.value = ""
+    const closeBtn = document.querySelector(".mapboxgl-ctrl-geocoder--icon-close")
+    if (closeBtn) closeBtn.click()
+    this.map.flyTo({ center: [-97.6, 40.27], zoom: 3.5 })
+  }
+
+  zoomAk() {
+    this.map.flyTo({ center: [-149.504, 61.342], zoom: 4.9 })
+    this.map.once("idle", () => {
+      this.map.flyTo({ zoom: 5, duration: 3600 })
+    })
+  }
+
+  zoomHi() {
+    this.map.flyTo({ center: [-157.856, 21.305], zoom: 4.9 })
+    this.map.once("idle", () => {
+      this.map.flyTo({ zoom: 6, duration: 3600 })
+    })
+  }
+
   #buildHoverHtml(props) {
     const pop = props.population_served_count
       ? Number(props.population_served_count).toLocaleString("en-US")
@@ -378,5 +409,10 @@ export default class extends Controller {
       if (layer.type === "line") return layer.id
     }
     return undefined
+  }
+
+  #hideLoadingMask() {
+    const mask = document.getElementById("loading-mask")
+    if (mask) mask.style.display = "none"
   }
 }
