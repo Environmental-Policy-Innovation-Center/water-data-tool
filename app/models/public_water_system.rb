@@ -54,5 +54,11 @@ class PublicWaterSystem < ApplicationRecord
   has_many :place_system_crosswalks, foreign_key: "pwsid", dependent: :destroy
   has_many :cartographic_places, through: :place_system_crosswalks
 
+  scope :with_details, -> {
+    includes(:demographic, :violations_summary, :environmental_justice,
+      :funding_summary, :watershed_hazard, :boil_water_summary,
+      :trend_datum, :service_area_geometry)
+  }
+
   validates :pwsid, presence: true, format: {with: /\A[A-Z]{2}\d{7}\z/}
 end

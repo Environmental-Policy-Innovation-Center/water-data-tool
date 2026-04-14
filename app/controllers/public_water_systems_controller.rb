@@ -7,12 +7,6 @@ class PublicWaterSystemsController < ApplicationController
     service_area_type area_sq_miles open_health_viol
   ].freeze
 
-  DETAIL_INCLUDES = %i[
-    demographic violations_summary environmental_justice
-    funding_summary watershed_hazard boil_water_summary
-    trend_datum service_area_geometry
-  ].freeze
-
   # Human-readable headers matching the legacy datatable_export.csv output.
   # Order matters — must stay in sync with #csv_row below.
   CSV_HEADERS = [
@@ -80,7 +74,7 @@ class PublicWaterSystemsController < ApplicationController
 
   def show
     pws = PublicWaterSystem
-      .includes(*DETAIL_INCLUDES)
+      .with_details
       .find_by(pwsid: params[:pwsid])
 
     if pws
@@ -93,7 +87,7 @@ class PublicWaterSystemsController < ApplicationController
   def export
     scope = PublicWaterSystem
       .apply_filters(params)
-      .includes(*DETAIL_INCLUDES)
+      .with_details
 
     if params[:file_format] == "geojson"
       render_geojson_export(scope)
