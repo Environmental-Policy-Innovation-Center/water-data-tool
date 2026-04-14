@@ -4,7 +4,7 @@
 # limit: default page size
 # max_limit: maximum page size a client may request
 Pagy::OPTIONS[:limit_key] = "per_page"
-Pagy::OPTIONS[:limit]     = 50
+Pagy::OPTIONS[:limit] = 50
 Pagy::OPTIONS[:max_limit] = 500
 
 Pagy::OPTIONS.freeze

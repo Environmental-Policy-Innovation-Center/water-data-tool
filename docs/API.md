@@ -277,7 +277,7 @@ Accepts the same filter parameters as the index endpoint. Returns a file downloa
 
 | Param | Type | Default | Description |
 |-------|------|---------|-------------|
-| `format` | string | `csv` | `csv` or `geojson` |
+| `file_format` | string | `csv` | `csv` or `geojson`. Note: `format` is reserved by Rails for content negotiation — this param uses `file_format` to avoid conflicts. |
 
 ### CSV Response
 
