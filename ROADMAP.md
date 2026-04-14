@@ -13,7 +13,7 @@ M1–M4 are fully independent and can be worked in parallel across two people.
 
 ---
 
-- [ ] M1: ETL pipeline — S3 manifest fetch, diff/download, type casting, staging→swap transaction, post-import spatial processing (geom repair, centroids, state joins, crosswalk build, index rebuild), DataImport records, SolidQueue recurring.yml, rake tasks, specs
+- [x] M1: ETL pipeline — S3 manifest fetch, diff/download, type casting, staging→swap transaction, post-import spatial processing (geom repair, centroids, state joins, crosswalk build, index rebuild), DataImport records, SolidQueue recurring.yml, rake tasks, specs
 - [ ] M2: Vector tile endpoint — TilesController, PostGIS ST_AsMVT, TileCache read/write, 5 layers (pws/pws_points/places/counties/states), zoom-dependent simplification tolerances, specs
 - [ ] M3: PWS API — routes, PublicWaterSystemsController index/show/export, all ~50 filter params wired to Filterable#apply_filters, pagination/sorting, JSON serialization with all associations, CSV + gzipped GeoJSON export, specs
 - [ ] M4: Core UI scaffolding — application layout + nav, Tailwind config, importmap Stimulus entries, Turbo Frame region shells (filter bar, stats bar, table, detail panel), placeholder Stimulus controller stubs

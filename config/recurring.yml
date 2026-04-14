@@ -10,6 +10,14 @@
 #     schedule: at 5am every day
 
 production:
+  # Runs daily at 6am in the timezone configured via config.time_zone (default UTC).
+  # Coordinate with EPIC's data team to ensure this fires after the S3 manifest
+  # is refreshed upstream.
+  etl_import:
+    class: EtlImportJob
+    queue: default
+    schedule: every day at 6am
+
   clear_solid_queue_finished_jobs:
     command: "SolidQueue::Job.clear_finished_in_batches(sleep_between_batches: 0.3)"
     schedule: every hour at minute 12
