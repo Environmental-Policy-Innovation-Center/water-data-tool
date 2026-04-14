@@ -1,0 +1,4 @@
+pwsid,huc12,num_facilities,npdes_permits,total_permit_eff_viols,total_open_usts,total_facilities_w_rmps,streams_303d_list
+VT0000001,020401010101,5,3,1,2,1,4
+VT0000001,020401010102,3,2,0,1,0,2
+VT0000002,020401010201,8,4,2,0,2,6
