@@ -25,6 +25,11 @@ Built for [EPIC](https://www.policyinnovation.org/) (Environmental Policy Innova
 - [Git](https://git-scm.com/)
 - A [Mapbox](https://www.mapbox.com/) access token (free tier is sufficient for development)
 
+
+## Deployed Instances
+- **Staging**: https://apps.cnt.org/water-data-tool-staging/
+- **Production**: https://apps.cnt.org/water-data-tool/
+
 ---
 
 ## Quick Start
@@ -67,7 +72,7 @@ Built for [EPIC](https://www.policyinnovation.org/) (Environmental Policy Innova
 6. **Seed with sample data**
 
    ```bash
-   bin/rails db:seed:states[VT,RI]
+   bin/rails 'db:seed:states[VT,RI]'
    ```
 
    This downloads and imports data for Vermont and Rhode Island — enough to explore all features locally.
@@ -114,7 +119,7 @@ bin/rails console
 bin/rails etl:import
 
 # Run ETL import (single table)
-bin/rails etl:import[epa_sabs]
+bin/rails 'etl:import[epa_sabs]'
 
 # Stop PostgreSQL
 docker compose down
