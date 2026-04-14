@@ -75,6 +75,14 @@ RSpec.describe "Home", type: :request do
       expect(names).to eq(["Zebra Water", "Alpha Water"])
     end
 
+    it "falls back to pws_name ordering for an invalid column index" do
+      create(:public_water_system, pws_name: "Alpha Water")
+      create(:public_water_system, pws_name: "Zebra Water")
+      get table_path(format: :json), params: ssp_params.merge("order[0][column]": 999)
+      names = response.parsed_body["data"].map { |r| r["pws_name"] }
+      expect(names).to eq(["Alpha Water", "Zebra Water"])
+    end
+
     context "with filter params" do
       it "filters by gw_sw_code" do
         create(:public_water_system, gw_sw_code: "GW")

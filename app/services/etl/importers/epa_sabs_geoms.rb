@@ -31,7 +31,10 @@ module Etl
                         updated_at = NOW()
                 SQL
                 "EpaSabsGeoms#import!",
-                [row[:pwsid], row[:geom_json]]
+                [
+                  ActiveRecord::Relation::QueryAttribute.new("pwsid", row[:pwsid], ActiveModel::Type::String.new),
+                  ActiveRecord::Relation::QueryAttribute.new("geom_json", row[:geom_json], ActiveModel::Type::String.new)
+                ]
               )
             end
           end

@@ -33,7 +33,7 @@
       </p>
     </div>
     <% if @last_updated %>
-      <p><strong>Last updated on:</strong><br /><span style="font-size: 80%;" class="last-updated-date"><%= @last_updated.strftime("%m/%d/%Y at %I:%M %p EST") %></span></p>
+      <p><strong>Last updated on:</strong><br /><span style="font-size: 80%;" class="last-updated-date"><%= @last_updated.in_time_zone("Eastern Time (US & Canada)").strftime("%m/%d/%Y at %I:%M %p %Z") %></span></p>
     <% end %>
   </div>
 </div>

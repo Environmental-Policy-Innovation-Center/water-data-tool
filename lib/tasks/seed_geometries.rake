@@ -39,6 +39,8 @@ namespace :db do
         bounds = state_bounds[stusps]
 
         # ── 1. Seed cartographic_states with a simplified bounding box ──────────
+        # Safety: all interpolated values come from the hardcoded state_bounds hash
+        # above — no user input reaches these queries.
         conn.execute(<<~SQL)
           INSERT INTO cartographic_states (gid, statefp, stusps, geoid, name, geom)
           VALUES (

@@ -80,7 +80,7 @@ class HomeController < ApplicationController
     col_idx = params.dig("order", "0", "column").to_i
     dir = (params.dig("order", "0", "dir") == "desc") ? "DESC" : "ASC"
     col = ORDERABLE_COLUMNS.fetch(col_idx, "public_water_systems.pws_name")
-    "#{col} #{dir}"
+    Arel.sql("#{col} #{dir}")
   end
 
   def row_for(pws) # rubocop:disable Metrics/MethodLength

@@ -18,6 +18,10 @@ class TilesController < ApplicationController
     x = params[:x].to_i
     y = params[:y].to_i
 
+    raise ActionController::BadRequest, "z out of range" unless z.between?(0, 22)
+    raise ActionController::BadRequest, "x out of range" unless x.between?(0, (2**z) - 1)
+    raise ActionController::BadRequest, "y out of range" unless y.between?(0, (2**z) - 1)
+
     mvt_binary = build_tile(z, x, y)
 
     response.headers["Cache-Control"] = "public, max-age=600"
@@ -30,6 +34,8 @@ class TilesController < ApplicationController
     cached = TileCache.where(z: z, x: x, y: y).index_by(&:layer)
     simp = simplification_tolerance(z)
 
+    # MVT is protobuf — concatenating multiple layer blobs into one binary
+    # is safe because protobuf wire format merges repeated message fields on decode.
     LAYERS.each_with_object("".b) do |layer, result|
       mvt = if cached[layer]
         cached[layer].mvt.to_s
@@ -70,6 +76,9 @@ class TilesController < ApplicationController
   end
 
   # rubocop:disable Metrics/MethodLength
+  # Safety: z, x, y are coerced via .to_i and range-validated in #show.
+  # simp is a hardcoded Float from SIMPLIFICATION. No user-controlled data
+  # is interpolated into these queries.
   def layer_sql(layer, z, x, y, simp)
     case layer
     when "pws"

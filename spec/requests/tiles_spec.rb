@@ -57,5 +57,22 @@ RSpec.describe "Tiles", type: :request do
         expect(response).to have_http_status(:ok)
       end
     end
+
+    context "with out-of-range parameters" do
+      it "rejects z above 22" do
+        get tile_path(z: 23, x: 0, y: 0)
+        expect(response).to have_http_status(:bad_request)
+      end
+
+      it "rejects x outside tile grid" do
+        get tile_path(z: 2, x: 4, y: 0)
+        expect(response).to have_http_status(:bad_request)
+      end
+
+      it "rejects y outside tile grid" do
+        get tile_path(z: 2, x: 0, y: 4)
+        expect(response).to have_http_status(:bad_request)
+      end
+    end
   end
 end

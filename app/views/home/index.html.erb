@@ -229,7 +229,7 @@
 <div class="mobile-footer hide-for-desktop">
   <%= image_tag "EPIC-logo.png" %>
   <% if @last_updated %>
-    <p>Last updated on <%= @last_updated.strftime("%m/%d/%Y at %I:%M %p EST") %></p>
+    <p>Last updated on <%= @last_updated.in_time_zone("Eastern Time (US & Canada)").strftime("%m/%d/%Y at %I:%M %p %Z") %></p>
   <% end %>
   <p>(cc) Environmental Policy Innovation Center (EPIC)</p>
 </div>

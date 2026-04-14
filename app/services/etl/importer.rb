@@ -46,7 +46,7 @@ module Etl
         begin
           result = klass.new(file_url: entry["http_path"], last_updated: last_updated, force: @force).call
           geometry_imported = true if file_key == "epa_sabs_geoms" && result == :imported
-        rescue => e
+        rescue => e # StandardError only — intentional fault isolation per importer
           errors << {file_key: file_key, error: e}
           Rails.logger.error("[ETL] #{file_key} failed: #{e.class} — #{e.message}")
         end
