@@ -53,7 +53,7 @@ Built for [EPIC](https://www.policyinnovation.org/) (Environmental Policy Innova
    cp .env.example .env
    ```
 
-   Edit `.env` and add your Mapbox access token. The default `DATABASE_URL` points to the Docker Compose PostgreSQL service.
+   Edit `.env` and add your Mapbox access token. Most developers only need `MAPBOX_ACCESS_TOKEN` — see the Environment Variables section below if you have a port conflict with a local PostgreSQL install.
 
 4. **Start PostgreSQL**
 
@@ -63,21 +63,15 @@ Built for [EPIC](https://www.policyinnovation.org/) (Environmental Policy Innova
 
    This starts a PostGIS-enabled PostgreSQL container. The database runs on `localhost:5432`.
 
-5. **Set up the database**
+5. **Set up the databases**
 
    ```bash
    bin/rails db:setup
    ```
 
-6. **Seed with sample data**
+   Creates both the development and test databases, loads the schema, and seeds sample data into development. See `db/seeds.rb` for details on what gets loaded.
 
-   ```bash
-   bin/rails 'db:seed:states[VT,RI]'
-   ```
-
-   This downloads and imports data for Vermont and Rhode Island — enough to explore all features locally.
-
-7. **Start the app**
+6. **Start the app**
 
    ```bash
    bin/dev
@@ -92,7 +86,7 @@ Built for [EPIC](https://www.policyinnovation.org/) (Environmental Policy Innova
 | Variable | Required | Description |
 |----------|----------|-------------|
 | `MAPBOX_ACCESS_TOKEN` | Yes | Mapbox GL JS token for map rendering |
-| `DATABASE_URL` | No | PostgreSQL connection string (defaults to `postgres://postgres:postgres@localhost:5432/water_data_tool_development`) |
+| `DB_PORT` | No | PostgreSQL port (default `5432`). Only needed if your Docker container is mapped to a non-default port to avoid a conflict with a local PostgreSQL install — see `docker-compose.override.yml`. |
 | `AWS_ACCESS_KEY_ID` | No | For ETL pipeline S3 access (not needed for local dev with seed data) |
 | `AWS_SECRET_ACCESS_KEY` | No | For ETL pipeline S3 access |
 | `AWS_REGION` | No | Defaults to `us-east-1` |
