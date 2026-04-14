@@ -4,17 +4,18 @@ require "rails_helper"
 # Tests verify that each step runs without error and produces the expected
 # spatial data given a pre-seeded ServiceAreaGeometry.
 #
-# A minimal valid MultiPolygon geometry is inserted directly via SQL for
-# each test to avoid RGeo dependency in specs.
-# A small valid MultiPolygon covering part of Vermont, fully contained
-# within the VT cartographic_state boundary (if loaded).
+# Geometries are inserted directly via SQL to avoid RGeo dependency in specs.
+
+# A small valid MultiPolygon covering part of Vermont (SRID 4326).
 VERMONT_WKT = "MULTIPOLYGON(((-72.6 44.2, -72.5 44.2, -72.5 44.3, -72.6 44.3, -72.6 44.2)))".freeze
+
+# A bounding box large enough to contain Vermont — used as the cartographic
+# state geometry so assign_state_codes can match centroids.
+VERMONT_STATE_WKT = "MULTIPOLYGON(((-73.5 42.7, -71.5 42.7, -71.5 45.2, -73.5 45.2, -73.5 42.7)))".freeze
 
 RSpec.describe Etl::PostImportSteps do
   let(:conn) { ApplicationRecord.connection }
 
-  # Insert a real MultiPolygon geometry for VT0000001 via raw SQL so we can
-  # test PostGIS operations without needing the RGeo factory in specs.
   def insert_geometry(pwsid, wkt)
     conn.execute(<<~SQL)
       INSERT INTO service_area_geometries (pwsid, geom, created_at, updated_at)
@@ -24,6 +25,21 @@ RSpec.describe Etl::PostImportSteps do
         NOW(), NOW()
       )
       ON CONFLICT (pwsid) DO UPDATE SET geom = EXCLUDED.geom
+    SQL
+  end
+
+  def insert_state(stusps, wkt)
+    conn.execute(<<~SQL)
+      INSERT INTO cartographic_states (gid, stusps, geoid, name, statefp, geom)
+      VALUES (
+        1,
+        #{conn.quote(stusps)},
+        '50',
+        'Vermont',
+        '50',
+        ST_GeomFromText(#{conn.quote(wkt)}, 4326)
+      )
+      ON CONFLICT (gid) DO UPDATE SET stusps = EXCLUDED.stusps, geom = EXCLUDED.geom
     SQL
   end
 
@@ -47,10 +63,14 @@ RSpec.describe Etl::PostImportSteps do
   end
 
   describe ".assign_state_codes" do
-    it "runs without error" do
-      # cartographic_states may not be loaded in test env; we just verify
-      # no exception is raised and the SQL is valid
-      expect { described_class.assign_state_codes }.not_to raise_error
+    before do
+      insert_state("VT", VERMONT_STATE_WKT)
+      described_class.generate_centroids
+    end
+
+    it "sets stusps on public water systems whose centroid falls within a state geometry" do
+      described_class.assign_state_codes
+      expect(PublicWaterSystem.find_by(pwsid: "VT0000001").stusps).to eq("VT")
     end
   end
 
@@ -73,6 +93,8 @@ RSpec.describe Etl::PostImportSteps do
   end
 
   describe ".call" do
+    before { insert_state("VT", VERMONT_STATE_WKT) }
+
     it "runs all steps in sequence without error" do
       expect { described_class.call }.not_to raise_error
     end
@@ -81,6 +103,11 @@ RSpec.describe Etl::PostImportSteps do
       described_class.call
       sag = ServiceAreaGeometry.find_by(pwsid: "VT0000001")
       expect(sag.centroid).not_to be_nil
+    end
+
+    it "assigns state codes as part of the full run" do
+      described_class.call
+      expect(PublicWaterSystem.find_by(pwsid: "VT0000001").stusps).to eq("VT")
     end
   end
 end

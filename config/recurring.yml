@@ -10,6 +10,10 @@
 #     schedule: at 5am every day
 
 production:
+  # Production-only: ETL_MANIFEST_URL and S3 credentials are only configured in
+  # the production environment. Staging/review environments skip this schedule
+  # intentionally — run etl:import manually there if needed.
+  #
   # Runs daily at 6am in the timezone configured via config.time_zone (default UTC).
   # Coordinate with EPIC's data team to ensure this fires after the S3 manifest
   # is refreshed upstream.

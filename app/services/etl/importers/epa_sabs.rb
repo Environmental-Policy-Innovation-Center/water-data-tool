@@ -11,7 +11,7 @@ module Etl
           rows << {
             pwsid: row["pwsid"],
             pws_name: row["pws_name"],
-            stusps: row["pwsid"]&.[](0, 2),
+            stusps: row["pwsid"]&.[](0, 2), # positional prefix; covers US territories (PR, VI, etc.) correctly
             primacy_agency: row["primacy_agency"],
             pop_cat_5: row["pop_cat_5"],
             population_served_count: cast_int(row["population_served_count"]),

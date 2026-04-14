@@ -38,7 +38,7 @@ module Etl
             water_rate_500_749: cast_dec(row["water_rate_between_500_749_per"]),
             water_rate_750_999: cast_dec(row["water_rate_between_750_999_per"]),
             water_rate_over_1000: cast_dec(row["water_rate_over_1000_per"]),
-            most_common_rate_tier: row["most_common_rate_tidy"],
+            most_common_rate_tier: row["most_common_rate_tidy"], # upstream column is misspelled "tidy"; schema uses "tier"
             created_at: Time.current,
             updated_at: Time.current
           }

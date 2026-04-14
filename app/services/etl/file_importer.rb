@@ -1,9 +1,11 @@
-require "open-uri"
-
 module Etl
   class FileImporter
+    include Etl::HttpFetcher
+
     EmptyImportError = Class.new(StandardError)
-    InsecureUrlError = Class.new(ArgumentError)
+
+    # Backward-compatible alias — existing code and specs reference this constant.
+    InsecureUrlError = Etl::HttpFetcher::InsecureUrlError
 
     def initialize(file_url:, last_updated:, force: false)
       @file_url = file_url
@@ -35,12 +37,11 @@ module Etl
       fetch_url(@file_url)
     end
 
-    def fetch_url(url)
-      uri = URI.parse(url)
-      raise InsecureUrlError, "Only HTTPS URLs are permitted, got: #{uri.scheme}://" unless uri.is_a?(URI::HTTPS)
-      uri.open.read
-    end
-
+    # Validates that parse returned a non-empty result.
+    #
+    # Contract: subclasses that return a non-Array from +parse+ (e.g. a Hash
+    # of sub-collections) MUST override this method and call +empty?+ on each
+    # relevant sub-collection themselves.
     def validate!(rows)
       raise EmptyImportError, "Import produced 0 rows for #{@file_url}" if rows.empty?
     end

@@ -1,11 +1,12 @@
-require "open-uri"
-
 module Etl
   # Orchestrates a full ETL run: fetch the S3 manifest, diff timestamps,
   # dispatch each source file to its importer, and run post-import steps
   # when geometry data was refreshed.
   class Importer
-    InsecureUrlError = Class.new(ArgumentError)
+    include Etl::HttpFetcher
+
+    # Backward-compatible alias — existing code and specs reference this constant.
+    InsecureUrlError = Etl::HttpFetcher::InsecureUrlError
 
     # Maps the filename stem from the S3 manifest to the importer class.
     FILE_IMPORTERS = {
@@ -60,12 +61,6 @@ module Etl
 
     def fetch_manifest
       JSON.parse(fetch_url(@manifest_url))
-    end
-
-    def fetch_url(url)
-      uri = URI.parse(url)
-      raise InsecureUrlError, "Only HTTPS URLs are permitted, got: #{uri.scheme}://" unless uri.is_a?(URI::HTTPS)
-      uri.open.read
     end
 
     # Derive the file key from the filename stem of the URL path.

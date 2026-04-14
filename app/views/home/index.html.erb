@@ -1,0 +1,201 @@
+<%# Mobile header (hidden on desktop via CSS) %>
+<div class="mobile-header hide-for-desktop">
+  <div class="m-header-left"><%= image_tag "logo-drinking-water-explorer.png", class: "logo" %></div>
+  <h1>Drinking Water Explorer</h1>
+  <div class="m-header-right">
+    <a href="javascript:void(0)" id="mobile-menu-toggle" class="mobile-btn closed">
+      <%= image_tag "icon-mobile-menu.png", class: "mm-icon-bars" %>
+      <%= image_tag "icon-mobile-menu-x.png", class: "mm-icon-x hidden" %>
+    </a>
+  </div>
+</div>
+
+<%# Loading mask — hidden by map_controller once map is ready %>
+<div id="loading-mask">
+  <p>LOADING DATA...</p>
+</div>
+
+<%# Active filter tag list (shown above map when filters are applied) %>
+<div id="filter-list-container" style="display:none;">
+  <small>Active Filters</small>
+  <ul id="filter-list">
+    <%# Filled dynamically by filter_controller %>
+  </ul>
+</div>
+
+<%# Left sidebar navigation %>
+<%= render "sidebar" %>
+
+<%# =====================================================
+    Map view (default section)
+    ===================================================== %>
+<div id="container-map" class="container-main-content"
+     data-controller="map"
+     data-map-tile-url-value="/tiles/{z}/{x}/{y}">
+
+  <%# Filter tab bar %>
+  <div id="container-map-ui-top" class="container-map-ui">
+    <ul>
+      <li class="filter-1">
+        <div class="container-filter-count container-filter-count-menu-1">
+          <span class="filter-count-group-1">0</span>
+        </div>
+        <a href="javascript:void(0);" data-menu="1" class="filter-menu-btn" id="container-menu-btn-1">Source</a>
+      </li>
+      <li class="filter-2">
+        <div class="container-filter-count container-filter-count-menu-2">
+          <span class="filter-count-group-2">0</span>
+        </div>
+        <a href="javascript:void(0);" data-menu="2" class="filter-menu-btn" id="container-menu-btn-2">Attributes</a>
+      </li>
+      <li class="filter-3">
+        <div class="container-filter-count container-filter-count-menu-3">
+          <span class="filter-count-group-3">0</span>
+        </div>
+        <a href="javascript:void(0);" data-menu="3" class="filter-menu-btn" id="container-menu-btn-3">Boundaries</a>
+      </li>
+      <li class="filter-4">
+        <div class="container-filter-count container-filter-count-menu-4">
+          <span class="filter-count-group-4">0</span>
+        </div>
+        <a href="javascript:void(0);" data-menu="4" class="filter-menu-btn" id="container-menu-btn-4">Compliance</a>
+      </li>
+      <li class="filter-5">
+        <div class="container-filter-count container-filter-count-menu-5">
+          <span class="filter-count-group-5">0</span>
+        </div>
+        <a href="javascript:void(0);" data-menu="5" class="filter-menu-btn" id="container-menu-btn-5">Population</a>
+      </li>
+    </ul>
+  </div>
+
+  <%# Filter dropdown menus %>
+  <%= render "filter_menus" %>
+
+  <%# Mapbox GL JS canvas %>
+  <div id="map"></div>
+
+  <%# Stats overlay (populated by M7 via Turbo Frame) %>
+  <turbo-frame id="stats-bar">
+    <%# Stats populated after M3 API lands %>
+  </turbo-frame>
+
+  <%# Detail panel (populated by M8 via Turbo Frame on map click) %>
+  <turbo-frame id="detail-panel">
+    <%# PWS detail populated after M3 API lands %>
+  </turbo-frame>
+</div>
+
+<%# =====================================================
+    Table view (hidden until user navigates to it)
+    ===================================================== %>
+<div id="container-table" class="container-main-content hidden">
+  <div class="container-section-inner">
+    <div class="table-header">
+      <div class="table-head-col-1">
+        <p><strong>Public Water Utilities <span class="geo-filter"></span></strong></p>
+      </div>
+      <div class="table-head-col-2">
+        <a href="javascript:void(0);" class="btn-export" data-controller="export">
+          <%= image_tag "icon-downloads-white.png" %>Export
+        </a>
+        <input type="radio" name="file-type" id="file-csv" checked="checked"/><label for="file-csv">.csv</label>
+        <input type="radio" name="file-type" id="file-geojson" class="file-geojson" /><label for="file-geojson" class="file-geojson">.geojson</label>
+      </div>
+    </div>
+
+    <%# Table populated by M7 via Turbo Frame %>
+    <turbo-frame id="results-table">
+      <table id="data-table" class="display stripe"></table>
+    </turbo-frame>
+  </div>
+</div>
+
+<%# =====================================================
+    Datasets section (hidden until user navigates)
+    ===================================================== %>
+<div id="container-datasets" class="container-main-content hidden">
+  <div class="container-section-inner">
+    <h3 class="placeholder">Datasets</h3>
+  </div>
+</div>
+
+<%# =====================================================
+    Documentation section
+    ===================================================== %>
+<div id="container-documentation" class="container-main-content hidden">
+  <div class="container-section-inner">
+    <h3 class="placeholder">Documentation</h3>
+  </div>
+</div>
+
+<%# =====================================================
+    Downloads section (hidden until user navigates)
+    ===================================================== %>
+<div id="container-downloads" class="container-main-content hidden">
+  <div class="container-section-inner">
+    <h3 class="placeholder">Downloads</h3>
+  </div>
+</div>
+
+<%# =====================================================
+    PWS Report overlay (hidden, toggled on map click)
+    ===================================================== %>
+<div id="container-report" class="hidden">
+  <a href="javascript:void(0);" onclick="window.print()" id="tt-print-report" class="btn-report btn-print-report"><%= image_tag "icon-print.png" %></a>
+  <a href="javascript:void(0);" id="tt-close-report" class="btn-report btn-close-report"><%= image_tag "icon-close.png" %></a>
+
+  <div class="container-report-section-inner">
+    <div class="header">
+      <div class="header-logo">
+        <div class="id-logo">
+          <%= image_tag "logo-drinking-water-explorer.png", class: "logo" %>
+        </div>
+        <div class="id-text">
+          <p>Drinking</p>
+          <p>Water</p>
+          <p>Explorer</p>
+        </div>
+      </div>
+      <div class="header-title">
+        <p style="margin-bottom:10px;">Utility Report</p>
+        <p><strong>Utility Name: </strong><span class="report-utility-name"></span></p>
+        <p><strong>System ID: </strong><span class="report-system-id"></span></p>
+        <p><strong><span class="report-city">City</span>, <span class="report-state">State</span></strong></p>
+      </div>
+    </div>
+    <div class="clearfix"></div>
+    <div class="container-report-body">
+      <turbo-frame id="report-body">
+        <%# Report content populated after M3 + M8 land %>
+      </turbo-frame>
+    </div>
+  </div>
+</div>
+
+<%# Mobile footer (hidden on desktop) %>
+<div class="mobile-footer hide-for-desktop">
+  <%= image_tag "EPIC-logo.png" %>
+  <% if @last_updated %>
+    <p>Last updated on <%= @last_updated.strftime("%m/%d/%Y at %I:%M %p EST") %></p>
+  <% end %>
+  <p>(cc) Environmental Policy Innovation Center (EPIC)</p>
+</div>
+
+<%# Mobile menu overlay %>
+<div id="container-mobile-menu" class="" style="display:none;">
+  <div class="container-mobile-menu-inner">
+    <p><strong>How to use this tool:</strong></p>
+    <p>Search or zoom into the map to see information about public drinking water systems in areas of interest. Use the filters to customize the display.</p>
+    <ul>
+      <li class="nav-1"><a href="javascript:void(0);" data-section="map" class="nav-item nav-1 nav-map active">Explore the Map</a></li>
+      <li class="nav-2"><a href="javascript:void(0);" data-section="datasets" class="nav-item nav-2 nav-datasets">Datasets</a></li>
+      <li class="nav-3"><a href="https://tech-team-data.s3.us-east-1.amazonaws.com/national-dw-tool/public-data-downloads/EPIC's+Drinking+Water+Explorer+Tool+-+Methodology.pdf" target="_blank" class="nav-item nav-3 nav-documentation">Documentation</a></li>
+      <li class="nav-4"><a href="javascript:void(0);" data-section="downloads" class="nav-item nav-4 nav-downloads">Downloads</a></li>
+      <li class="nav-5"><a href="https://github.com/Environmental-Policy-Innovation-Center/national-dw-tool-public" target="_blank" class="nav-item nav-5">Github</a></li>
+      <li class="nav-6"><a href="https://docs.google.com/forms/d/e/1FAIpQLSdj-JcAmFNHnyEGoou74kyL_R1YOUtsFG4dKlYl0TWWwkUcrg/viewform" target="_blank" class="nav-item nav-6">Feedback</a></li>
+      <li class="nav-7"><a href="mailto:watertool@policyinnovation.org" class="nav-item nav-7">Contact EPIC</a></li>
+    </ul>
+    <p style="margin:40px 0px 0px 20px;">(<a href="https://creativecommons.org/share-your-work/cclicenses/" target="_blank">cc</a>) Environmental Policy<br/>Center (EPIC)</p>
+  </div>
+</div>

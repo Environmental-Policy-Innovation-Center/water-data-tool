@@ -73,7 +73,10 @@ module Etl
 
       private
 
-      # Override: rows is a Hash, not an Array — validate both sub-collections.
+      # Override: +parse+ returns a Hash, not an Array. FileImporter#validate!
+      # calls +rows.empty?+ which would check the Hash itself (always non-empty
+      # once both keys exist), not the sub-collections. We validate each
+      # sub-collection individually instead.
       def validate!(rows)
         if rows[:pws_rows].empty? || rows[:viol_rows].empty?
           raise Etl::FileImporter::EmptyImportError, "Import produced 0 rows for #{@file_url}"

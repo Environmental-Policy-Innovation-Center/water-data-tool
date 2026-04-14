@@ -19,28 +19,37 @@ module Etl
 
     def fix_invalid_geometries
       conn = ApplicationRecord.connection
-      MAX_REPAIR_ITERATIONS.times do
+      all_valid = false
+      MAX_REPAIR_ITERATIONS.times do |i|
         result = conn.execute(<<~SQL)
           UPDATE service_area_geometries
           SET geom = ST_Buffer(geom, 0)
           WHERE ST_IsValid(geom) = false
         SQL
-        return if result.cmd_tuples == 0
+        if result.cmd_tuples == 0
+          Rails.logger.info("[ETL] fix_invalid_geometries: complete after #{i} iteration(s)")
+          all_valid = true
+          break
+        end
+        Rails.logger.info("[ETL] fix_invalid_geometries: iteration #{i + 1} repaired #{result.cmd_tuples} geometry(ies)")
       end
-      Rails.logger.warn("[ETL] fix_invalid_geometries reached #{MAX_REPAIR_ITERATIONS} iterations — some geometries may still be invalid")
+      unless all_valid
+        Rails.logger.warn("[ETL] fix_invalid_geometries reached #{MAX_REPAIR_ITERATIONS} iterations — some geometries may still be invalid")
+      end
     end
 
     # Populate centroid using ST_PointOnSurface (guaranteed inside polygon).
     def generate_centroids
-      ApplicationRecord.connection.execute(<<~SQL)
+      result = ApplicationRecord.connection.execute(<<~SQL)
         UPDATE service_area_geometries
         SET centroid = ST_PointOnSurface(geom)
       SQL
+      Rails.logger.info("[ETL] generate_centroids: updated #{result.cmd_tuples} row(s)")
     end
 
     # Join centroids to cartographic_states to assign the stusps code.
     def assign_state_codes
-      ApplicationRecord.connection.execute(<<~SQL)
+      result = ApplicationRecord.connection.execute(<<~SQL)
         UPDATE public_water_systems pws
         SET stusps = cs.stusps
         FROM service_area_geometries sag
@@ -48,11 +57,12 @@ module Etl
         WHERE pws.pwsid = sag.pwsid
           AND sag.centroid IS NOT NULL
       SQL
+      Rails.logger.info("[ETL] assign_state_codes: updated #{result.cmd_tuples} row(s)")
     end
 
     # Aggregate intersecting county names into the denormalized counties column.
     def build_county_associations
-      ApplicationRecord.connection.execute(<<~SQL)
+      result = ApplicationRecord.connection.execute(<<~SQL)
         UPDATE public_water_systems pws
         SET counties = sub.counties
         FROM (
@@ -65,6 +75,7 @@ module Etl
         ) sub
         WHERE pws.pwsid = sub.pwsid
       SQL
+      Rails.logger.info("[ETL] build_county_associations: updated #{result.cmd_tuples} row(s)")
     end
 
     # Rebuild the place_system_crosswalks table from spatial intersections.
@@ -73,7 +84,7 @@ module Etl
       ApplicationRecord.connection.transaction do
         ApplicationRecord.connection.execute("DELETE FROM place_system_crosswalks")
 
-        ApplicationRecord.connection.execute(<<~SQL)
+        inserted = ApplicationRecord.connection.execute(<<~SQL).cmd_tuples
           INSERT INTO place_system_crosswalks (geoid, pwsid, created_at, updated_at)
           SELECT cp.geoid, sag.pwsid, NOW(), NOW()
           FROM cartographic_places cp
@@ -90,10 +101,12 @@ module Etl
           WHERE psc.pwsid = sag.pwsid AND psc.geoid = cp.geoid
         SQL
 
-        ApplicationRecord.connection.execute(<<~SQL)
+        pruned = ApplicationRecord.connection.execute(<<~SQL).cmd_tuples
           DELETE FROM place_system_crosswalks
           WHERE fraction_of_service_area < 0.01 OR fraction_of_place < 0.01
         SQL
+
+        Rails.logger.info("[ETL] build_place_crosswalks: inserted #{inserted}, pruned #{pruned} crosswalk(s)")
       end
     end
 
@@ -102,10 +115,10 @@ module Etl
     # transaction-safe; ANALYZE refreshes planner statistics.
     def rebuild_spatial_indexes
       conn = ApplicationRecord.connection
-
       conn.execute("REINDEX INDEX index_service_area_geometries_on_geom")
       conn.execute("REINDEX INDEX index_service_area_geometries_on_centroid")
       conn.execute("ANALYZE service_area_geometries")
+      Rails.logger.info("[ETL] rebuild_spatial_indexes: complete")
     end
   end
 end

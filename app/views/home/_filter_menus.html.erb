@@ -1,0 +1,150 @@
+<%# Filter dropdown menus — rendered inside #container-map, positioned absolutely %>
+<%# Full filter wiring happens in M6 (depends on M3 PWS API). These are structural shells. %>
+
+<!-- 1. SOURCE -->
+<div id="container-menu-1" class="container-menu" style="display:none;">
+  <div id="main-filter-grp-1"></div>
+  <div id="container-menu-1-items">
+    <h3>Primary type</h3>
+    <ul>
+      <li><input type="radio" name="water-source" id="ws-both" checked="checked" /><label for="ws-both">Both ground and surface</label></li>
+      <li><input type="radio" name="water-source" id="ws-ground" /><label for="ws-ground">Ground only</label></li>
+      <li><input type="radio" name="water-source" id="ws-surface" /><label for="ws-surface">Surface only</label></li>
+    </ul>
+    <h3>Protection</h3>
+    <ul>
+      <li><input type="checkbox" class="toggle" id="has-source-water-protection"><label for="has-source-water-protection">Has source protection</label></li>
+    </ul>
+  </div>
+  <div class="filter-menu-footer">
+    <a href="javascript:void(0);" class="btn-filters">Reset</a>
+    <a href="javascript:void(0);" class="btn-filters btn-apply-filters">Apply</a>
+  </div>
+</div>
+
+<!-- 2. ATTRIBUTES -->
+<div id="container-menu-2" class="container-menu" style="display:none;">
+  <div id="main-filter-grp-2"></div>
+  <div id="container-menu-2-items">
+    <h3>Ownership</h3>
+    <ul>
+      <li><input type="checkbox" class="toggle select-all default-checked rounded-checkbox" id="type-deselect-all" checked="checked"><label for="type-deselect-all" id="type-deselect-all-txt">Deselect all</label></li>
+      <li><input type="checkbox" class="toggle default-checked checkbox-type" checked="checked" id="type-federal-government"><label for="type-federal-government">Federal</label></li>
+      <li><input type="checkbox" class="toggle default-checked checkbox-type" checked="checked" id="type-state-government"><label for="type-state-government">State</label></li>
+      <li><input type="checkbox" class="toggle default-checked checkbox-type" checked="checked" id="type-local-government"><label for="type-local-government">Local</label></li>
+      <li><input type="checkbox" class="toggle default-checked checkbox-type" checked="checked" id="type-native-american"><label for="type-native-american">Tribal</label></li>
+      <li><input type="checkbox" class="toggle default-checked checkbox-type" checked="checked" id="type-private"><label for="type-private">Private</label></li>
+      <li><input type="checkbox" class="toggle default-checked checkbox-type" checked="checked" id="type-public-private"><label for="type-public-private">Public/Private partnership</label></li>
+    </ul>
+    <h3>Authority</h3>
+    <ul>
+      <li><input type="checkbox" class="toggle default-checked" checked="checked" id="primacy-type-state"><label for="primacy-type-state">State</label></li>
+      <li><input type="checkbox" class="toggle default-checked" checked="checked" id="primacy-type-tribal"><label for="primacy-type-tribal">Tribal</label></li>
+      <li><input type="checkbox" class="toggle default-checked" checked="checked" id="primacy-type-territory"><label for="primacy-type-territory">Territory</label></li>
+    </ul>
+    <h3>Distribution</h3>
+    <ul>
+      <li><input type="checkbox" class="toggle" id="is-wholesaler"><label for="is-wholesaler">Wholesaler</label></li>
+    </ul>
+    <h3>Facility type</h3>
+    <ul>
+      <li><input type="checkbox" class="toggle" id="is-school-or-daycare"><label for="is-school-or-daycare">School or daycare</label></li>
+    </ul>
+  </div>
+  <div class="filter-menu-footer">
+    <a href="javascript:void(0);" class="btn-filters">Reset</a>
+    <a href="javascript:void(0);" class="btn-filters btn-apply-filters">Apply</a>
+  </div>
+</div>
+
+<!-- 3. BOUNDARIES -->
+<div id="container-menu-3" class="container-menu" style="display:none;">
+  <div id="main-filter-grp-3"></div>
+  <div id="container-menu-3-items">
+    <h3>Type</h3>
+    <ul>
+      <li><input type="radio" name="boundary-type" id="bt-both" checked="checked" /><label for="bt-both">Both modeled and system sourced</label></li>
+      <li><input type="radio" name="boundary-type" id="bt-modeled" /><label for="bt-modeled">Modeled only</label></li>
+      <li><input type="radio" name="boundary-type" id="bt-system" /><label for="bt-system">System sourced only</label></li>
+    </ul>
+    <h3>Size</h3>
+    <p><strong>Area in square miles</strong></p>
+    <div class="dropdown-selectors">
+      <select id="area-min" class="toggle-select min-select left">
+        <option value="0" selected>No minimum</option>
+        <option value="1">1</option><option value="2">2</option><option value="4">4</option>
+        <option value="5">5</option><option value="10">10</option><option value="15">15</option>
+        <option value="20">20</option><option value="25">25</option><option value="50">50</option>
+        <option value="100">100</option><option value="250">250</option><option value="500">500</option>
+      </select>
+      <select id="area-max" class="toggle-select max-select right">
+        <option value="1">1</option><option value="2">2</option><option value="4">4</option>
+        <option value="5">5</option><option value="10">10</option><option value="15">15</option>
+        <option value="20">20</option><option value="25">25</option><option value="50">50</option>
+        <option value="100">100</option><option value="250">250</option><option value="500">500</option>
+        <option value="999999" selected>No maximum</option>
+      </select>
+    </div>
+  </div>
+  <div class="filter-menu-footer">
+    <a href="javascript:void(0);" class="btn-filters">Reset</a>
+    <a href="javascript:void(0);" class="btn-filters btn-apply-filters">Apply</a>
+  </div>
+</div>
+
+<!-- 4. COMPLIANCE -->
+<div id="container-menu-4" class="container-menu">
+  <div id="main-filter-grp-4"></div>
+  <div id="container-menu-4-items">
+    <h3>Violations</h3>
+    <ul>
+      <li><input type="checkbox" class="toggle" id="compliance-open-violations"><label for="compliance-open-violations">Open violations</label></li>
+      <li><input type="checkbox" class="" id="viols-health-5yrs"><label for="viols-health-5yrs">Health violations in the last 5 years</label></li>
+      <li><input type="checkbox" class="" id="viols-health"><label for="viols-health">Health violations in the last 10 years</label></li>
+      <li><input type="checkbox" class="toggle" id="viols-paperwork-5yrs"><label for="viols-paperwork-5yrs">Non-health violations in the last 5 years</label></li>
+      <li><input type="checkbox" class="toggle" id="viols-paperwork"><label for="viols-paperwork">Non-health violations in the last 10 years</label></li>
+    </ul>
+    <h3>Notices</h3>
+    <ul>
+      <li><input type="checkbox" class="toggle" disabled="disabled" id="boil-water-notices"><label style="color: #888;" for="boil-water-notices">Boil water notices <span class="bwn-disabled-txt">(data unavailable <span class="geo-filter"></span>)</span></label></li>
+    </ul>
+  </div>
+  <div class="filter-menu-footer">
+    <a href="javascript:void(0);" class="btn-filters">Reset</a>
+    <a href="javascript:void(0);" class="btn-filters btn-apply-filters">Apply</a>
+  </div>
+</div>
+
+<!-- 5. POPULATION -->
+<div id="container-menu-5" class="container-menu">
+  <div id="main-filter-grp-5"></div>
+  <div id="container-menu-5-items">
+    <h3 class="visible-in-main">Size</h3>
+    <div class="container-population-filter-grid">
+      <a href="javascript:void(0);" id="pop-very-small" class="toggle pop-size-box pop-size-box-first pop-size-1">Very small<span>500 or less</span></a><a href="javascript:void(0);" id="pop-small" class="toggle pop-size-box pop-size-2">Small<span>501 - 3,300</span></a><a href="javascript:void(0);" id="pop-medium" class="toggle pop-size-box pop-size-3">Medium<span>3,301 - 10,000</span></a><a href="javascript:void(0);" id="pop-large" class="toggle pop-size-box pop-size-4">Large<span>10,001 - 100,000</span></a><a href="javascript:void(0);" id="pop-very-large" class="toggle pop-size-box pop-size-box-last pop-size-5">Very large<span>100,000+</span></a>
+      <div class="clear"></div>
+    </div>
+    <h3>Density</h3>
+    <p><strong>People per square mile</strong></p>
+    <div class="dropdown-selectors">
+      <select id="density-min" class="toggle-select min-select left">
+        <option value="0" selected>No minimum</option>
+        <option value="1">1</option><option value="10">10</option><option value="20">20</option>
+        <option value="50">50</option><option value="100">100</option><option value="250">250</option>
+        <option value="500">500</option><option value="1000">1000</option><option value="2000">2000</option>
+        <option value="4000">4000</option><option value="8000">8000</option><option value="10000">10000</option>
+      </select>
+      <select id="density-max" class="toggle-select max-select right">
+        <option value="1">1</option><option value="10">10</option><option value="20">20</option>
+        <option value="50">50</option><option value="100">100</option><option value="250">250</option>
+        <option value="500">500</option><option value="1000">1000</option><option value="2000">2000</option>
+        <option value="4000">4000</option><option value="8000">8000</option><option value="10000">10000</option>
+        <option value="999999" selected>No maximum</option>
+      </select>
+    </div>
+  </div>
+  <div class="filter-menu-footer">
+    <a href="javascript:void(0);" class="btn-filters">Reset</a>
+    <a href="javascript:void(0);" class="btn-filters btn-apply-filters">Apply</a>
+  </div>
+</div>
