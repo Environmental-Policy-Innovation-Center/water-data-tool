@@ -1,0 +1,23 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": { "pwsid": "VT0000001" },
+      "geometry": {
+        "type": "MultiPolygon",
+        "coordinates": [
+          [
+            [
+              [-72.6, 44.2],
+              [-72.5, 44.2],
+              [-72.5, 44.3],
+              [-72.6, 44.3],
+              [-72.6, 44.2]
+            ]
+          ]
+        ]
+      }
+    }
+  ]
+}

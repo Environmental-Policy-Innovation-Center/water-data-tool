@@ -1,0 +1,113 @@
+require "rails_helper"
+
+# PostImportSteps runs raw PostGIS SQL against the live test database.
+# Tests verify that each step runs without error and produces the expected
+# spatial data given a pre-seeded ServiceAreaGeometry.
+#
+# Geometries are inserted directly via SQL to avoid RGeo dependency in specs.
+
+# A small valid MultiPolygon covering part of Vermont (SRID 4326).
+VERMONT_WKT = "MULTIPOLYGON(((-72.6 44.2, -72.5 44.2, -72.5 44.3, -72.6 44.3, -72.6 44.2)))".freeze
+
+# A bounding box large enough to contain Vermont — used as the cartographic
+# state geometry so assign_state_codes can match centroids.
+VERMONT_STATE_WKT = "MULTIPOLYGON(((-73.5 42.7, -71.5 42.7, -71.5 45.2, -73.5 45.2, -73.5 42.7)))".freeze
+
+RSpec.describe Etl::PostImportSteps do
+  let(:conn) { ApplicationRecord.connection }
+
+  def insert_geometry(pwsid, wkt)
+    conn.execute(<<~SQL)
+      INSERT INTO service_area_geometries (pwsid, geom, created_at, updated_at)
+      VALUES (
+        #{conn.quote(pwsid)},
+        ST_GeomFromText(#{conn.quote(wkt)}, 4326),
+        NOW(), NOW()
+      )
+      ON CONFLICT (pwsid) DO UPDATE SET geom = EXCLUDED.geom
+    SQL
+  end
+
+  def insert_state(stusps, wkt)
+    conn.execute(<<~SQL)
+      INSERT INTO cartographic_states (gid, stusps, geoid, name, statefp, geom)
+      VALUES (
+        1,
+        #{conn.quote(stusps)},
+        '50',
+        'Vermont',
+        '50',
+        ST_GeomFromText(#{conn.quote(wkt)}, 4326)
+      )
+      ON CONFLICT (gid) DO UPDATE SET stusps = EXCLUDED.stusps, geom = EXCLUDED.geom
+    SQL
+  end
+
+  before do
+    create(:public_water_system, pwsid: "VT0000001")
+    insert_geometry("VT0000001", VERMONT_WKT)
+  end
+
+  describe ".fix_invalid_geometries" do
+    it "runs without error" do
+      expect { described_class.fix_invalid_geometries }.not_to raise_error
+    end
+  end
+
+  describe ".generate_centroids" do
+    it "populates the centroid column for all service area geometries" do
+      described_class.generate_centroids
+      sag = ServiceAreaGeometry.find_by(pwsid: "VT0000001")
+      expect(sag.centroid).not_to be_nil
+    end
+  end
+
+  describe ".assign_state_codes" do
+    before do
+      insert_state("VT", VERMONT_STATE_WKT)
+      described_class.generate_centroids
+    end
+
+    it "sets stusps on public water systems whose centroid falls within a state geometry" do
+      described_class.assign_state_codes
+      expect(PublicWaterSystem.find_by(pwsid: "VT0000001").stusps).to eq("VT")
+    end
+  end
+
+  describe ".build_county_associations" do
+    it "runs without error" do
+      expect { described_class.build_county_associations }.not_to raise_error
+    end
+  end
+
+  describe ".build_place_crosswalks" do
+    it "runs without error" do
+      expect { described_class.build_place_crosswalks }.not_to raise_error
+    end
+  end
+
+  describe ".rebuild_spatial_indexes" do
+    it "runs without error" do
+      expect { described_class.rebuild_spatial_indexes }.not_to raise_error
+    end
+  end
+
+  describe ".call" do
+    before { insert_state("VT", VERMONT_STATE_WKT) }
+
+    it "runs all steps in sequence without error" do
+      expect { described_class.call }.not_to raise_error
+    end
+
+    it "populates centroids as part of the full run" do
+      described_class.call
+      sag = ServiceAreaGeometry.find_by(pwsid: "VT0000001")
+      expect(sag.centroid).not_to be_nil
+    end
+
+    it "assigns state codes as part of the full run" do
+      described_class.call
+      expect(PublicWaterSystem.find_by(pwsid: "VT0000001").stusps).to eq("VT")
+    end
+  end
+end
