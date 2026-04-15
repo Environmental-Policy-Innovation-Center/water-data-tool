@@ -1946,8 +1946,38 @@ ul.stats-list li{
   }
 
   #container-map{
-    top:60px;
+    position: fixed;
+    top: 60px;
+    left: 0;
+    right: 0;
+    bottom: 50px;
   }
+
+  #container-map #map {
+    width: 100%;
+    height: 100%;
+  }
+
+  /* Hide desktop-only UI on mobile */
+  #container-map-ui-top {
+    display: none;
+  }
+
+  .map-content-wrapper-desktop {
+    display: none;
+  }
+
+  .container-ak-hi-desktop {
+    display: none;
+  }
+
+  #container-map-ui-bottom {
+    display: none;
+  }
+
+  /* Mobile hamburger icon states */
+  .mm-icon-bars { display: inline; }
+  .mm-icon-x { display: none; }
 
   #container-map-content-bottom{
     max-width: inherit;
