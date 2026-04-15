@@ -8,13 +8,14 @@
 
 | Endpoint | Method | Returns | Purpose |
 |----------|--------|---------|---------|
-| `/public_water_systems` | GET | JSON | Filtered list of water systems |
+| `/public_water_systems` | GET | JSON | Filtered list of water systems (REST API) |
 | `/public_water_systems/:pwsid` | GET | JSON / HTML | Single system detail |
-| `/public_water_systems/:pwsid/report` | GET | HTML | Printable report |
 | `/public_water_systems/export` | GET | CSV / GeoJSON | Filtered data download |
+| `/public_water_systems/stats` | GET | HTML (Turbo Frame) | Aggregate stats for stats bar *(M7)* |
+| `/reports/:pwsid` | GET | HTML | Printable system report |
+| `/table` | GET | JSON | DataTables server-side processing (distinct from the REST API above) |
+| `/places/search` | GET | JSON | Place autocomplete for filter UI |
 | `/tiles/:z/:x/:y` | GET | MVT (protobuf) | Map vector tiles |
-| `/datasets` | GET | HTML | Dataset descriptions page |
-| `/downloads` | GET | HTML | Bulk download links page |
 
 ---
 
@@ -263,9 +264,10 @@ Returns `404` if the `pwsid` is not found.
 
 ---
 
-## `GET /public_water_systems/:pwsid/report`
+## `GET /reports/:pwsid`
 
-Returns an HTML page optimized for printing. Not a JSON endpoint.
+Returns an HTML page optimized for printing. Not a JSON endpoint. Loads into the full-screen
+report overlay via Turbo Frame on "View Full Report" click from the detail panel.
 
 ---
 
@@ -292,6 +294,102 @@ Accepts the same filter parameters as the index endpoint. Returns a file downloa
 - `Content-Encoding: gzip`
 - Standard GeoJSON `FeatureCollection` with `MultiPolygon` geometries
 - Properties include all columns from the system and its associations (flat structure, matching the legacy `download_geojson.php` output)
+
+---
+
+## `GET /table`
+
+DataTables server-side processing endpoint. Powers the data table in the UI. This uses a
+**different protocol from `GET /public_water_systems`** — it is consumed exclusively by the
+DataTables JS library and is not intended for general API use.
+
+### Why two table endpoints?
+
+`GET /public_water_systems` uses standard REST pagination (`page`, `per_page`, `sort_by`).
+`GET /table` uses the DataTables SSP protocol, which requires its own request/response envelope.
+Both apply the same `Filterable#apply_filters` logic against the same data.
+
+### Query Parameters
+
+**DataTables SSP params (required):**
+
+| Param | Type | Description |
+|-------|------|-------------|
+| `draw` | integer | Echo value — DataTables uses this to correlate requests/responses |
+| `start` | integer | Offset (row number to start at) |
+| `length` | integer | Number of rows to return |
+| `search[value]` | string | Global search term (matches pws_name, pwsid, stusps, counties) |
+| `order[0][column]` | integer | Column index to sort by |
+| `order[0][dir]` | string | `asc` or `desc` |
+
+**Filter params:** same as `GET /public_water_systems` — all Filterable params accepted.
+
+### Response
+
+```json
+{
+  "draw": 1,
+  "recordsTotal": 44642,
+  "recordsFiltered": 1234,
+  "data": [
+    {
+      "pws_name": "VILLAGE OF ADDYSTON",
+      "pwsid": "OH0100013",
+      "stusps": "OH",
+      "health_violations_5yr": 2,
+      "total_population": 891,
+      "...": "..."
+    }
+  ]
+}
+```
+
+`recordsTotal` is the unfiltered count. `recordsFiltered` is the count after applying active
+filters. `data` contains one flat hash per row with all ~70 column values.
+
+---
+
+## `GET /places/search`
+
+Place autocomplete used by the Boundaries filter. Returns matching census places for a prefix query.
+
+### Query Parameters
+
+| Param | Type | Description |
+|-------|------|-------------|
+| `q` | string | Search prefix (e.g., `"Burling"` → Burlington) |
+
+Returns an empty array if `q` is blank.
+
+### Response
+
+```json
+[
+  {"geoid": "5010675", "name": "Burlington", "stusps": "VT"},
+  {"geoid": "1709999", "name": "Burlington", "stusps": "IL"}
+]
+```
+
+- Max 10 results, ordered by name then state
+- Results are cached for 1 hour (`Cache-Control: public, max-age=3600`)
+- Special characters (`%`, `_`, `\`) are escaped before the ILIKE query
+
+---
+
+## `GET /public_water_systems/stats`
+
+*(Planned — M7)* Aggregate summary stats for the stats bar Turbo Frame overlay.
+
+Accepts the same filter params as `GET /public_water_systems`. Returns an HTML Turbo Frame
+(not JSON) — the browser renders it directly into `<turbo-frame id="stats-bar">`.
+
+### Response
+
+HTML containing a `<turbo-frame id="stats-bar">` with four aggregate values:
+- Systems count (filtered) of (total)
+- Total customers served
+- Average area median household income
+- Count with open health violations
 
 ---
 
