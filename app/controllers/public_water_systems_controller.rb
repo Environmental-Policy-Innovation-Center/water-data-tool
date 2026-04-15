@@ -53,6 +53,8 @@ class PublicWaterSystemsController < ApplicationController
     scope.order(column => direction)
   end
 
+  # Runs 3 aggregation queries (count, sum, count-where). Combining them into
+  # one requires raw SQL — not worth the trade-off unless profiling shows a bottleneck.
   def build_summary(scope)
     {
       systems_count: scope.count,
