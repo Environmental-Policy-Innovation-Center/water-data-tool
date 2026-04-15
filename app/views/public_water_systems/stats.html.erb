@@ -1,0 +1,10 @@
+<turbo-frame id="stats-bar">
+  <div class="map-content-wrapper map-content-wrapper-desktop map-content-stats">
+    <ul class="stats-list">
+      <li>Systems: <%= "#{number_with_delimiter(@summary[:systems_count])} of #{number_with_delimiter(@summary[:unfiltered_total])}" %></li>
+      <li>Customers served: <%= number_with_delimiter(@summary[:total_population_served]) %></li>
+      <li>Area Median Income: <%= @summary[:avg_median_household_income] ? "~#{number_to_currency(@summary[:avg_median_household_income], precision: 0)}" : "N/A" %></li>
+      <li>Open health violations: <%= number_with_delimiter(@summary[:systems_with_open_violations]) %></li>
+    </ul>
+  </div>
+</turbo-frame>

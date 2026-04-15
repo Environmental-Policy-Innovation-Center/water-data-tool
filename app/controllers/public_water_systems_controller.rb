@@ -38,6 +38,14 @@ class PublicWaterSystemsController < ApplicationController
     end
   end
 
+  def stats
+    scope = PublicWaterSystem.apply_filters(params)
+    total_count = scope.count(:pwsid)
+    unfiltered_total = PublicWaterSystem.count(:pwsid)
+    @summary = build_summary(scope, total_count).merge(unfiltered_total: unfiltered_total)
+    render layout: false
+  end
+
   def export
     scope = PublicWaterSystem
       .apply_filters(params)
@@ -60,17 +68,22 @@ class PublicWaterSystemsController < ApplicationController
     scope.order(column => direction)
   end
 
-  # Single query: SUM and COUNT(*) FILTER combined (PostgreSQL). systems_count
-  # reuses @pagy.count. unscope(:order) required — ORDER BY is invalid on aggregates.
+  # Single query: SUM, COUNT(*) FILTER, and AVG via left join combined (PostgreSQL).
+  # systems_count reuses the caller's pre-computed count. unscope(:order) required —
+  # ORDER BY is invalid on aggregates.
   def build_summary(scope, total_count)
-    total_pop, open_viol_count = scope.unscope(:order).pick(
-      Arel.sql("SUM(population_served_count)"),
-      Arel.sql("COUNT(*) FILTER (WHERE open_health_viol = 'Yes')")
-    )
+    total_pop, open_viol_count, avg_mhi = scope.unscope(:order)
+      .left_joins(:demographic)
+      .pick(
+        Arel.sql("SUM(population_served_count)"),
+        Arel.sql("COUNT(*) FILTER (WHERE open_health_viol = 'Yes')"),
+        Arel.sql("ROUND(AVG(demographics.median_household_income))")
+      )
     {
       systems_count: total_count,
       total_population_served: total_pop,
-      systems_with_open_violations: open_viol_count
+      systems_with_open_violations: open_viol_count,
+      avg_median_household_income: avg_mhi
     }
   end
 

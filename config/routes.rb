@@ -13,6 +13,7 @@ Rails.application.routes.draw do
   resources :public_water_systems, param: :pwsid, only: %i[index show] do
     collection do
       get :export
+      get :stats
     end
   end
 end
