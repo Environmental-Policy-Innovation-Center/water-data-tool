@@ -30,11 +30,11 @@
     Map view (default section)
     ===================================================== %>
 <div id="container-map" class="container-main-content"
-     data-controller="map"
+     data-controller="map filter"
      data-map-tile-url-value="/tiles/{z}/{x}/{y}">
 
   <%# Filter tab bar %>
-  <div id="container-map-ui-top" class="container-map-ui" data-controller="filter">
+  <div id="container-map-ui-top" class="container-map-ui">
     <ul>
       <%# Geocoder search — populated by map_controller once map loads %>
       <li id="geocoder-li" class="geocoder-li"></li>
