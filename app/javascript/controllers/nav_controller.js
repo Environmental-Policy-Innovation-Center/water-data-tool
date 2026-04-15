@@ -9,6 +9,26 @@ import { Controller } from "@hotwired/stimulus"
 // All other sections (datasets, documentation, downloads) use the standard
 // .container-main-content show/hide approach.
 export default class extends Controller {
+  toggleMobile(event) {
+    event.preventDefault()
+    const menu = document.getElementById("container-mobile-menu")
+    const btn = document.getElementById("mobile-menu-toggle")
+    if (!menu || !btn) return
+
+    const isOpen = !btn.classList.contains("closed")
+    if (isOpen) {
+      btn.classList.add("closed")
+      menu.style.display = "none"
+      btn.querySelector(".mm-icon-bars")?.classList.remove("hidden")
+      btn.querySelector(".mm-icon-x")?.classList.add("hidden")
+    } else {
+      btn.classList.remove("closed")
+      menu.style.display = "block"
+      btn.querySelector(".mm-icon-bars")?.classList.add("hidden")
+      btn.querySelector(".mm-icon-x")?.classList.remove("hidden")
+    }
+  }
+
   show(event) {
     event.preventDefault()
     const section = event.currentTarget.dataset.section

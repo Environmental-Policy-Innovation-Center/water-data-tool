@@ -110,6 +110,14 @@ module Etl
       end
     end
 
+    # Truncate the tile_cache table so stale MVT tiles are regenerated on
+    # the next request. Called by Etl::Importer after any successful import
+    # (not just geometry) because tiles embed non-geometry attributes.
+    def bust_tile_cache
+      deleted = TileCache.delete_all
+      Rails.logger.info("[ETL] bust_tile_cache: deleted #{deleted} cached tile(s)")
+    end
+
     # Rebuild GiST spatial indexes and update query-planner statistics after
     # a bulk geometry import. REINDEX without CONCURRENTLY to stay
     # transaction-safe; ANALYZE refreshes planner statistics.

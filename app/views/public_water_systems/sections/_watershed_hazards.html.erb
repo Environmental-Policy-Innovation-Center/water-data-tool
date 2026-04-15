@@ -1,0 +1,15 @@
+<div class="detail-section">
+  <h3>Watershed Hazards</h3>
+  <% if hazard.nil? %>
+    <p class="detail-na">Data not available</p>
+  <% else %>
+    <table class="detail-table">
+      <tr><td>Facilities</td><td><%= hazard.num_facilities %></td></tr>
+      <tr><td>NPDES Permits</td><td><%= hazard.npdes_permits %></td></tr>
+      <tr><td>Effluent Violations</td><td><%= hazard.permit_effluent_violations %></td></tr>
+      <tr><td>Underground Storage Tanks</td><td><%= hazard.open_underground_storage_tanks %></td></tr>
+      <tr><td>Risk Management Facilities</td><td><%= hazard.risk_management_plan_facilities %></td></tr>
+      <tr><td>Impaired Streams (303d)</td><td><%= hazard.impaired_streams_303d %></td></tr>
+    </table>
+  <% end %>
+</div>

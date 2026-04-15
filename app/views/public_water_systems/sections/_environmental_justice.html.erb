@@ -1,0 +1,19 @@
+<div class="detail-section">
+  <h3>Environmental Justice</h3>
+  <% if ej.nil? %>
+    <p class="detail-na">Data not available</p>
+  <% else %>
+    <table class="detail-table">
+      <tr><td>CEJST Disadvantaged</td><td><%= ej.cejst_disadvantaged_pct ? number_to_percentage(ej.cejst_disadvantaged_pct, precision: 1) : "N/A" %></td></tr>
+      <tr><td>CEJST Lead Paint</td><td><%= ej.cejst_lead_paint_indicator || "N/A" %></td></tr>
+      <tr><td>CEJST Low Life Expectancy</td><td><%= ej.cejst_low_life_expectancy_pctl || "N/A" %></td></tr>
+      <tr><td>SVI Overall Percentile</td><td><%= ej.svi_overall_pctl || "N/A" %></td></tr>
+      <tr><td>EJScreen Drinking Water</td><td><%= ej.ejscreen_drinking_water || "N/A" %></td></tr>
+      <tr><td>EJScreen Disability Rate</td><td><%= ej.ejscreen_disability_rate || "N/A" %></td></tr>
+      <tr><td>CVI Overall Score</td><td><%= ej.cvi_overall_score || "N/A" %></td></tr>
+      <tr><td>CVI Redlining</td><td><%= ej.cvi_redlining || "N/A" %></td></tr>
+      <tr><td>CVI Life Expectancy</td><td><%= ej.cvi_life_expectancy || "N/A" %></td></tr>
+      <tr><td>CVI Cancer Risk</td><td><%= ej.cvi_cancer_risk || "N/A" %></td></tr>
+    </table>
+  <% end %>
+</div>

@@ -1,0 +1,8 @@
+<turbo-frame id="report-body">
+  <div class="report-content">
+    <h2 data-report-field="name"><%= @pws.pws_name %></h2>
+    <p><span data-report-field="id"><%= @pws.pwsid %></span> &mdash; <span data-report-field="state"><%= @pws.stusps %></span></p>
+
+    <%= render "public_water_systems/sections/all", pws: @pws %>
+  </div>
+</turbo-frame>

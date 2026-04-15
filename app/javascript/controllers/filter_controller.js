@@ -11,6 +11,7 @@ export default class extends Controller {
       }
     }
     document.addEventListener("click", this._outsideClick)
+    this.#restoreFromUrl()
   }
 
   disconnect() {
@@ -40,7 +41,72 @@ export default class extends Controller {
     event.preventDefault()
     this.#closeAll()
     FilterState.set(this.#collectFilters())
+    this.#syncToUrl()
     document.dispatchEvent(new CustomEvent("filters:changed"))
+  }
+
+  toggleSelectAll(event) {
+    const master = event.currentTarget
+    const menu = master.closest(".container-menu")
+    if (!menu) return
+
+    const boxes = menu.querySelectorAll(".checkbox-type")
+    const label = document.getElementById("type-deselect-all-txt")
+
+    if (master.checked) {
+      boxes.forEach(cb => { cb.checked = true })
+      if (label) label.textContent = "Deselect all"
+    } else {
+      boxes.forEach(cb => { cb.checked = false })
+      if (label) label.textContent = "Select all"
+    }
+  }
+
+  togglePopSize(event) {
+    event.preventDefault()
+    const box = event.currentTarget
+    box.classList.toggle("active")
+
+    // Handle first-element border styling
+    const first = document.querySelector(".pop-size-1")
+    if (first) {
+      if (first.classList.contains("active")) {
+        first.classList.add("active-first")
+      } else {
+        first.classList.remove("active-first")
+      }
+    }
+  }
+
+  reset(event) {
+    event.preventDefault()
+    const menu = event.currentTarget.closest(".container-menu")
+    if (!menu) return
+
+    // Radios: check the option marked with data-default, uncheck others
+    menu.querySelectorAll("input[type='radio']").forEach(r => {
+      r.checked = r.hasAttribute("data-default")
+    })
+
+    // Checkboxes: restore to default state (checked if .default-checked)
+    menu.querySelectorAll("input[type='checkbox']").forEach(cb => {
+      cb.checked = cb.classList.contains("default-checked")
+    })
+
+    // Selects: min → first option, max → last option
+    menu.querySelectorAll("select.min-select").forEach(s => { s.selectedIndex = 0 })
+    menu.querySelectorAll("select.max-select").forEach(s => { s.selectedIndex = s.options.length - 1 })
+
+    // Population size boxes: deactivate all
+    menu.querySelectorAll(".pop-size-box").forEach(b => b.classList.remove("active"))
+
+    // Place autocomplete: clear hidden field if present
+    const placeInput = menu.querySelector("#place-geoid")
+    if (placeInput) placeInput.value = ""
+    const placeText = menu.querySelector(".js-place-search")
+    if (placeText) placeText.value = ""
+
+    this.apply(event)
   }
 
   // ── Private ────────────────────────────────────────────────────────────────
@@ -114,6 +180,14 @@ export default class extends Controller {
     if (densityMin && densityMin !== "0") p.density_min = densityMin
     if (densityMax && densityMax !== "999999") p.density_max = densityMax
 
+    // --- Place geographic filter ---
+    const placeGeoid = document.getElementById("place-geoid")?.value
+    if (placeGeoid) {
+      p.place_geoid = placeGeoid
+      const placeInput = document.querySelector(".js-place-search")
+      if (placeInput?.value) p.place_name = placeInput.value
+    }
+
     return p
   }
 
@@ -137,5 +211,87 @@ export default class extends Controller {
       "primacy-type-territory": "Territory"
     }
     return map[id] || id
+  }
+
+  #syncToUrl() {
+    const url = new URL(window.location)
+    url.search = FilterState.toUrlParams().toString()
+    history.replaceState({}, "", url)
+  }
+
+  #restoreFromUrl() {
+    if (!window.location.search) return
+
+    const params = FilterState.fromUrlParams(window.location.search)
+    if (Object.keys(params).length === 0) return
+
+    this.#restoreDomState(params)
+    FilterState.set(params)
+    document.dispatchEvent(new CustomEvent("filters:changed"))
+  }
+
+  #restoreDomState(params) {
+    // Source: water type
+    if (params.gw_sw_code === "GW") { const el = document.getElementById("ws-ground"); if (el) el.checked = true }
+    else if (params.gw_sw_code === "SW") { const el = document.getElementById("ws-surface"); if (el) el.checked = true }
+
+    // Source protection
+    if (params.has_source_protection === "true") {
+      const el = document.getElementById("has-source-water-protection"); if (el) el.checked = true
+    }
+
+    // Owner types
+    if (params.owner_type) {
+      const valueToId = { Federal: "type-federal-government", State: "type-state-government", Local: "type-local-government", Tribal: "type-native-american", Private: "type-private", "Public/Private": "type-public-private" }
+      document.querySelectorAll(".checkbox-type").forEach(cb => { cb.checked = false })
+      params.owner_type.forEach(v => { const el = document.getElementById(valueToId[v]); if (el) el.checked = true })
+    }
+
+    // Primacy type
+    if (params.primacy_type) {
+      const valueToId = { State: "primacy-type-state", Tribal: "primacy-type-tribal", Territory: "primacy-type-territory" }
+      Object.values(valueToId).forEach(id => { const el = document.getElementById(id); if (el) el.checked = false })
+      params.primacy_type.forEach(v => { const el = document.getElementById(valueToId[v]); if (el) el.checked = true })
+    }
+
+    // Boolean toggles
+    if (params.is_wholesaler === "true") { const el = document.getElementById("is-wholesaler"); if (el) el.checked = true }
+    if (params.is_school_or_daycare === "true") { const el = document.getElementById("is-school-or-daycare"); if (el) el.checked = true }
+
+    // Boundary type
+    if (params.service_area_type === "Modeled") { const el = document.getElementById("bt-modeled"); if (el) el.checked = true }
+    else if (params.service_area_type === "System") { const el = document.getElementById("bt-system"); if (el) el.checked = true }
+
+    // Area range
+    if (params.area_min) { const el = document.getElementById("area-min"); if (el) el.value = params.area_min }
+    if (params.area_max) { const el = document.getElementById("area-max"); if (el) el.value = params.area_max }
+
+    // Compliance booleans
+    if (params.has_open_violations === "true") { const el = document.getElementById("compliance-open-violations"); if (el) el.checked = true }
+    if (params.health_violations_5yr_min) { const el = document.getElementById("viols-health-5yrs"); if (el) el.checked = true }
+    if (params.health_violations_10yr_min) { const el = document.getElementById("viols-health"); if (el) el.checked = true }
+    if (params.paperwork_violations_5yr_min) { const el = document.getElementById("viols-paperwork-5yrs"); if (el) el.checked = true }
+    if (params.paperwork_violations_10yr_min) { const el = document.getElementById("viols-paperwork"); if (el) el.checked = true }
+
+    // Population categories
+    if (params.pop_cat_5) {
+      const catToClass = { "1": "pop-size-1", "2": "pop-size-2", "3": "pop-size-3", "4": "pop-size-4", "5": "pop-size-5" }
+      params.pop_cat_5.forEach(cat => {
+        const el = document.querySelector(`.${catToClass[cat]}`)
+        if (el) el.classList.add("active")
+      })
+    }
+
+    // Density range
+    if (params.density_min) { const el = document.getElementById("density-min"); if (el) el.value = params.density_min }
+    if (params.density_max) { const el = document.getElementById("density-max"); if (el) el.value = params.density_max }
+
+    // Place geographic filter
+    if (params.place_geoid) {
+      const el = document.getElementById("place-geoid")
+      if (el) el.value = params.place_geoid
+      const input = document.querySelector(".js-place-search")
+      if (input) input.value = params.place_name || params.place_geoid
+    }
   }
 }

@@ -241,11 +241,11 @@ RSpec.describe "PublicWaterSystems", type: :request do
   end
 
   describe "GET /public_water_systems/:pwsid" do
-    context "when the system exists" do
+    context "when requesting JSON" do
       it "returns 200 with top-level PWS fields" do
         pws = create(:public_water_system)
 
-        get "/public_water_systems/#{pws.pwsid}"
+        get "/public_water_systems/#{pws.pwsid}", as: :json
 
         expect(response).to have_http_status(:ok)
         json = response.parsed_body
@@ -256,7 +256,7 @@ RSpec.describe "PublicWaterSystems", type: :request do
       it "includes all association keys in the response" do
         pws = create(:public_water_system)
 
-        get "/public_water_systems/#{pws.pwsid}"
+        get "/public_water_systems/#{pws.pwsid}", as: :json
 
         json = response.parsed_body
         expect(json.keys).to include(
@@ -268,7 +268,7 @@ RSpec.describe "PublicWaterSystems", type: :request do
       it "returns null for associations not yet populated by ETL" do
         pws = create(:public_water_system)
 
-        get "/public_water_systems/#{pws.pwsid}"
+        get "/public_water_systems/#{pws.pwsid}", as: :json
 
         json = response.parsed_body
         expect(json["demographic"]).to be_nil
@@ -279,15 +279,67 @@ RSpec.describe "PublicWaterSystems", type: :request do
         expect(json["boil_water_summary"]).to be_nil
         expect(json["trend_datum"]).to be_nil
       end
-    end
 
-    context "when the pwsid does not exist" do
-      it "returns 404 with a JSON error body" do
-        get "/public_water_systems/DOESNOTEXIST"
+      it "returns 404 when the pwsid does not exist" do
+        get "/public_water_systems/DOESNOTEXIST", as: :json
 
         expect(response).to have_http_status(:not_found)
         json = response.parsed_body
         expect(json["error"]).to be_present
+      end
+    end
+
+    context "when requesting HTML" do
+      it "returns 200 with the detail page" do
+        pws = create(:public_water_system)
+
+        get "/public_water_systems/#{pws.pwsid}"
+
+        expect(response).to have_http_status(:ok)
+        expect(response.body).to include('class="pws-detail"')
+      end
+
+      it "renders the system name and ID" do
+        pws = create(:public_water_system, pws_name: "Green Mountain Water")
+
+        get "/public_water_systems/#{pws.pwsid}"
+
+        expect(response.body).to include("Green Mountain Water")
+        expect(response.body).to include(pws.pwsid)
+      end
+
+      it "renders section headings for all data groups" do
+        pws = create(:public_water_system)
+
+        get "/public_water_systems/#{pws.pwsid}"
+
+        %w[Overview Demographics Violations Funding].each do |heading|
+          expect(response.body).to include(heading)
+        end
+      end
+
+      it "handles nil associations gracefully" do
+        pws = create(:public_water_system)
+
+        get "/public_water_systems/#{pws.pwsid}"
+
+        expect(response).to have_http_status(:ok)
+        expect(response.body).to include("Data not available")
+      end
+
+      it "renders populated association data when present" do
+        pws = create(:public_water_system)
+        create(:demographic, pwsid: pws.pwsid, total_population: 42_000)
+
+        get "/public_water_systems/#{pws.pwsid}"
+
+        expect(response.body).to include("42,000")
+      end
+
+      it "returns 404 when the pwsid does not exist" do
+        get "/public_water_systems/DOESNOTEXIST"
+
+        expect(response).to have_http_status(:not_found)
       end
     end
   end

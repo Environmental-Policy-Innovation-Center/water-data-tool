@@ -430,6 +430,19 @@ body{
   box-shadow: none;
   margin: 0 6px 0 5px;
 }
+/* Let the suggestions dropdown overflow the narrow geocoder input */
+.geocoder-li .mapboxgl-ctrl-geocoder .suggestions-wrapper,
+.geocoder-li .mapboxgl-ctrl-geocoder .suggestions {
+  min-width: 320px;
+  position: absolute;
+  left: 0;
+  z-index: 100;
+}
+.geocoder-li .mapboxgl-ctrl-geocoder .suggestions li a {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: unset;
+}
 
 #wrapper-map-ui{
   position:relative;
@@ -1319,22 +1332,22 @@ ul.stats-list li{
 
 #container-report{
   width: 100%;
-  position: absolute;
+  position: fixed;
   top: 0px;
   left: 0px;
   z-index: 9999;
   background-color: #fff;
   height: 100vh;
+  overflow-y: auto;
 }
 
 .container-report-section-inner{
   margin: 0 auto;
-  width: 1200px;
+  max-width: 1200px;
   border: 1px solid #eee;
   padding: 40px;
   margin-top: 30px;
   background-color: #fff;
-  height:100vh;
   margin-bottom:50px;
 }
 
@@ -1755,6 +1768,34 @@ ul.stats-list li{
   color: #000;
 }
 
+/* Place autocomplete dropdown */
+.place-autocomplete-results {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 200;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}
+.place-autocomplete-results li a {
+  display: block;
+  padding: 6px 10px;
+  text-decoration: none;
+  color: #333;
+  font-size: 0.95em;
+}
+.place-autocomplete-results li a:hover {
+  background-color: #f0f0f0;
+}
+
 /* Slider subhead */
 .slider-subhead {
   font-weight: bold;
@@ -1905,8 +1946,38 @@ ul.stats-list li{
   }
 
   #container-map{
-    top:60px;
+    position: fixed;
+    top: 60px;
+    left: 0;
+    right: 0;
+    bottom: 50px;
   }
+
+  #container-map #map {
+    width: 100%;
+    height: 100%;
+  }
+
+  /* Hide desktop-only UI on mobile */
+  #container-map-ui-top {
+    display: none;
+  }
+
+  .map-content-wrapper-desktop {
+    display: none;
+  }
+
+  .container-ak-hi-desktop {
+    display: none;
+  }
+
+  #container-map-ui-bottom {
+    display: none;
+  }
+
+  /* Mobile hamburger icon states */
+  .mm-icon-bars { display: inline; }
+  .mm-icon-x { display: none; }
 
   #container-map-content-bottom{
     max-width: inherit;

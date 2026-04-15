@@ -1,0 +1,10 @@
+<div class="pws-detail">
+  <div class="map-detail-header">
+    <p><strong><%= @pws.pws_name %></strong></p>
+    <p><%= @pws.pwsid %> &mdash; <%= @pws.stusps %></p>
+  </div>
+
+  <div class="map-detail-body">
+    <%= render "public_water_systems/sections/all", pws: @pws %>
+  </div>
+</div>

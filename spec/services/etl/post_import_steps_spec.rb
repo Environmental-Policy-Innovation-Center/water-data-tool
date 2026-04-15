@@ -92,6 +92,20 @@ RSpec.describe Etl::PostImportSteps do
     end
   end
 
+  describe ".bust_tile_cache" do
+    it "deletes all rows from the tile_cache table" do
+      create(:tile_cache, layer: "pws", z: 5, x: 8, y: 12)
+      create(:tile_cache, layer: "states", z: 3, x: 2, y: 1)
+
+      expect { described_class.bust_tile_cache }
+        .to change { TileCache.count }.from(2).to(0)
+    end
+
+    it "runs without error when the cache is already empty" do
+      expect { described_class.bust_tile_cache }.not_to raise_error
+    end
+  end
+
   describe ".call" do
     before { insert_state("VT", VERMONT_STATE_WKT) }
 

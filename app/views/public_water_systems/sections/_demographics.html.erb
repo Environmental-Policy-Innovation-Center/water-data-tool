@@ -1,0 +1,21 @@
+<div class="detail-section">
+  <h3>Demographics</h3>
+  <% if demographic.nil? %>
+    <p class="detail-na">Data not available</p>
+  <% else %>
+    <table class="detail-table">
+      <tr><td>Total Population</td><td><%= number_with_delimiter(demographic.total_population) %></td></tr>
+      <tr><td>Population Density</td><td><%= number_with_precision(demographic.population_density, precision: 1) %> / sq mi</td></tr>
+      <tr><td>Median Household Income</td><td><%= demographic.median_household_income ? number_to_currency(demographic.median_household_income, precision: 0) : "N/A" %></td></tr>
+      <tr><td>Poverty Rate</td><td><%= demographic.poverty_rate ? number_to_percentage(demographic.poverty_rate, precision: 1) : "N/A" %></td></tr>
+      <tr><td>Unemployment Rate</td><td><%= demographic.unemployment_rate ? number_to_percentage(demographic.unemployment_rate, precision: 1) : "N/A" %></td></tr>
+      <tr><td>No Health Insurance</td><td><%= demographic.no_health_insurance_rate ? number_to_percentage(demographic.no_health_insurance_rate, precision: 1) : "N/A" %></td></tr>
+      <tr><td>Bachelor's Degree+</td><td><%= demographic.bachelors_degree_rate ? number_to_percentage(demographic.bachelors_degree_rate, precision: 1) : "N/A" %></td></tr>
+      <tr><td>Under 5</td><td><%= demographic.age_under_5_rate ? number_to_percentage(demographic.age_under_5_rate, precision: 1) : "N/A" %></td></tr>
+      <tr><td>Over 61</td><td><%= demographic.age_over_61_rate ? number_to_percentage(demographic.age_over_61_rate, precision: 1) : "N/A" %></td></tr>
+      <tr><td>People of Color</td><td><%= demographic.poc_rate ? number_to_percentage(demographic.poc_rate, precision: 1) : "N/A" %></td></tr>
+      <tr><td>Renter-Occupied</td><td><%= demographic.renter_rate ? number_to_percentage(demographic.renter_rate, precision: 1) : "N/A" %></td></tr>
+      <tr><td>Most Common Rate Tier</td><td><%= demographic.most_common_rate_tier || "N/A" %></td></tr>
+    </table>
+  <% end %>
+</div>

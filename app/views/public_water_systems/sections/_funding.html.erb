@@ -1,0 +1,13 @@
+<div class="detail-section">
+  <h3>Funding</h3>
+  <% if funding.nil? %>
+    <p class="detail-na">Data not available</p>
+  <% else %>
+    <table class="detail-table">
+      <tr><td>Times Funded</td><td><%= funding.times_funded %></td></tr>
+      <tr><td>Total SRF Assistance</td><td><%= funding.total_srf_assistance ? number_to_currency(funding.total_srf_assistance, precision: 0) : "N/A" %></td></tr>
+      <tr><td>Median SRF Assistance</td><td><%= funding.median_srf_assistance ? number_to_currency(funding.median_srf_assistance, precision: 0) : "N/A" %></td></tr>
+      <tr><td>Total Principal Forgiveness</td><td><%= funding.total_principal_forgiveness ? number_to_currency(funding.total_principal_forgiveness, precision: 0) : "N/A" %></td></tr>
+    </table>
+  <% end %>
+</div>
