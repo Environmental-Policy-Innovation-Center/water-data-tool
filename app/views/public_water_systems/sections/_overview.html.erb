@@ -1,0 +1,14 @@
+<div class="detail-section">
+  <h3>Overview</h3>
+  <table class="detail-table">
+    <tr><td>Population Served</td><td><%= number_with_delimiter(pws.population_served_count) %></td></tr>
+    <tr><td>Service Connections</td><td><%= number_with_delimiter(pws.service_connections_count) %></td></tr>
+    <tr><td>Water Source</td><td><%= pws.gw_sw_code %></td></tr>
+    <tr><td>Owner Type</td><td><%= pws.owner_type %></td></tr>
+    <tr><td>Primacy Type</td><td><%= pws.primacy_type %></td></tr>
+    <tr><td>Service Area Type</td><td><%= pws.service_area_type %></td></tr>
+    <tr><td>Area (sq mi)</td><td><%= pws.area_sq_miles ? number_with_precision(pws.area_sq_miles, precision: 2) : "N/A" %></td></tr>
+    <tr><td>Counties</td><td><%= pws.counties.presence || "N/A" %></td></tr>
+    <tr><td>Open Health Violations</td><td><%= pws.open_health_viol %></td></tr>
+  </table>
+</div>

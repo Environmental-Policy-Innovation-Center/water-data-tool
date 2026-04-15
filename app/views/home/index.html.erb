@@ -193,9 +193,9 @@
 <%# =====================================================
     PWS Report overlay (hidden, toggled on map click)
     ===================================================== %>
-<div id="container-report" class="hidden">
+<div id="container-report" class="hidden" data-controller="report" data-report-target="overlay">
   <a href="javascript:void(0);" onclick="window.print()" id="tt-print-report" class="btn-report btn-print-report"><%= image_tag "icon-print.png" %></a>
-  <a href="javascript:void(0);" id="tt-close-report" class="btn-report btn-close-report"><%= image_tag "icon-close.png" %></a>
+  <a href="javascript:void(0);" id="tt-close-report" class="btn-report btn-close-report" data-action="click->report#close"><%= image_tag "icon-close.png" %></a>
 
   <div class="container-report-section-inner">
     <div class="header">
@@ -211,15 +211,15 @@
       </div>
       <div class="header-title">
         <p style="margin-bottom:10px;">Utility Report</p>
-        <p><strong>Utility Name: </strong><span class="report-utility-name"></span></p>
-        <p><strong>System ID: </strong><span class="report-system-id"></span></p>
-        <p><strong><span class="report-city">City</span>, <span class="report-state">State</span></strong></p>
+        <p><strong>Utility Name: </strong><span data-report-target="utilityName"></span></p>
+        <p><strong>System ID: </strong><span data-report-target="systemId"></span></p>
+        <p><strong><span class="report-city">City</span>, <span data-report-target="state">State</span></strong></p>
       </div>
     </div>
     <div class="clearfix"></div>
     <div class="container-report-body">
-      <turbo-frame id="report-body">
-        <%# Report content populated after M3 + M8 land %>
+      <turbo-frame id="report-body" data-report-target="frame">
+        <%# Report content loaded via Turbo Frame from ReportsController %>
       </turbo-frame>
     </div>
   </div>

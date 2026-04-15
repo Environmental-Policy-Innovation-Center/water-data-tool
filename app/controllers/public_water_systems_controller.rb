@@ -20,14 +20,21 @@ class PublicWaterSystemsController < ApplicationController
   end
 
   def show
-    pws = PublicWaterSystem
+    @pws = PublicWaterSystem
       .with_details
       .find_by(pwsid: params[:pwsid])
 
-    if pws
-      render json: PublicWaterSystemDetailSerializer.new(pws).serialize
-    else
-      render json: {error: "Public water system not found"}, status: :not_found
+    unless @pws
+      respond_to do |format|
+        format.html { render plain: "Not found", status: :not_found }
+        format.json { render json: {error: "Public water system not found"}, status: :not_found }
+      end
+      return
+    end
+
+    respond_to do |format|
+      format.html { render layout: false }
+      format.json { render json: PublicWaterSystemDetailSerializer.new(@pws).serialize }
     end
   end
 

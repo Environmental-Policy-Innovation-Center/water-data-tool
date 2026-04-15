@@ -1,0 +1,16 @@
+<div class="detail-section">
+  <h3>Boil Water Notices</h3>
+  <% if boil_water.nil? %>
+    <p class="detail-na">Data not available</p>
+  <% else %>
+    <table class="detail-table">
+      <tr><td>Total Notices</td><td><%= boil_water.total_notices %></td></tr>
+      <tr><td>Date Range</td><td><%= boil_water.date_range_display || "N/A" %></td></tr>
+      <tr><td>First Advisory</td><td><%= boil_water.first_advisory_date || "N/A" %></td></tr>
+      <tr><td>Last Advisory</td><td><%= boil_water.last_advisory_date || "N/A" %></td></tr>
+      <% if boil_water.state_reporting_year_min && boil_water.state_reporting_year_max %>
+        <tr><td>State Reporting Years</td><td><%= boil_water.state_reporting_year_min %>&ndash;<%= boil_water.state_reporting_year_max %></td></tr>
+      <% end %>
+    </table>
+  <% end %>
+</div>
