@@ -289,14 +289,14 @@ RSpec.describe "PublicWaterSystems", type: :request do
       end
     end
 
-    context "when requesting HTML (Turbo Frame)" do
-      it "returns 200 with a detail-panel turbo frame" do
+    context "when requesting HTML" do
+      it "returns 200 with the detail page" do
         pws = create(:public_water_system)
 
         get "/public_water_systems/#{pws.pwsid}"
 
         expect(response).to have_http_status(:ok)
-        expect(response.body).to include('id="detail-panel"')
+        expect(response.body).to include('class="pws-detail"')
       end
 
       it "renders the system name and ID" do

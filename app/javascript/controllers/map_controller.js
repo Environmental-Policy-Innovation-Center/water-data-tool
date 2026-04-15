@@ -68,6 +68,18 @@ export default class extends Controller {
         countries: "US",
         placeholder: "Search map..."
       })
+
+      // Fly to the selected result with zoom level based on place type
+      geocoder.on("result", (ev) => {
+        const placeType = ev.result.place_type?.[0]
+        let zoom = 10
+        if (placeType === "region") zoom = 5
+        else if (placeType === "district") zoom = 7
+        else if (placeType === "place") zoom = 8
+
+        this.map.flyTo({ center: ev.result.geometry.coordinates, zoom })
+      })
+
       // Render geocoder into the filter bar list item rather than as a floating map control
       const geocoderLi = document.getElementById("geocoder-li")
       if (geocoderLi) {
@@ -323,7 +335,7 @@ export default class extends Controller {
       }
     })
 
-    // ── PWS polygon click → load detail panel ────────────────────────────────
+    // ── PWS polygon click → detail popup with "View Full Report" ───────────
 
     this.map.on("click", "pws", (e) => {
       if (this.map.getZoom() < 8) {
@@ -331,18 +343,48 @@ export default class extends Controller {
         return
       }
 
-      const pwsid = e.features[0].properties.pwsid
-      if (!pwsid) return
+      const props = e.features[0].properties
+      if (!props.pwsid) return
+
+      // Remove hover popup so it doesn't overlap
+      if (this.hoverPopup) {
+        this.hoverPopup.remove()
+        this.hoverPopup = null
+      }
 
       // Highlight selected
       this.map.setLayoutProperty("selected_pws", "visibility", "visible")
-      this.map.setFilter("selected_pws", ["in", "pwsid", pwsid])
+      this.map.setFilter("selected_pws", ["in", "pwsid", props.pwsid])
 
-      // Load detail panel via Turbo Frame
-      const frame = document.getElementById("detail-panel")
-      if (frame) {
-        frame.src = `/public_water_systems/${pwsid}`
+      // Show click popup with detail + report link
+      if (this.clickPopup) this.clickPopup.remove()
+      this.clickPopup = new window.mapboxgl.Popup({
+        closeButton: true,
+        className: "infoBub",
+        maxWidth: "400px"
+      })
+        .setLngLat(e.lngLat)
+        .setHTML(this.#buildClickHtml(props))
+        .addTo(this.map)
+
+      // Wire "View Full Report" — popup DOM is outside Stimulus scope,
+      // so we attach the listener manually after popup is added to the map.
+      const reportLink = this.clickPopup.getElement().querySelector(".js-view-report")
+      if (reportLink) {
+        reportLink.addEventListener("click", (evt) => {
+          evt.preventDefault()
+          const frame = document.getElementById("report-body")
+          if (frame) frame.src = `/reports/${props.pwsid}`
+          const overlay = document.getElementById("container-report")
+          if (overlay) overlay.classList.remove("hidden")
+          if (this.clickPopup) this.clickPopup.remove()
+        })
       }
+
+      this.clickPopup.on("close", () => {
+        this.map.setLayoutProperty("selected_pws", "visibility", "none")
+        this.clickPopup = null
+      })
     })
 
     // ── pws_points click (lower zooms) → zoom in ─────────────────────────────
@@ -380,6 +422,32 @@ export default class extends Controller {
     this.map.once("idle", () => {
       this.map.flyTo({ zoom: 6, duration: 3600 })
     })
+  }
+
+  #buildClickHtml(props) {
+    const pop = props.population_served_count
+      ? Number(props.population_served_count).toLocaleString("en-US")
+      : "—"
+    const connections = props.service_connections_count
+      ? Number(props.service_connections_count).toLocaleString("en-US")
+      : "—"
+
+    return `
+      <div class="map-detail-header">
+        <p><strong>Utility Name:</strong> ${props.pws_name || "—"}</p>
+        <p><strong>System ID:</strong> ${props.pwsid || "—"}</p>
+      </div>
+      <div class="map-detail-body">
+        <p><strong>State:</strong> ${props.stusps || "—"}</p>
+        <p><strong>Type:</strong> ${props.symbology_field || "—"}</p>
+        <p><strong>Service connections:</strong> ${connections}</p>
+        <p><strong>Customers served:</strong> ${pop}</p>
+        <p style="text-align:center; margin-top:10px;">
+          <a href="javascript:void(0);" class="js-view-report"
+             style="color:#444; text-decoration:none; border:1px solid #ccc; border-radius:15px; padding:6px 24px; display:inline-block; font-size:0.95em;">View Full Report</a>
+        </p>
+      </div>
+    `
   }
 
   #buildHoverHtml(props) {
