@@ -277,7 +277,7 @@ Accepts the same filter parameters as the index endpoint. Returns a file downloa
 
 | Param | Type | Default | Description |
 |-------|------|---------|-------------|
-| `format` | string | `csv` | `csv` or `geojson` |
+| `file_format` | string | `csv` | `csv` or `geojson`. Note: `format` is reserved by Rails for content negotiation — this param uses `file_format` to avoid conflicts. |
 
 ### CSV Response
 
@@ -331,8 +331,7 @@ All errors return a JSON body:
 
 ```json
 {
-  "error": "Description of the error",
-  "status": 404
+  "error": "Description of the error"
 }
 ```
 
@@ -341,3 +340,79 @@ All errors return a JSON body:
 | 400 | Invalid filter parameters |
 | 404 | System not found (for `:pwsid` endpoints) |
 | 500 | Internal server error |
+
+---
+
+## Manual Testing
+
+Start the server and seed the dev database (~500 VT and RI water systems):
+
+```bash
+docker compose up -d
+bin/dev
+```
+
+Create the export output directory (ignored by `.gitignore`):
+
+```bash
+mkdir -p tmp/test_exports
+```
+
+### Index
+
+```bash
+# All systems (default pagination: 50 per page)
+curl "http://localhost:3000/public_water_systems" | jq
+
+# Filter by state
+curl "http://localhost:3000/public_water_systems?state=VT" | jq
+
+# Filter by multiple params
+curl "http://localhost:3000/public_water_systems?gw_sw_code=Groundwater&state=VT" | jq
+```
+
+### Pagination
+
+```bash
+# Page 2 with 10 results per page
+curl "http://localhost:3000/public_water_systems?page=2&per_page=10" | jq
+
+# Sort by name ascending, 5 results per page
+curl "http://localhost:3000/public_water_systems?sort_by=pws_name&sort_dir=asc&per_page=5" | jq
+```
+
+### Show
+
+```bash
+# Existing system
+curl "http://localhost:3000/public_water_systems/VT0020001" | jq
+
+# Non-existent system — expect 404
+curl "http://localhost:3000/public_water_systems/DOESNOTEXIST" | jq
+```
+
+### Export — CSV
+
+```bash
+# All systems
+curl "http://localhost:3000/public_water_systems/export" -o tmp/test_exports/export.csv
+
+# Filtered by state
+curl "http://localhost:3000/public_water_systems/export?state=VT" -o tmp/test_exports/vt_export.csv
+
+# Print header row and first data row
+head -2 tmp/test_exports/vt_export.csv
+```
+
+### Export — GeoJSON
+
+```bash
+# --compressed decompresses the gzip transport encoding (same as browser behavior)
+curl --compressed "http://localhost:3000/public_water_systems/export?file_format=geojson" -o tmp/test_exports/export.geojson
+
+# Filtered by state
+curl --compressed "http://localhost:3000/public_water_systems/export?file_format=geojson&state=VT" -o tmp/test_exports/vt_export.geojson
+
+# Print first 500 characters — file is single-line by design, enough to confirm FeatureCollection structure
+head -c 500 tmp/test_exports/export.geojson
+```

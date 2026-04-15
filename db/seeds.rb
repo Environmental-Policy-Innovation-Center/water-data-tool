@@ -1,9 +1,9 @@
-# This file should ensure the existence of records required to run the application in every environment (production,
-# development, test). The code here should be idempotent so that it can be executed at any point in every environment.
-# The data can then be loaded with the bin/rails db:seed command (or created alongside the database with db:setup).
+# Production data is populated by the ETL pipeline (bin/rails etl:import).
+# This file seeds sample data for local development only.
 #
-# Example:
-#
-#   ["Action", "Comedy", "Drama", "Horror"].each do |genre_name|
-#     MovieGenre.find_or_create_by!(name: genre_name)
-#   end
+# Seeds Vermont and Rhode Island — ~500 water systems total, enough to
+# exercise all features locally. To seed different states, edit the invoke
+# call below or run bin/rails 'db:seed:states[TX]' directly.
+if Rails.env.development?
+  Rake::Task["db:seed:states"].invoke("VT", "RI")
+end

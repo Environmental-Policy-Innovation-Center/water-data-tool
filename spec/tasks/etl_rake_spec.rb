@@ -9,6 +9,7 @@ RSpec.describe "etl rake tasks" do
   before do
     Rake::Task["etl:import"].reenable
     allow(ENV).to receive(:fetch).with("ETL_MANIFEST_URL").and_return("https://s3.example.com/data.json")
+    allow($stdout).to receive(:puts)
   end
 
   let(:importer_double) { instance_double(Etl::Importer, call: []) }

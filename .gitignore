@@ -41,5 +41,8 @@
 # AI tooling — not committed (open-source repo)
 /CLAUDE.md
 
+# Local Docker Compose overrides (developer-specific port mappings, etc.)
+docker-compose.override.yml
+
 # Mac specific files
 .DS_Store

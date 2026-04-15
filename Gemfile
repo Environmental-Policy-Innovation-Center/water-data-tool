@@ -10,6 +10,8 @@ gem "pg", "~> 1.1"
 gem "csv"
 # PostGIS adapter for ActiveRecord [https://github.com/rgeo/activerecord-postgis-adapter]
 gem "activerecord-postgis-adapter"
+# Pagination [https://github.com/ddnexus/pagy]
+gem "pagy", "~> 43.5"
 # Use the Puma web server [https://github.com/puma/puma]
 gem "puma", ">= 5.0"
 # Use JavaScript with ESM import maps [https://github.com/rails/importmap-rails]
@@ -45,6 +47,9 @@ gem "thruster", require: false
 gem "image_processing", "~> 1.2"
 
 group :development, :test do
+  # Load environment variables from .env [https://github.com/bkeepers/dotenv]
+  gem "dotenv-rails"
+
   # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem
   gem "debug", platforms: %i[mri windows], require: "debug/prelude"
 

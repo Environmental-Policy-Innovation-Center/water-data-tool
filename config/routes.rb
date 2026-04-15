@@ -5,4 +5,10 @@ Rails.application.routes.draw do
   get "/tiles/:z/:x/:y", to: "tiles#show", as: :tile, constraints: {z: /\d+/, x: /\d+/, y: /\d+/}
 
   get "up" => "rails/health#show", :as => :rails_health_check
+
+  resources :public_water_systems, param: :pwsid, only: %i[index show] do
+    collection do
+      get :export
+    end
+  end
 end

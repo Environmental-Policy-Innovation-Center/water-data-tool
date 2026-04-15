@@ -1,11 +1,11 @@
 default: &default
   adapter: postgis
   encoding: unicode
-  max_connections: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
+  pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
   host: localhost
-  port: 5432
-  username: postgres
-  password: postgres
+  port: <%= ENV.fetch("DB_PORT", 5432) %>
+  username: <%= ENV.fetch("DB_USERNAME", "postgres") %>
+  password: <%= ENV.fetch("DB_PASSWORD", "postgres") %>
 
 development:
   <<: *default
@@ -16,6 +16,9 @@ test:
   database: water_data_tool_test
 
 production:
+  # TODO: Align production env var names with the DB_* convention used above
+  # (DATABASE_USERNAME → DB_USERNAME, WATER_DATA_TOOL_DATABASE_PASSWORD → DB_PASSWORD,
+  # DATABASE_HOST → DB_HOST). Requires updating Kamal config and server env vars in sync.
   primary: &primary_production
     <<: *default
     database: water_data_tool_production
