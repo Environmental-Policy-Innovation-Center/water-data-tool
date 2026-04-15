@@ -32,7 +32,7 @@ RSpec.describe TileCacheWarmJob, type: :job do
       expect(layers_called).to match_array(TileGenerator.layers)
     end
 
-    it "continues to the next tile coordinate when one tile fails" do
+    it "continues generating remaining layers when one layer fails" do
       call_args = []
       allow(TileGenerator).to receive(:generate_tile!) { |layer, z, x, y|
         raise "boom" if x == 0 && y == 0 && layer == "pws"
@@ -41,12 +41,10 @@ RSpec.describe TileCacheWarmJob, type: :job do
 
       expect { described_class.new.perform(1) }.not_to raise_error
 
-      # z1 = 2x2 grid. (0,0) partially fails (pws raises, other 4 layers still run),
-      # remaining 3 coordinates should each get all 5 layers = 15 calls,
-      # plus the 4 non-pws layers at (0,0) = 4. Total = 19.
-      # Actually the rescue is around the whole (x,y) coordinate, so (0,0) skips entirely.
-      # Remaining: 3 coords × 5 layers = 15
-      expect(call_args.length).to eq(15)
+      # z1 = 2x2 grid = 4 coords × 5 layers = 20 total calls.
+      # Only pws at (0,0) fails; the other 4 layers at (0,0) succeed.
+      # So 20 - 1 = 19 successful calls.
+      expect(call_args.length).to eq(19)
     end
   end
 end

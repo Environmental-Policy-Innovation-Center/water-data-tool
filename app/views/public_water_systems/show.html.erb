@@ -5,13 +5,6 @@
   </div>
 
   <div class="map-detail-body">
-    <%= render "public_water_systems/sections/overview", pws: @pws %>
-    <%= render "public_water_systems/sections/demographics", demographic: @pws.demographic %>
-    <%= render "public_water_systems/sections/environmental_justice", ej: @pws.environmental_justice %>
-    <%= render "public_water_systems/sections/violations", violations: @pws.violations_summary %>
-    <%= render "public_water_systems/sections/funding", funding: @pws.funding_summary %>
-    <%= render "public_water_systems/sections/watershed_hazards", hazard: @pws.watershed_hazard %>
-    <%= render "public_water_systems/sections/boil_water", boil_water: @pws.boil_water_summary %>
-    <%= render "public_water_systems/sections/trends", trends: @pws.trend_datum %>
+    <%= render "public_water_systems/sections/all", pws: @pws %>
   </div>
 </div>

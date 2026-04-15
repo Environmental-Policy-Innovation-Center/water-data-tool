@@ -56,12 +56,11 @@ module Etl
         end
       end
 
+      # Bust stale tiles before spatial reprocessing so requests during
+      # the reindex window generate fresh tiles on demand.
+      Etl::PostImportSteps.bust_tile_cache if any_imported
       Etl::PostImportSteps.call if geometry_imported
-
-      if any_imported
-        Etl::PostImportSteps.bust_tile_cache
-        TileCacheWarmJob.perform_later
-      end
+      TileCacheWarmJob.perform_later if any_imported
 
       errors
     end

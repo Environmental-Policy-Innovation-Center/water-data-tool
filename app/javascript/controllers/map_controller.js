@@ -425,6 +425,15 @@ export default class extends Controller {
   }
 
   #buildClickHtml(props) {
+    return this.#buildPopupBase(props, { showType: true, showReport: true })
+  }
+
+  #buildHoverHtml(props) {
+    return this.#buildPopupBase(props)
+  }
+
+  #buildPopupBase(props, { showType = false, showReport = false } = {}) {
+    const e = this.#escapeHtml
     const pop = props.population_served_count
       ? Number(props.population_served_count).toLocaleString("en-US")
       : "—"
@@ -432,43 +441,37 @@ export default class extends Controller {
       ? Number(props.service_connections_count).toLocaleString("en-US")
       : "—"
 
-    return `
-      <div class="map-detail-header">
-        <p><strong>Utility Name:</strong> ${props.pws_name || "—"}</p>
-        <p><strong>System ID:</strong> ${props.pwsid || "—"}</p>
-      </div>
-      <div class="map-detail-body">
-        <p><strong>State:</strong> ${props.stusps || "—"}</p>
-        <p><strong>Type:</strong> ${props.symbology_field || "—"}</p>
+    let body = `
+        <p><strong>State:</strong> ${e(props.stusps || "—")}</p>`
+    if (showType) {
+      body += `
+        <p><strong>Type:</strong> ${e(props.symbology_field || "—")}</p>`
+    }
+    body += `
         <p><strong>Service connections:</strong> ${connections}</p>
-        <p><strong>Customers served:</strong> ${pop}</p>
+        <p><strong>Customers served:</strong> ${pop}</p>`
+    if (showReport) {
+      body += `
         <p style="text-align:center; margin-top:10px;">
           <a href="javascript:void(0);" class="js-view-report"
              style="color:#444; text-decoration:none; border:1px solid #ccc; border-radius:15px; padding:6px 24px; display:inline-block; font-size:0.95em;">View Full Report</a>
-        </p>
+        </p>`
+    }
+
+    return `
+      <div class="map-detail-header">
+        <p><strong>Utility Name:</strong> ${e(props.pws_name || "—")}</p>
+        <p><strong>System ID:</strong> ${e(props.pwsid || "—")}</p>
+      </div>
+      <div class="map-detail-body">${body}
       </div>
     `
   }
 
-  #buildHoverHtml(props) {
-    const pop = props.population_served_count
-      ? Number(props.population_served_count).toLocaleString("en-US")
-      : "—"
-    const connections = props.service_connections_count
-      ? Number(props.service_connections_count).toLocaleString("en-US")
-      : "—"
-
-    return `
-      <div class="map-detail-header">
-        <p><strong>Utility Name:</strong> ${props.pws_name || "—"}</p>
-        <p><strong>System ID:</strong> ${props.pwsid || "—"}</p>
-      </div>
-      <div class="map-detail-body">
-        <p><strong>State:</strong> ${props.stusps || "—"}</p>
-        <p><strong>Service connections:</strong> ${connections}</p>
-        <p><strong>Customers served:</strong> ${pop}</p>
-      </div>
-    `
+  #escapeHtml(str) {
+    const div = document.createElement("div")
+    div.textContent = str
+    return div.innerHTML
   }
 
   #firstLineLayerId() {

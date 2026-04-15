@@ -182,7 +182,11 @@ export default class extends Controller {
 
     // --- Place geographic filter ---
     const placeGeoid = document.getElementById("place-geoid")?.value
-    if (placeGeoid) p.place_geoid = placeGeoid
+    if (placeGeoid) {
+      p.place_geoid = placeGeoid
+      const placeInput = document.querySelector(".js-place-search")
+      if (placeInput?.value) p.place_name = placeInput.value
+    }
 
     return p
   }
@@ -212,7 +216,7 @@ export default class extends Controller {
   #syncToUrl() {
     const url = new URL(window.location)
     url.search = FilterState.toUrlParams().toString()
-    history.pushState({}, "", url)
+    history.replaceState({}, "", url)
   }
 
   #restoreFromUrl() {
@@ -287,7 +291,7 @@ export default class extends Controller {
       const el = document.getElementById("place-geoid")
       if (el) el.value = params.place_geoid
       const input = document.querySelector(".js-place-search")
-      if (input) input.value = `Place ${params.place_geoid}`
+      if (input) input.value = params.place_name || params.place_geoid
     }
   }
 }

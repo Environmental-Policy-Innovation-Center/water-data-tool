@@ -25,10 +25,10 @@ class TileCacheWarmJob < ApplicationJob
       grid_size.times do |y|
         TileGenerator.layers.each do |layer|
           TileGenerator.generate_tile!(layer, z, x, y)
+        rescue => e
+          Rails.logger.error("[TileCacheWarm] #{layer}/z#{z}/#{x}/#{y}: #{e.class} — #{e.message}")
         end
         tile_count += 1
-      rescue => e
-        Rails.logger.error("[TileCacheWarm] z#{z}/#{x}/#{y} failed: #{e.class} — #{e.message}")
       end
     end
 
