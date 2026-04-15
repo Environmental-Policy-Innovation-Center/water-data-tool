@@ -76,4 +76,8 @@ group :development do
 
   # Annotate models with schema comments [https://github.com/drwl/annotaterb]
   gem "annotaterb", require: false
+
+  # Debugging tools
+  gem "pry-byebug"
+  gem "pry-rails"
 end
