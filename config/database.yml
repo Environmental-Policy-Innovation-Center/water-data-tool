@@ -1,9 +1,7 @@
 default: &default
   adapter: postgis
   encoding: unicode
-  # TODO: should 'pool' be used here instead of max_connections?
-  # "Rails DB config usually uses 'pool' to set the max number of DB connections (rather than max_connections) — see e.g. config/database.yml in a typical Rails app"
-  max_connections: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
+  pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
   host: localhost
   port: <%= ENV.fetch("DB_PORT", 5432) %>
   username: <%= ENV.fetch("DB_USERNAME", "postgres") %>

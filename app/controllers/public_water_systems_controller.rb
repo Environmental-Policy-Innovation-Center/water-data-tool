@@ -15,7 +15,7 @@ class PublicWaterSystemsController < ApplicationController
       page: @pagy.page,
       per_page: @pagy.limit,
       results: systems.map { |pws| PublicWaterSystemSerializer.new(pws).serialize },
-      summary: build_summary(scope)
+      summary: build_summary(scope, @pagy.count)
     }
   end
 
@@ -27,7 +27,7 @@ class PublicWaterSystemsController < ApplicationController
     if pws
       render json: PublicWaterSystemDetailSerializer.new(pws).serialize
     else
-      render json: {error: "Public water system not found", status: 404}, status: :not_found
+      render json: {error: "Public water system not found"}, status: :not_found
     end
   end
 
@@ -53,13 +53,17 @@ class PublicWaterSystemsController < ApplicationController
     scope.order(column => direction)
   end
 
-  # Runs 3 aggregation queries (count, sum, count-where). Combining them into
-  # one requires raw SQL — not worth the trade-off unless profiling shows a bottleneck.
-  def build_summary(scope)
+  # Single query: SUM and COUNT(*) FILTER combined (PostgreSQL). systems_count
+  # reuses @pagy.count. unscope(:order) required — ORDER BY is invalid on aggregates.
+  def build_summary(scope, total_count)
+    total_pop, open_viol_count = scope.unscope(:order).pick(
+      Arel.sql("SUM(population_served_count)"),
+      Arel.sql("COUNT(*) FILTER (WHERE open_health_viol = 'Yes')")
+    )
     {
-      systems_count: scope.count,
-      total_population_served: scope.sum(:population_served_count),
-      systems_with_open_violations: scope.where(open_health_viol: "Yes").count
+      systems_count: total_count,
+      total_population_served: total_pop,
+      systems_with_open_violations: open_viol_count
     }
   end
 
@@ -72,6 +76,8 @@ class PublicWaterSystemsController < ApplicationController
   def render_geojson_export(exporter)
     compressed = ActiveSupport::Gzip.compress(exporter.to_geojson.to_json)
 
+    # Content-Encoding: gzip tells the browser to decompress before saving.
+    # Rack::Deflater is NOT in the middleware stack, so there is no double-compression risk.
     response.headers["Content-Encoding"] = "gzip"
     send_data compressed,
       type: "application/json",

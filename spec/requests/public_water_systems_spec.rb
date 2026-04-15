@@ -58,6 +58,16 @@ RSpec.describe "PublicWaterSystems", type: :request do
     end
 
     context "with sort params" do
+      it "ignores sort_by values not in SORTABLE_COLUMNS allowlist (SQL injection guard)" do
+        create_list(:public_water_system, 2)
+
+        get "/public_water_systems", params: {sort_by: "DROP TABLE public_water_systems"}
+
+        # The injected string never reaches SQL — SORTABLE_COLUMNS allowlist silently falls back to pwsid.
+        expect(response).to have_http_status(:ok)
+        expect(response.parsed_body["results"].length).to eq(2)
+      end
+
       it "sorts ascending by the requested column" do
         create(:public_water_system, pws_name: "Zebra Water")
         create(:public_water_system, pws_name: "Alpha Water")
@@ -93,6 +103,18 @@ RSpec.describe "PublicWaterSystems", type: :request do
     end
 
     context "with summary" do
+      it "returns correct summary counts when a sort is active" do
+        create(:public_water_system, open_health_viol: "Yes", population_served_count: 1000)
+        create(:public_water_system, open_health_viol: "No", population_served_count: 500)
+
+        get "/public_water_systems", params: {sort_by: "pws_name", sort_dir: "asc"}
+
+        summary = response.parsed_body["summary"]
+        expect(summary["systems_count"]).to eq(2)
+        expect(summary["total_population_served"]).to eq(1500)
+        expect(summary["systems_with_open_violations"]).to eq(1)
+      end
+
       it "returns correct summary counts for the filtered scope" do
         create(:public_water_system, open_health_viol: "Yes", population_served_count: 1000, stusps: "VT")
         create(:public_water_system, open_health_viol: "No", population_served_count: 500, stusps: "VT")
@@ -109,6 +131,17 @@ RSpec.describe "PublicWaterSystems", type: :request do
   end
 
   describe "GET /public_water_systems/export" do
+    context "with an unrecognized file_format" do
+      it "falls back to CSV" do
+        create(:public_water_system)
+
+        get "/public_water_systems/export", params: {file_format: "invalid"}
+
+        expect(response).to have_http_status(:ok)
+        expect(response.content_type).to eq("text/csv")
+      end
+    end
+
     context "CSV export (default)" do
       it "returns a CSV file with correct content headers" do
         create(:public_water_system)
@@ -255,7 +288,6 @@ RSpec.describe "PublicWaterSystems", type: :request do
         expect(response).to have_http_status(:not_found)
         json = response.parsed_body
         expect(json["error"]).to be_present
-        expect(json["status"]).to eq(404)
       end
     end
   end
