@@ -122,8 +122,8 @@ export default class extends Controller {
     // --- Source: water type ---
     const wsGround = document.getElementById("ws-ground")
     const wsSurface = document.getElementById("ws-surface")
-    if (wsGround?.checked) p.gw_sw_code = "GW"
-    else if (wsSurface?.checked) p.gw_sw_code = "SW"
+    if (wsGround?.checked) p.gw_sw_code = "Groundwater"
+    else if (wsSurface?.checked) p.gw_sw_code = "Surface Water"
 
     // --- Source: source protection ---
     if (document.getElementById("has-source-water-protection")?.checked) {
@@ -151,8 +151,8 @@ export default class extends Controller {
     // --- Boundaries: service area type ---
     const btModeled = document.getElementById("bt-modeled")
     const btSystem = document.getElementById("bt-system")
-    if (btModeled?.checked) p.service_area_type = "Modeled"
-    else if (btSystem?.checked) p.service_area_type = "System"
+    if (btModeled?.checked) p.symbology_field = "Modeled"
+    else if (btSystem?.checked) p.symbology_field = "System Sourced"
 
     // --- Boundaries: area range ---
     const areaMin = document.getElementById("area-min")?.value
@@ -171,7 +171,8 @@ export default class extends Controller {
     const popIds = ["pop-size-1", "pop-size-2", "pop-size-3", "pop-size-4", "pop-size-5"]
     const activePop = popIds.filter(cls => document.querySelector(`.${cls}`)?.classList.contains("active"))
     if (activePop.length > 0 && activePop.length < popIds.length) {
-      p.pop_cat_5 = activePop.map(cls => cls.replace("pop-size-", ""))
+      const popCatMap = { "1": "<=500", "2": "501-3,300", "3": "3,301-10,000", "4": "10,001-100,000", "5": ">100,000" }
+      p.pop_cat_5 = activePop.map(cls => popCatMap[cls.replace("pop-size-", "")])
     }
 
     // --- Population: density range ---
@@ -232,8 +233,8 @@ export default class extends Controller {
 
   #restoreDomState(params) {
     // Source: water type
-    if (params.gw_sw_code === "GW") { const el = document.getElementById("ws-ground"); if (el) el.checked = true }
-    else if (params.gw_sw_code === "SW") { const el = document.getElementById("ws-surface"); if (el) el.checked = true }
+    if (params.gw_sw_code === "Groundwater") { const el = document.getElementById("ws-ground"); if (el) el.checked = true }
+    else if (params.gw_sw_code === "Surface Water") { const el = document.getElementById("ws-surface"); if (el) el.checked = true }
 
     // Source protection
     if (params.has_source_protection === "true") {
@@ -259,8 +260,8 @@ export default class extends Controller {
     if (params.is_school_or_daycare === "true") { const el = document.getElementById("is-school-or-daycare"); if (el) el.checked = true }
 
     // Boundary type
-    if (params.service_area_type === "Modeled") { const el = document.getElementById("bt-modeled"); if (el) el.checked = true }
-    else if (params.service_area_type === "System") { const el = document.getElementById("bt-system"); if (el) el.checked = true }
+    if (params.symbology_field === "Modeled") { const el = document.getElementById("bt-modeled"); if (el) el.checked = true }
+    else if (params.symbology_field === "System Sourced") { const el = document.getElementById("bt-system"); if (el) el.checked = true }
 
     // Area range
     if (params.area_min) { const el = document.getElementById("area-min"); if (el) el.value = params.area_min }
@@ -275,7 +276,7 @@ export default class extends Controller {
 
     // Population categories
     if (params.pop_cat_5) {
-      const catToClass = { "1": "pop-size-1", "2": "pop-size-2", "3": "pop-size-3", "4": "pop-size-4", "5": "pop-size-5" }
+      const catToClass = { "<=500": "pop-size-1", "501-3,300": "pop-size-2", "3,301-10,000": "pop-size-3", "10,001-100,000": "pop-size-4", ">100,000": "pop-size-5" }
       params.pop_cat_5.forEach(cat => {
         const el = document.querySelector(`.${catToClass[cat]}`)
         if (el) el.classList.add("active")

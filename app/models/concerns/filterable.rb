@@ -12,7 +12,7 @@ module Filterable
       scope = scope.where(owner_type: params[:owner_type]) if params[:owner_type].present?
       scope = scope.where(primacy_type: params[:primacy_type]) if params[:primacy_type].present?
       scope = scope.where(pop_cat_5: params[:pop_cat_5]) if params[:pop_cat_5].present?
-      scope = scope.where(service_area_type: params[:service_area_type]) if params[:service_area_type].present?
+      scope = scope.where(symbology_field: params[:symbology_field]) if params[:symbology_field].present?
 
       # --- Boolean filters ---
       scope = scope.where(is_wholesaler: true) if params[:is_wholesaler] == "true"

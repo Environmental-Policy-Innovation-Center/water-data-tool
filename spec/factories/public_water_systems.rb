@@ -44,11 +44,11 @@ FactoryBot.define do
     pws_name { "Green Mountain Water District" }
     stusps { "VT" }
     primacy_agency { "Vermont DEC" }
-    pop_cat_5 { "Small" }
+    pop_cat_5 { "<=500" }
     population_served_count { 1500 }
     service_connections_count { 600 }
-    service_area_type { "System Sourced" }
-    symbology_field { "Community Water System" }
+    service_area_type { "Residential Area" }
+    symbology_field { "System Sourced" }
     gw_sw_code { "Groundwater" }
     primary_source_code { "GW" }
     owner_type { "Local" }

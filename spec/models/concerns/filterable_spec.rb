@@ -16,6 +16,24 @@ RSpec.describe Filterable, type: :model do
       let!(:groundwater_system) { create(:public_water_system, gw_sw_code: "Groundwater", stusps: "VT") }
       let!(:surface_water_system) { create(:public_water_system, gw_sw_code: "Surface Water", stusps: "RI") }
 
+      it "filters by symbology_field" do
+        modeled = create(:public_water_system, symbology_field: "Modeled")
+        system_sourced = create(:public_water_system, symbology_field: "System Sourced")
+
+        results = PublicWaterSystem.apply_filters(symbology_field: "Modeled")
+        expect(results).to include(modeled)
+        expect(results).not_to include(system_sourced)
+      end
+
+      it "filters by pop_cat_5" do
+        small = create(:public_water_system, pop_cat_5: "<=500")
+        large = create(:public_water_system, pop_cat_5: ">100,000")
+
+        results = PublicWaterSystem.apply_filters(pop_cat_5: ["<=500"])
+        expect(results).to include(small)
+        expect(results).not_to include(large)
+      end
+
       it "filters by gw_sw_code" do
         results = PublicWaterSystem.apply_filters(gw_sw_code: "Groundwater")
         expect(results).to include(groundwater_system)
