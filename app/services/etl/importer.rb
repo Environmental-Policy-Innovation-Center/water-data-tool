@@ -33,6 +33,7 @@ module Etl
     def call
       manifest = fetch_manifest
       geometry_imported = false
+      any_imported = false
       errors = []
 
       manifest.each do |entry|
@@ -45,7 +46,10 @@ module Etl
 
         begin
           result = klass.new(file_url: entry["http_path"], last_updated: last_updated, force: @force).call
-          geometry_imported = true if file_key == "epa_sabs_geoms" && result == :imported
+          if result == :imported
+            any_imported = true
+            geometry_imported = true if file_key == "epa_sabs_geoms"
+          end
         rescue => e # StandardError only — intentional fault isolation per importer
           errors << {file_key: file_key, error: e}
           Rails.logger.error("[ETL] #{file_key} failed: #{e.class} — #{e.message}")
@@ -53,6 +57,11 @@ module Etl
       end
 
       Etl::PostImportSteps.call if geometry_imported
+
+      if any_imported
+        Etl::PostImportSteps.bust_tile_cache
+        TileCacheWarmJob.perform_later
+      end
 
       errors
     end

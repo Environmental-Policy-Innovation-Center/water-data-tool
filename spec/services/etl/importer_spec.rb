@@ -146,6 +146,49 @@ RSpec.describe Etl::Importer do
     end
   end
 
+  describe "tile cache invalidation" do
+    before do
+      allow(importer).to receive(:fetch_manifest).and_return(manifest)
+    end
+
+    it "busts the tile cache when any file is imported" do
+      epa_sabs_importer = instance_double(Etl::Importers::EpaSabs, call: :imported)
+      allow(Etl::Importers::EpaSabs).to receive(:new).and_return(epa_sabs_importer)
+      allow_all_importers_to_skip(except: Etl::Importers::EpaSabs)
+
+      expect(Etl::PostImportSteps).to receive(:bust_tile_cache)
+      importer.call
+    end
+
+    it "enqueues TileCacheWarmJob after busting the cache" do
+      epa_sabs_importer = instance_double(Etl::Importers::EpaSabs, call: :imported)
+      allow(Etl::Importers::EpaSabs).to receive(:new).and_return(epa_sabs_importer)
+      allow_all_importers_to_skip(except: Etl::Importers::EpaSabs)
+
+      allow(Etl::PostImportSteps).to receive(:bust_tile_cache)
+      expect(TileCacheWarmJob).to receive(:perform_later)
+      importer.call
+    end
+
+    it "does not bust the cache when all files are skipped" do
+      allow_all_importers_to_skip
+
+      expect(Etl::PostImportSteps).not_to receive(:bust_tile_cache)
+      expect(TileCacheWarmJob).not_to receive(:perform_later)
+      importer.call
+    end
+
+    it "busts the cache even when only non-geometry files are imported" do
+      sdwis_importer = instance_double(Etl::Importers::SdwisViols, call: :imported)
+      allow(Etl::Importers::SdwisViols).to receive(:new).and_return(sdwis_importer)
+      allow_all_importers_to_skip(except: Etl::Importers::SdwisViols)
+
+      expect(Etl::PostImportSteps).to receive(:bust_tile_cache)
+      expect(TileCacheWarmJob).to receive(:perform_later)
+      importer.call
+    end
+  end
+
   describe "#fetch_manifest (SSRF guard)" do
     it "raises InsecureUrlError for a non-HTTPS manifest URL" do
       bad_importer = described_class.new(manifest_url: "http://evil.example.com/data.json")
