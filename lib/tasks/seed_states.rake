@@ -1,4 +1,7 @@
 require "csv"
+require "net/http"
+require "json"
+require "fileutils"
 
 # Helpers are namespaced to avoid polluting the global Object space.
 module SeedImport
@@ -34,18 +37,83 @@ module SeedImport
 
     (val.strip.to_f * 100).round(2)
   end
+
+  # Fetch the ETL manifest and download each data file to the cache directory.
+  # Returns the cache directory path. Skips files that already exist locally.
+  def self.download_data_files(manifest_url, cache_dir)
+    FileUtils.mkdir_p(cache_dir)
+
+    puts "  Fetching manifest from #{manifest_url}..."
+    manifest = JSON.parse(Net::HTTP.get(URI.parse(manifest_url)))
+
+    manifest.each do |entry|
+      url = entry["http_path"]
+      filename = File.basename(URI.parse(url).path)
+      local_path = cache_dir.join(filename)
+
+      if local_path.exist?
+        puts "  #{filename} (cached)"
+        next
+      end
+
+      puts "  Downloading #{filename}..."
+      download_with_progress(url, local_path)
+    end
+
+    cache_dir
+  end
+
+  # Stream-downloads a file with progress reporting for large files.
+  def self.download_with_progress(url, destination)
+    uri = URI.parse(url)
+    raise "Only HTTPS URLs are permitted" unless uri.is_a?(URI::HTTPS)
+
+    Net::HTTP.start(uri.host, uri.port, use_ssl: true) do |http|
+      request = Net::HTTP::Get.new(uri)
+      http.request(request) do |response|
+        raise "Download failed: #{response.code} for #{url}" unless response.is_a?(Net::HTTPSuccess)
+
+        total = response["Content-Length"]&.to_i
+        downloaded = 0
+
+        File.open(destination, "wb") do |file|
+          response.read_body do |chunk|
+            file.write(chunk)
+            downloaded += chunk.size
+            if total && total > 10_000_000 # Show progress for files >10MB
+              pct = (downloaded.to_f / total * 100).round(1)
+              print "\r    #{pct}% (#{(downloaded / 1_048_576.0).round(1)}MB / #{(total / 1_048_576.0).round(1)}MB)"
+            end
+          end
+        end
+        puts if total && total > 10_000_000
+      end
+    end
+  end
 end
 
 namespace :db do
   namespace :seed do
-    desc "Seed database with water system data for given states: bin/rails db:seed:states[VT,RI]"
+    desc <<~DESC
+      Seed database with water system data for given states.
+      Downloads data from S3 if not cached locally.
+
+      Usage:
+        bin/rails db:seed:states[VT,RI]
+        bin/rails 'db:seed:states[CT,MA,ME,NH,RI,VT]'
+    DESC
     task :states, [:states] => :environment do |_, args|
       abort "Usage: bin/rails db:seed:states[VT,RI]" if args[:states].blank?
 
       states = ([args[:states]] + args.extras).compact.map(&:strip).map(&:upcase)
-      dir = Rails.root.join("db/seeds/csv")
 
       puts "→ Seeding #{states.join(", ")}..."
+
+      # ── Download data from S3 manifest ──────────────────────────────────────
+      manifest_url = ENV.fetch("ETL_MANIFEST_URL") {
+        abort "ETL_MANIFEST_URL not set. Add it to .env or pass it: ETL_MANIFEST_URL=https://... bin/rails db:seed:states[VT]"
+      }
+      dir = SeedImport.download_data_files(manifest_url, Rails.root.join("tmp/seeds"))
 
       # Collect the pwsids we care about upfront — used to filter all subsequent files
       target_pwsids = Set.new
@@ -330,13 +398,67 @@ namespace :db do
       WatershedHazard.upsert_all(hazard_rows, unique_by: :pwsid) if hazard_rows.any?
       puts "  WatershedHazard:      #{hazard_rows.size}"
 
-      # NOTE: PlaceSystemCrosswalk records are not seeded here. They are derived
-      # from spatial intersections between service_area_geometries and
-      # cartographic_places, which requires the geometry ETL pipeline to run first.
-      # The place_geoid filter in Filterable will return empty results in a
-      # geometry-free dev environment — this is expected.
+      # ---------------------------------------------------------------------------
+      # 9. ServiceAreaGeometry — from epa_sabs_geoms.geojson (filtered to target states)
+      # ---------------------------------------------------------------------------
+      geojson_path = dir.join("epa_sabs_geoms.geojson")
+      if geojson_path.exist?
+        puts "  Loading geometries (filtering to #{states.join(", ")})..."
 
-      puts "✓ Done."
+        geojson = JSON.parse(File.read(geojson_path))
+        features = geojson["features"].select { |f| target_pwsids.include?(f.dig("properties", "pwsid")) }
+        puts "  Found #{features.size} matching geometries out of #{geojson["features"].size} total"
+
+        conn = ApplicationRecord.connection
+        batch_size = 500
+        inserted = 0
+
+        features.each_slice(batch_size) do |batch|
+          conn.transaction do
+            batch.each do |feature|
+              conn.exec_query(
+                <<~SQL,
+                  INSERT INTO service_area_geometries (pwsid, geom, created_at, updated_at)
+                  VALUES ($1, ST_GeomFromGeoJSON($2), NOW(), NOW())
+                  ON CONFLICT (pwsid) DO UPDATE
+                    SET geom       = EXCLUDED.geom,
+                        updated_at = NOW()
+                SQL
+                "SeedStates#geometries",
+                [
+                  ActiveRecord::Relation::QueryAttribute.new("pwsid", feature.dig("properties", "pwsid"), ActiveModel::Type::String.new),
+                  ActiveRecord::Relation::QueryAttribute.new("geom_json", feature["geometry"].to_json, ActiveModel::Type::String.new)
+                ]
+              )
+              inserted += 1
+            end
+          end
+        end
+
+        puts "  ServiceAreaGeometry:  #{inserted}"
+      else
+        puts "  ⚠ epa_sabs_geoms.geojson not found — skipping geometries"
+      end
+
+      # ---------------------------------------------------------------------------
+      # 10. Cartographic boundaries — load if tables are empty
+      # ---------------------------------------------------------------------------
+      if CartographicState.count == 0
+        puts "\n→ Loading cartographic boundaries..."
+        Rake::Task["cartographic:load"].invoke
+      else
+        puts "\n  Cartographic boundaries: already loaded (#{CartographicState.count} states)"
+      end
+
+      # ---------------------------------------------------------------------------
+      # 11. Post-import spatial steps
+      # ---------------------------------------------------------------------------
+      if ServiceAreaGeometry.count > 0
+        puts "\n→ Running post-import spatial steps..."
+        Etl::PostImportSteps.call
+      end
+
+      puts "\n✓ Done. #{target_pwsids.size} water systems seeded for #{states.join(", ")}."
     end
   end
 end
