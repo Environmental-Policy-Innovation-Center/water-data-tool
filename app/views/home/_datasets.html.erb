@@ -1,4 +1,5 @@
-<div class="dataset-header" data-controller="datasets">
+<div data-controller="datasets">
+<div class="dataset-header">
   <div class="col-1">
     <h3>Datasets</h3>
     <p class="ds-no-filters" data-datasets-target="noFilters">27 datasets available</p>
@@ -11,7 +12,7 @@
 
   <div class="col-2">
     <div class="inner">
-      <a href="https://docs.google.com/forms/d/e/1FAIpQLSc6H73GVlF-dlmJrjpRa1J-kgkbzGIHoys5Tcnn3DNzCZlt4Q/viewform?usp=dialog" target="_blank" class="btn-rounded btn-recommend-datasets">Recommend Datasets</a>
+      <a href="https://docs.google.com/forms/d/e/1FAIpQLSc6H73GVlF-dlmJrjpRa1J-kgkbzGIHoys5Tcnn3DNzCZlt4Q/viewform?usp=dialog" target="_blank" rel="noopener noreferrer" class="btn-rounded btn-recommend-datasets">Recommend Datasets</a>
       <p>EPIC wants to know what other datasets should be included in the tool.</p>
       <div class="ds-ui">
         <a href="javascript:void(0);" data-action="click->datasets#togglePanel" data-panel="filter" class="btn-ds-ui btn-rounded btn-ds-filter">Filter</a>
@@ -81,9 +82,9 @@
         <h2>Community Water System Service Area Boundaries</h2>
         <p class="ds-description">This dataset contains geographic service area boundaries for U.S. Community Water Systems in the U.S. and select territories (Puerto Rico, Guam, Northern Mariana Islands). As of October 2025, over half of the approximately 50,000 water system boundaries come from authoritative data sources.</p>
         <div class="ds-callout">
-          <p class="ds-source">Data source: <a href="https://www.epa.gov/ground-water-and-drinking-water/community-water-system-service-area-boundaries" target="_blank">U.S. Environmental Protection Agency (EPA)</a></p>
+          <p class="ds-source">Data source: <a href="https://www.epa.gov/ground-water-and-drinking-water/community-water-system-service-area-boundaries" target="_blank" rel="noopener noreferrer">U.S. Environmental Protection Agency (EPA)</a></p>
           <p>Last updated: <span class="date">1/27/2026</span></p>
-          <p class="ds-update-frequecy">Update frequency: Annually</p>
+          <p class="ds-update-frequency">Update frequency: Annually</p>
         </div>
         <p><strong>Things you should know</strong></p>
         <ul>
@@ -104,9 +105,9 @@
         <h2>Safe Drinking Water Information System</h2>
         <p class="ds-description">Water system violation, enforcement, and system information submitted by states and utilities.</p>
         <div class="ds-callout">
-          <p class="ds-source">Data source: <a href="https://www.epa.gov/ground-water-and-drinking-water/safe-drinking-water-information-system-sdwis-federal-reporting" target="_blank">U.S. Environmental Protection Agency (EPA)</a></p>
+          <p class="ds-source">Data source: <a href="https://www.epa.gov/ground-water-and-drinking-water/safe-drinking-water-information-system-sdwis-federal-reporting" target="_blank" rel="noopener noreferrer">U.S. Environmental Protection Agency (EPA)</a></p>
           <p>Last updated: <span class="date">2/20/2026</span></p>
-          <p class="ds-update-frequecy">Update frequency: Quarterly</p>
+          <p class="ds-update-frequency">Update frequency: Quarterly</p>
         </div>
         <p><strong>Things you should know</strong></p>
         <ul>
@@ -126,9 +127,9 @@
         <h2>U.S. Census</h2>
         <p class="ds-description">The dataset combines 2021 American Community Survey (ACS) demographic and socioeconomic estimates with EPA drinking water system service area boundaries. EPIC allocated ACS census variables to system service areas using spatial crosswalk methods based on EPA boundary files. The result is a set of estimated community characteristics for each drinking water system, not direct measurements of the populations served.</p>
         <div class="ds-callout">
-          <p class="ds-source">Data source: <a href="https://www.census.gov/programs-surveys/acs.html" target="_blank">U.S. Census Bureau</a></p>
+          <p class="ds-source">Data source: <a href="https://www.census.gov/programs-surveys/acs.html" target="_blank" rel="noopener noreferrer">U.S. Census Bureau</a></p>
           <p>Last updated: <span class="date">2/2/2026</span></p>
-          <p class="ds-update-frequecy">Update frequency: Annually</p>
+          <p class="ds-update-frequency">Update frequency: Annually</p>
         </div>
         <p><strong>Things you should know</strong></p>
         <ul>
@@ -148,9 +149,9 @@
         <h2>National Pollutant Discharge Elimination System (NPDES) Permits</h2>
         <p class="ds-description">This dataset includes permitted discharge outfalls from the EPA National Pollutant Discharge Elimination System (NPDES). NPDES documents point-source pollutant discharges to surface waters under the Clean Water Act. EPIC links permitted discharge locations to nearby drinking water systems to identify potential upstream pollution pressures. The dataset reflects regulated discharge activity, not measured drinking water contamination or human exposure.</p>
         <div class="ds-callout">
-          <p class="ds-source">Data source: <a href="https://www.epa.gov/npdes" target="_blank">U.S. Environmental Protection Agency (EPA)</a></p>
+          <p class="ds-source">Data source: <a href="https://www.epa.gov/npdes" target="_blank" rel="noopener noreferrer">U.S. Environmental Protection Agency (EPA)</a></p>
           <p>Last updated: <span class="date">2/3/2026</span></p>
-          <p class="ds-update-frequecy">Update frequency: Quarterly</p>
+          <p class="ds-update-frequency">Update frequency: Quarterly</p>
         </div>
         <p><strong>Things you should know</strong></p>
         <ul>
@@ -171,9 +172,9 @@
         <h2>303(d) Impaired Waterways</h2>
         <p class="ds-description">This dataset contains impaired surface waters reported by states to EPA under Clean Water Act Sections 303(d) and 305(b) through the Integrated Report. States identify assessment units that do not meet one or more designated water quality uses and require corrective action. EPIC links impaired waters to nearby drinking water systems as a potential indicator of source water characteristics, not treated drinking water quality.</p>
         <div class="ds-callout">
-          <p class="ds-source">Data source: <a href="https://www.epa.gov/waterdata/attains" target="_blank">U.S. Environmental Protection Agency (EPA)</a></p>
+          <p class="ds-source">Data source: <a href="https://www.epa.gov/waterdata/attains" target="_blank" rel="noopener noreferrer">U.S. Environmental Protection Agency (EPA)</a></p>
           <p>Last updated: <span class="date">2/3/2026</span></p>
-          <p class="ds-update-frequecy">Update frequency: Quarterly</p>
+          <p class="ds-update-frequency">Update frequency: Quarterly</p>
         </div>
         <p><strong>Things you should know</strong></p>
         <ul>
@@ -194,9 +195,9 @@
         <h2>Oregon Drinking Water Advisories</h2>
         <p class="ds-description">Publicly available drinking water advisories for water systems located in Oregon. Provided by the Oregon Public Health Authority.</p>
         <div class="ds-callout">
-          <p class="ds-source">Data source: <a href="https://yourwater.oregon.gov/advisories.php?areasw=x&areap=x&popa=x&popv=x&open=x&lifted=x&begin=&end=&sort=start" target="_blank">Oregon Public Health Authority</a></p>
+          <p class="ds-source">Data source: <a href="https://yourwater.oregon.gov/advisories.php?areasw=x&areap=x&popa=x&popv=x&open=x&lifted=x&begin=&end=&sort=start" target="_blank" rel="noopener noreferrer">Oregon Public Health Authority</a></p>
           <p>Last updated: <span class="date">2/3/2026</span></p>
-          <p class="ds-update-frequecy">Update frequency: Quarterly</p>
+          <p class="ds-update-frequency">Update frequency: Quarterly</p>
         </div>
         <p><strong>Things you should know</strong></p>
         <ul>
@@ -216,9 +217,9 @@
         <h2>Climate and Economic Justice Screening Tool</h2>
         <p class="ds-description">Built for Biden&rsquo;s Justice40 initiative, the CEJST uses datasets that are indicators of burdens in eight categories: climate change, energy, health, housing, legacy pollution, transportation, water and wastewater, and workforce development.</p>
         <div class="ds-callout">
-          <p class="ds-source">Data source: <a href="https://public-environmental-data-partners.github.io/j40-cejst-2/en/#3/33.47/-97.5" target="_blank">Public Environmental Data Partners</a></p>
+          <p class="ds-source">Data source: <a href="https://public-environmental-data-partners.github.io/j40-cejst-2/en/#3/33.47/-97.5" target="_blank" rel="noopener noreferrer">Public Environmental Data Partners</a></p>
           <p>Last updated: <span class="date">1/29/2026</span></p>
-          <p class="ds-update-frequecy">Update frequency: Quarterly</p>
+          <p class="ds-update-frequency">Update frequency: Quarterly</p>
         </div>
         <p><strong>Things you should know</strong></p>
         <ul>
@@ -235,9 +236,9 @@
         <h2>Climate Vulnerability Index</h2>
         <p class="ds-description">The U.S. Climate Vulnerability Index helps you see which communities face the greatest challenges from the impacts of a changing climate.</p>
         <div class="ds-callout">
-          <p class="ds-source">Data source: <a href="https://climatevulnerabilityindex.org/" target="_blank">Environmental Defense Fund</a></p>
+          <p class="ds-source">Data source: <a href="https://climatevulnerabilityindex.org/" target="_blank" rel="noopener noreferrer">Environmental Defense Fund</a></p>
           <p>Last updated: <span class="date">1/29/2026</span></p>
-          <p class="ds-update-frequecy">Update frequency: Quarterly</p>
+          <p class="ds-update-frequency">Update frequency: Quarterly</p>
         </div>
         <p><strong>Things you should know</strong></p>
         <ul>
@@ -254,9 +255,9 @@
         <h2>Social Vulnerability Index</h2>
         <p class="ds-description">This SVI tool is a place-based index, database, and mapping application designed to identify and quantify communities experiencing social vulnerability. It uses 16 U.S. Census variables from the 5-year American Community Survey (ACS) to identify communities that may need support before, during, or after disasters.</p>
         <div class="ds-callout">
-          <p class="ds-source">Data source: <a href="https://www.atsdr.cdc.gov/place-health/php/svi/index.html" target="_blank">Center for Disease Control</a></p>
+          <p class="ds-source">Data source: <a href="https://www.atsdr.cdc.gov/place-health/php/svi/index.html" target="_blank" rel="noopener noreferrer">Center for Disease Control</a></p>
           <p>Last updated: <span class="date">1/29/2026</span></p>
-          <p class="ds-update-frequecy">Update frequency: Quarterly</p>
+          <p class="ds-update-frequency">Update frequency: Quarterly</p>
         </div>
         <p><strong>Things you should know</strong></p>
         <ul>
@@ -273,9 +274,9 @@
         <h2>Drinking Water State Revolving Funds Awards</h2>
         <p class="ds-description">These data represent funding awards for drinking water investment and improvement from the Drinking Water State Revolving Fund. Disseminated by states, awards are given largely in the form of loans to communities based on federal allotments and state-based programs.</p>
         <div class="ds-callout">
-          <p class="ds-source">Data source: <a href="https://sdwis.epa.gov/ords/sfdw_pub/r/sfdw/owsrf_public/assistance-agreement-report-filters" target="_blank">U.S. Environmental Protection Agency (EPA)</a></p>
+          <p class="ds-source">Data source: <a href="https://sdwis.epa.gov/ords/sfdw_pub/r/sfdw/owsrf_public/assistance-agreement-report-filters" target="_blank" rel="noopener noreferrer">U.S. Environmental Protection Agency (EPA)</a></p>
           <p>Last updated: <span class="date">2/20/2026</span></p>
-          <p class="ds-update-frequecy">Update frequency: Annually</p>
+          <p class="ds-update-frequency">Update frequency: Annually</p>
         </div>
         <p><strong>Things you should know</strong></p>
         <ul>
@@ -293,9 +294,9 @@
         <h2>Water System Watersheds for Well &amp; Intake Locations</h2>
         <p class="ds-description">These data show the relationship between a water system, and its source watershed. While data on specific intake locations is private given security concerns, this match between a water system and a watershed is shared by the EPA.</p>
         <div class="ds-callout">
-          <p class="ds-source">Data source: <a href="https://mywaterway.epa.gov/" target="_blank">U.S. Environmental Protection Agency (EPA)</a></p>
+          <p class="ds-source">Data source: <a href="https://mywaterway.epa.gov/" target="_blank" rel="noopener noreferrer">U.S. Environmental Protection Agency (EPA)</a></p>
           <p>Last updated: <span class="date">10/7/2024</span></p>
-          <p class="ds-update-frequecy">Update frequency: Static</p>
+          <p class="ds-update-frequency">Update frequency: Static</p>
         </div>
         <p><strong>Things you should know</strong></p>
         <ul>
@@ -312,9 +313,9 @@
         <h2>Facilities with Risk Management Plans</h2>
         <p class="ds-description">These data contains location and facility identification information from EPA's Facility Registry Service (FRS) for the subset of facilities that link to the Risk Management Plan (RMP) System. The Risk Management Plan (RMP) database stores the risk management plans reported by companies that handle, manufacture, use, or store certain flammable or toxic substances.</p>
         <div class="ds-callout">
-          <p class="ds-source">Data source: <a href="https://catalog.data.gov/dataset/epa-facility-registry-service-frs-rmp6" target="_blank">U.S. Environmental Protection Agency (EPA)</a></p>
+          <p class="ds-source">Data source: <a href="https://catalog.data.gov/dataset/epa-facility-registry-service-frs-rmp6" target="_blank" rel="noopener noreferrer">U.S. Environmental Protection Agency (EPA)</a></p>
           <p>Last updated: <span class="date">2/3/2026</span></p>
-          <p class="ds-update-frequecy">Update frequency: Quarterly</p>
+          <p class="ds-update-frequency">Update frequency: Quarterly</p>
         </div>
         <p><strong>Things you should know</strong></p>
         <ul>
@@ -331,9 +332,9 @@
         <h2>Underground Storage Tanks</h2>
         <p class="ds-description">This data provides the attributes and locations of active and closed Underground Storage Tanks (USTs), UST facilities, and UST releases in states as of 2018-2019, US territories as of 2020-2021, and Tribal lands as of 2025.</p>
         <div class="ds-callout">
-          <p class="ds-source">Data source: <a href="https://www.epa.gov/ust/ust-finder" target="_blank">U.S. Environmental Protection Agency (EPA)</a></p>
+          <p class="ds-source">Data source: <a href="https://www.epa.gov/ust/ust-finder" target="_blank" rel="noopener noreferrer">U.S. Environmental Protection Agency (EPA)</a></p>
           <p>Last updated: <span class="date">2/3/2026</span></p>
-          <p class="ds-update-frequecy">Update frequency: Static</p>
+          <p class="ds-update-frequency">Update frequency: Static</p>
         </div>
         <p><strong>Things you should know</strong></p>
         <ul>
@@ -353,9 +354,9 @@
         <h2>Percent Change in U.S. Census Variables</h2>
         <p class="ds-description">This dataset contains the 10-year percent change (2011 ACS vs 2021 ACS) in ~70 different census variables for EPA's Service Area Boundaries. EPIC used the EPA ORD crosswalk and NHGIS crosswalk files to estimate counts for 2011 data, and household-weighted interpolation for income variables.</p>
         <div class="ds-callout">
-          <p class="ds-source">Data source: <a href="https://www.census.gov/programs-surveys/acs.html" target="_blank">U.S. Census Bureau</a></p>
+          <p class="ds-source">Data source: <a href="https://www.census.gov/programs-surveys/acs.html" target="_blank" rel="noopener noreferrer">U.S. Census Bureau</a></p>
           <p>Last updated: <span class="date">2/3/2026</span></p>
-          <p class="ds-update-frequecy">Update frequency: Annually</p>
+          <p class="ds-update-frequency">Update frequency: Annually</p>
         </div>
         <p><strong>Things you should know</strong></p>
         <ul>
@@ -376,9 +377,9 @@
         <h2>West Virginia Drinking Water Advisories</h2>
         <p class="ds-description">Publicly available drinking water advisories for water systems located in West Virginia. Provided by the West Virginia Department of Health and Human Resources.</p>
         <div class="ds-callout">
-          <p class="ds-source">Data source: <a href="https://oehsportal.wvdhhr.org/boilwater" target="_blank">WV Department of Health and Human Services</a></p>
+          <p class="ds-source">Data source: <a href="https://oehsportal.wvdhhr.org/boilwater" target="_blank" rel="noopener noreferrer">WV Department of Health and Human Services</a></p>
           <p>Last updated: <span class="date">2/3/2026</span></p>
-          <p class="ds-update-frequecy">Update frequency: Quarterly</p>
+          <p class="ds-update-frequency">Update frequency: Quarterly</p>
         </div>
         <p><strong>Things you should know</strong></p>
         <ul>
@@ -398,9 +399,9 @@
         <h2>New Mexico Drinking Water Advisories</h2>
         <p class="ds-description">Publicly available drinking water advisories for water systems located in New Mexico. Provided by the New Mexico Environment Department.</p>
         <div class="ds-callout">
-          <p class="ds-source">Data source: <a href="https://www.env.nm.gov/drinking_water/boil-water-advisories/" target="_blank">New Mexico Environment Department</a></p>
+          <p class="ds-source">Data source: <a href="https://www.env.nm.gov/drinking_water/boil-water-advisories/" target="_blank" rel="noopener noreferrer">New Mexico Environment Department</a></p>
           <p>Last updated: <span class="date">2/3/2026</span></p>
-          <p class="ds-update-frequecy">Update frequency: Quarterly</p>
+          <p class="ds-update-frequency">Update frequency: Quarterly</p>
         </div>
         <p><strong>Things you should know</strong></p>
         <ul>
@@ -421,9 +422,9 @@
         <h2>Ohio Drinking Water Advisories</h2>
         <p class="ds-description">Publicly available drinking water advisories for water systems located in Ohio. Previously provided by the Ohio Environmental Protection Agency.</p>
         <div class="ds-callout">
-          <p class="ds-source">Data source: <a href="https://geo.epa.ohio.gov/portal/apps/experiencebuilder/experience/?id=72cf2af9e2dd459aa5d758b54fb10c0c&page=Page-1&views=About" target="_blank">Ohio Environmental Protection Agency</a></p>
+          <p class="ds-source">Data source: <a href="https://geo.epa.ohio.gov/portal/apps/experiencebuilder/experience/?id=72cf2af9e2dd459aa5d758b54fb10c0c&page=Page-1&views=About" target="_blank" rel="noopener noreferrer">Ohio Environmental Protection Agency</a></p>
           <p>Last updated: <span class="date">7/30/2025</span></p>
-          <p class="ds-update-frequecy">Update frequency: Static</p>
+          <p class="ds-update-frequency">Update frequency: Static</p>
         </div>
         <p><strong>Things you should know</strong></p>
         <ul>
@@ -444,9 +445,9 @@
         <h2>Rhode Island Drinking Water Advisories</h2>
         <p class="ds-description">Publicly available drinking water advisories for water systems located in Rhode Island. Provided by the Rhode Island Department of Health.</p>
         <div class="ds-callout">
-          <p class="ds-source">Data source: <a href="https://health.ri.gov/drinking-water-quality/information/public-water-emergency-information-consumers" target="_blank">Rhode Island Department of Health</a></p>
+          <p class="ds-source">Data source: <a href="https://health.ri.gov/drinking-water-quality/information/public-water-emergency-information-consumers" target="_blank" rel="noopener noreferrer">Rhode Island Department of Health</a></p>
           <p>Last updated: <span class="date">7/30/2025</span></p>
-          <p class="ds-update-frequecy">Update frequency: Static</p>
+          <p class="ds-update-frequency">Update frequency: Static</p>
         </div>
         <p><strong>Things you should know</strong></p>
         <ul>
@@ -467,9 +468,9 @@
         <h2>Washington Drinking Water Advisories</h2>
         <p class="ds-description">Publicly available drinking water advisories for water systems located in Washington. Provided by the Washington Department of Health.</p>
         <div class="ds-callout">
-          <p class="ds-source">Data source: <a href="https://doh.wa.gov/community-and-environment/drinking-water/active-alerts?county=All&combine=" target="_blank">Washington Department of Health</a></p>
+          <p class="ds-source">Data source: <a href="https://doh.wa.gov/community-and-environment/drinking-water/active-alerts?county=All&combine=" target="_blank" rel="noopener noreferrer">Washington Department of Health</a></p>
           <p>Last updated: <span class="date">2/4/2026</span></p>
-          <p class="ds-update-frequecy">Update frequency: Quarterly</p>
+          <p class="ds-update-frequency">Update frequency: Quarterly</p>
         </div>
         <p><strong>Things you should know</strong></p>
         <ul>
@@ -489,9 +490,9 @@
         <h2>Missouri Drinking Water Advisories</h2>
         <p class="ds-description">Publicly available advisories for systems with long-term contaminant issues in Missouri. Provided by the State of Missouri Data Portal.</p>
         <div class="ds-callout">
-          <p class="ds-source">Data source: <a href="https://data.mo.gov/Regulatory/DNR-WPP-Boil-Order-Report/j2a5-itxh/data_preview" target="_blank">State of Missouri Data Portal</a></p>
+          <p class="ds-source">Data source: <a href="https://data.mo.gov/Regulatory/DNR-WPP-Boil-Order-Report/j2a5-itxh/data_preview" target="_blank" rel="noopener noreferrer">State of Missouri Data Portal</a></p>
           <p>Last updated: <span class="date">2/3/2026</span></p>
-          <p class="ds-update-frequecy">Update frequency: Quarterly</p>
+          <p class="ds-update-frequency">Update frequency: Quarterly</p>
         </div>
         <p><strong>Things you should know</strong></p>
         <ul>
@@ -512,9 +513,9 @@
         <h2>Maine Drinking Water Advisories</h2>
         <p class="ds-description">Publicly available drinking water advisories for water systems located in Maine. Provided by the Maine Department of Health and Human Services.</p>
         <div class="ds-callout">
-          <p class="ds-source">Data source: <a href="https://www.maine.gov/dhhs/mecdc/healthy-living/health-safety/drinking-water-safety/information-for-consumers/drinking-water-safety-alerts" target="_blank">Maine Department of Health and Human Services</a></p>
+          <p class="ds-source">Data source: <a href="https://www.maine.gov/dhhs/mecdc/healthy-living/health-safety/drinking-water-safety/information-for-consumers/drinking-water-safety-alerts" target="_blank" rel="noopener noreferrer">Maine Department of Health and Human Services</a></p>
           <p>Last updated: <span class="date">2/4/2026</span></p>
-          <p class="ds-update-frequecy">Update frequency: Quarterly</p>
+          <p class="ds-update-frequency">Update frequency: Quarterly</p>
         </div>
         <p><strong>Things you should know</strong></p>
         <ul>
@@ -534,9 +535,9 @@
         <h2>Alaska Drinking Water Advisories</h2>
         <p class="ds-description">Publicly available drinking water advisories for water systems located in Alaska. Provided by Alaska's Department of Environmental Conservation.</p>
         <div class="ds-callout">
-          <p class="ds-source">Data source: <a href="https://gis.data.alaska.gov/datasets/ADEC::boil-water-and-do-not-drink-notice-open/explore?location=56.210819%2C-157.551116%2C7.85&showTable=true" target="_blank">AK Department of Environmental Conservation</a></p>
+          <p class="ds-source">Data source: <a href="https://gis.data.alaska.gov/datasets/ADEC::boil-water-and-do-not-drink-notice-open/explore?location=56.210819%2C-157.551116%2C7.85&showTable=true" target="_blank" rel="noopener noreferrer">AK Department of Environmental Conservation</a></p>
           <p>Last updated: <span class="date">2/4/2026</span></p>
-          <p class="ds-update-frequecy">Update frequency: Quarterly</p>
+          <p class="ds-update-frequency">Update frequency: Quarterly</p>
         </div>
         <p><strong>Things you should know</strong></p>
         <ul>
@@ -556,9 +557,9 @@
         <h2>Arkansas Drinking Water Advisories</h2>
         <p class="ds-description">Publicly available drinking water advisories for water systems located in Arkansas. Provided by the Arkansas Department of Health.</p>
         <div class="ds-callout">
-          <p class="ds-source">Data source: <a href="https://health.arkansas.gov/wa_engTraining/boilwaterorder.aspx" target="_blank">AR Department of Health</a></p>
+          <p class="ds-source">Data source: <a href="https://health.arkansas.gov/wa_engTraining/boilwaterorder.aspx" target="_blank" rel="noopener noreferrer">AR Department of Health</a></p>
           <p>Last updated: <span class="date">2/3/2026</span></p>
-          <p class="ds-update-frequecy">Update frequency: Quarterly</p>
+          <p class="ds-update-frequency">Update frequency: Quarterly</p>
         </div>
         <p><strong>Things you should know</strong></p>
         <ul>
@@ -579,9 +580,9 @@
         <h2>Florida Drinking Water Advisories</h2>
         <p class="ds-description">Publicly available drinking water advisories for water systems located in Florida during extreme weather events. Provided by Florida Health.</p>
         <div class="ds-callout">
-          <p class="ds-source">Data source: <a href="https://www.floridahealth.gov/environmental-health/drinking-water/boil-water-notices/index.html" target="_blank">Florida Health</a></p>
+          <p class="ds-source">Data source: <a href="https://www.floridahealth.gov/environmental-health/drinking-water/boil-water-notices/index.html" target="_blank" rel="noopener noreferrer">Florida Health</a></p>
           <p>Last updated: <span class="date">2/3/2026</span></p>
-          <p class="ds-update-frequecy">Update frequency: Quarterly</p>
+          <p class="ds-update-frequency">Update frequency: Quarterly</p>
         </div>
         <p><strong>Things you should know</strong></p>
         <ul>
@@ -602,9 +603,9 @@
         <h2>Massachusetts Drinking Water Advisories</h2>
         <p class="ds-description">Publicly available drinking water advisories for water systems located in Massachusetts. Provided by Massachusetts Department of Environmental Protection.</p>
         <div class="ds-callout">
-          <p class="ds-source">Data source: <a href="https://eeaonline.eea.state.ma.us/DEP/Boil_Order/" target="_blank">Massachusetts Department of Environmental Protection</a></p>
+          <p class="ds-source">Data source: <a href="https://eeaonline.eea.state.ma.us/DEP/Boil_Order/" target="_blank" rel="noopener noreferrer">Massachusetts Department of Environmental Protection</a></p>
           <p>Last updated: <span class="date">10/30/2025</span></p>
-          <p class="ds-update-frequecy">Update frequency: Quarterly</p>
+          <p class="ds-update-frequency">Update frequency: Quarterly</p>
         </div>
         <p><strong>Things you should know</strong></p>
         <ul>
@@ -624,9 +625,9 @@
         <h2>Louisiana Drinking Water Advisories</h2>
         <p class="ds-description">Publicly available drinking water advisories for water systems located in Louisiana. Provided by Louisiana Department of Health. Last update was July 9th 2025.</p>
         <div class="ds-callout">
-          <p class="ds-source">Data source: <a href="https://sdw.ldh.la.gov/" target="_blank">Louisiana Department of Health</a></p>
+          <p class="ds-source">Data source: <a href="https://sdw.ldh.la.gov/" target="_blank" rel="noopener noreferrer">Louisiana Department of Health</a></p>
           <p>Last updated: <span class="date">7/9/2025</span></p>
-          <p class="ds-update-frequecy">Update frequency: Static</p>
+          <p class="ds-update-frequency">Update frequency: Static</p>
         </div>
         <p><strong>Things you should know</strong></p>
         <ul>
@@ -647,9 +648,9 @@
         <h2>Texas Drinking Water Advisories</h2>
         <p class="ds-description">FOIA&rsquo;d drinking water advisories for water systems located in Texas. Provided by the Texas Commission on Environmental Quality.</p>
         <div class="ds-callout">
-          <p class="ds-source">Data source: <a href="https://www.tceq.texas.gov/" target="_blank">Texas Commission on Environmental Quality (TCEQ)</a></p>
+          <p class="ds-source">Data source: <a href="https://www.tceq.texas.gov/" target="_blank" rel="noopener noreferrer">Texas Commission on Environmental Quality (TCEQ)</a></p>
           <p>Last updated: <span class="date">4/17/2024</span></p>
-          <p class="ds-update-frequecy">Update frequency: Static</p>
+          <p class="ds-update-frequency">Update frequency: Static</p>
         </div>
         <p><strong>Things you should know</strong></p>
         <ul>
@@ -666,4 +667,5 @@
 
 <div id="no-results" style="display:none;" data-datasets-target="noResults">
   <p>No results for the selected filters</p>
+</div>
 </div>

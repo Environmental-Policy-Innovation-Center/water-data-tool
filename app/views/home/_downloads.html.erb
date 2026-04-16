@@ -28,17 +28,17 @@
     <li>Please refer to the README.txt in the download for additional details on the datasets contained and their limitations.</li>
   </ul>
 
-  <p>Have questions about the data? Fill out our <a href="https://docs.google.com/forms/d/15GExM4tPoErkbLW43CkNNB2t27SZ7wvPcTwG5IzN5S4/edit" target="_blank">feedback form</a> or get in touch via email <a href="mailto:watertool@policyinnovation.org">watertool@policyinnovation.org</a>.</p>
+  <p>Have questions about the data? Fill out our <a href="https://docs.google.com/forms/d/15GExM4tPoErkbLW43CkNNB2t27SZ7wvPcTwG5IzN5S4/edit" target="_blank" rel="noopener noreferrer">feedback form</a> or get in touch via email <a href="mailto:watertool@policyinnovation.org">watertool@policyinnovation.org</a>.</p>
 
   <div class="grid-conatiner" style="margin-top:30px;">
     <div>
-      <p><a href="<%= s3_base %>/national-dw-tool-staged.zip" target="_blank">National</a></p>
+      <p><a href="<%= s3_base %>/national-dw-tool-staged.zip" target="_blank" rel="noopener noreferrer">National</a></p>
     </div>
     <div class="clearfix"></div>
     <% states.each_slice(4) do |row| %>
       <div class="grid-row">
         <% row.each do |code, name| %>
-          <p><a href="<%= s3_base %>/states/<%= code %>.zip" target="_blank"><%= name %></a></p>
+          <p><a href="<%= s3_base %>/states/<%= code %>.zip" target="_blank" rel="noopener noreferrer"><%= name %></a></p>
         <% end %>
       </div>
       <div class="clearfix"></div>
