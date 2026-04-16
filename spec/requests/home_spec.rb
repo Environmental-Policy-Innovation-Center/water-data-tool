@@ -6,6 +6,27 @@ RSpec.describe "Home", type: :request do
       get root_path
       expect(response).to have_http_status(:ok)
     end
+
+    it "renders the downloads section with a national download link" do
+      get root_path
+      expect(response.body).to include("national-dw-tool-staged.zip")
+    end
+
+    it "renders state download links" do
+      get root_path
+      expect(response.body).to include("states/CO.zip")
+      expect(response.body).to include("Colorado")
+      expect(response.body).to include("states/VT.zip")
+      expect(response.body).to include("Vermont")
+    end
+
+    it "renders territory download links" do
+      get root_path
+      expect(response.body).to include("states/PR.zip")
+      expect(response.body).to include("Puerto Rico")
+      expect(response.body).to include("states/GU.zip")
+      expect(response.body).to include("Guam")
+    end
   end
 
   describe "GET /table.json" do
