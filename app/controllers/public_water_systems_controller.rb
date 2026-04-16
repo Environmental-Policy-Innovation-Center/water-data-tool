@@ -67,9 +67,9 @@ class PublicWaterSystemsController < ApplicationController
     scope.order(column => direction)
   end
 
-  # unscope(:order) required — ORDER BY is invalid on aggregates.                                                                                                                                                                                                                                                      
+  # unscope(:order) required — ORDER BY is invalid on aggregates.
   # left_joins(:demographic) may duplicate a join from apply_filters, but PostgreSQL
-  # handles duplicate LEFT JOINs on a non-nullable PK cleanly. 
+  # handles duplicate LEFT JOINs on a non-nullable PK cleanly.
   def build_summary(scope)
     total_pop, open_viol_count, avg_mhi, systems_count = scope.unscope(:order)
       .left_joins(:demographic)
