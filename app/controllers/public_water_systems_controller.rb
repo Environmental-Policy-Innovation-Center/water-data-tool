@@ -2,7 +2,7 @@ class PublicWaterSystemsController < ApplicationController
   SORTABLE_COLUMNS = %w[
     pwsid pws_name stusps pop_cat_5 population_served_count
     service_connections_count gw_sw_code owner_type primacy_type
-    service_area_type area_sq_miles open_health_viol
+    service_area_type symbology_field area_sq_miles open_health_viol
   ].freeze
 
   def index
@@ -15,7 +15,7 @@ class PublicWaterSystemsController < ApplicationController
       page: @pagy.page,
       per_page: @pagy.limit,
       results: systems.map { |pws| PublicWaterSystemSerializer.new(pws).serialize },
-      summary: build_summary(scope, @pagy.count)
+      summary: build_summary(scope)
     }
   end
 
@@ -36,6 +36,13 @@ class PublicWaterSystemsController < ApplicationController
       format.html { render layout: false }
       format.json { render json: PublicWaterSystemDetailSerializer.new(@pws).serialize }
     end
+  end
+
+  def stats
+    scope = PublicWaterSystem.apply_filters(params)
+    unfiltered_total = PublicWaterSystem.count(:pwsid)
+    @summary = build_summary(scope).merge(unfiltered_total: unfiltered_total)
+    render layout: false
   end
 
   def export
@@ -60,17 +67,23 @@ class PublicWaterSystemsController < ApplicationController
     scope.order(column => direction)
   end
 
-  # Single query: SUM and COUNT(*) FILTER combined (PostgreSQL). systems_count
-  # reuses @pagy.count. unscope(:order) required — ORDER BY is invalid on aggregates.
-  def build_summary(scope, total_count)
-    total_pop, open_viol_count = scope.unscope(:order).pick(
-      Arel.sql("SUM(population_served_count)"),
-      Arel.sql("COUNT(*) FILTER (WHERE open_health_viol = 'Yes')")
-    )
+  # unscope(:order) required — ORDER BY is invalid on aggregates.
+  # left_joins(:demographic) may duplicate a join from apply_filters, but PostgreSQL
+  # handles duplicate LEFT JOINs on a non-nullable PK cleanly.
+  def build_summary(scope)
+    total_pop, open_viol_count, avg_mhi, systems_count = scope.unscope(:order)
+      .left_joins(:demographic)
+      .pick(
+        Arel.sql("SUM(population_served_count)"),
+        Arel.sql("COUNT(*) FILTER (WHERE open_health_viol = 'Yes')"),
+        Arel.sql("ROUND(AVG(demographics.median_household_income))"),
+        Arel.sql("COUNT(DISTINCT public_water_systems.pwsid)")
+      )
     {
-      systems_count: total_count,
+      systems_count: systems_count,
       total_population_served: total_pop,
-      systems_with_open_violations: open_viol_count
+      systems_with_open_violations: open_viol_count,
+      avg_median_household_income: avg_mhi
     }
   end
 

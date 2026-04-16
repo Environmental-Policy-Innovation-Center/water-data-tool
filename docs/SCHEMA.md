@@ -39,8 +39,8 @@ The central table. One row per public water system. Combines columns from the le
 | `pop_cat_5` | `string` | yes | btree | EPA population category (Very Small / Small / Medium / Large / Very Large) |
 | `population_served_count` | `integer` | yes | | Number of people served |
 | `service_connections_count` | `integer` | yes | | Number of service connections |
-| `service_area_type` | `string` | yes | | "System Sourced" or "Modeled" |
-| `symbology_field` | `string` | yes | | Map display category |
+| `service_area_type` | `string` | yes | | EPA service area category (e.g. "Residential Area", "Mobile Home Park") |
+| `symbology_field` | `string` | yes | | Boundary source: "System Sourced" or "Modeled" |
 | `gw_sw_code` | `string` | yes | btree | "Groundwater" or "Surface Water" |
 | `primary_source_code` | `string` | yes | | Detailed source type code |
 | `owner_type` | `string` | yes | btree | Federal / State / Local / Native American / Private / Public/Private |

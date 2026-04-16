@@ -508,6 +508,13 @@ body{
   padding: 10px 20px;
   box-sizing: border-box;
 }
+turbo-frame#stats-bar:empty {
+  display: none;
+}
+
+#container-map-content-bottom.has-stats {
+  display: none;
+}
 
 .map-content-intro{
   max-width:310px;
@@ -526,6 +533,7 @@ ul.stats-list{
 }
 ul.stats-list li{
   color:#fff;
+  font-weight: bold;
   margin: 2px 0px;
 }
 

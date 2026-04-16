@@ -115,8 +115,20 @@ export default class extends Controller {
   }
 
   #onFiltersChanged = () => {
-    // false = preserve current page position on reload
-    this.#dataTable?.ajax.reload(null, false)
+    this.#dataTable?.ajax.reload(null, false) // false = preserve current page position
+    this.#reloadStatsFrame()
+  }
+
+  #reloadStatsFrame() {
+    const frame = document.querySelector("turbo-frame#stats-bar")
+    if (!frame) return
+
+    const newSrc = `/public_water_systems/stats?${FilterState.toUrlParams()}`
+    if (frame.src === newSrc) return
+    frame.src = newSrc
+
+    const intro = document.getElementById("container-map-content-bottom")
+    if (intro) intro.classList.add("has-stats")
   }
 
   #init() {

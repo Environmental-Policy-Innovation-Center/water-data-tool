@@ -57,7 +57,7 @@ class HomeController < ApplicationController
   def filter_params
     params.permit(
       :gw_sw_code, :has_source_protection, :is_wholesaler, :is_school_or_daycare,
-      :has_open_violations, :service_area_type, :area_min, :area_max,
+      :has_open_violations, :symbology_field, :area_min, :area_max,
       :density_min, :density_max, :most_common_rate_tier, :state,
       :place_geoid, :county_geoid, :bounds,
       :health_violations_5yr_min, :health_violations_10yr_min,
