@@ -27,6 +27,26 @@ RSpec.describe "Home", type: :request do
       expect(response.body).to include("states/GU.zip")
       expect(response.body).to include("Guam")
     end
+
+    it "renders the datasets catalog with all 27 dataset cards" do
+      get root_path
+      expect(response.body).to include("Community Water System Service Area Boundaries")
+      expect(response.body).to include("Safe Drinking Water Information System")
+      expect(response.body).to include("Texas Drinking Water Advisories")
+    end
+
+    it "renders dataset source links and metadata" do
+      get root_path
+      expect(response.body).to include("Data source:")
+      expect(response.body).to include("Update frequency:")
+      expect(response.body).to include("Things you should know")
+    end
+
+    it "renders the datasets filter and sort controls" do
+      get root_path
+      expect(response.body).to include("data-controller=\"datasets\"")
+      expect(response.body).to include("ds-dataSource")
+    end
   end
 
   describe "GET /table.json" do
