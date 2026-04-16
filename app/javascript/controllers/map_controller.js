@@ -46,6 +46,7 @@ export default class extends Controller {
     this.#addControls()
     this.#addSource()
     this.#addLayers()
+    this.#styleWater()
     this.#bindEvents()
 
     // Once the initial tiles settle, animate to working zoom and reveal the UI
@@ -261,6 +262,16 @@ export default class extends Controller {
         "circle-stroke-color": "#000",
         "circle-stroke-width": 1,
         "circle-opacity": 0.7
+      }
+    })
+  }
+
+  #styleWater() {
+    // Override the base style's water color to match the legacy blue ocean look.
+    // light-v11 defaults to near-white water; this restores a readable blue.
+    ["water", "water-shadow"].forEach(layerId => {
+      if (this.map.getLayer(layerId)) {
+        this.map.setPaintProperty(layerId, "fill-color", "#a8d0e4")
       }
     })
   }

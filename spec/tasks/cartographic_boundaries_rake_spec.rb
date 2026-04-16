@@ -31,7 +31,6 @@ RSpec.describe "cartographic rake tasks" do
       before do
         # Track system calls; ogr2ogr uses array form, unzip uses array form
         allow_any_instance_of(Object).to receive(:system) do |_obj, *args|
-          cmd = args.join(" ")
           if args.first == "ogr2ogr"
             ogr2ogr_calls << args
           elsif args.first == "unzip"
