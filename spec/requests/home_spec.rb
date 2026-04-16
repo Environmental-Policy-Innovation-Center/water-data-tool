@@ -6,6 +6,48 @@ RSpec.describe "Home", type: :request do
       get root_path
       expect(response).to have_http_status(:ok)
     end
+
+    it "renders the downloads section with a national download link" do
+      get root_path
+      expect(response.body).to include("national-dw-tool-staged.zip")
+    end
+
+    it "renders state download links" do
+      get root_path
+      expect(response.body).to include("states/CO.zip")
+      expect(response.body).to include("Colorado")
+      expect(response.body).to include("states/VT.zip")
+      expect(response.body).to include("Vermont")
+    end
+
+    it "renders territory download links" do
+      get root_path
+      expect(response.body).to include("states/PR.zip")
+      expect(response.body).to include("Puerto Rico")
+      expect(response.body).to include("states/GU.zip")
+      expect(response.body).to include("Guam")
+    end
+
+    it "renders the datasets catalog with all 27 dataset cards" do
+      get root_path
+      expect(response.body).to include("Community Water System Service Area Boundaries")
+      expect(response.body).to include("Safe Drinking Water Information System")
+      expect(response.body).to include("Texas Drinking Water Advisories")
+      expect(response.body.scan('class="grid-item"').count).to eq(27)
+    end
+
+    it "renders dataset source links and metadata" do
+      get root_path
+      expect(response.body).to include("Data source:")
+      expect(response.body).to include("Update frequency:")
+      expect(response.body).to include("Things you should know")
+    end
+
+    it "renders the datasets filter and sort controls" do
+      get root_path
+      expect(response.body).to include("data-controller=\"datasets\"")
+      expect(response.body).to include("ds-dataSource")
+    end
   end
 
   describe "GET /table.json" do

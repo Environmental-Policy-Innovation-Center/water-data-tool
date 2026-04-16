@@ -1,0 +1,47 @@
+<%
+  s3_base = "https://tech-team-data.s3.us-east-1.amazonaws.com/national-dw-tool/public-data-downloads/staged"
+
+  states = [
+    %w[AL Alabama],    %w[AK Alaska],       %w[AZ Arizona],      %w[AR Arkansas],
+    %w[CA California],  %w[CO Colorado],     %w[CT Connecticut],  %w[DE Delaware],
+    %w[DC District\ of\ Columbia], %w[FL Florida], %w[GA Georgia], %w[GU Guam],
+    %w[HI Hawaii],      %w[ID Idaho],        %w[IL Illinois],     %w[IN Indiana],
+    %w[IA Iowa],        %w[KS Kansas],       %w[KY Kentucky],     %w[LA Louisiana],
+    %w[ME Maine],       %w[MD Maryland],     %w[MA Massachusetts], %w[MI Michigan],
+    %w[MN Minnesota],   %w[MS Mississippi],  %w[MO Missouri],     %w[MT Montana],
+    %w[NE Nebraska],    %w[NV Nevada],       %w[NH New\ Hampshire], %w[NJ New\ Jersey],
+    %w[NM New\ Mexico], %w[NY New\ York],    %w[NC North\ Carolina], %w[ND North\ Dakota],
+    %w[MP Northern\ Mariana\ Islands], %w[OH Ohio], %w[OK Oklahoma], %w[OR Oregon],
+    %w[PA Pennsylvania], %w[PR Puerto\ Rico], %w[RI Rhode\ Island], %w[SC South\ Carolina],
+    %w[SD South\ Dakota], %w[TN Tennessee],  %w[TX Texas],        %w[UT Utah],
+    %w[VT Vermont],     %w[VA Virginia],     %w[WA Washington],   %w[WV West\ Virginia],
+    %w[WI Wisconsin],   %w[WY Wyoming]
+  ]
+%>
+
+<div class="container-content">
+  <h3>Downloads</h3>
+  <p style="margin-top: 60px;">Below, you'll find geospatial and tabular data for states, territories, and the nation as a zipped package.</p>
+  <ul>
+    <li>Data for states contains water systems which overlap other states.</li>
+    <li>Data for territories contains a limited set of information.</li>
+    <li>Please refer to the README.txt in the download for additional details on the datasets contained and their limitations.</li>
+  </ul>
+
+  <p>Have questions about the data? Fill out our <a href="https://docs.google.com/forms/d/15GExM4tPoErkbLW43CkNNB2t27SZ7wvPcTwG5IzN5S4/edit" target="_blank" rel="noopener noreferrer">feedback form</a> or get in touch via email <a href="mailto:watertool@policyinnovation.org">watertool@policyinnovation.org</a>.</p>
+
+  <div class="grid-conatiner" style="margin-top:30px;">
+    <div>
+      <p><a href="<%= s3_base %>/national-dw-tool-staged.zip" target="_blank" rel="noopener noreferrer">National</a></p>
+    </div>
+    <div class="clearfix"></div>
+    <% states.each_slice(4) do |row| %>
+      <div class="grid-row">
+        <% row.each do |code, name| %>
+          <p><a href="<%= s3_base %>/states/<%= code %>.zip" target="_blank" rel="noopener noreferrer"><%= name %></a></p>
+        <% end %>
+      </div>
+      <div class="clearfix"></div>
+    <% end %>
+  </div>
+</div>
