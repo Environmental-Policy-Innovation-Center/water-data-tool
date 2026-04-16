@@ -174,8 +174,7 @@ REST API for filter, detail, and export. Does not serve the root HTML page.
 - **`show`** — loads a single system with all associations. Returns JSON or HTML (the detail panel
   rendered in a Turbo Frame on map click, or as a standalone page).
 - **`export`** — same filter logic as `index`, returns CSV or GeoJSON file download.
-- **`stats`** *(M7 — planned)* — returns aggregate summary stats as a Turbo Frame HTML partial
-  for the stats bar overlay.
+- **`stats`** — returns aggregate summary stats as a Turbo Frame HTML partial for the stats bar overlay.
 
 ### `TilesController`
 

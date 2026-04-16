@@ -2,7 +2,7 @@ class PublicWaterSystemsController < ApplicationController
   SORTABLE_COLUMNS = %w[
     pwsid pws_name stusps pop_cat_5 population_served_count
     service_connections_count gw_sw_code owner_type primacy_type
-    service_area_type area_sq_miles open_health_viol
+    service_area_type symbology_field area_sq_miles open_health_viol
   ].freeze
 
   def index
@@ -69,6 +69,9 @@ class PublicWaterSystemsController < ApplicationController
 
   # Single query: SUM, COUNT(*) FILTER, AVG, and COUNT DISTINCT combined (PostgreSQL).
   # unscope(:order) required — ORDER BY is invalid on aggregates.
+  # left_joins(:demographic) is unconditional. If apply_filters already joined demographics
+  # (via left_join_once), this produces a duplicate LEFT JOIN. PostgreSQL handles duplicate
+  # LEFT JOINs on a non-nullable PK cleanly — no rows are doubled, no error is raised.
   def build_summary(scope)
     total_pop, open_viol_count, avg_mhi, systems_count = scope.unscope(:order)
       .left_joins(:demographic)

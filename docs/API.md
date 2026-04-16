@@ -378,7 +378,7 @@ Returns an empty array if `q` is blank.
 
 ## `GET /public_water_systems/stats`
 
-*(Planned — M7)* Aggregate summary stats for the stats bar Turbo Frame overlay.
+Aggregate summary stats for the stats bar Turbo Frame overlay.
 
 Accepts the same filter params as `GET /public_water_systems`. Returns an HTML Turbo Frame
 (not JSON) — the browser renders it directly into `<turbo-frame id="stats-bar">`.

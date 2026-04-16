@@ -279,7 +279,9 @@ export default class extends Controller {
     // Population categories
     if (params.pop_cat_5) {
       params.pop_cat_5.forEach(cat => {
-        const el = document.querySelector(`.${POP_CLASS_MAP[cat]}`)
+        const cls = POP_CLASS_MAP[cat]
+        if (!cls) return  // unknown value — skip
+        const el = document.querySelector(`.${cls}`)
         if (el) el.classList.add("active")
       })
     }
