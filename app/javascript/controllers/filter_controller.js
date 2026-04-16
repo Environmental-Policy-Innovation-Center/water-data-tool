@@ -1,6 +1,9 @@
 import { Controller } from "@hotwired/stimulus"
 import * as FilterState from "filter_state"
 
+const POP_CAT_MAP = { "1": "<=500", "2": "501-3,300", "3": "3,301-10,000", "4": "10,001-100,000", "5": ">100,000" }
+const POP_CLASS_MAP = Object.fromEntries(Object.entries(POP_CAT_MAP).map(([k, v]) => [v, `pop-size-${k}`]))
+
 // Manages filter dropdown menus — toggle open/close, outside-click dismiss, Apply.
 // On Apply: collects current DOM filter state → writes to FilterState → dispatches filters:changed.
 export default class extends Controller {
@@ -171,8 +174,7 @@ export default class extends Controller {
     const popIds = ["pop-size-1", "pop-size-2", "pop-size-3", "pop-size-4", "pop-size-5"]
     const activePop = popIds.filter(cls => document.querySelector(`.${cls}`)?.classList.contains("active"))
     if (activePop.length > 0 && activePop.length < popIds.length) {
-      const popCatMap = { "1": "<=500", "2": "501-3,300", "3": "3,301-10,000", "4": "10,001-100,000", "5": ">100,000" }
-      p.pop_cat_5 = activePop.map(cls => popCatMap[cls.replace("pop-size-", "")])
+      p.pop_cat_5 = activePop.map(cls => POP_CAT_MAP[cls.replace("pop-size-", "")])
     }
 
     // --- Population: density range ---
@@ -276,9 +278,8 @@ export default class extends Controller {
 
     // Population categories
     if (params.pop_cat_5) {
-      const catToClass = { "<=500": "pop-size-1", "501-3,300": "pop-size-2", "3,301-10,000": "pop-size-3", "10,001-100,000": "pop-size-4", ">100,000": "pop-size-5" }
       params.pop_cat_5.forEach(cat => {
-        const el = document.querySelector(`.${catToClass[cat]}`)
+        const el = document.querySelector(`.${POP_CLASS_MAP[cat]}`)
         if (el) el.classList.add("active")
       })
     }

@@ -24,17 +24,11 @@ These are not milestones — see ROADMAP.md for planned feature work.
 
 ## ENV Var Consistency
 
-**What:** Currently we have divergence in Environment Variable naming patterns for ENV Vars that relate to the DB.
+**What:** DB-related environment variable names are inconsistent — some are prefixed with `DB_`, others are not.
 
-**Why:** For consistency and convention, all of these ENV Vars related to Database stuff should be prepended with `DB_`
+**Why:** All DB-related ENV vars should be prefixed with `DB_` for clarity and convention.
 
-**Where:** TBD
-
-**Options:**
-- TBD
-
-**Priority:** TBD
-
+**Priority:** Low — no functional impact, purely organizational.
 
 ---
 
@@ -46,17 +40,17 @@ These are not milestones — see ROADMAP.md for planned feature work.
 
 **Note on `HomeController#table`:** `HomeController` owning both `#index` (app shell/map) and `#table` (table data feed) is intentionally coherent — the map and table are two views of the same home page, not separate resources. `#table` stays in `HomeController`. `PlacesController#search` is also acceptable as-is.
 
-### `PublicWaterSystemsController#stats` — extract to `StatsController#show`
+### `PublicWaterSystemsController#stats` → `StatsController#show`
 
 - Add `resource :stats, only: :show` to routes; remove `get :stats` from the `public_water_systems` collection block
 - Update `frame.src` URL in `table_controller.js#reloadStatsFrame` from `/public_water_systems/stats` to `/stats`
-- `build_summary` is currently a private method shared between `#index` and `#stats` — move it to a model class method `PublicWaterSystem.build_summary(scope, count)` so both controllers can call it without duplication
+- `build_summary` is currently a private method in `PublicWaterSystemsController` — move it to a model class method `PublicWaterSystem.build_summary(scope)` so both controllers can call it without duplication
 
-### `PublicWaterSystemsController#export` — extract to `ExportsController#show`
+### `PublicWaterSystemsController#export` → `ExportsController#show`
 
 - Add `resource :export, only: :show` to routes; remove `get :export` from the `public_water_systems` collection block
 - Update the export URL in `export_controller.js`
-- Private render helpers `render_csv_export` and `render_geojson_export` move into `ExportsController` as private methods — the real work is already in `PublicWaterSystemExporter`
+- Private render helpers `render_csv_export` and `render_geojson_export` move into `ExportsController` — the real work is already in `PublicWaterSystemExporter`
 
 ### `HomeController` — extract `row_for(pws)` to a serializer
 
@@ -68,59 +62,108 @@ Private controller methods `filter_params`, `apply_search`, `order_clause`, and 
 
 ---
 
-## Replace AJAX with Turbo (Hotwire Alignment)
+## Frontend Modernization — Hotwire / Tailwind
 
-**What:** Two places in the app use non-Turbo fetch patterns. The conventional Rails 8 / Hotwire replacement for both is Turbo Frames.
+**What:** The frontend was built incrementally and has significant carry-over from pre-Hotwire patterns. A full modernization pass would align the stack with Rails 8 / Hotwire conventions and activate Tailwind, which is already installed but unused.
 
-**Why:** Hotwire exists to replace AJAX. These are the two remaining carry-overs from pre-Hotwire patterns.
-
-### 1. DataTables (`table_controller.js` → `HomeController#table`)
-
-DataTables uses jQuery's internal AJAX to call `/table.json` with a specific SSP protocol (`draw`, `recordsTotal`, `recordsFiltered`, `data`). This is a jQuery-era pattern incompatible with Hotwire.
-
-**Hotwire replacement:** Replace DataTables with a Turbo Frame table. Pagination, sorting, and filtering trigger Turbo Frame requests that re-render a `_table.html.erb` partial server-side. The entire `HomeController#table` action and its JSON SSP format (`datatable_response`, `order_clause`, `apply_search`, `filter_params`) would be replaced by a standard `#index`-style action rendering HTML. `row_for` / the table serializer would also be eliminated in favour of a server-rendered partial.
-
-**Impact:** Significant. DataTables provides built-in sorting UI, pagination, and search that must be rebuilt in ERB/Tailwind/Stimulus. `filter_state.js` (currently bridges filter state to the DataTables AJAX call) may be eliminated or simplified. This is the largest remaining architectural debt in the app.
-
-**Files affected:** `table_controller.js`, `HomeController`, `home/index.html.erb`, `filter_state.js`, routes.
-
-### 2. Place autocomplete (`place_autocomplete_controller.js` → `PlacesController#search`)
-
-Uses native `fetch()` to call `/places/search?q=` and manually builds DOM from the JSON response.
-
-**Hotwire replacement:** The input triggers a Turbo Frame GET to `/places/search?q=`; the server renders a `_results.html.erb` partial inside the frame. No `fetch()`, no manual DOM manipulation. `PlacesController#search` renders HTML instead of JSON.
-
-**Impact:** Moderate. `place_autocomplete_controller.js` would be significantly simplified or eliminated. Requires a new `places/search.html.erb` partial.
-
-**Files affected:** `place_autocomplete_controller.js`, `PlacesController`, new `places/_results.html.erb`, `home/index.html.erb` autocomplete markup.
-
-**Priority:** Medium. DataTables is the larger of the two and should be tackled as its own milestone.
+**Why:** The app is a Rails 8 Hotwire app but the table, autocomplete, filter state management, and all styling predate Hotwire conventions. The result is more custom JavaScript and CSS than necessary, which increases maintenance cost and drift from Rails conventions over time.
 
 ---
 
-## Stats Bar — Nil Area Median Income Display
-_(may already be fixed - confirm)_
+### 1. Replace DataTables with a Turbo Frame Table *(largest item)*
 
-**What:** When no demographic records exist for the filtered set, `avg_median_household_income` is `nil`. The view renders just `~` (a bare tilde) because `number_to_currency(nil)` returns nil and the tilde is hardcoded before the ERB tag.
+DataTables uses jQuery's internal AJAX to call `/table.json` using the DataTables SSP protocol (`draw`, `recordsTotal`, `recordsFiltered`, `data`). This is a jQuery-era pattern.
 
-**Why:** `~` alone is meaningless to a user. Should render `N/A` to indicate data is unavailable.
+**Hotwire replacement:** The table becomes a Turbo Frame. Pagination, sorting, and search trigger Turbo Frame GET requests that re-render a `_table.html.erb` partial server-side. `HomeController#table` and its JSON SSP envelope (`datatable_response`, `order_clause`, `apply_search`, `filter_params`) are replaced by a standard index-style action rendering HTML.
 
-**Where:** `app/views/public_water_systems/stats.html.erb` line 9:
-```erb
-# current (broken for nil):
-~<%= number_to_currency(@summary[:avg_median_household_income], precision: 0) %>
+**Downstream simplifications:**
+- `table_controller.js` is substantially simplified or eliminated
+- `filter_state.js` (currently bridges filter state to the DataTables AJAX call) may be eliminated or reduced to a thin URL-sync utility
+- `row_for(pws)` / `PublicWaterSystemTableSerializer` are eliminated in favour of a server-rendered partial
+- `HomeController#table` and the `/table.json` route are removed
 
-# fix:
-<%= @summary[:avg_median_household_income] ? "~#{number_to_currency(@summary[:avg_median_household_income], precision: 0)}" : "N/A" %>
-```
+**Files affected:** `table_controller.js`, `filter_state.js`, `HomeController`, `home/index.html.erb`, routes.
 
-Update the spec in `spec/requests/public_water_systems_spec.rb` ("renders a bare tilde...") to assert `include("N/A")` instead once fixed.
+**Priority:** High — this is the largest remaining architectural debt in the app and a prerequisite for meaningful Tailwind adoption on the table UI.
 
-**Priority:** Low — cosmetic, but confusing in production when many systems lack demographic data.
+---
+
+### 2. Replace Place Autocomplete `fetch()` with Turbo Frame
+
+`place_autocomplete_controller.js` uses native `fetch()` to call `/places/search?q=` and manually builds DOM from the JSON response.
+
+**Hotwire replacement:** The input triggers a Turbo Frame GET to `/places/search?q=`; the server renders a `_results.html.erb` partial inside the frame. No `fetch()`, no manual DOM manipulation. `PlacesController#search` renders HTML instead of JSON.
+
+**Downstream simplifications:**
+- `place_autocomplete_controller.js` is significantly simplified or eliminated
+- `PlacesController#search` drops its JSON serialization path
+
+**Files affected:** `place_autocomplete_controller.js`, `PlacesController`, new `places/_results.html.erb`, `home/index.html.erb` autocomplete markup.
+
+**Priority:** Medium — standalone change, can be done before or after the DataTables replacement.
+
+---
+
+### 3. Activate Tailwind and Migrate Custom CSS
+
+`tailwindcss-rails` is installed but has no `tailwind.config.js` and is not used anywhere. All styling lives in `app/assets/stylesheets/water_tool.css` using hand-authored custom class names.
+
+**What this involves:**
+- Create `tailwind.config.js` with content paths pointing to `app/views/**/*` and `app/javascript/**/*`
+- Migrate `water_tool.css` custom classes to Tailwind utilities incrementally — prioritizing the table and filter UI first (highest churn areas), leaving the map chrome until last
+- Remove `water_tool.css` entries as each section is migrated
+
+**Note:** This is most valuable done in conjunction with the DataTables → Turbo Frame migration (item 1), since that rewrites the table markup from scratch anyway.
+
+**Priority:** Low as a standalone task — high-value when bundled with item 1.
+
+---
+
+## ETL Import — Field Mapping Validation
+
+**What:** No systematic verification that all ETL-imported fields are correctly mapped from source CSVs to the database. Field mapping bugs (wrong column name, wrong value transformation, silently null fields) are only discovered when a feature tries to use the data.
+
+**Why:** The filter bugs found during M7 development — `gw_sw_code` sending `"GW"`/`"SW"` when the DB stores `"Groundwater"`/`"Surface Water"`, `service_area_type` using the wrong column (`symbology_field`), and `pop_cat_5` using index numbers instead of range strings — all trace back to assumptions about what the ETL puts in the DB that turned out to be wrong. There is currently no test or audit that catches this class of bug proactively.
+
+**What to build:**
+- A post-import audit task or spec that queries each filterable column and asserts expected distinct values are present (e.g., `gw_sw_code` contains `"Groundwater"` and `"Surface Water"`, not `"GW"`/`"SW"`)
+- Coverage for boolean fields (`is_wholesaler`, `is_school_or_daycare`, `source_water_protection_code`) to confirm they are being set to `true`/`false` correctly rather than left nil
+- Coverage for association tables (`demographics`, `violations_summaries`, etc.) — confirm record counts are non-zero and spot-check key columns for expected value formats
+
+**Where:** `app/jobs/etl_import_job.rb`, `app/services/etl/` (or wherever ETL transformers live), potentially a new `spec/etl/` or `spec/tasks/` directory for integration-level ETL specs.
+
+**Priority:** Medium — the risk is silent data quality bugs that make filters appear broken when the ETL is actually the root cause.
+
+---
+
+## Dev Seed Data — Filter Coverage Gaps
+
+**What:** The VT + RI seed dataset (`bin/rails 'db:seed:states[VT,RI]'`) leaves two filters with zero matching records in development, so applying them returns an empty result set:
+
+| Filter | Dev count | Reason |
+|--------|-----------|--------|
+| `is_wholesaler = true` | 0 | VT/RI have no wholesaler systems in SDWIS |
+| `is_school_or_daycare = true` | 0 | VT/RI have no school/daycare systems flagged in SDWIS |
+
+The following are absent for geographic reasons (not a bug, but worth knowing):
+
+| Filter | Dev count | Reason |
+|--------|-----------|--------|
+| `primacy_type = "Tribal"` | 0 | VT/RI have no tribal primacy systems |
+| `primacy_type = "Territory"` | 0 | VT/RI are not territories |
+| `owner_type = "Tribal"` | 0 | VT/RI have no tribally-owned systems |
+
+**Fix:** Add a state with richer system-type diversity to the dev seed. **Ohio is the recommended candidate** — it has a known wholesaler network and enough non-community systems to likely cover `is_school_or_daycare`. To test: `bin/rails 'db:seed:states[VT,RI,OH]'`, then verify with `PublicWaterSystem.where(is_wholesaler: true).count` and `PublicWaterSystem.where(is_school_or_daycare: true).count`.
+
+If Ohio doesn't cover both, try California or Texas next.
+
+**Priority:** Low — affects dev/testing only, not production.
 
 ---
 
 ## Other
-- make sure tokens (Mapbox Api token) are not broadcasted in request/response data _(dev tools)_
-- warning when trying to open console, run specs, start server, if there are pending migrations
-- add gems: simplecov, lefthook
+
+- Ensure Mapbox access token is not exposed in request/response data visible in browser devtools
+- Add a warning when opening the Rails console, running specs, or starting the server if there are pending migrations
+- Add gems: `simplecov`, `lefthook`
+- "More" filter dropdown on the homepage — needs additional filters wired up and the reset button enabled

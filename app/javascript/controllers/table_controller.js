@@ -123,8 +123,7 @@ export default class extends Controller {
   #reloadStatsFrame() {
     const frame = document.querySelector("turbo-frame#stats-bar")
     if (!frame) return
-    const params = new URLSearchParams(FilterState.get())
-    frame.src = `/public_water_systems/stats?${params}`
+    frame.src = `/public_water_systems/stats?${FilterState.toUrlParams()}`
 
     // Replace intro tooltip with stats card
     const intro = document.getElementById("container-map-content-bottom")
