@@ -7,10 +7,11 @@ image: water_data_tool
 # Deploy to these servers.
 servers:
   web:
-    - 192.168.0.1
+    # Replace with your real deploy target host(s), e.g. EC2 private DNS/IPs.
+    - your-app-host.example.com
   # job:
   #   hosts:
-  #     - 192.168.0.1
+  #     - your-job-host.example.com
   #   cmd: bin/jobs
 
 # Enable SSL auto certification via Let's Encrypt and allow for multiple apps on a single web server.
@@ -26,11 +27,13 @@ servers:
 
 # Where you keep your container images.
 registry:
-  # Alternatives: hub.docker.com / registry.digitalocean.com / ghcr.io / ...
-  server: localhost:5555
+  # Use a shared registry that deploy targets can pull from.
+  # For AWS ECR, this is typically:
+  # <aws-account-id>.dkr.ecr.<region>.amazonaws.com
+  server: your-registry.example.com
 
   # Needed for authenticated registries.
-  # username: your-user
+  # username: your-registry-username
 
   # Always use an access token rather than real password when possible.
   # password:

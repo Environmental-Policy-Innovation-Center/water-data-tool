@@ -14,8 +14,8 @@ This is a **one-time schema translation**, not an ongoing sync. Once the Rails a
 
 ## Infrastructure Assumptions
 
-- **New AWS account:** The Rails app will be deployed to EPIC's own AWS account — fresh EC2 instance, fresh RDS database. This is not a migration of existing infrastructure.
-- **S3 bucket stays:** The source data bucket (`tech-team-data`) and its structure are expected to remain as-is. The ETL pipeline will continue to pull from the same S3 paths.
+- **New AWS account:** The Rails app is expected to be deployed into the recipient organization's AWS account (fresh EC2/ECS host and fresh RDS database). This is not a migration of existing infrastructure.
+- **Configurable data source:** The ETL source location (manifest URL, bucket, and path conventions) should be treated as environment-specific and updated during handoff.
 - **No database migration:** We are not migrating data from the old database. The new database will be populated from scratch via the ETL pipeline (pulling from S3). The old database may be decommissioned once the new app is verified.
 - **Cartographic boundaries:** The static reference tables (`cartographic_states`, `cartographic_counties`, `cartographic_places`) will need to be loaded into the new database. These can be exported from the old DB or sourced from Census directly.
 
@@ -302,13 +302,14 @@ For local development, seed the database with a representative subset:
 
 ## Cutover Strategy
 
-The new app will be deployed to entirely new infrastructure under EPIC's AWS account — this is not an in-place migration.
+The new app should be deployed to entirely new infrastructure under the recipient organization's AWS account — this is not an in-place migration.
 
-1. **Provision new infra:** Fresh EC2 instance and RDS PostgreSQL+PostGIS instance in EPIC's AWS account
+1. **Provision new infra:** Fresh EC2/ECS host and RDS PostgreSQL+PostGIS instance in your AWS account
 2. **Deploy Rails app** to the new EC2 instance
-3. **Run ETL** against the same S3 bucket (`tech-team-data`) to populate the new database from scratch — no data migration from the old DB
-4. **Load cartographic boundaries** into the new DB (export from old DB or source from Census)
-5. **Verify:** Filter results match legacy app, tile rendering looks correct, exports produce equivalent output
-6. **Transfer DNS** to point EPIC's domain at the new infrastructure
-7. **Transfer remaining services:** Mapbox account (URL-restricted token), Google Analytics property
-8. **Decommission old infra** once EPIC confirms the new app is stable
+3. **Set ETL source configuration** (`ETL_MANIFEST_URL`, bucket/path ownership, IAM permissions)
+4. **Run ETL** to populate the new database from scratch — no data migration from the old DB
+5. **Load cartographic boundaries** into the new DB (export from old DB or source from Census)
+6. **Verify:** Filter results match legacy app, tile rendering looks correct, exports produce equivalent output
+7. **Transfer DNS** to point your domain at the new infrastructure
+8. **Transfer remaining services:** Mapbox account (URL-restricted token), analytics property, and any monitoring/alerts
+9. **Decommission old infra** once stakeholders confirm the new app is stable
