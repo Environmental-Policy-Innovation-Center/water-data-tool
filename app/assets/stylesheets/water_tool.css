@@ -463,6 +463,17 @@ body{
   z-index: 5;
 }
 
+#container-map-ui-top ul {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 5px 20px 0 5px;
+}
+
+.geocoder-li {
+  margin-right: auto;
+}
+
 #container-map-ui-top ul li a{
   background: url(icon-nav-arrow-down.png) 85% 14px no-repeat;
   background-size: 14px;
@@ -991,7 +1002,7 @@ ul.stats-list li{
 
 .container-menu{
   position: inherit;
-  top: 60px;
+  top: 72px;
   z-index: 1001;
   background-color: #fff;
   border-top:none;
@@ -1006,7 +1017,7 @@ ul.stats-list li{
 
 .container-filter-count{
   background-color: #4EA324;
-  display: inline-block;
+  display: none;
   color: #fff;
   font-size: .7em;
   border-radius: 50px;
@@ -1149,6 +1160,10 @@ ul.stats-list li{
 .container-menu ul li:hover .btn-filter-options img{
   display:block;
 }
+.filter-coming-soon {
+  color: #888;
+}
+
 .container-menu-more li.filter-clear{
   border-top: 1px solid #b9b9b9;
   padding-top: 5px;
