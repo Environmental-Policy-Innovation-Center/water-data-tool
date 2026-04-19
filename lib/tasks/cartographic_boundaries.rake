@@ -94,7 +94,9 @@ namespace :cartographic do
 
       # Unzip (overwrites existing) — array form avoids shell interpretation
       puts "  Extracting #{File.basename(zip_path)}..."
-      system("unzip", "-o", "-q", zip_path.to_s, "-d", tmp_dir.to_s)
+      unless system("unzip", "-o", "-q", zip_path.to_s, "-d", tmp_dir.to_s)
+        abort "unzip failed for #{zip_path} (missing binary or corrupt archive?)"
+      end
 
       abort "Shapefile not found: #{shp_path}" unless shp_path.exist?
 
@@ -116,15 +118,20 @@ namespace :cartographic do
 
       abort "ogr2ogr failed for #{layer[:target_table]}" unless success
 
-      # Move data from staging to target table, then clean up
-      conn.execute("TRUNCATE #{layer[:target_table]}")
-      conn.execute(<<~SQL)
-        INSERT INTO #{layer[:target_table]} (#{layer[:columns]})
-        SELECT #{layer[:columns]} FROM #{layer[:staging_table]}
-      SQL
-      conn.execute("DROP TABLE IF EXISTS #{layer[:staging_table]}")
+      # Move data from staging to target table, then clean up.
+      # Values are hard-coded above, but quote through the connection for defence-in-depth.
+      target = conn.quote_table_name(layer[:target_table])
+      staging = conn.quote_table_name(layer[:staging_table])
+      cols = layer[:columns].split(",").map { |c| conn.quote_column_name(c.strip) }.join(", ")
 
-      count = conn.select_value("SELECT COUNT(*) FROM #{layer[:target_table]}")
+      conn.execute("TRUNCATE #{target}")
+      conn.execute(<<~SQL)
+        INSERT INTO #{target} (#{cols})
+        SELECT #{cols} FROM #{staging}
+      SQL
+      conn.execute("DROP TABLE IF EXISTS #{staging}")
+
+      count = conn.select_value("SELECT COUNT(*) FROM #{target}")
       puts "  #{layer[:target_table]}: #{count} rows loaded"
     end
 

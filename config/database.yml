@@ -16,27 +16,12 @@ test:
   database: water_data_tool_test
 
 production:
-  primary: &primary_production
-    <<: *default
-    <% if ENV["DATABASE_URL"] %>
-    <% db_uri = URI.parse(ENV["DATABASE_URL"]) %>
-    host: <%= db_uri.host %>
-    port: <%= db_uri.port %>
-    database: <%= db_uri.path&.delete_prefix("/") %>
-    username: <%= db_uri.user %>
-    password: <%= db_uri.password %>
-    <% else %>
-    database: water_data_tool_production
-    username: <%= ENV.fetch("DATABASE_USERNAME", "water_data_tool") %>
-    password: <%= ENV["WATER_DATA_TOOL_DATABASE_PASSWORD"] %>
-    host: <%= ENV.fetch("DATABASE_HOST", "localhost") %>
-    <% end %>
-  cache:
-    <<: *primary_production
-    migrations_paths: db/cache_migrate
-  queue:
-    <<: *primary_production
-    migrations_paths: db/queue_migrate
-  cable:
-    <<: *primary_production
-    migrations_paths: db/cable_migrate
+  <<: *default
+  <% if ENV["DATABASE_URL"] %>
+  url: <%= ENV["DATABASE_URL"] %>
+  <% else %>
+  database: water_data_tool_production
+  username: <%= ENV.fetch("DATABASE_USERNAME", "water_data_tool") %>
+  password: <%= ENV["WATER_DATA_TOOL_DATABASE_PASSWORD"] %>
+  host: <%= ENV.fetch("DATABASE_HOST", "localhost") %>
+  <% end %>

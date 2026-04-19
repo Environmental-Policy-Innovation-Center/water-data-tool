@@ -48,7 +48,7 @@ RSpec.describe "cartographic rake tasks" do
         # Stub SQL operations for staging table workflow
         conn = ApplicationRecord.connection
         allow(conn).to receive(:execute).and_call_original
-        allow(conn).to receive(:execute).with(/TRUNCATE|INSERT INTO cartographic|DROP TABLE IF EXISTS/).and_return(nil)
+        allow(conn).to receive(:execute).with(/TRUNCATE|INSERT INTO "?cartographic|DROP TABLE IF EXISTS/).and_return(nil)
         allow(conn).to receive(:select_value).and_call_original
         allow(conn).to receive(:select_value).with(/SELECT COUNT/).and_return(100)
       end

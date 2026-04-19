@@ -453,13 +453,11 @@ export default class extends Controller {
 
       if (width < breakpoint) {
         li.classList.add("hidden")
-        // items becomes the next sibling of moreGrp — stable because moreGrp is always
-        // immediately followed by items (or nothing) inside the More container
-        moreGrp.insertAdjacentElement("afterend", items)
+        // Nest inside the per-group placeholder so ordering is anchored to the
+        // placeholder's position in the More menu, not to sibling iteration order.
+        moreGrp.appendChild(items)
       } else {
         li.classList.remove("hidden")
-        // items becomes the next sibling of mainGrp — stable because the original HTML
-        // always places container-menu-N-items directly after main-filter-grp-N
         mainGrp.insertAdjacentElement("afterend", items)
       }
     }

@@ -7,7 +7,7 @@ image: water_data_tool
 # Deploy to these servers.
 servers:
   web:
-    # Replace with your real deploy target host(s), e.g. EC2 private DNS/IPs.
+    # REQUIRED: replace before first deploy — real host(s), e.g. EC2 private DNS/IPs.
     - your-app-host.example.com
   # job:
   #   hosts:
@@ -27,7 +27,7 @@ servers:
 
 # Where you keep your container images.
 registry:
-  # Use a shared registry that deploy targets can pull from.
+  # REQUIRED: replace before first deploy — a registry deploy targets can pull from.
   # For AWS ECR, this is typically:
   # <aws-account-id>.dkr.ecr.<region>.amazonaws.com
   server: your-registry.example.com
