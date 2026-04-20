@@ -41,6 +41,8 @@
 class PublicWaterSystem < ApplicationRecord
   include Filterable
 
+  PWSID_FORMAT = /\A[A-Z]{2}\d{7}\z/
+
   self.primary_key = "pwsid"
 
   has_one :service_area_geometry, foreign_key: "pwsid", inverse_of: :public_water_system, dependent: :destroy
@@ -60,5 +62,25 @@ class PublicWaterSystem < ApplicationRecord
       :trend_datum, :service_area_geometry)
   }
 
-  validates :pwsid, presence: true, format: {with: /\A[A-Z]{2}\d{7}\z/}
+  validates :pwsid, presence: true, format: {with: PWSID_FORMAT}
+
+  # unscope(:order) required — ORDER BY is invalid on aggregates.
+  # left_joins(:demographic) may duplicate a join from apply_filters, but PostgreSQL
+  # handles duplicate LEFT JOINs on a non-nullable PK cleanly.
+  def self.build_summary(scope)
+    total_pop, open_viol_count, avg_mhi, systems_count = scope.unscope(:order)
+      .left_joins(:demographic)
+      .pick(
+        Arel.sql("SUM(population_served_count)"),
+        Arel.sql("COUNT(*) FILTER (WHERE open_health_viol = 'Yes')"),
+        Arel.sql("ROUND(AVG(demographics.median_household_income))"),
+        Arel.sql("COUNT(DISTINCT public_water_systems.pwsid)")
+      )
+    {
+      systems_count: systems_count,
+      total_population_served: total_pop,
+      systems_with_open_violations: open_viol_count,
+      avg_median_household_income: avg_mhi
+    }
+  end
 end
