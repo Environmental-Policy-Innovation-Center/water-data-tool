@@ -16,24 +16,12 @@ test:
   database: water_data_tool_test
 
 production:
-  # TODO: Align production env var names with the DB_* convention used above
-  # (DATABASE_USERNAME → DB_USERNAME, WATER_DATA_TOOL_DATABASE_PASSWORD → DB_PASSWORD,
-  # DATABASE_HOST → DB_HOST). Requires updating Kamal config and server env vars in sync.
-  primary: &primary_production
-    <<: *default
-    database: water_data_tool_production
-    username: <%= ENV.fetch("DATABASE_USERNAME", "water_data_tool") %>
-    password: <%= ENV["WATER_DATA_TOOL_DATABASE_PASSWORD"] %>
-    host: <%= ENV.fetch("DATABASE_HOST", "localhost") %>
-  cache:
-    <<: *primary_production
-    database: water_data_tool_production_cache
-    migrations_paths: db/cache_migrate
-  queue:
-    <<: *primary_production
-    database: water_data_tool_production_queue
-    migrations_paths: db/queue_migrate
-  cable:
-    <<: *primary_production
-    database: water_data_tool_production_cable
-    migrations_paths: db/cable_migrate
+  <<: *default
+  <% if ENV["DATABASE_URL"] %>
+  url: <%= ENV["DATABASE_URL"] %>
+  <% else %>
+  database: water_data_tool_production
+  username: <%= ENV.fetch("DATABASE_USERNAME", "water_data_tool") %>
+  password: <%= ENV["WATER_DATA_TOOL_DATABASE_PASSWORD"] %>
+  host: <%= ENV.fetch("DATABASE_HOST", "localhost") %>
+  <% end %>

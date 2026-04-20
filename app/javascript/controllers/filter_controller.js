@@ -14,11 +14,14 @@ export default class extends Controller {
       }
     }
     document.addEventListener("click", this._outsideClick)
+    this.#setupResponsiveFilters()
     this.#restoreFromUrl()
+    this.#updateBadges()
   }
 
   disconnect() {
     document.removeEventListener("click", this._outsideClick)
+    this.#teardownResponsiveFilters()
   }
 
   toggleMenu(event) {
@@ -31,12 +34,17 @@ export default class extends Controller {
     const isOpen = menu.style.display === "block"
     this.#closeAll()
     if (!isOpen) {
-      // Align menu below the button that triggered it
       const mapRect = document.getElementById("container-map").getBoundingClientRect()
       const btnRect = btn.getBoundingClientRect()
-      menu.style.left = `${btnRect.left - mapRect.left}px`
+
+      // Show first so offsetWidth is accurate, then clamp to avoid right-edge overflow
+      menu.style.left = "0"
       menu.style.display = "block"
       btn.classList.add("active")
+
+      const leftPos = btnRect.left - mapRect.left
+      const maxLeft = mapRect.width - menu.offsetWidth - 10
+      menu.style.left = `${Math.max(0, Math.min(leftPos, maxLeft))}px`
     }
   }
 
@@ -45,7 +53,14 @@ export default class extends Controller {
     this.#closeAll()
     FilterState.set(this.#collectFilters())
     this.#syncToUrl()
+    this.#updateBadges()
     document.dispatchEvent(new CustomEvent("filters:changed"))
+  }
+
+  resetAll(event) {
+    event.preventDefault()
+    document.querySelectorAll(".container-menu").forEach(menu => this.#resetMenu(menu))
+    this.apply(event)
   }
 
   toggleSelectAll(event) {
@@ -85,34 +100,23 @@ export default class extends Controller {
     event.preventDefault()
     const menu = event.currentTarget.closest(".container-menu")
     if (!menu) return
-
-    // Radios: check the option marked with data-default, uncheck others
-    menu.querySelectorAll("input[type='radio']").forEach(r => {
-      r.checked = r.hasAttribute("data-default")
-    })
-
-    // Checkboxes: restore to default state (checked if .default-checked)
-    menu.querySelectorAll("input[type='checkbox']").forEach(cb => {
-      cb.checked = cb.classList.contains("default-checked")
-    })
-
-    // Selects: min → first option, max → last option
-    menu.querySelectorAll("select.min-select").forEach(s => { s.selectedIndex = 0 })
-    menu.querySelectorAll("select.max-select").forEach(s => { s.selectedIndex = s.options.length - 1 })
-
-    // Population size boxes: deactivate all
-    menu.querySelectorAll(".pop-size-box").forEach(b => b.classList.remove("active"))
-
-    // Place autocomplete: clear hidden field if present
-    const placeInput = menu.querySelector("#place-geoid")
-    if (placeInput) placeInput.value = ""
-    const placeText = menu.querySelector(".js-place-search")
-    if (placeText) placeText.value = ""
-
+    this.#resetMenu(menu)
     this.apply(event)
   }
 
   // ── Private ────────────────────────────────────────────────────────────────
+
+  #resetMenu(menu) {
+    menu.querySelectorAll("input[type='radio']").forEach(r => { r.checked = r.hasAttribute("data-default") })
+    menu.querySelectorAll("input[type='checkbox']").forEach(cb => { cb.checked = cb.classList.contains("default-checked") })
+    menu.querySelectorAll("select.min-select").forEach(s => { s.selectedIndex = 0 })
+    menu.querySelectorAll("select.max-select").forEach(s => { s.selectedIndex = s.options.length - 1 })
+    menu.querySelectorAll(".pop-size-box").forEach(b => b.classList.remove("active"))
+    const placeInput = menu.querySelector("#place-geoid")
+    if (placeInput) placeInput.value = ""
+    const placeText = menu.querySelector(".js-place-search")
+    if (placeText) placeText.value = ""
+  }
 
   #closeAll() {
     document.querySelectorAll(".container-menu").forEach(m => { m.style.display = "none" })
@@ -190,6 +194,18 @@ export default class extends Controller {
       const placeInput = document.querySelector(".js-place-search")
       if (placeInput?.value) p.place_name = placeInput.value
     }
+
+    // --- More: funding ---
+    if (document.getElementById("more-has-srf-financing")?.checked) p.times_funded_min = "1"
+    if (document.getElementById("more-has-srf-assistance")?.checked) p.total_srf_assistance_min = "1"
+    if (document.getElementById("more-has-principal-forgiveness")?.checked) p.total_principal_forgiveness_min = "1"
+
+    // --- More: watershed hazards ---
+    if (document.getElementById("more-num-facilities")?.checked) p.num_facilities_min = "1"
+    if (document.getElementById("more-permit-effluent-violations")?.checked) p.permit_effluent_violations_min = "1"
+    if (document.getElementById("more-open-usts")?.checked) p.open_underground_storage_tanks_min = "1"
+    if (document.getElementById("more-rmps")?.checked) p.risk_management_plan_facilities_min = "1"
+    if (document.getElementById("more-impaired-streams")?.checked) p.impaired_streams_303d_min = "1"
 
     return p
   }
@@ -297,5 +313,154 @@ export default class extends Controller {
       const input = document.querySelector(".js-place-search")
       if (input) input.value = params.place_name || params.place_geoid
     }
+
+    // More: funding
+    if (params.times_funded_min) {
+      const el = document.getElementById("more-has-srf-financing")
+      if (el) el.checked = true
+    }
+    if (params.total_srf_assistance_min) {
+      const el = document.getElementById("more-has-srf-assistance")
+      if (el) el.checked = true
+    }
+    if (params.total_principal_forgiveness_min) {
+      const el = document.getElementById("more-has-principal-forgiveness")
+      if (el) el.checked = true
+    }
+
+    // More: watershed hazards
+    if (params.num_facilities_min) {
+      const el = document.getElementById("more-num-facilities")
+      if (el) el.checked = true
+    }
+    if (params.permit_effluent_violations_min) {
+      const el = document.getElementById("more-permit-effluent-violations")
+      if (el) el.checked = true
+    }
+    if (params.open_underground_storage_tanks_min) {
+      const el = document.getElementById("more-open-usts")
+      if (el) el.checked = true
+    }
+    if (params.risk_management_plan_facilities_min) {
+      const el = document.getElementById("more-rmps")
+      if (el) el.checked = true
+    }
+    if (params.impaired_streams_303d_min) {
+      const el = document.getElementById("more-impaired-streams")
+      if (el) el.checked = true
+    }
+  }
+
+  #updateBadges() {
+    const p = FilterState.get()
+
+    const groupKeys = {
+      1: ["gw_sw_code", "has_source_protection", "place_geoid"],
+      2: ["owner_type", "primacy_type", "is_wholesaler", "is_school_or_daycare"],
+      3: ["symbology_field", "area_min", "area_max"],
+      4: ["has_open_violations", "health_violations_5yr_min", "health_violations_10yr_min", "paperwork_violations_5yr_min", "paperwork_violations_10yr_min"],
+      5: ["pop_cat_5", "density_min", "density_max"],
+      10: ["times_funded_min", "total_srf_assistance_min", "total_principal_forgiveness_min", "num_facilities_min", "permit_effluent_violations_min", "open_underground_storage_tanks_min", "risk_management_plan_facilities_min", "impaired_streams_303d_min"]
+    }
+
+    const countKeys = (keys) => keys.filter(k => {
+      const val = p[k]
+      return val !== undefined && val !== null && val !== ""
+    }).length
+
+    // Groups 1–5: if collapsed into More, add their count to More's badge instead
+    let moreCount = countKeys(groupKeys[10])
+
+    for (const [groupStr, keys] of Object.entries(groupKeys)) {
+      const group = Number(groupStr)
+      if (group === 10) continue
+
+      const li = document.querySelector(`.filter-${group}`)
+      const count = countKeys(keys)
+
+      if (li?.classList.contains("hidden")) {
+        moreCount += count
+      } else {
+        const badge = document.querySelector(`.container-filter-count-menu-${group}`)
+        if (!badge) continue
+        const span = badge.querySelector("span")
+        if (count > 0) {
+          badge.style.display = "inline-block"
+          if (span) span.textContent = count
+        } else {
+          badge.style.display = "none"
+        }
+      }
+    }
+
+    const moreBadge = document.querySelector(".container-filter-count-menu-10")
+    if (moreBadge) {
+      const span = moreBadge.querySelector("span")
+      if (moreCount > 0) {
+        moreBadge.style.display = "inline-block"
+        if (span) span.textContent = moreCount
+      } else {
+        moreBadge.style.display = "none"
+      }
+    }
+  }
+
+  // Breakpoints match the legacy app (adjusted for map container width rather than window width).
+  // When a nav button hides, its content div is physically moved into the More menu so it remains
+  // accessible there — same DOM-reparenting pattern as the legacy scripts-ui.js setLayout().
+  #RESPONSIVE_FILTERS = [
+    { num: 5, breakpoint: 1190 },  // Population
+    { num: 4, breakpoint: 1040 },  // Compliance
+    { num: 3, breakpoint: 880 },   // Boundaries
+    { num: 2, breakpoint: 730 },   // Attributes
+  ]
+
+  #resizeObserver = null
+  #lastLayoutWidth = null
+
+  #setupResponsiveFilters() {
+    this.#resizeObserver = new ResizeObserver(entries => {
+      this.#closeAll()
+      this.#adjustFilterLayout(entries[0].contentRect.width)
+    })
+    const mapEl = document.getElementById("container-map")
+    if (mapEl) {
+      this.#resizeObserver.observe(mapEl)
+      this.#adjustFilterLayout(mapEl.clientWidth)
+    }
+  }
+
+  #teardownResponsiveFilters() {
+    this.#resizeObserver?.disconnect()
+    this.#resizeObserver = null
+  }
+
+  #adjustFilterLayout(width) {
+    // Skip if no breakpoint was crossed since the last pass — avoids badge recalc on every resize pixel
+    const prev = this.#lastLayoutWidth
+    const crossed = prev === null || this.#RESPONSIVE_FILTERS.some(({ breakpoint }) =>
+      (prev < breakpoint) !== (width < breakpoint)
+    )
+    if (!crossed) return
+    this.#lastLayoutWidth = width
+
+    for (const { num, breakpoint } of this.#RESPONSIVE_FILTERS) {
+      const li = document.querySelector(`.filter-${num}`)
+      const items = document.getElementById(`container-menu-${num}-items`)
+      const mainGrp = document.getElementById(`main-filter-grp-${num}`)
+      const moreGrp = document.getElementById(`more-filter-grp-${num}`)
+      if (!li || !items || !mainGrp || !moreGrp) continue
+
+      if (width < breakpoint) {
+        li.classList.add("hidden")
+        // Nest inside the per-group placeholder so ordering is anchored to the
+        // placeholder's position in the More menu, not to sibling iteration order.
+        moreGrp.appendChild(items)
+      } else {
+        li.classList.remove("hidden")
+        mainGrp.insertAdjacentElement("afterend", items)
+      }
+    }
+    this.#updateBadges()
   }
 }

@@ -161,9 +161,101 @@ If Ohio doesn't cover both, try California or Texas next.
 
 ---
 
+## Filter UI — Minor Parity Items
+
+Small behavioral gaps from the legacy app that remain unaddressed.
+
+---
+
+### Attributes Filter — New Filters Need Verification
+
+V2 added four filters not present in legacy: Wholesaler, School or daycare, Tribal (owner), and Territory (primacy). These are wired to the backend but have not been verified against expected behavior in production data. The VT/RI dev seed returns zero results for all four (see Dev Seed Data section below), so testing requires production data or a richer seed state.
+
+**Priority:** Low — verify before public launch.
+
+---
+
+### Filter Button Badge — `has-filter` Green Highlight
+
+- **Legacy:** Filter button links receive a `has-filter` CSS class when their group has active filters, producing a green highlight
+- **V2:** Badge counts show correctly but `has-filter` is never applied — buttons don't turn green when filters are active
+- **What to do:** In `#updateBadges`, add/remove `has-filter` on the `.filter-menu-btn` `<a>` for each group based on whether its count is > 0
+- **Priority:** Low — cosmetic, does not affect functionality
+
+---
+
+### Filter Badge Counts — Verify Match with Legacy
+
+- **Legacy:** Used a `filterGroupCounts` object to track counts per group
+- **V2:** Counts active param keys per group using a hardcoded key list in `#updateBadges`
+- **What to verify:** Spot-check each filter group (Source, Attributes, Boundaries, Compliance, Population, More) with known filter combinations and confirm V2 badge counts match what legacy showed
+- **Priority:** Low — verify before public launch
+
+---
+
+## Filter Parity Gaps — Legacy vs V2
+
+Filters present in the legacy app that are missing from the V2 UI. Backend filter logic is noted for each.
+
+---
+
+### Population — Demographic & Environmental Justice Filters *(largest gap)*
+
+The legacy Population filter had a full demographic panel with histogram range sliders. V2 only shows size categories and density. All of the following have range filters (`_min`/`_max`) already wired in `Filterable` and data in the `demographics` or `environmental_justices` tables — this is purely a UI gap.
+
+**Trend data** (wired: `trend_data` table, `population_pct_change`, `mhi_pct_change`):
+- Change in people served (last 10 years)
+- Change in median household income (last 10 years)
+
+**Demographic data** (wired: `demographics` table):
+- Households below the poverty line (`poverty_rate`)
+- Unemployment (`unemployment_rate`)
+- Annual median household income (`median_household_income`)
+- Higher education attainment (`bachelors_degree_rate`)
+- Children under 5 (`age_under_5_rate`)
+- Elderly over 61 (`age_over_61_rate`)
+- People of color (`poc_rate`)
+- Race/ethnicity breakdowns: White, Black, Asian, American Indian & Alaskan Native, Native Hawaiian & Pacific Islander, Latino/a, Other, Mixed race
+
+**Environmental justice** (wired: `environmental_justices` table):
+- Disadvantaged area / CEJST (`cejst_disadvantaged_pct`)
+- Social Vulnerability Index (`svi_overall_pctl`)
+- Climate Vulnerability Index (`cvi_overall_score`)
+
+**Note:** Legacy used histogram sliders for all of these. The V2 slider infrastructure exists (`slider_controller.js`) but none of these fields are surfaced in the Population filter UI.
+
+**Priority:** Medium — significant feature gap, but requires substantial UI work. Backend is ready.
+
+---
+
+### Compliance — EJScreen Drinking Water Score
+
+- **Legacy:** "2024 EJScreen Score" checkbox in the Compliance filter
+- **V2:** Column `ejscreen_drinking_water` exists in the `demographics` table but no filter param is wired in `Filterable` and no UI exists
+- **Priority:** Low — needs both backend filter wiring and UI
+
+---
+
+### Source — Water Source Sub-types
+
+- **Legacy:** The Source filter had granular sub-type checkboxes under Ground (purchased, non-purchased, surface-influenced) and Surface (purchased, non-purchased)
+- **V2:** Only the top-level Both/Ground/Surface radio buttons exist; `gw_sw_code` is a single-value filter, not multi-select
+- **Priority:** Low — adds precision but the top-level radios cover the common cases
+
+---
+
+### Financial — Annual Water and Sewer Bill
+
+- **Legacy:** Expanded into a bucket picker with 7 dollar-range tiers (< $125 through > $1000), filtering on `most_common_rate_tidy`
+- **V2:** `most_common_rate_tier` column exists in `demographics` and is partially wired in `Filterable`, but the bucket picker UI is not built and the data values need to be confirmed. Shown in the UI as disabled / TBD.
+- **Priority:** Low — needs data value audit + bucket picker UI
+
+---
+
 ## Other
 
 - Ensure Mapbox access token is not exposed in request/response data visible in browser devtools
 - Add a warning when opening the Rails console, running specs, or starting the server if there are pending migrations
 - Add gems: `simplecov`, `lefthook`
-- "More" filter dropdown on the homepage — needs additional filters wired up and the reset button enabled
+- Home Page - add `Last Updated On:` and calculation logic
+

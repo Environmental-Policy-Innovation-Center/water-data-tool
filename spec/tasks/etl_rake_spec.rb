@@ -3,7 +3,7 @@ require "rake"
 
 RSpec.describe "etl rake tasks" do
   before(:all) do
-    Rails.application.load_tasks
+    Rails.application.load_tasks unless Rake::Task.task_defined?("etl:import")
   end
 
   before do

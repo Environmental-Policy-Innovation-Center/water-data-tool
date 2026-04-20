@@ -7,7 +7,7 @@
 ## Overview
 
 ```
-S3 Bucket (tech-team-data)
+S3 Bucket (your-data-bucket)
   └── data.json manifest
         ├── epa_sabs_geoms.geojson
         ├── epa_sabs.csv
@@ -28,7 +28,7 @@ S3 Bucket (tech-team-data)
         PostgreSQL (new schema with proper types)
 ```
 
-EPIC's data team publishes updated CSVs and GeoJSON files to the `tech-team-data` S3 bucket and updates the `data.json` manifest with new `last_updated` timestamps. The ETL pipeline polls this manifest and imports any files that have changed.
+The data publisher updates CSV/GeoJSON files in the configured source bucket and updates the `data.json` manifest with new `last_updated` timestamps. The ETL pipeline polls this manifest and imports any files that have changed.
 
 ---
 
@@ -40,12 +40,14 @@ The manifest is a JSON array of source file descriptors:
 [
   {
     "file_description": "EPA SABs geojson",
-    "s3_path": "s3://tech-team-data/national-dw-tool/test-staged/epa_sabs_geoms.geojson",
-    "http_path": "https://tech-team-data.s3.us-east-1.amazonaws.com/national-dw-tool/test-staged/epa_sabs_geoms.geojson",
+    "s3_path": "s3://your-data-bucket/national-dw-tool/path/epa_sabs_geoms.geojson",
+    "http_path": "https://your-data-bucket.s3.us-east-1.amazonaws.com/national-dw-tool/path/epa_sabs_geoms.geojson",
     "last_updated": "2026-02-20 14:00:00"
   }
 ]
 ```
+
+Use organization-specific values for `s3_path`, `http_path`, and bucket/region settings when transferring ownership.
 
 | Field | Purpose |
 |-------|---------|
