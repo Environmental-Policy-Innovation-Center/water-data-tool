@@ -14,7 +14,8 @@ Rails.application.routes.draw do
       resource :stats, only: :show, module: :public_water_systems
       resource :export, only: :show, module: :public_water_systems
     end
+    member do
+      resource :report, only: :show, module: :public_water_systems
+    end
   end
-
-  resources :reports, param: :pwsid, only: [:show]
 end
