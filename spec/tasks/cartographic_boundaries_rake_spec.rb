@@ -10,6 +10,7 @@ RSpec.describe "cartographic rake tasks" do
     Rake::Task["cartographic:load"].reenable
     allow($stdout).to receive(:puts)
     allow($stdout).to receive(:write)
+    allow($stderr).to receive(:write)
   end
 
   describe "cartographic:load" do
