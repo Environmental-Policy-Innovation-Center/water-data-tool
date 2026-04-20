@@ -56,20 +56,20 @@ RSpec.describe PublicWaterSystem, type: :model do
 
   describe "scopes" do
     describe ".with_details" do
-    it "eager loads all detail associations" do
-      pws = create(:public_water_system)
-      result = PublicWaterSystem.with_details.find_by(pwsid: pws.pwsid)
+      it "eager loads all detail associations" do
+        pws = create(:public_water_system)
+        result = PublicWaterSystem.with_details.find_by(pwsid: pws.pwsid)
 
-      expect(result.association(:demographic)).to be_loaded
-      expect(result.association(:violations_summary)).to be_loaded
-      expect(result.association(:environmental_justice)).to be_loaded
-      expect(result.association(:funding_summary)).to be_loaded
-      expect(result.association(:watershed_hazard)).to be_loaded
-      expect(result.association(:boil_water_summary)).to be_loaded
-      expect(result.association(:trend_datum)).to be_loaded
-      expect(result.association(:service_area_geometry)).to be_loaded
+        expect(result.association(:demographic)).to be_loaded
+        expect(result.association(:violations_summary)).to be_loaded
+        expect(result.association(:environmental_justice)).to be_loaded
+        expect(result.association(:funding_summary)).to be_loaded
+        expect(result.association(:watershed_hazard)).to be_loaded
+        expect(result.association(:boil_water_summary)).to be_loaded
+        expect(result.association(:trend_datum)).to be_loaded
+        expect(result.association(:service_area_geometry)).to be_loaded
+      end
     end
-  end
   end
 
   describe "validations" do
