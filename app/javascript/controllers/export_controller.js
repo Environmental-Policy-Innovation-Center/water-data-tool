@@ -1,8 +1,14 @@
 import { Controller } from "@hotwired/stimulus"
+import * as FilterState from "filter_state"
 
-// Manages CSV/GeoJSON export with progress indicator — full implementation in M9 (depends on M3 API).
 export default class extends Controller {
-  connect() {
-    // M9: CSV and GeoJSON export, respects active filters, progress indicator
+  static targets = ["format"]
+
+  download(event) {
+    event.preventDefault()
+    const format = this.formatTargets.find(el => el.checked)?.value || "csv"
+    const params = FilterState.toUrlParams()
+    if (format !== "csv") params.set("file_format", format)
+    window.location.href = `/public_water_systems/export?${params}`
   }
 }

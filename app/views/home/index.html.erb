@@ -141,12 +141,12 @@
         <div class="table-head-col-1">
           <p><strong>Public Water Utilities <span class="geo-filter"></span></strong></p>
         </div>
-        <div class="table-head-col-2">
-          <a href="javascript:void(0);" class="btn-export" data-controller="export">
+        <div class="table-head-col-2" data-controller="export">
+          <a href="#" class="btn-export" data-action="click->export#download">
             <%= image_tag "icon-downloads-white.png" %>Export
           </a>
-          <input type="radio" name="file-type" id="file-csv" checked="checked"/><label for="file-csv">.csv</label>
-          <input type="radio" name="file-type" id="file-geojson" class="file-geojson" /><label for="file-geojson" class="file-geojson">.geojson</label>
+          <input type="radio" name="file-type" id="file-csv" value="csv" checked data-export-target="format" /><label for="file-csv">.csv</label>
+          <input type="radio" name="file-type" id="file-geojson" value="geojson" class="file-geojson" data-export-target="format" /><label for="file-geojson" class="file-geojson">.geojson</label>
         </div>
       </div>
 
