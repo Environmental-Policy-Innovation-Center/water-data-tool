@@ -385,7 +385,7 @@ export default class extends Controller {
         reportLink.addEventListener("click", (evt) => {
           evt.preventDefault()
           const frame = document.getElementById("report-body")
-          if (frame) frame.src = `/reports/${props.pwsid}`
+          if (frame) frame.src = `/public_water_systems/${props.pwsid}/report`
           const overlay = document.getElementById("container-report")
           if (overlay) overlay.classList.remove("hidden")
           if (this.clickPopup) this.clickPopup.remove()

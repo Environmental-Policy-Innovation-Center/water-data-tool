@@ -14,6 +14,7 @@ RSpec.describe "db:seed:states rake task" do
     allow($stdout).to receive(:puts)
     allow($stdout).to receive(:write)
     allow($stdout).to receive(:print)
+    allow($stderr).to receive(:write)
 
     ENV["ETL_MANIFEST_URL"] = "https://example.test/manifest.json"
     allow(SeedImport).to receive(:download_data_files).and_return(tmp_dir)

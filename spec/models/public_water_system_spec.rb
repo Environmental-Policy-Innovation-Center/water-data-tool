@@ -54,19 +54,21 @@ RSpec.describe PublicWaterSystem, type: :model do
     it { is_expected.to have_many(:cartographic_places).through(:place_system_crosswalks) }
   end
 
-  describe ".with_details" do
-    it "eager loads all detail associations" do
-      pws = create(:public_water_system)
-      result = PublicWaterSystem.with_details.find_by(pwsid: pws.pwsid)
+  describe "scopes" do
+    describe ".with_details" do
+      it "eager loads all detail associations" do
+        pws = create(:public_water_system)
+        result = PublicWaterSystem.with_details.find_by(pwsid: pws.pwsid)
 
-      expect(result.association(:demographic)).to be_loaded
-      expect(result.association(:violations_summary)).to be_loaded
-      expect(result.association(:environmental_justice)).to be_loaded
-      expect(result.association(:funding_summary)).to be_loaded
-      expect(result.association(:watershed_hazard)).to be_loaded
-      expect(result.association(:boil_water_summary)).to be_loaded
-      expect(result.association(:trend_datum)).to be_loaded
-      expect(result.association(:service_area_geometry)).to be_loaded
+        expect(result.association(:demographic)).to be_loaded
+        expect(result.association(:violations_summary)).to be_loaded
+        expect(result.association(:environmental_justice)).to be_loaded
+        expect(result.association(:funding_summary)).to be_loaded
+        expect(result.association(:watershed_hazard)).to be_loaded
+        expect(result.association(:boil_water_summary)).to be_loaded
+        expect(result.association(:trend_datum)).to be_loaded
+        expect(result.association(:service_area_geometry)).to be_loaded
+      end
     end
   end
 
@@ -96,6 +98,69 @@ RSpec.describe PublicWaterSystem, type: :model do
     it "rejects non-digit characters in the numeric portion" do
       pws = build(:public_water_system, pwsid: "VT001234X")
       expect(pws).not_to be_valid
+    end
+  end
+
+  describe ".build_summary" do
+    it "returns the expected keys" do
+      create(:public_water_system)
+      result = PublicWaterSystem.build_summary(PublicWaterSystem.all)
+
+      expect(result.keys).to match_array(%i[
+        systems_count total_population_served
+        systems_with_open_violations avg_median_household_income
+      ])
+    end
+
+    it "counts systems in the given scope" do
+      create_list(:public_water_system, 3)
+      result = PublicWaterSystem.build_summary(PublicWaterSystem.all)
+
+      expect(result[:systems_count]).to eq(3)
+    end
+
+    it "sums population from the given scope" do
+      create(:public_water_system, population_served_count: 1_000)
+      create(:public_water_system, population_served_count: 2_000)
+      result = PublicWaterSystem.build_summary(PublicWaterSystem.all)
+
+      expect(result[:total_population_served]).to eq(3_000)
+    end
+
+    it "counts only systems with open health violations" do
+      create(:public_water_system, open_health_viol: "Yes")
+      create(:public_water_system, open_health_viol: "No")
+      result = PublicWaterSystem.build_summary(PublicWaterSystem.all)
+
+      expect(result[:systems_with_open_violations]).to eq(1)
+    end
+
+    it "averages median household income across demographics in scope" do
+      pws1 = create(:public_water_system)
+      create(:demographic, public_water_system: pws1, pwsid: pws1.pwsid, median_household_income: 60_000)
+      pws2 = create(:public_water_system)
+      create(:demographic, public_water_system: pws2, pwsid: pws2.pwsid, median_household_income: 80_000)
+
+      result = PublicWaterSystem.build_summary(PublicWaterSystem.all)
+
+      expect(result[:avg_median_household_income]).to eq(70_000)
+    end
+
+    it "returns nil for avg_median_household_income when no demographics exist" do
+      create(:public_water_system)
+      result = PublicWaterSystem.build_summary(PublicWaterSystem.all)
+
+      expect(result[:avg_median_household_income]).to be_nil
+    end
+
+    it "respects scope boundaries" do
+      create(:public_water_system, stusps: "VT", population_served_count: 500)
+      create(:public_water_system, stusps: "OH", population_served_count: 999)
+
+      result = PublicWaterSystem.build_summary(PublicWaterSystem.where(stusps: "VT"))
+
+      expect(result[:systems_count]).to eq(1)
+      expect(result[:total_population_served]).to eq(500)
     end
   end
 end
