@@ -111,6 +111,39 @@ Before deploying in a new environment, replace these values with your organizati
 
 ---
 
+## Deploying
+
+### Kamal (default, single host)
+
+The app ships with [Kamal](https://kamal-deploy.org/) as its documented portable deployment path. Configuration lives in `config/deploy.yml` and `.kamal/secrets`. This is the recommended approach for self-hosters and community deployments.
+
+Refer to the Kamal docs and the `config/deploy.yml` comments for setup instructions.
+
+### AWS ECS (client-specific, opt-in)
+
+A second deployment path is provided via `.github/workflows/deploy-client-aws.yml`. When enabled, it:
+
+- On `push` to `main` — builds the image, pushes `:main-<sha>` + `:main-latest` to ECR, and force-redeploys the production ECS service.
+- On `pull_request` (opened/synchronize/reopened) — pushes `:pr-<n>-<sha>` + `:pr-latest` and redeploys the preview ECS service.
+
+**The workflow is gated by a repo variable.** Leave `AWS_DEPLOY_ENABLED` unset in forks and community deployments — the job will appear as "skipped" rather than failing.
+
+**Repo settings required (set once, after AWS infrastructure is provisioned):**
+
+| Setting | Type | Value |
+|---------|------|-------|
+| `AWS_DEPLOY_ENABLED` | Variable | `true` |
+| `AWS_REGION` | Variable | e.g. `us-east-1` |
+| `ECR_REPO_URI` | Variable | e.g. `123456789.dkr.ecr.us-east-1.amazonaws.com/your-ecr-repo` |
+| `ECS_CLUSTER` | Variable | ECS cluster name |
+| `ECS_SERVICE_PROD` | Variable | Production ECS service name |
+| `ECS_SERVICE_PREVIEW` | Variable | Preview ECS service name |
+| `AWS_DEPLOY_ROLE_ARN` | Secret | IAM role ARN for OIDC assume-role |
+
+AWS-side provisioning (ECR, ECS cluster/services, IAM OIDC role) is handled separately by the client's infrastructure team.
+
+---
+
 ## Development Workflow
 
 ```bash

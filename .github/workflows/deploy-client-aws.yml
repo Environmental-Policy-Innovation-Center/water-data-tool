@@ -1,0 +1,92 @@
+name: Deploy to AWS ECS
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+concurrency:
+  group: deploy-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.number) || 'main' }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    if: vars.AWS_DEPLOY_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    env:
+      AWS_REGION:          ${{ vars.AWS_REGION }}
+      ECR_REPO_URI:        ${{ vars.ECR_REPO_URI }}
+      ECS_CLUSTER:         ${{ vars.ECS_CLUSTER }}
+      ECS_SERVICE_PROD:    ${{ vars.ECS_SERVICE_PROD }}
+      ECS_SERVICE_PREVIEW: ${{ vars.ECS_SERVICE_PREVIEW }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Compute tags + target service
+        id: meta
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            {
+              echo "immutable_tag=pr-${{ github.event.number }}-${{ github.sha }}"
+              echo "moving_tag=pr-latest"
+              echo "service=$ECS_SERVICE_PREVIEW"
+            } >> "$GITHUB_OUTPUT"
+          else
+            {
+              echo "immutable_tag=main-${{ github.sha }}"
+              echo "moving_tag=main-latest"
+              echo "service=$ECS_SERVICE_PROD"
+            } >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ${{ env.ECR_REPO_URI }}:${{ steps.meta.outputs.immutable_tag }}
+            ${{ env.ECR_REPO_URI }}:${{ steps.meta.outputs.moving_tag }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Force ECS redeploy
+        run: |
+          aws ecs update-service \
+            --cluster "$ECS_CLUSTER" \
+            --service "${{ steps.meta.outputs.service }}" \
+            --force-new-deployment \
+            --no-cli-pager
+
+      - name: Wait for ECS service to stabilize
+        run: |
+          aws ecs wait services-stable \
+            --cluster "$ECS_CLUSTER" \
+            --services "${{ steps.meta.outputs.service }}"
+
+      - name: Summary
+        run: |
+          DOMAIN_PROD="water-data-tool.policyinnovation.info"
+          DOMAIN_PR="water-data-tool-preview.policyinnovation.info"
+          if [ "${{ github.event_name }}" = "pull_request" ]; then DOMAIN=$DOMAIN_PR; else DOMAIN=$DOMAIN_PROD; fi
+          {
+            echo "Deployed ${{ steps.meta.outputs.immutable_tag }} → ${{ steps.meta.outputs.service }}"
+            echo "URL: https://$DOMAIN/"
+          } >> "$GITHUB_STEP_SUMMARY"
