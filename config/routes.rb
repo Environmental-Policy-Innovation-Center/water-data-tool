@@ -8,12 +8,14 @@ Rails.application.routes.draw do
 
   get "/places/search", to: "places#search"
 
-  resources :reports, param: :pwsid, only: [:show]
-
-  resources :public_water_systems, param: :pwsid, only: %i[index show] do
+  resources :public_water_systems, param: :pwsid, only: %i[index show],
+    constraints: {pwsid: /[A-Z]{2}\d{7}/} do
     collection do
-      get :export
-      get :stats
+      resource :stats, only: :show, module: :public_water_systems
+      resource :export, only: :show, module: :public_water_systems
+    end
+    member do
+      resource :report, only: :show, module: :public_water_systems
     end
   end
 end

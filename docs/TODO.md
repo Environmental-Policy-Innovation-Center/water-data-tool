@@ -5,6 +5,30 @@ These are not milestones — see ROADMAP.md for planned feature work.
 
 ---
 
+## Work Order
+
+1. ~~**Extract Non-RESTful Controller Actions** — Move `stats` and `export` actions to dedicated `StatsController` and `ExportsController`; extract `row_for` serialization to `PublicWaterSystemTableSerializer`~~
+2. **Standardize DB ENV Var Prefixes** — Ensure all DB-related environment variables consistently use the `DB_` prefix
+3. **ETL Field Mapping Validation** — Build post-import audit specs that assert expected distinct values per filterable column, catching silent data quality bugs before they surface as broken filters
+
+- Dev Seed Data — Filter Coverage Gaps (add Ohio or similar to cover wholesaler/school filters)
+- Filter UI — `has-filter` green highlight on active filter buttons
+- Filter UI — Verify badge counts match legacy behavior
+- Filter Parity — Demographic & Environmental Justice range sliders (largest UI gap)
+- Filter Parity — EJScreen Drinking Water Score (needs backend wiring + UI)
+- Filter Parity — Water Source Sub-type checkboxes
+- Filter Parity — Annual Water and Sewer Bill bucket picker
+- Observability — ETL import job failure alerting (important before non-technical handoff)
+- Frontend Modernization — Replace DataTables with Turbo Frame table *(on hold)*
+- Frontend Modernization — Replace place autocomplete `fetch()` with Turbo Frame *(on hold)*
+- Frontend Modernization — Activate Tailwind and migrate custom CSS *(on hold)*
+- Other — Ensure Mapbox token is not exposed in browser devtools
+- Other — Add pending migration warning on console/server/spec startup
+- Other — Add `simplecov` and `lefthook` gems
+- Other — Home page "Last Updated On" display
+
+---
+
 ## Observability
 
 **What:** Proactive alerting when `EtlImportJob` fails after all retries are exhausted.
@@ -32,7 +56,7 @@ These are not milestones — see ROADMAP.md for planned feature work.
 
 ---
 
-## Controller Refactoring — Non-RESTful Actions
+## ~~Controller Refactoring — Non-RESTful Actions~~ ✓ DONE
 
 **What:** Two actions in `PublicWaterSystemsController` sit outside the standard 7 REST actions, and `HomeController` contains serialization logic that belongs in a serializer.
 

@@ -15,7 +15,7 @@ class PublicWaterSystemsController < ApplicationController
       page: @pagy.page,
       per_page: @pagy.limit,
       results: systems.map { |pws| PublicWaterSystemSerializer.new(pws).serialize },
-      summary: build_summary(scope)
+      summary: PublicWaterSystem.build_summary(scope)
     }
   end
 
@@ -38,69 +38,11 @@ class PublicWaterSystemsController < ApplicationController
     end
   end
 
-  def stats
-    scope = PublicWaterSystem.apply_filters(params)
-    unfiltered_total = PublicWaterSystem.count(:pwsid)
-    @summary = build_summary(scope).merge(unfiltered_total: unfiltered_total)
-    render layout: false
-  end
-
-  def export
-    scope = PublicWaterSystem
-      .apply_filters(params)
-      .with_details
-
-    exporter = PublicWaterSystemExporter.new(scope)
-
-    if params[:file_format] == "geojson"
-      render_geojson_export(exporter)
-    else
-      render_csv_export(exporter)
-    end
-  end
-
   private
 
   def apply_sort(scope)
     column = SORTABLE_COLUMNS.include?(params[:sort_by]) ? params[:sort_by] : "pwsid"
     direction = (params[:sort_dir]&.downcase == "desc") ? :desc : :asc
     scope.order(column => direction)
-  end
-
-  # unscope(:order) required — ORDER BY is invalid on aggregates.
-  # left_joins(:demographic) may duplicate a join from apply_filters, but PostgreSQL
-  # handles duplicate LEFT JOINs on a non-nullable PK cleanly.
-  def build_summary(scope)
-    total_pop, open_viol_count, avg_mhi, systems_count = scope.unscope(:order)
-      .left_joins(:demographic)
-      .pick(
-        Arel.sql("SUM(population_served_count)"),
-        Arel.sql("COUNT(*) FILTER (WHERE open_health_viol = 'Yes')"),
-        Arel.sql("ROUND(AVG(demographics.median_household_income))"),
-        Arel.sql("COUNT(DISTINCT public_water_systems.pwsid)")
-      )
-    {
-      systems_count: systems_count,
-      total_population_served: total_pop,
-      systems_with_open_violations: open_viol_count,
-      avg_median_household_income: avg_mhi
-    }
-  end
-
-  def render_csv_export(exporter)
-    send_data exporter.to_csv,
-      type: "text/csv",
-      disposition: 'attachment; filename="drinking_water_explorer_export.csv"'
-  end
-
-  def render_geojson_export(exporter)
-    compressed = ActiveSupport::Gzip.compress(exporter.to_geojson.to_json)
-
-    # Content-Encoding: gzip tells the browser to decompress before saving.
-    # Rack::Deflater is NOT in the middleware stack, so there is no double-compression risk.
-    response.headers["Content-Encoding"] = "gzip"
-    send_data compressed,
-      type: "application/json",
-      disposition: 'attachment; filename="export.geojson"'
   end
 end
