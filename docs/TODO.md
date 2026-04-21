@@ -14,6 +14,8 @@ These are not milestones — see ROADMAP.md for planned feature work.
 - Dev Seed Data — Filter Coverage Gaps (add Ohio or similar to cover wholesaler/school filters)
 - Filter UI — `has-filter` green highlight on active filter buttons
 - Filter UI — Verify badge counts match legacy behavior
+- Filter UI — More dropdown expand/collapse sub-filters (violations + watershed hazards)
+- Styling — Map ocean/water color slightly too dark
 - Filter Parity — Demographic & Environmental Justice range sliders (largest UI gap)
 - Filter Parity — EJScreen Drinking Water Score (needs backend wiring + UI)
 - Filter Parity — Water Source Sub-type checkboxes
@@ -22,6 +24,7 @@ These are not milestones — see ROADMAP.md for planned feature work.
 - Frontend Modernization — Replace DataTables with Turbo Frame table *(on hold)*
 - Frontend Modernization — Replace place autocomplete `fetch()` with Turbo Frame *(on hold)*
 - Frontend Modernization — Activate Tailwind and migrate custom CSS *(on hold)*
+- Export UX — Test CSV and GeoJSON downloads against a large dataset (e.g. full national or a large state). If generation takes more than ~2–3 seconds, add a spinner/disabled-button state to `export_controller.js` to indicate work in progress. The legacy app had no spinner; this is only needed if server-side generation time is noticeable.
 - Other — Ensure Mapbox token is not exposed in browser devtools
 - Other — Add pending migration warning on console/server/spec startup
 - Other — Add `simplecov` and `lefthook` gems
@@ -217,6 +220,15 @@ V2 added four filters not present in legacy: Wholesaler, School or daycare, Trib
 
 ---
 
+### More Dropdown — Expand/Collapse Sub-filters
+
+- **Legacy:** Three items expand into sub-filters when checked: "Health violations in last 5 years" and "Health violations in last 10 years" (each with 10 violation sub-types + range sliders), and "Potential Watershed Hazards" (5 sub-types). "Annual water and sewer bill" also expands into a rate tier picker.
+- **V2:** None of these expand/collapse behaviors exist. Violations only have top-level checkboxes; watershed hazards are flat individual checkboxes; financial is disabled.
+- **What to do:** Build the parent→child expand/collapse UI pattern for violations and watershed hazards. Violations sub-type range filters would also need new backend work.
+- **Priority:** Low — significant UI work; backend range filters for watershed hazards already exist
+
+---
+
 ## Filter Parity Gaps — Legacy vs V2
 
 Filters present in the legacy app that are missing from the V2 UI. Backend filter logic is noted for each.
@@ -273,6 +285,12 @@ The legacy Population filter had a full demographic panel with histogram range s
 - **Legacy:** Expanded into a bucket picker with 7 dollar-range tiers (< $125 through > $1000), filtering on `most_common_rate_tidy`
 - **V2:** `most_common_rate_tier` column exists in `demographics` and is partially wired in `Filterable`, but the bucket picker UI is not built and the data values need to be confirmed. Shown in the UI as disabled / TBD.
 - **Priority:** Low — needs data value audit + bucket picker UI
+
+---
+
+## Styling
+
+- Map ocean/water color is slightly too dark compared to legacy — lighten the water layer paint override on the `light-v11` Mapbox style
 
 ---
 
