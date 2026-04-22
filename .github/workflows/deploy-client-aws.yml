@@ -2,17 +2,21 @@ name: Deploy to AWS ECS
 
 on:
   push:
-    branches: [main]
+    branches: [staging, production]
   pull_request:
-    types: [opened, synchronize, reopened]
+    types: [opened, synchronize, reopened, closed]
+    branches: [main]
 
 concurrency:
-  group: deploy-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.number) || 'main' }}
+  group: ${{ github.event_name == 'pull_request' && format('deploy-pr-{0}', github.event.number) || format('deploy-{0}', github.ref_name) }}
   cancel-in-progress: true
 
 jobs:
+  # ── Branch deploys (staging / production) ──────────────────────────────────
   deploy:
-    if: vars.AWS_DEPLOY_ENABLED == 'true'
+    if: >
+      vars.AWS_DEPLOY_ENABLED == 'true' &&
+      github.event_name == 'push'
     runs-on: ubuntu-latest
     permissions:
       id-token: write
@@ -22,7 +26,7 @@ jobs:
       ECR_REPO_URI:        ${{ vars.ECR_REPO_URI }}
       ECS_CLUSTER:         ${{ vars.ECS_CLUSTER }}
       ECS_SERVICE_PROD:    ${{ vars.ECS_SERVICE_PROD }}
-      ECS_SERVICE_PREVIEW: ${{ vars.ECS_SERVICE_PREVIEW }}
+      ECS_SERVICE_STAGING: ${{ vars.ECS_SERVICE_STAGING }}
     steps:
       - uses: actions/checkout@v4
 
@@ -38,17 +42,19 @@ jobs:
       - name: Compute tags + target service
         id: meta
         run: |
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
+          if [ "${{ github.ref_name }}" = "production" ]; then
             {
-              echo "immutable_tag=pr-${{ github.event.number }}-${{ github.sha }}"
-              echo "moving_tag=pr-latest"
-              echo "service=$ECS_SERVICE_PREVIEW"
+              echo "immutable_tag=prod-${{ github.sha }}"
+              echo "moving_tag=prod-latest"
+              echo "service=$ECS_SERVICE_PROD"
+              echo "url=https://water-data-tool.policyinnovation.info/"
             } >> "$GITHUB_OUTPUT"
           else
             {
-              echo "immutable_tag=main-${{ github.sha }}"
-              echo "moving_tag=main-latest"
-              echo "service=$ECS_SERVICE_PROD"
+              echo "immutable_tag=staging-${{ github.sha }}"
+              echo "moving_tag=staging-latest"
+              echo "service=$ECS_SERVICE_STAGING"
+              echo "url=https://water-data-tool-staging.policyinnovation.info/"
             } >> "$GITHUB_OUTPUT"
           fi
 
@@ -76,6 +82,7 @@ jobs:
             --no-cli-pager
 
       - name: Wait for ECS service to stabilize
+        timeout-minutes: 15
         run: |
           aws ecs wait services-stable \
             --cluster "$ECS_CLUSTER" \
@@ -83,10 +90,165 @@ jobs:
 
       - name: Summary
         run: |
-          DOMAIN_PROD="water-data-tool.policyinnovation.info"
-          DOMAIN_PR="water-data-tool-preview.policyinnovation.info"
-          if [ "${{ github.event_name }}" = "pull_request" ]; then DOMAIN=$DOMAIN_PR; else DOMAIN=$DOMAIN_PROD; fi
-          {
-            echo "Deployed ${{ steps.meta.outputs.immutable_tag }} → ${{ steps.meta.outputs.service }}"
-            echo "URL: https://$DOMAIN/"
-          } >> "$GITHUB_STEP_SUMMARY"
+          echo "Deployed ${{ steps.meta.outputs.immutable_tag }} → ${{ steps.meta.outputs.service }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "URL: ${{ steps.meta.outputs.url }}" >> "$GITHUB_STEP_SUMMARY"
+
+  # ── PR environment deploy ───────────────────────────────────────────────────
+  pr-deploy:
+    if: >
+      vars.AWS_DEPLOY_ENABLED == 'true' &&
+      github.event_name == 'pull_request' &&
+      github.event.action != 'closed'
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    env:
+      AWS_REGION:      ${{ vars.AWS_REGION }}
+      ECR_REPO_URI:    ${{ vars.ECR_REPO_URI }}
+      ECS_CLUSTER:     ${{ vars.ECS_CLUSTER }}
+      PR_NUM:          ${{ github.event.number }}
+      SERVICE_BUILDER_IMAGE: ${{ vars.SERVICE_BUILDER_IMAGE_URI }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (PR role)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_PR_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push PR image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ${{ env.ECR_REPO_URI }}:pr-${{ env.PR_NUM }}-${{ github.sha }}
+            ${{ env.ECR_REPO_URI }}:pr-${{ env.PR_NUM }}-latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Look up secret ARNs
+        id: secrets
+        run: |
+          MASTER_KEY_ARN=$(aws secretsmanager describe-secret \
+            --secret-id "ep/wdt/dev/rails_master_key" \
+            --query 'ARN' --output text)
+          MAPBOX_ARN=$(aws secretsmanager describe-secret \
+            --secret-id "ep/wdt/dev/mapbox_access_token" \
+            --query 'ARN' --output text)
+          DB_URL_ARN=$(aws secretsmanager describe-secret \
+            --secret-id "ep/wdt/dev/database_url" \
+            --query 'ARN' --output text)
+
+          echo "master_key_arn=$MASTER_KEY_ARN" >> "$GITHUB_OUTPUT"
+          echo "mapbox_arn=$MAPBOX_ARN"         >> "$GITHUB_OUTPUT"
+          echo "db_url_arn=$DB_URL_ARN"         >> "$GITHUB_OUTPUT"
+
+      - name: Create PR environment via service_builder
+        run: |
+          SECRETS_JSON=$(jq -cn \
+            --arg mk  "${{ steps.secrets.outputs.master_key_arn }}" \
+            --arg db  "${{ steps.secrets.outputs.db_url_arn }}:preview::" \
+            --arg mbx "${{ steps.secrets.outputs.mapbox_arn }}" \
+            '[
+              {"name":"RAILS_MASTER_KEY",    "valueFrom":$mk},
+              {"name":"DATABASE_URL",        "valueFrom":$db},
+              {"name":"MAPBOX_ACCESS_TOKEN", "valueFrom":$mbx}
+            ]')
+
+          ENV_VARS_JSON='[
+            {"name":"RAILS_ENV",           "value":"production"},
+            {"name":"RAILS_LOG_TO_STDOUT", "value":"1"},
+            {"name":"SOLID_QUEUE_IN_PUMA", "value":"true"}
+          ]'
+
+          docker run --rm \
+            -e EP_ACTION=apply \
+            -e EP_ENV="pr-${{ env.PR_NUM }}" \
+            -e EP_SERVICE_NAME="water_data_tool_pr_${{ env.PR_NUM }}" \
+            -e EP_SERVICE_SHORT_NAME="wdtpr${{ env.PR_NUM }}" \
+            -e EP_ECS_CLUSTER_NAME="$ECS_CLUSTER" \
+            -e EP_TF_STATE_S3_BUCKET_NAME="ep-service-builder" \
+            -e EP_SERVICE_INSTANCE_TYPE="t3.small" \
+            -e EP_SERVICE_INSTANCE_COUNT="1" \
+            -e EP_SERVICE_CONTAINER_RAM_MB="1700" \
+            -e EP_SERVICE_CONTAINER_IMAGE_URI="${{ env.ECR_REPO_URI }}:pr-${{ env.PR_NUM }}-${{ github.sha }}" \
+            -e EP_SERVICE_DOMAIN="water-data-tool-pr-${{ env.PR_NUM }}.policyinnovation.info" \
+            -e EP_SERVICE_PORT="80" \
+            -e EP_SERVICE_HEALTH_PORT="80" \
+            -e EP_SERVICE_HEALTH_CHECK_PATH="/up" \
+            -e EP_SERVICE_ENV_VARS_JSON="$ENV_VARS_JSON" \
+            -e EP_SERVICE_SECRETS_JSON="$SECRETS_JSON" \
+            -e EP_CREATE_ECR_REPO="false" \
+            -e AWS_ACCESS_KEY_ID="$AWS_ACCESS_KEY_ID" \
+            -e AWS_SECRET_ACCESS_KEY="$AWS_SECRET_ACCESS_KEY" \
+            -e AWS_SESSION_TOKEN="$AWS_SESSION_TOKEN" \
+            -e AWS_REGION="$AWS_REGION" \
+            "$SERVICE_BUILDER_IMAGE"
+
+      - name: Summary
+        run: |
+          PR_URL="https://water-data-tool-pr-${{ env.PR_NUM }}.policyinnovation.info/"
+          echo "PR #${{ env.PR_NUM }} deployed → $PR_URL" >> "$GITHUB_STEP_SUMMARY"
+          echo "Image: \`${{ env.ECR_REPO_URI }}:pr-${{ env.PR_NUM }}-${{ github.sha }}\`" >> "$GITHUB_STEP_SUMMARY"
+
+  # ── PR environment teardown ─────────────────────────────────────────────────
+  pr-teardown:
+    if: >
+      vars.AWS_DEPLOY_ENABLED == 'true' &&
+      github.event_name == 'pull_request' &&
+      github.event.action == 'closed'
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    env:
+      AWS_REGION:            ${{ vars.AWS_REGION }}
+      ECS_CLUSTER:           ${{ vars.ECS_CLUSTER }}
+      PR_NUM:                ${{ github.event.number }}
+      SERVICE_BUILDER_IMAGE: ${{ vars.SERVICE_BUILDER_IMAGE_URI }}
+    steps:
+      - name: Configure AWS credentials (PR role)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_PR_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Destroy PR environment via service_builder
+        run: |
+          docker run --rm \
+            -e EP_ACTION=destroy \
+            -e EP_ENV="pr-${{ env.PR_NUM }}" \
+            -e EP_SERVICE_NAME="water_data_tool_pr_${{ env.PR_NUM }}" \
+            -e EP_SERVICE_SHORT_NAME="wdtpr${{ env.PR_NUM }}" \
+            -e EP_ECS_CLUSTER_NAME="$ECS_CLUSTER" \
+            -e EP_TF_STATE_S3_BUCKET_NAME="ep-service-builder" \
+            -e EP_SERVICE_INSTANCE_TYPE="t3.small" \
+            -e EP_SERVICE_INSTANCE_COUNT="1" \
+            -e EP_SERVICE_CONTAINER_RAM_MB="1700" \
+            -e EP_SERVICE_DOMAIN="water-data-tool-pr-${{ env.PR_NUM }}.policyinnovation.info" \
+            -e EP_SERVICE_PORT="80" \
+            -e EP_SERVICE_HEALTH_PORT="80" \
+            -e EP_SERVICE_HEALTH_CHECK_PATH="/up" \
+            -e EP_CREATE_ECR_REPO="false" \
+            -e AWS_ACCESS_KEY_ID="$AWS_ACCESS_KEY_ID" \
+            -e AWS_SECRET_ACCESS_KEY="$AWS_SECRET_ACCESS_KEY" \
+            -e AWS_SESSION_TOKEN="$AWS_SESSION_TOKEN" \
+            -e AWS_REGION="$AWS_REGION" \
+            "$SERVICE_BUILDER_IMAGE"
+
+      - name: Summary
+        run: |
+          echo "PR #${{ env.PR_NUM }} environment torn down." >> "$GITHUB_STEP_SUMMARY"
