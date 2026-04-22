@@ -11,7 +11,7 @@ These are not milestones — see ROADMAP.md for planned feature work.
 2. **Standardize DB ENV Var Prefixes** — Ensure all DB-related environment variables consistently use the `DB_` prefix
 3. **ETL Field Mapping Validation** — Build post-import audit specs that assert expected distinct values per filterable column, catching silent data quality bugs before they surface as broken filters
 
-- Dev Seed Data — Filter Coverage Gaps (add Ohio or similar to cover wholesaler/school filters)
+- ~~Dev Seed Data — Filter Coverage Gaps (add Ohio or similar to cover wholesaler/school filters)~~ Default seed now includes OH, CO, PR alongside VT + RI — verify `is_wholesaler` and `is_school_or_daycare` counts after first seed run
 - Filter UI — `has-filter` green highlight on active filter buttons
 - Filter UI — Verify badge counts match legacy behavior
 - Filter UI — More dropdown expand/collapse sub-filters (violations + watershed hazards)
@@ -180,9 +180,16 @@ The following are absent for geographic reasons (not a bug, but worth knowing):
 | `primacy_type = "Territory"` | 0 | VT/RI are not territories |
 | `owner_type = "Tribal"` | 0 | VT/RI have no tribally-owned systems |
 
-**Fix:** Add a state with richer system-type diversity to the dev seed. **Ohio is the recommended candidate** — it has a known wholesaler network and enough non-community systems to likely cover `is_school_or_daycare`. To test: `bin/rails 'db:seed:states[VT,RI,OH]'`, then verify with `PublicWaterSystem.where(is_wholesaler: true).count` and `PublicWaterSystem.where(is_school_or_daycare: true).count`.
+**Fix:** The default seed now includes OH, CO, and PR alongside VT and RI. After first seed run, verify:
 
-If Ohio doesn't cover both, try California or Texas next.
+```ruby
+PublicWaterSystem.where(is_wholesaler: true).count        # expect > 0 (OH)
+PublicWaterSystem.where(is_school_or_daycare: true).count # expect > 0 (OH)
+PublicWaterSystem.where(primacy_type: "Tribal").count     # expect > 0 (CO has Ute tribal systems)
+PublicWaterSystem.where(primacy_type: "Territory").count  # expect > 0 (PR)
+```
+
+If any are still 0, try adding California (`CA`) to the seed.
 
 **Priority:** Low — affects dev/testing only, not production.
 
@@ -300,4 +307,5 @@ The legacy Population filter had a full demographic panel with histogram range s
 - Add a warning when opening the Rails console, running specs, or starting the server if there are pending migrations
 - Add gems: `simplecov`, `lefthook`
 - Home Page - add `Last Updated On:` and calculation logic
+- ETL Source Data — confirm with the EPIC data team that `ETL_SOURCE_URL` in staging and production points to the correct S3 folder (production data, not test data); verify `is_wholesaler`, `is_school_or_daycare`, and `primacy_type = "Tribal"` are non-zero after the first ETL run against production data.
 

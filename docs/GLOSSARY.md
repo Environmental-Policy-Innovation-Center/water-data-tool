@@ -32,7 +32,7 @@ Domain acronyms, data source names, field abbreviations, and technical terms use
 | **SDWIS** | Safe Drinking Water Information System — EPA database of public water system attributes and violation records; primary ETL data source |
 | **SRF** | State Revolving Fund — EPA/state low-interest loan program for drinking water infrastructure improvements; see `funding_summaries.total_srf_assistance` |
 | **SRID** | Spatial Reference Identifier — numeric code identifying a coordinate reference system. 4326 = WGS 84 (lat/lng), 3857 = Web Mercator (tiles) |
-| **STUSPS** | State USPS Abbreviation — 2-letter postal code (e.g., `VT`, `RI`); used as the state component of PWSID and as a filter/index field |
+  | **STUSPS** | State USPS Abbreviation — 2-letter postal code (e.g., `VT`, `RI`); used as the state component of PWSID and as a filter/index field |
 | **SVI** | Social Vulnerability Index — CDC composite index measuring community vulnerability to hazards; see `environmental_justices.svi_overall_pctl` |
 | **SW** | Surface Water — water sourced from rivers, lakes, or reservoirs; one of the two values for `gw_sw_code` |
 | **UST** | Underground Storage Tank — tracked by EPA for contamination risk; see `watershed_hazards.open_underground_storage_tanks` |
