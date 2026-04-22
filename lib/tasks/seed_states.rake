@@ -2,10 +2,11 @@ require "csv"
 require "net/http"
 require "json"
 require "fileutils"
+require_relative "../../app/services/etl/type_caster"
 
 # Helpers are namespaced to avoid polluting the global Object space.
 module SeedImport
-  module_function
+  extend Etl::TypeCaster
 
   def self.each_row(dir, filename, states, &block)
     CSV.foreach(dir.join(filename), headers: true) do |row|
@@ -13,42 +14,16 @@ module SeedImport
     end
   end
 
-  def self.cast_int(val)
-    return nil if val.nil? || val.strip == "" || val.strip.upcase == "NA"
-
-    val.strip.to_i
-  end
-
-  def self.cast_dec(val)
-    return nil if val.nil? || val.strip == "" || val.strip.upcase == "NA"
-
-    val.strip.to_d
-  end
-
-  def self.cast_bool(val)
-    return nil if val.nil? || val.strip == ""
-
-    val.strip.upcase == "Y"
-  end
-
-  # Source scores are stored as 0–1 floats; multiply by 100 at import time.
-  def self.cast_score(val)
-    return nil if val.nil? || val.strip == "" || val.strip.upcase == "NA"
-
-    (val.strip.to_f * 100).round(2)
-  end
-
-  # Fetch the ETL manifest and download each data file to the cache directory.
+  # Download each source file to the cache directory using the S3 base URL.
   # Returns the cache directory path. Skips files that already exist locally.
-  def self.download_data_files(manifest_url, cache_dir)
+  def self.download_data_files(base_url, cache_dir)
     FileUtils.mkdir_p(cache_dir)
+    base = base_url.chomp("/")
 
-    puts "  Fetching manifest from #{manifest_url}..."
-    manifest = JSON.parse(Net::HTTP.get(URI.parse(manifest_url)))
-
-    manifest.each do |entry|
-      url = entry["http_path"]
-      filename = File.basename(URI.parse(url).path)
+    Etl::Importer::FILE_IMPORTERS.each_key do |key|
+      ext = Etl::Importer::FILE_EXTENSIONS[key]
+      url = "#{base}/#{key}#{ext}"
+      filename = "#{key}#{ext}"
       local_path = cache_dir.join(filename)
 
       if local_path.exist?
@@ -61,6 +36,25 @@ module SeedImport
     end
 
     cache_dir
+  end
+
+  def self.build_pws_row(row)
+    {
+      pwsid: row["pwsid"],
+      pws_name: row["pws_name"],
+      stusps: row["pwsid"][0, 2],
+      primacy_agency: row["primacy_agency"],
+      pop_cat_5: row["pop_cat_5"],
+      population_served_count: cast_int(row["population_served_count"]),
+      service_connections_count: cast_int(row["service_connections_count"]),
+      service_area_type: row["service_area_type"],
+      symbology_field: row["symbology_field"],
+      detailed_facility_report: row["detailed_facility_report"],
+      ewg_report_link: row["ewg_report_link"],
+      area_sq_miles: cast_dec(row["epic_area_mi2"]),
+      created_at: Time.current,
+      updated_at: Time.current
+    }
   end
 
   # Stream-downloads a file with progress reporting for large files.
@@ -109,11 +103,11 @@ namespace :db do
 
       puts "→ Seeding #{states.join(", ")}..."
 
-      # ── Download data from S3 manifest ──────────────────────────────────────
-      manifest_url = ENV.fetch("ETL_MANIFEST_URL") {
-        abort "ETL_MANIFEST_URL not set. Add it to .env or pass it: ETL_MANIFEST_URL=https://... bin/rails db:seed:states[VT]"
+      # ── Download source files from S3 ───────────────────────────────────────
+      base_url = ENV.fetch("ETL_SOURCE_URL") {
+        abort "ETL_SOURCE_URL not set. Add it to .env."
       }
-      dir = SeedImport.download_data_files(manifest_url, Rails.root.join("tmp/seeds"))
+      dir = SeedImport.download_data_files(base_url, Rails.root.join("tmp/seeds"))
 
       # Collect the pwsids we care about upfront — used to filter all subsequent files
       target_pwsids = Set.new
@@ -124,26 +118,36 @@ namespace :db do
       pws_rows = []
       SeedImport.each_row(dir, "epa_sabs.csv", states) do |row|
         target_pwsids << row["pwsid"]
-        pws_rows << {
-          pwsid: row["pwsid"],
-          pws_name: row["pws_name"],
-          stusps: row["pwsid"][0, 2],
-          primacy_agency: row["primacy_agency"],
-          pop_cat_5: row["pop_cat_5"],
-          population_served_count: SeedImport.cast_int(row["population_served_count"]),
-          service_connections_count: SeedImport.cast_int(row["service_connections_count"]),
-          service_area_type: row["service_area_type"],
-          symbology_field: row["symbology_field"],
-          detailed_facility_report: row["detailed_facility_report"],
-          ewg_report_link: row["ewg_report_link"],
-          area_sq_miles: SeedImport.cast_dec(row["epic_area_mi2"]),
-          created_at: Time.current,
-          updated_at: Time.current
-        }
+        pws_rows << SeedImport.build_pws_row(row)
       end
 
       PublicWaterSystem.upsert_all(pws_rows, unique_by: :pwsid) if pws_rows.any?
       puts "  PublicWaterSystem:    #{pws_rows.size}"
+
+      # ---------------------------------------------------------------------------
+      # 1b. Tribal systems — collect from sdwis_viols.csv and add to target_pwsids
+      #
+      # Tribal systems use numeric EPA region codes as pwsid prefixes (e.g. "08...")
+      # instead of two-letter state codes, so they are never matched by each_row's
+      # state-prefix filter above. A second pass adds them explicitly.
+      # ---------------------------------------------------------------------------
+      tribal_pwsids = Set.new
+      CSV.foreach(dir.join("sdwis_viols.csv"), headers: true) do |row|
+        tribal_pwsids << row["pwsid"] if row["primacy_type"] == "Tribal"
+      end
+      tribal_pwsids -= target_pwsids
+
+      tribal_pws_rows = []
+      CSV.foreach(dir.join("epa_sabs.csv"), headers: true) do |row|
+        next unless tribal_pwsids.include?(row["pwsid"])
+        target_pwsids << row["pwsid"]
+        tribal_pws_rows << SeedImport.build_pws_row(row)
+      end
+
+      PublicWaterSystem.upsert_all(tribal_pws_rows, unique_by: :pwsid) if tribal_pws_rows.any?
+      puts "  PublicWaterSystem (tribal): #{tribal_pws_rows.size}"
+
+      # target_pwsids now contains both state-prefixed and tribal pwsids — sole filter for all steps below.
 
       # ---------------------------------------------------------------------------
       # 2. PublicWaterSystem (remaining attrs) + ViolationsSummary — from sdwis_viols.csv
@@ -151,7 +155,7 @@ namespace :db do
       pws_updates = []
       viol_rows = []
 
-      SeedImport.each_row(dir, "sdwis_viols.csv", states) do |row|
+      CSV.foreach(dir.join("sdwis_viols.csv"), headers: true) do |row|
         next unless target_pwsids.include?(row["pwsid"])
 
         pws_updates << {
@@ -213,7 +217,7 @@ namespace :db do
       # 3. Demographic — from epa_sabs_xwalk.csv
       # ---------------------------------------------------------------------------
       demo_rows = []
-      SeedImport.each_row(dir, "epa_sabs_xwalk.csv", states) do |row|
+      CSV.foreach(dir.join("epa_sabs_xwalk.csv"), headers: true) do |row|
         next unless target_pwsids.include?(row["pwsid"])
 
         demo_rows << {
@@ -259,7 +263,7 @@ namespace :db do
       # 4. TrendDatum — from xwalk_pct_change_10yr.csv
       # ---------------------------------------------------------------------------
       trend_rows = []
-      SeedImport.each_row(dir, "xwalk_pct_change_10yr.csv", states) do |row|
+      CSV.foreach(dir.join("xwalk_pct_change_10yr.csv"), headers: true) do |row|
         next unless target_pwsids.include?(row["pwsid"])
 
         trend_rows << {
@@ -287,9 +291,15 @@ namespace :db do
       # ---------------------------------------------------------------------------
       # 5. EnvironmentalJustice — merge 4 files into one table
       # ---------------------------------------------------------------------------
-      ej = Hash.new { |h, k| h[k] = {pwsid: k, created_at: Time.current, updated_at: Time.current} }
+      ej_defaults = {
+        cejst_disadvantaged_pct: nil, cejst_lead_paint_indicator: nil, cejst_low_life_expectancy_pctl: nil,
+        ejscreen_drinking_water: nil, ejscreen_disability_rate: nil,
+        svi_overall_pctl: nil,
+        cvi_redlining: nil, cvi_life_expectancy: nil, cvi_cancer_risk: nil, cvi_overall_score: nil
+      }
+      ej = Hash.new { |h, k| h[k] = {pwsid: k, created_at: Time.current, updated_at: Time.current}.merge(ej_defaults) }
 
-      SeedImport.each_row(dir, "cejst.csv", states) do |row|
+      CSV.foreach(dir.join("cejst.csv"), headers: true) do |row|
         next unless target_pwsids.include?(row["pwsid"])
         ej[row["pwsid"]].merge!(
           cejst_disadvantaged_pct: SeedImport.cast_score(row["a_int.identified_as_disadvantaged"]),
@@ -298,7 +308,7 @@ namespace :db do
         )
       end
 
-      SeedImport.each_row(dir, "ejscreen.csv", states) do |row|
+      CSV.foreach(dir.join("ejscreen.csv"), headers: true) do |row|
         next unless target_pwsids.include?(row["pwsid"])
         ej[row["pwsid"]].merge!(
           ejscreen_drinking_water: SeedImport.cast_dec(row["a_int.dwater"]),
@@ -306,14 +316,14 @@ namespace :db do
         )
       end
 
-      SeedImport.each_row(dir, "svi.csv", states) do |row|
+      CSV.foreach(dir.join("svi.csv"), headers: true) do |row|
         next unless target_pwsids.include?(row["pwsid"])
         ej[row["pwsid"]].merge!(
           svi_overall_pctl: SeedImport.cast_score(row["pw_int_pop.rpl_themes"])
         )
       end
 
-      SeedImport.each_row(dir, "cvi.csv", states) do |row|
+      CSV.foreach(dir.join("cvi.csv"), headers: true) do |row|
         next unless target_pwsids.include?(row["pwsid"])
         ej[row["pwsid"]].merge!(
           cvi_redlining: SeedImport.cast_dec(row["pw_int_hh.redlining"]),
