@@ -8,7 +8,6 @@ RSpec.describe "etl rake tasks" do
 
   before do
     Rake::Task["etl:import"].reenable
-    allow(ENV).to receive(:fetch).with("ETL_MANIFEST_URL").and_return("https://s3.example.com/data.json")
     allow($stdout).to receive(:puts)
   end
 
@@ -17,7 +16,6 @@ RSpec.describe "etl rake tasks" do
   describe "etl:import" do
     it "calls Etl::Importer with no table filter and force: false by default" do
       expect(Etl::Importer).to receive(:new).with(
-        manifest_url: "https://s3.example.com/data.json",
         force: false,
         only: nil
       ).and_return(importer_double)
