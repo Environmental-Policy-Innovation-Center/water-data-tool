@@ -4,6 +4,16 @@ import * as FilterState from "filter_state"
 const POP_CAT_MAP = { "1": "<=500", "2": "501-3,300", "3": "3,301-10,000", "4": "10,001-100,000", "5": ">100,000" }
 const POP_CLASS_MAP = Object.fromEntries(Object.entries(POP_CAT_MAP).map(([k, v]) => [v, `pop-size-${k}`]))
 
+const OWNER_TYPE_MAP = {
+  "type-federal-government": "Federal",
+  "type-state-government": "State",
+  "type-local-government": "Local",
+  "type-native-american": "Native American",
+  "type-private": "Private",
+  "type-public-private": "Public/Private"
+}
+const OWNER_TYPE_ID_MAP = Object.fromEntries(Object.entries(OWNER_TYPE_MAP).map(([k, v]) => [v, k]))
+
 // Manages filter dropdown menus — toggle open/close, outside-click dismiss, Apply.
 // On Apply: collects current DOM filter state → writes to FilterState → dispatches filters:changed.
 export default class extends Controller {
@@ -210,17 +220,8 @@ export default class extends Controller {
     return p
   }
 
-  // Map checkbox IDs to the owner_type values stored in the DB
   #ownerTypeValue(id) {
-    const map = {
-      "type-federal-government": "Federal",
-      "type-state-government": "State",
-      "type-local-government": "Local",
-      "type-native-american": "Tribal",
-      "type-private": "Private",
-      "type-public-private": "Public/Private"
-    }
-    return map[id] || id
+    return OWNER_TYPE_MAP[id] || id
   }
 
   #primacyTypeValue(id) {
@@ -261,9 +262,8 @@ export default class extends Controller {
 
     // Owner types
     if (params.owner_type) {
-      const valueToId = { Federal: "type-federal-government", State: "type-state-government", Local: "type-local-government", Tribal: "type-native-american", Private: "type-private", "Public/Private": "type-public-private" }
       document.querySelectorAll(".checkbox-type").forEach(cb => { cb.checked = false })
-      params.owner_type.forEach(v => { const el = document.getElementById(valueToId[v]); if (el) el.checked = true })
+      params.owner_type.forEach(v => { const el = document.getElementById(OWNER_TYPE_ID_MAP[v]); if (el) el.checked = true })
     }
 
     // Primacy type
