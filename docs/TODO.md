@@ -178,7 +178,7 @@ The following are absent for geographic reasons (not a bug, but worth knowing):
 |--------|-----------|--------|
 | `primacy_type = "Tribal"` | 0 | VT/RI have no tribal primacy systems |
 | `primacy_type = "Territory"` | 0 | VT/RI are not territories |
-| `owner_type = "Tribal"` | 0 | VT/RI have no tribally-owned systems |
+| `owner_type = "Native American"` (UI: "Tribal") | 0 | VT/RI have no tribally-owned systems |
 
 **Fix:** The default seed now includes OH, CO, and PR alongside VT and RI. After first seed run, verify:
 
