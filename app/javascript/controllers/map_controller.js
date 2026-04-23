@@ -52,7 +52,9 @@ export default class extends Controller {
     this.#styleWater()
     this.#bindEvents()
 
-    // Apply map filter immediately if URL has active filter params (shared URL support)
+    // filter_controller#restoreFromUrl dispatches filters:changed synchronously before
+    // map.on("load") completes, so that event is swallowed. Re-apply here to ensure
+    // URL-shared filter params are reflected in the map on initial load.
     if (Object.keys(FilterState.get()).length > 0) {
       this.#onFiltersChanged()
     }
@@ -444,6 +446,8 @@ export default class extends Controller {
   }
 
   async #onFiltersChanged() {
+    if (!this.map?.getLayer("pws")) return
+
     const filters = FilterState.get()
 
     if (Object.keys(filters).length === 0) {
