@@ -12,11 +12,23 @@ module Etl
     private
 
     def fetch_url(url)
+      uri = validated_https_uri(url)
+      Net::HTTP.get(uri)
+    end
+
+    def head_url(url)
+      uri = validated_https_uri(url)
+      Net::HTTP.start(uri.host, uri.port, use_ssl: true) do |http|
+        http.head(uri.request_uri)
+      end
+    end
+
+    def validated_https_uri(url)
       uri = URI.parse(url)
       unless uri.is_a?(URI::HTTPS)
         raise InsecureUrlError, "Only HTTPS URLs are permitted, got: #{uri.scheme}://"
       end
-      Net::HTTP.get(uri)
+      uri
     end
   end
 end

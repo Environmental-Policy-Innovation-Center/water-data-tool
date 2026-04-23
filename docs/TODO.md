@@ -11,9 +11,11 @@ These are not milestones — see ROADMAP.md for planned feature work.
 2. **Standardize DB ENV Var Prefixes** — Ensure all DB-related environment variables consistently use the `DB_` prefix
 3. **ETL Field Mapping Validation** — Build post-import audit specs that assert expected distinct values per filterable column, catching silent data quality bugs before they surface as broken filters
 
-- Dev Seed Data — Filter Coverage Gaps (add Ohio or similar to cover wholesaler/school filters)
+- ~~Dev Seed Data — Filter Coverage Gaps (add Ohio or similar to cover wholesaler/school filters)~~ Default seed now includes OH, CO, PR alongside VT + RI — verify `is_wholesaler` and `is_school_or_daycare` counts after first seed run
 - Filter UI — `has-filter` green highlight on active filter buttons
 - Filter UI — Verify badge counts match legacy behavior
+- Filter UI — More dropdown expand/collapse sub-filters (violations + watershed hazards)
+- Styling — Map ocean/water color slightly too dark
 - Filter Parity — Demographic & Environmental Justice range sliders (largest UI gap)
 - Filter Parity — EJScreen Drinking Water Score (needs backend wiring + UI)
 - Filter Parity — Water Source Sub-type checkboxes
@@ -22,6 +24,7 @@ These are not milestones — see ROADMAP.md for planned feature work.
 - Frontend Modernization — Replace DataTables with Turbo Frame table *(on hold)*
 - Frontend Modernization — Replace place autocomplete `fetch()` with Turbo Frame *(on hold)*
 - Frontend Modernization — Activate Tailwind and migrate custom CSS *(on hold)*
+- Export UX — Test CSV and GeoJSON downloads against a large dataset (e.g. full national or a large state). If generation takes more than ~2–3 seconds, add a spinner/disabled-button state to `export_controller.js` to indicate work in progress. The legacy app had no spinner; this is only needed if server-side generation time is noticeable.
 - Other — Ensure Mapbox token is not exposed in browser devtools
 - Other — Add pending migration warning on console/server/spec startup
 - Other — Add `simplecov` and `lefthook` gems
@@ -177,9 +180,16 @@ The following are absent for geographic reasons (not a bug, but worth knowing):
 | `primacy_type = "Territory"` | 0 | VT/RI are not territories |
 | `owner_type = "Tribal"` | 0 | VT/RI have no tribally-owned systems |
 
-**Fix:** Add a state with richer system-type diversity to the dev seed. **Ohio is the recommended candidate** — it has a known wholesaler network and enough non-community systems to likely cover `is_school_or_daycare`. To test: `bin/rails 'db:seed:states[VT,RI,OH]'`, then verify with `PublicWaterSystem.where(is_wholesaler: true).count` and `PublicWaterSystem.where(is_school_or_daycare: true).count`.
+**Fix:** The default seed now includes OH, CO, and PR alongside VT and RI. After first seed run, verify:
 
-If Ohio doesn't cover both, try California or Texas next.
+```ruby
+PublicWaterSystem.where(is_wholesaler: true).count        # expect > 0 (OH)
+PublicWaterSystem.where(is_school_or_daycare: true).count # expect > 0 (OH)
+PublicWaterSystem.where(primacy_type: "Tribal").count     # expect > 0 (CO has Ute tribal systems)
+PublicWaterSystem.where(primacy_type: "Territory").count  # expect > 0 (PR)
+```
+
+If any are still 0, try adding California (`CA`) to the seed.
 
 **Priority:** Low — affects dev/testing only, not production.
 
@@ -214,6 +224,15 @@ V2 added four filters not present in legacy: Wholesaler, School or daycare, Trib
 - **V2:** Counts active param keys per group using a hardcoded key list in `#updateBadges`
 - **What to verify:** Spot-check each filter group (Source, Attributes, Boundaries, Compliance, Population, More) with known filter combinations and confirm V2 badge counts match what legacy showed
 - **Priority:** Low — verify before public launch
+
+---
+
+### More Dropdown — Expand/Collapse Sub-filters
+
+- **Legacy:** Three items expand into sub-filters when checked: "Health violations in last 5 years" and "Health violations in last 10 years" (each with 10 violation sub-types + range sliders), and "Potential Watershed Hazards" (5 sub-types). "Annual water and sewer bill" also expands into a rate tier picker.
+- **V2:** None of these expand/collapse behaviors exist. Violations only have top-level checkboxes; watershed hazards are flat individual checkboxes; financial is disabled.
+- **What to do:** Build the parent→child expand/collapse UI pattern for violations and watershed hazards. Violations sub-type range filters would also need new backend work.
+- **Priority:** Low — significant UI work; backend range filters for watershed hazards already exist
 
 ---
 
@@ -276,10 +295,17 @@ The legacy Population filter had a full demographic panel with histogram range s
 
 ---
 
+## Styling
+
+- Map ocean/water color is slightly too dark compared to legacy — lighten the water layer paint override on the `light-v11` Mapbox style
+
+---
+
 ## Other
 
 - Ensure Mapbox access token is not exposed in request/response data visible in browser devtools
 - Add a warning when opening the Rails console, running specs, or starting the server if there are pending migrations
 - Add gems: `simplecov`, `lefthook`
 - Home Page - add `Last Updated On:` and calculation logic
+- ETL Source Data — confirm with the EPIC data team that `ETL_SOURCE_URL` in staging and production points to the correct S3 folder (production data, not test data); verify `is_wholesaler`, `is_school_or_daycare`, and `primacy_type = "Tribal"` are non-zero after the first ETL run against production data.
 

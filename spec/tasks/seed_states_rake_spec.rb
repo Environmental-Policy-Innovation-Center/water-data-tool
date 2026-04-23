@@ -16,7 +16,7 @@ RSpec.describe "db:seed:states rake task" do
     allow($stdout).to receive(:print)
     allow($stderr).to receive(:write)
 
-    ENV["ETL_MANIFEST_URL"] = "https://example.test/manifest.json"
+    ENV["ETL_SOURCE_URL"] = "https://example.test/data"
     allow(SeedImport).to receive(:download_data_files).and_return(tmp_dir)
 
     # Skip the two side-effect steps at the end of the task.
@@ -28,7 +28,7 @@ RSpec.describe "db:seed:states rake task" do
 
   after do
     FileUtils.rm_rf(tmp_dir)
-    ENV.delete("ETL_MANIFEST_URL")
+    ENV.delete("ETL_SOURCE_URL")
   end
 
   it "aborts when no states are provided" do
@@ -63,6 +63,55 @@ RSpec.describe "db:seed:states rake task" do
     expect { task.invoke("VT") }.not_to change(ServiceAreaGeometry, :count)
   end
 
+  context "tribal systems" do
+    # Tribal pwsids use numeric EPA region prefixes (e.g. "08...") and are never
+    # matched by the state-prefix filter. Step 1b collects them via primacy_type in
+    # sdwis_viols.csv and loads their epa_sabs rows as a second pass.
+    before do
+      write_csv("sdwis_viols.csv",
+        %w[pwsid gw_sw_code primary_source_code primacy_type],
+        ["VT0000001", "GW", "GW", "State"],
+        ["08UT0001", "GW", "GW", "Tribal"])
+
+      write_csv("epa_sabs.csv",
+        %w[pwsid pws_name primacy_agency pop_cat_5 population_served_count service_connections_count
+          service_area_type symbology_field detailed_facility_report ewg_report_link epic_area_mi2],
+        ["VT0000001", "Test Water System", "Vermont DEC", "<=500", "250", "100",
+          "Residential Area", "System Sourced", "", "", "5.25"],
+        ["08UT0001", "Tribal Water System", "Tribal Agency", "<=500", "100", "50",
+          "Residential Area", "System Sourced", "", "", "2.5"])
+    end
+
+    it "seeds tribal systems alongside state systems" do
+      expect { task.invoke("VT") }.to change(PublicWaterSystem, :count).by(2)
+
+      tribal_pws = PublicWaterSystem.find_by(pwsid: "08UT0001")
+      expect(tribal_pws).to be_present
+      expect(tribal_pws.pws_name).to eq("Tribal Water System")
+    end
+
+    it "sets stusps to the numeric prefix for tribal systems" do
+      task.invoke("VT")
+      expect(PublicWaterSystem.find_by(pwsid: "08UT0001").stusps).to eq("08")
+    end
+
+    it "does not seed tribal systems already present via the state filter" do
+      # If a tribal system's pwsid happens to start with a state prefix (unusual but
+      # possible), the deduplication guard prevents it from being inserted twice.
+      write_csv("sdwis_viols.csv",
+        %w[pwsid gw_sw_code primary_source_code primacy_type],
+        ["VT0000001", "GW", "GW", "Tribal"])
+
+      write_csv("epa_sabs.csv",
+        %w[pwsid pws_name primacy_agency pop_cat_5 population_served_count service_connections_count
+          service_area_type symbology_field detailed_facility_report ewg_report_link epic_area_mi2],
+        ["VT0000001", "Test Water System", "Vermont DEC", "<=500", "250", "100",
+          "Residential Area", "System Sourced", "", "", "5.25"])
+
+      expect { task.invoke("VT") }.to change(PublicWaterSystem, :count).by(1)
+    end
+  end
+
   private
 
   # Write a minimal set of fixture CSVs + a GeoJSON so the task can run end-to-end.
@@ -77,7 +126,7 @@ RSpec.describe "db:seed:states rake task" do
       ["VT0000001", "Test Water System", "Vermont DEC", "<=500", "250", "100",
         "Residential Area", "System Sourced", "", "", "5.25"])
 
-    write_csv("sdwis_viols.csv", %w[pwsid gw_sw_code primary_source_code])
+    write_csv("sdwis_viols.csv", %w[pwsid gw_sw_code primary_source_code primacy_type])
     write_csv("epa_sabs_xwalk.csv", %w[pwsid total_pop])
     write_csv("xwalk_pct_change_10yr.csv", %w[pwsid total_pop_pct_change_2011_2021])
     write_csv("cejst.csv", %w[pwsid a_int.identified_as_disadvantaged])

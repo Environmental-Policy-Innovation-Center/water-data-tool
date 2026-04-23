@@ -1,36 +1,20 @@
 require "rails_helper"
 
 RSpec.describe Etl::Importer do
-  let(:manifest_url) { "https://s3.example.com/data.json" }
-  let(:manifest) do
+  let(:last_updated) { Time.zone.parse("2026-01-15 10:00:00") }
+  let(:file_entries) do
     [
-      {
-        "file_description" => "EPA SABs csv",
-        "s3_path" => "s3://tech-team-data/epa_sabs.csv",
-        "http_path" => "https://s3.example.com/epa_sabs.csv",
-        "last_updated" => "2026-01-15 10:00:00"
-      },
-      {
-        "file_description" => "EPA SABs geojson",
-        "s3_path" => "s3://tech-team-data/epa_sabs_geoms.geojson",
-        "http_path" => "https://s3.example.com/epa_sabs_geoms.geojson",
-        "last_updated" => "2026-01-15 10:00:00"
-      },
-      {
-        "file_description" => "SDWIS violations",
-        "s3_path" => "s3://tech-team-data/sdwis_viols.csv",
-        "http_path" => "https://s3.example.com/sdwis_viols.csv",
-        "last_updated" => "2026-01-15 10:00:00"
-      }
+      {"file_key" => "epa_sabs", "http_path" => "https://s3.example.com/epa_sabs.csv", "last_updated" => last_updated},
+      {"file_key" => "epa_sabs_geoms", "http_path" => "https://s3.example.com/epa_sabs_geoms.geojson", "last_updated" => last_updated},
+      {"file_key" => "sdwis_viols", "http_path" => "https://s3.example.com/sdwis_viols.csv", "last_updated" => last_updated}
     ]
   end
-  let(:manifest_json) { JSON.generate(manifest) }
 
-  subject(:importer) { described_class.new(manifest_url: manifest_url) }
+  subject(:importer) { described_class.new }
 
   describe "#call" do
     before do
-      allow(importer).to receive(:fetch_manifest).and_return(manifest)
+      allow(importer).to receive(:build_file_entries).and_return(file_entries)
     end
 
     it "dispatches each recognised file to the correct file importer" do
@@ -71,8 +55,8 @@ RSpec.describe Etl::Importer do
     end
 
     it "passes force: true to each importer when called with force: true" do
-      force_importer = described_class.new(manifest_url: manifest_url, force: true)
-      allow(force_importer).to receive(:fetch_manifest).and_return(manifest)
+      force_importer = described_class.new(force: true)
+      allow(force_importer).to receive(:build_file_entries).and_return(file_entries)
 
       epa_sabs_importer = instance_double(Etl::Importers::EpaSabs, call: :imported)
       allow(Etl::Importers::EpaSabs).to receive(:new)
@@ -87,8 +71,8 @@ RSpec.describe Etl::Importer do
 
     context "when a table filter is specified" do
       it "only dispatches to the matching importer" do
-        filtered_importer = described_class.new(manifest_url: manifest_url, only: "epa_sabs")
-        allow(filtered_importer).to receive(:fetch_manifest).and_return(manifest)
+        filtered_importer = described_class.new(only: "epa_sabs")
+        allow(filtered_importer).to receive(:build_file_entries).and_return(file_entries)
 
         epa_sabs_importer = instance_double(Etl::Importers::EpaSabs, call: :imported)
         allow(Etl::Importers::EpaSabs).to receive(:new).and_return(epa_sabs_importer)
@@ -148,7 +132,7 @@ RSpec.describe Etl::Importer do
 
   describe "tile cache invalidation" do
     before do
-      allow(importer).to receive(:fetch_manifest).and_return(manifest)
+      allow(importer).to receive(:build_file_entries).and_return(file_entries)
     end
 
     it "busts the tile cache when any file is imported" do
@@ -189,10 +173,75 @@ RSpec.describe Etl::Importer do
     end
   end
 
-  describe "#fetch_manifest (SSRF guard)" do
-    it "raises InsecureUrlError for a non-HTTPS manifest URL" do
-      bad_importer = described_class.new(manifest_url: "http://evil.example.com/data.json")
-      expect { bad_importer.send(:fetch_manifest) }
+  describe "#build_file_entries (private)" do
+    let(:mock_response) do
+      instance_double(Net::HTTPOK).tap do |r|
+        allow(r).to receive(:[]).with("last-modified").and_return("Wed, 15 Jan 2026 10:00:00 GMT")
+      end
+    end
+
+    before do
+      ENV["ETL_SOURCE_URL"] = "https://s3.example.com/data"
+      allow(importer).to receive(:head_url).and_return(mock_response)
+    end
+
+    after { ENV.delete("ETL_SOURCE_URL") }
+
+    it "returns one entry per key in FILE_IMPORTERS" do
+      entries = importer.send(:build_file_entries)
+      expect(entries.length).to eq(Etl::Importer::FILE_IMPORTERS.length)
+    end
+
+    it "constructs the correct file URL for each key" do
+      entries = importer.send(:build_file_entries)
+      epa_sabs = entries.find { |e| e["file_key"] == "epa_sabs" }
+      expect(epa_sabs["http_path"]).to eq("https://s3.example.com/data/epa_sabs.csv")
+    end
+
+    it "uses .geojson extension for the geometry file" do
+      entries = importer.send(:build_file_entries)
+      geoms = entries.find { |e| e["file_key"] == "epa_sabs_geoms" }
+      expect(geoms["http_path"]).to end_with(".geojson")
+    end
+
+    it "parses Last-Modified into a Time object" do
+      entry = importer.send(:build_file_entries).first
+      expect(entry["last_updated"]).to be_a(Time)
+    end
+
+    it "tolerates a trailing slash on ETL_SOURCE_URL" do
+      ENV["ETL_SOURCE_URL"] = "https://s3.example.com/data/"
+      entries = importer.send(:build_file_entries)
+      expect(entries.first["http_path"]).not_to include("//epa_sabs")
+    end
+
+    context "when ETL_SOURCE_URL is not set" do
+      before { @saved = ENV.delete("ETL_SOURCE_URL") }
+      after { ENV["ETL_SOURCE_URL"] = @saved if @saved }
+
+      it "raises a descriptive error" do
+        expect { importer.send(:build_file_entries) }
+          .to raise_error(RuntimeError, /ETL_SOURCE_URL is not set/)
+      end
+    end
+
+    context "when the Last-Modified header is absent" do
+      before do
+        missing = instance_double(Net::HTTPOK)
+        allow(missing).to receive(:[]).with("last-modified").and_return(nil)
+        allow(importer).to receive(:head_url).and_return(missing)
+      end
+
+      it "raises a descriptive error" do
+        expect { importer.send(:build_file_entries) }
+          .to raise_error(RuntimeError, /Missing Last-Modified header/)
+      end
+    end
+  end
+
+  describe "#head_url (SSRF guard)" do
+    it "raises InsecureUrlError for a non-HTTPS URL" do
+      expect { importer.send(:head_url, "http://evil.example.com/data.csv") }
         .to raise_error(Etl::Importer::InsecureUrlError, /https/i)
     end
   end
@@ -201,7 +250,9 @@ RSpec.describe Etl::Importer do
 
   def allow_all_importers_to_skip(except: nil)
     except_set = Array(except).to_set
-    Etl::Importer::FILE_IMPORTERS.each_value do |klass|
+    # Only stub importers present in file_entries to avoid unexpected interactions.
+    file_entries.each do |entry|
+      klass = Etl::Importer::FILE_IMPORTERS[entry["file_key"]]
       next if except_set.include?(klass)
       dbl = instance_double(klass, call: :skipped)
       allow(klass).to receive(:new).and_return(dbl)

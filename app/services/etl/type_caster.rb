@@ -18,7 +18,7 @@ module Etl
       return nil if val.nil?
       stripped = val.strip
       return nil if stripped.empty?
-      stripped.upcase == "Y"
+      %w[Y YES].include?(stripped.upcase)
     end
 
     # Source scores are stored as 0–1 floats; multiply by 100 at import time.

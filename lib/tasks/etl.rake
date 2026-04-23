@@ -11,9 +11,8 @@ namespace :etl do
   task :import, [:table, :mode] => :environment do |_, args|
     table = args[:table].presence
     force = args[:mode]&.strip&.downcase == "force"
-    manifest_url = ENV.fetch("ETL_MANIFEST_URL") { raise "ETL_MANIFEST_URL is not configured" }
 
-    errors = Etl::Importer.new(manifest_url: manifest_url, force: force, only: table).call
+    errors = Etl::Importer.new(force: force, only: table).call
 
     if errors.any?
       errors.each { |e| warn "[ETL] #{e[:file_key]} failed: #{e[:error].class} — #{e[:error].message}" }

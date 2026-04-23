@@ -306,7 +306,7 @@ The new app should be deployed to entirely new infrastructure under the recipien
 
 1. **Provision new infra:** Fresh EC2/ECS host and RDS PostgreSQL+PostGIS instance in your AWS account
 2. **Deploy Rails app** to the new EC2 instance
-3. **Set ETL source configuration** (`ETL_MANIFEST_URL`, bucket/path ownership, IAM permissions)
+3. **Set ETL source configuration** (`ETL_SOURCE_URL`, bucket/path ownership, IAM permissions)
 4. **Run ETL** to populate the new database from scratch — no data migration from the old DB
 5. **Load cartographic boundaries** into the new DB (export from old DB or source from Census)
 6. **Verify:** Filter results match legacy app, tile rendering looks correct, exports produce equivalent output
