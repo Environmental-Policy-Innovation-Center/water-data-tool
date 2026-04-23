@@ -468,6 +468,8 @@ namespace :db do
         Etl::PostImportSteps.call
       end
 
+      DataImport.create!(file_url: "seed:states[#{states.join(",")}]", imported_at: Time.current)
+
       puts "\n✓ Done. #{target_pwsids.size} water systems seeded for #{states.join(", ")}."
     end
   end

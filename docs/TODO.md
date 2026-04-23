@@ -25,6 +25,7 @@ These are not milestones — see ROADMAP.md for planned feature work.
 - Frontend Modernization — Replace place autocomplete `fetch()` with Turbo Frame *(on hold)*
 - Frontend Modernization — Activate Tailwind and migrate custom CSS *(on hold)*
 - Export UX — Test CSV and GeoJSON downloads against a large dataset (e.g. full national or a large state). If generation takes more than ~2–3 seconds, add a spinner/disabled-button state to `export_controller.js` to indicate work in progress. The legacy app had no spinner; this is only needed if server-side generation time is noticeable.
+- Map Filter Scale — The current filter→map approach fetches matching pwsids from `GET /map` and spreads them into a Mapbox GL `["in", "pwsid", ...]` filter expression. This works well at state scale but may hit expression size limits or cause noticeable latency at national scale (tens of thousands of systems). If that proves to be the case, the architectural fix is to pass filter params directly into the tile URL so `TilesController` applies `apply_filters` during MVT generation — eliminating the pwsid fetch entirely. That approach would require tile cache keys to include filter params (or bypass the cache for filtered requests).
 - Other — Ensure Mapbox token is not exposed in browser devtools
 - Other — Add pending migration warning on console/server/spec startup
 - Other — Add `simplecov` and `lefthook` gems
