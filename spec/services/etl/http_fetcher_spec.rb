@@ -6,7 +6,7 @@ RSpec.describe Etl::HttpFetcher do
     Class.new do
       include Etl::HttpFetcher
 
-      public :fetch_url
+      public :fetch_url, :head_url
     end
   end
 
@@ -50,6 +50,48 @@ RSpec.describe Etl::HttpFetcher do
         allow(Net::HTTP).to receive(:get)
         expect { fetcher.fetch_url("http://example.com/data.csv") }.to raise_error(Etl::HttpFetcher::InsecureUrlError)
         expect(Net::HTTP).not_to have_received(:get)
+      end
+    end
+  end
+
+  describe "#head_url" do
+    context "with a valid HTTPS URL" do
+      let(:url) { "https://s3.example.com/epa_sabs.csv" }
+      let(:mock_response) { instance_double(Net::HTTPOK, "[]": nil) }
+
+      before do
+        allow(mock_response).to receive(:[]).with("last-modified").and_return("Wed, 15 Jan 2026 10:00:00 GMT")
+        allow(Net::HTTP).to receive(:start).and_yield(
+          instance_double(Net::HTTP, head: mock_response)
+        )
+      end
+
+      it "returns the HTTP response" do
+        response = fetcher.head_url(url)
+        expect(response["last-modified"]).to eq("Wed, 15 Jan 2026 10:00:00 GMT")
+      end
+
+      it "uses SSL" do
+        fetcher.head_url(url)
+        expect(Net::HTTP).to have_received(:start).with("s3.example.com", 443, use_ssl: true)
+      end
+    end
+
+    context "with a non-HTTPS URL" do
+      it "raises InsecureUrlError for http://" do
+        expect { fetcher.head_url("http://example.com/data.csv") }
+          .to raise_error(Etl::HttpFetcher::InsecureUrlError, /https/i)
+      end
+
+      it "raises InsecureUrlError for file://" do
+        expect { fetcher.head_url("file:///etc/passwd") }
+          .to raise_error(Etl::HttpFetcher::InsecureUrlError)
+      end
+
+      it "does not make any HTTP request before raising" do
+        allow(Net::HTTP).to receive(:start)
+        expect { fetcher.head_url("http://example.com/data.csv") }.to raise_error(Etl::HttpFetcher::InsecureUrlError)
+        expect(Net::HTTP).not_to have_received(:start)
       end
     end
   end

@@ -62,17 +62,28 @@ RSpec.describe Etl::TypeCaster do
       expect(caster.cast_bool("Y")).to be(true)
     end
 
+    it "returns true for Yes (current source format)" do
+      expect(caster.cast_bool("Yes")).to be(true)
+    end
+
     it "returns false for N" do
       expect(caster.cast_bool("N")).to be(false)
     end
 
+    it "returns false for No (current source format)" do
+      expect(caster.cast_bool("No")).to be(false)
+    end
+
     it "is case-insensitive" do
       expect(caster.cast_bool("y")).to be(true)
+      expect(caster.cast_bool("yes")).to be(true)
       expect(caster.cast_bool("n")).to be(false)
+      expect(caster.cast_bool("no")).to be(false)
     end
 
     it "strips whitespace" do
       expect(caster.cast_bool("  Y  ")).to be(true)
+      expect(caster.cast_bool("  Yes  ")).to be(true)
     end
 
     it "returns nil for blank string" do

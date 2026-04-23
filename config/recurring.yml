@@ -10,7 +10,7 @@
 #     schedule: at 5am every day
 
 production:
-  # Production-only: ETL_MANIFEST_URL and S3 credentials are only configured in
+  # Production-only: ETL_SOURCE_URL and S3 credentials are only configured in
   # the production environment. Staging/review environments skip this schedule
   # intentionally — run etl:import manually there if needed.
   #
@@ -20,7 +20,7 @@ production:
   etl_import:
     class: EtlImportJob
     queue: default
-    schedule: every day at 6am
+    schedule: every day at 12am America/New_York 
 
   clear_solid_queue_finished_jobs:
     command: "SolidQueue::Job.clear_finished_in_batches(sleep_between_batches: 0.3)"

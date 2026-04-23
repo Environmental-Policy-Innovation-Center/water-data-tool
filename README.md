@@ -24,6 +24,10 @@ Built for [EPIC](https://www.policyinnovation.org/) (Environmental Policy Innova
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) (for PostgreSQL + PostGIS)
 - [Git](https://git-scm.com/)
 - A [Mapbox](https://www.mapbox.com/) access token (free tier is sufficient for development)
+- [GDAL](https://gdal.org/) (`ogr2ogr`) — for loading Census cartographic boundary shapefiles
+  - macOS: `brew install gdal`
+  - Ubuntu/Debian: `apt-get install gdal-bin`
+- `ETL_SOURCE_URL` env var — the base HTTPS URL to the S3 folder containing source data files. Required to seed the database. Get this value from the project team and add it to your `.env` before running `bin/setup`.
 
 
 ## Current Deployed Instances (example values)
@@ -57,7 +61,11 @@ These URLs reflect the current hosting environment and should be replaced during
    cp .env.example .env
    ```
 
-   Edit `.env` and add your Mapbox access token. Most developers only need `MAPBOX_ACCESS_TOKEN` — see the Environment Variables section below if you have a port conflict with a local PostgreSQL install.
+   Edit `.env` and fill in the required values:
+   - `MAPBOX_ACCESS_TOKEN` — for map rendering
+   - `ETL_SOURCE_URL` — required for the database seed step. Both seeding and the ETL pipeline use this URL to locate source data files on S3 (see Prerequisites above)
+
+   See the Environment Variables section below for the full list. If you have a port conflict with a local PostgreSQL install, also set `DB_PORT`.
 
 4. **Start PostgreSQL**
 
@@ -67,13 +75,29 @@ These URLs reflect the current hosting environment and should be replaced during
 
    This starts a PostGIS-enabled PostgreSQL container. The database runs on `localhost:5432`.
 
-5. **Set up the databases**
+5. **Set up the app**
 
    ```bash
-   bin/rails db:setup
+   bin/setup
    ```
 
-   Creates both the development and test databases, loads the schema, and seeds sample data into development. See `db/seeds.rb` for details on what gets loaded.
+   Installs dependencies, creates and migrates the database, and seeds development data. The seed step downloads water system data from S3 (requires `ETL_SOURCE_URL`) and loads Census cartographic boundaries (requires `ogr2ogr`). This will take several minutes on first run — the national GeoJSON is large but is cached in `tmp/seeds/` for subsequent runs.
+
+   By default this seeds four states for broad filter coverage:
+
+   | State | Purpose |
+   |---|---|
+   | VT + RI | Small, fast to load; cover most common filter cases (~477 systems) |
+   | OH | Adds wholesaler and school/daycare systems (zero in VT/RI) |
+   | CO | Medium size; adds tribal systems (Ute) for tribal primacy/owner filter coverage |
+   | PR | Territory; covers `primacy_type = "Territory"` and `owner_type = "Territory"` filters |
+
+   To seed only the small states (faster, still useful for most work):
+   ```bash
+   bin/rails 'db:seed:states[VT,RI]'
+   ```
+
+   After seeding, the map is fully functional — tile generation happens on-demand. No additional setup steps are required.
 
 6. **Start the app**
 
@@ -91,7 +115,7 @@ These URLs reflect the current hosting environment and should be replaced during
 |----------|----------|-------------|
 | `MAPBOX_ACCESS_TOKEN` | Yes | Mapbox GL JS token for map rendering |
 | `DB_PORT` | No | PostgreSQL port (default `5432`). Only needed if your Docker container is mapped to a non-default port to avoid a conflict with a local PostgreSQL install — see `docker-compose.override.yml`. |
-| `ETL_MANIFEST_URL` | No (Yes for ETL) | HTTPS endpoint for your organization's ETL manifest (`data.json`). |
+| `ETL_SOURCE_URL` | **Yes** (setup + ETL) | Base HTTPS URL to the S3 folder containing source data files. Required for both the seed step (`bin/setup`) and the ETL pipeline. |
 | `AWS_ACCESS_KEY_ID` | No | For ETL pipeline S3 access (not needed for local dev with seed data) |
 | `AWS_SECRET_ACCESS_KEY` | No | For ETL pipeline S3 access |
 | `AWS_REGION` | No | Defaults to `us-east-1` |
@@ -105,7 +129,7 @@ Before deploying in a new environment, replace these values with your organizati
 
 - Deploy hosts and container registry in `config/deploy.yml`
 - Secret sources in `.kamal/secrets` (`RAILS_MASTER_KEY`, registry credentials)
-- `ETL_MANIFEST_URL` in `.env` (from `.env.example`)
+- `ETL_SOURCE_URL` in `.env` (from `.env.example`)
 - Any public app URLs in this README (staging/production)
 - DNS, TLS, and infrastructure wiring for your AWS account
 
@@ -159,7 +183,15 @@ bundle exec rspec
 # Rails console
 bin/rails console
 
-# Run ETL import (full)
+# Seed specific states (downloads from S3 via HTTPS — only needs ETL_SOURCE_URL)
+bin/rails 'db:seed:states[VT,RI,OH,CO,PR]'
+
+# Re-seed with fresh data from S3 (seed files are cached in tmp/seeds/ and reused by default)
+rm -rf tmp/seeds/ && bin/rails 'db:seed:states[VT,RI,OH,CO,PR]'
+
+# Run full ETL import — loads the entire national dataset (~70k systems)
+# Requires ETL_SOURCE_URL + AWS credentials. Safe to run locally for
+# performance testing (exports, large filter sets, map rendering at scale).
 bin/rails etl:import
 
 # Run ETL import (single table)

@@ -1,14 +1,14 @@
 module Etl
-  # Orchestrates a full ETL run: fetch the S3 manifest, diff timestamps,
-  # dispatch each source file to its importer, and run post-import steps
-  # when geometry data was refreshed.
+  # Orchestrates a full ETL run: check S3 Last-Modified headers, dispatch each
+  # source file to its importer, and run post-import steps when geometry data
+  # was refreshed.
   class Importer
     include Etl::HttpFetcher
 
     # Backward-compatible alias — existing code and specs reference this constant.
     InsecureUrlError = Etl::HttpFetcher::InsecureUrlError
 
-    # Maps the filename stem from the S3 manifest to the importer class.
+    # Maps the filename stem to the importer class.
     FILE_IMPORTERS = {
       "epa_sabs" => Etl::Importers::EpaSabs,
       "epa_sabs_geoms" => Etl::Importers::EpaSabsGeoms,
@@ -24,28 +24,40 @@ module Etl
       "pwsid_npdes_usts_rmps_imp" => Etl::Importers::PwsidNpdesUstsRmpsImp
     }.freeze
 
-    def initialize(manifest_url:, force: false, only: nil)
-      @manifest_url = manifest_url
+    FILE_EXTENSIONS = {
+      "epa_sabs" => ".csv",
+      "epa_sabs_geoms" => ".geojson",
+      "sdwis_viols" => ".csv",
+      "epa_sabs_xwalk" => ".csv",
+      "xwalk_pct_change_10yr" => ".csv",
+      "cejst" => ".csv",
+      "ejscreen" => ".csv",
+      "svi" => ".csv",
+      "cvi" => ".csv",
+      "national_bwn_highlevel_summary" => ".csv",
+      "pwsid_funded_highlevel_summary" => ".csv",
+      "pwsid_npdes_usts_rmps_imp" => ".csv"
+    }.freeze
+
+    def initialize(force: false, only: nil)
       @force = force
       @only = only
     end
 
     def call
-      manifest = fetch_manifest
+      entries = build_file_entries
       geometry_imported = false
       any_imported = false
       errors = []
 
-      manifest.each do |entry|
-        file_key = extract_file_key(entry["http_path"])
-        next unless FILE_IMPORTERS.key?(file_key)
+      entries.each do |entry|
+        file_key = entry["file_key"]
         next if @only && file_key != @only
 
         klass = FILE_IMPORTERS[file_key]
-        last_updated = Time.zone.parse(entry["last_updated"])
 
         begin
-          result = klass.new(file_url: entry["http_path"], last_updated: last_updated, force: @force).call
+          result = klass.new(file_url: entry["http_path"], last_updated: entry["last_updated"], force: @force).call
           if result == :imported
             any_imported = true
             geometry_imported = true if file_key == "epa_sabs_geoms"
@@ -67,14 +79,17 @@ module Etl
 
     private
 
-    def fetch_manifest
-      JSON.parse(fetch_url(@manifest_url))
-    end
+    def build_file_entries
+      base_url = ENV.fetch("ETL_SOURCE_URL") { raise "ETL_SOURCE_URL is not set" }.chomp("/")
 
-    # Derive the file key from the filename stem of the URL path.
-    # e.g. "https://s3.example.com/dir/epa_sabs.csv" → "epa_sabs"
-    def extract_file_key(http_path)
-      File.basename(URI.parse(http_path).path, ".*")
+      FILE_IMPORTERS.keys.map do |key|
+        ext = FILE_EXTENSIONS[key]
+        url = "#{base_url}/#{key}#{ext}"
+        response = head_url(url)
+        last_modified = response["last-modified"]
+        raise "Missing Last-Modified header for #{url}" if last_modified.nil?
+        {"file_key" => key, "http_path" => url, "last_updated" => Time.zone.parse(last_modified)}
+      end
     end
   end
 end

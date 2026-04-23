@@ -7,8 +7,7 @@
 ## Overview
 
 ```
-S3 Bucket (your-data-bucket)
-  └── data.json manifest
+S3 Bucket (ETL_SOURCE_URL)
         ├── epa_sabs_geoms.geojson
         ├── epa_sabs.csv
         ├── sdwis_viols.csv
@@ -20,43 +19,20 @@ S3 Bucket (your-data-bucket)
         ├── cvi.csv
         ├── national_bwn_highlevel_summary.csv
         ├── pwsid_funded_highlevel_summary.csv
-        ├── pwsid_npdes_usts_rmps_imp.csv
-        └── ...
-              ↓
+        └── pwsid_npdes_usts_rmps_imp.csv
+              ↓ HTTP HEAD per file (reads Last-Modified header)
         Rake task / SolidQueue job
               ↓
         PostgreSQL (new schema with proper types)
 ```
 
-The data publisher updates CSV/GeoJSON files in the configured source bucket and updates the `data.json` manifest with new `last_updated` timestamps. The ETL pipeline polls this manifest and imports any files that have changed.
+The data publisher overwrites files in place at the same S3 keys. The ETL issues an HTTP HEAD request per file, reads the `Last-Modified` header, and imports any files whose timestamp is newer than the last recorded import in the `data_imports` table. No manifest file is needed.
+
+There is no per-environment S3 bucket — a single bucket serves development, staging, and production. The `ETL_SOURCE_URL` env var controls which folder path each environment reads from. Confirm with the EPIC data team that staging and production point to the correct folder (production data, not test data) before go-live.
 
 ---
 
-## S3 Manifest (`data.json`)
-
-The manifest is a JSON array of source file descriptors:
-
-```json
-[
-  {
-    "file_description": "EPA SABs geojson",
-    "s3_path": "s3://your-data-bucket/national-dw-tool/path/epa_sabs_geoms.geojson",
-    "http_path": "https://your-data-bucket.s3.us-east-1.amazonaws.com/national-dw-tool/path/epa_sabs_geoms.geojson",
-    "last_updated": "2026-02-20 14:00:00"
-  }
-]
-```
-
-Use organization-specific values for `s3_path`, `http_path`, and bucket/region settings when transferring ownership.
-
-| Field | Purpose |
-|-------|---------|
-| `file_description` | Human-readable label |
-| `s3_path` | S3 URI (for reference — not used by ETL directly) |
-| `http_path` | Public HTTPS URL used to download the file |
-| `last_updated` | Timestamp of the last data update (compared against `data_imports` table) |
-
-### Source Files
+## Source Files
 
 | File | Target Model | Format | Notes |
 |------|-------------|--------|-------|
@@ -77,24 +53,23 @@ Use organization-specific values for `s3_path`, `http_path`, and bucket/region s
 
 ## Import Flow
 
-### Step 1: Fetch manifest
+### Step 1: Check freshness via HTTP HEAD
 
-Download `data.json` from the S3 HTTP URL and parse it.
+For each file key in `Etl::Importer::FILE_IMPORTERS`, issue an HTTP HEAD request to `ETL_SOURCE_URL/<key><ext>` and read the `Last-Modified` response header.
 
 ### Step 2: Compare timestamps
 
-For each file in the manifest, compare its `last_updated` against the most recent `imported_at` for that `file_url` in the `data_imports` table. Skip files that haven't changed.
+Compare each file's `Last-Modified` against the most recent `imported_at` for that URL in the `data_imports` table. Skip files that haven't changed.
 
 ### Step 3: Download and import changed files
 
 For each file that needs updating:
 
-1. Download the file to a temp directory
+1. Download the file via HTTP GET into memory
 2. Parse (CSV or GeoJSON)
-3. Import into a **staging table** (temporary table with the new schema's column names and types)
-4. Validate row counts and data integrity
-5. Swap: drop the old table data and replace with staging data (within a transaction)
-6. Record the import in `data_imports`
+3. Validate row counts and data integrity
+4. Upsert into the live table (`ON CONFLICT UPDATE`)
+5. Record the import in `data_imports`
 
 ### Step 4: Run post-import steps
 
@@ -114,7 +89,7 @@ The legacy ETL imports everything as TEXT. The new ETL casts at import time:
 |---------------|------------|------|
 | Numeric strings (`"42"`, `"1250000"`) | `integer` | `value.to_i` (NULL if blank or `"NA"`) |
 | Decimal strings (`"0.85"`, `"12.3"`) | `decimal` | `value.to_d` (NULL if blank or `"NA"`) |
-| `"Y"` / `"N"` indicators | `boolean` | `value == "Y"` |
+| `"Yes"`/`"No"` or `"Y"`/`"N"` indicators | `boolean` | `%w[Y YES].include?(value.strip.upcase)` |
 | 0-to-1 scores | `decimal` (×100) | `(value.to_f * 100).round(2)` — applies to `a_int_identified_as_disadvantaged`, `pw_int_pop_rpl_themes`, `a_int_overall_cvi_score` |
 | `"NA"` | `NULL` | All columns — legacy ETL already does this |
 | Empty strings | `NULL` | Treat as missing data |
@@ -139,7 +114,7 @@ COLUMN_MAP = {
 **`sdwis_viols.csv`** — this single CSV feeds two models:
 - Attribute columns (`gw_sw_code`, `owner_type`, `primacy_type`, etc.) → `public_water_systems`
 - Violation count columns → `violations_summaries`
-- Boolean indicators (`is_wholesaler_ind`, etc.) need `"Y"`/`"N"` → `true`/`false` conversion
+- Boolean indicators (`is_wholesaler_ind`, etc.) use `"Yes"`/`"No"` in the source — cast via `Etl::TypeCaster#cast_bool`
 
 **`pwsid_npdes_usts_rmps_imp.csv`** — has multiple rows per PWS (one per HUC12 watershed). Pre-aggregate with `GROUP BY pwsid, SUM(...)` during import to produce one row per PWS for `watershed_hazards`.
 
@@ -249,7 +224,7 @@ etl_import:
   schedule: every day at 6am
 ```
 
-The job checks the manifest and only imports files with updated timestamps — safe to run frequently.
+The job issues HEAD requests per file and only imports files with updated `Last-Modified` timestamps — safe to run frequently.
 
 ---
 
@@ -273,5 +248,5 @@ All import activity is logged with: file URL, row count imported, duration, erro
 |-------|----------------|-------------|
 | SQL injection | f-string query building | Parameterized queries via ActiveRecord |
 | Credentials | Flat `credentials.py` file | Rails encrypted credentials (`bin/rails credentials:edit`) or environment variables |
-| S3 access | HTTP public URLs | IAM roles (preferred) or env var credentials |
+| S3 access | HTTP public URLs | Public HTTPS — no credentials required for reads; IAM only needed if bucket is made private |
 | Schema isolation | Schema name in f-strings | Rails environments (`development` / `staging` / `production`) |
