@@ -19,10 +19,13 @@ class HomeController < ApplicationController
     @last_updated = DataImport.maximum(:imported_at)
   end
 
+  def map
+    scope = PublicWaterSystem.apply_filters(filter_params)
+    render json: {pwsids: scope.pluck(:pwsid)}
+  end
+
   def table
-    respond_to do |format|
-      format.json { render json: datatable_response }
-    end
+    render json: datatable_response
   end
 
   private

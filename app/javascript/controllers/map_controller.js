@@ -1,8 +1,6 @@
 import { Controller } from "@hotwired/stimulus"
+import * as FilterState from "filter_state"
 
-// Manages Mapbox GL JS v3 map — M5.
-// Tile source wired to /tiles/:z/:x/:y for all 5 layers.
-// Hover popup on pws layer; click loads detail panel via Turbo Frame.
 export default class extends Controller {
   static values = {
     tileUrl: String
@@ -29,11 +27,16 @@ export default class extends Controller {
     this.map.dragRotate.disable()
     this.hoverPopup = null
     this.hoveredPwsid = null
+    this.activeFilterRequest = null
+
+    this.boundOnFiltersChanged = this.#onFiltersChanged.bind(this)
+    document.addEventListener("filters:changed", this.boundOnFiltersChanged)
 
     this.map.on("load", () => this.#onLoad())
   }
 
   disconnect() {
+    document.removeEventListener("filters:changed", this.boundOnFiltersChanged)
     if (this.map) {
       this.map.remove()
       this.map = null
@@ -48,6 +51,13 @@ export default class extends Controller {
     this.#addLayers()
     this.#styleWater()
     this.#bindEvents()
+
+    // filter_controller#restoreFromUrl dispatches filters:changed synchronously before
+    // map.on("load") completes, so that event is swallowed. Re-apply here to ensure
+    // URL-shared filter params are reflected in the map on initial load.
+    if (Object.keys(FilterState.get()).length > 0) {
+      this.#onFiltersChanged()
+    }
 
     // Once the initial tiles settle, animate to working zoom and reveal the UI
     this.map.once("idle", () => {
@@ -433,6 +443,43 @@ export default class extends Controller {
     this.map.once("idle", () => {
       this.map.flyTo({ zoom: 6, duration: 3600 })
     })
+  }
+
+  async #onFiltersChanged() {
+    if (!this.map?.getLayer("pws")) return
+
+    const filters = FilterState.get()
+
+    if (Object.keys(filters).length === 0) {
+      this.map.setFilter("pws", null)
+      this.map.setFilter("pws_outline", null)
+      this.map.setFilter("pws_points", null)
+      return
+    }
+
+    // Abort any in-flight request to avoid stale results on rapid Apply
+    if (this.activeFilterRequest) this.activeFilterRequest.abort()
+    this.activeFilterRequest = new AbortController()
+
+    try {
+      const res = await fetch(`/map?${FilterState.toUrlParams()}`, {
+        signal: this.activeFilterRequest.signal
+      })
+      if (!res.ok) return
+
+      const { pwsids } = await res.json()
+      if (!this.map) return
+
+      const expr = pwsids.length > 0
+        ? ["in", "pwsid", ...pwsids]
+        : ["in", "pwsid", ""]
+
+      this.map.setFilter("pws", expr)
+      this.map.setFilter("pws_outline", expr)
+      this.map.setFilter("pws_points", expr)
+    } catch (err) {
+      if (err.name !== "AbortError") console.error("[map] filter fetch failed", err)
+    }
   }
 
   #buildClickHtml(props) {
