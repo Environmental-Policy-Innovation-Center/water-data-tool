@@ -20,11 +20,15 @@ export default class extends Controller {
       container: "map",
       style: "mapbox://styles/mapbox/light-v11",
       center: [-97.6, 40.27],
-      zoom: 2,
-      projection: "mercator"
+      zoom: 3,
+      minZoom: 3,
+      projection: "mercator",
+      renderWorldCopies: false
     })
 
     this.map.dragRotate.disable()
+    // Dev convenience: mapDebug.getZoom(), mapDebug.getCenter(), etc. in browser console.
+    if (window.location.hostname === "localhost") window.mapDebug = this.map
     this.hoverPopup = null
     this.hoveredPwsid = null
     this.activeFilterRequest = null
@@ -412,6 +416,27 @@ export default class extends Controller {
     this.map.flyTo({ center: [-157.856, 21.305], zoom: 4.9 })
     this.map.once("idle", () => {
       this.map.flyTo({ zoom: 6, duration: 3600 })
+    })
+  }
+
+  zoomPr() {
+    this.map.flyTo({ center: [-66.590, 18.220], zoom: 5 })
+    this.map.once("idle", () => {
+      this.map.flyTo({ zoom: 8, duration: 3600 })
+    })
+  }
+
+  zoomGu() {
+    this.map.flyTo({ center: [144.794, 13.444], zoom: 7 })
+    this.map.once("idle", () => {
+      this.map.flyTo({ zoom: 10, duration: 3600 })
+    })
+  }
+
+  zoomMp() {
+    this.map.flyTo({ center: [145.674, 15.180], zoom: 7 })
+    this.map.once("idle", () => {
+      this.map.flyTo({ zoom: 9, duration: 3600 })
     })
   }
 
