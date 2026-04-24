@@ -6,8 +6,8 @@ RSpec.describe "Tiles", type: :request do
   let(:y) { 12 }
 
   describe "GET /tiles/:z/:x/:y" do
-    context "when all 5 layers are cached" do
-      let(:layers) { %w[pws pws_points places counties states] }
+    context "when all #{TileGenerator::LAYERS.size} layers are cached" do
+      let(:layers) { TileGenerator::LAYERS }
       let(:mvt_data) { "\x1a\x10tile_data".b }
 
       before do

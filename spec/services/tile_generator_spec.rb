@@ -6,8 +6,8 @@ RSpec.describe TileGenerator do
   let(:y) { 12 }
 
   describe ".layers" do
-    it "returns the five expected layer names" do
-      expect(described_class.layers).to eq(%w[pws pws_points places counties states])
+    it "returns the four expected layer names" do
+      expect(described_class.layers).to eq(%w[pws places counties states])
     end
   end
 
@@ -73,7 +73,7 @@ RSpec.describe TileGenerator do
   end
 
   describe ".build_tile" do
-    context "when all 5 layers are cached" do
+    context "when all layers are cached" do
       let(:mvt_data) { "\x1a\x10tile_data".b }
 
       before do
@@ -84,7 +84,7 @@ RSpec.describe TileGenerator do
 
       it "returns concatenated MVT binary from all cached layers" do
         result = described_class.build_tile(z, x, y)
-        expect(result.bytesize).to eq(mvt_data.bytesize * 5)
+        expect(result.bytesize).to eq(mvt_data.bytesize * 4)
       end
     end
 

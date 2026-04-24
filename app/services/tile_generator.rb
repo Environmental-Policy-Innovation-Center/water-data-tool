@@ -1,5 +1,5 @@
 module TileGenerator
-  LAYERS = %w[pws pws_points places counties states].freeze
+  LAYERS = %w[pws places counties states].freeze
 
   # Simplification tolerances keyed by max zoom level.
   SIMPLIFICATION = [
@@ -104,24 +104,6 @@ module TileGenerator
           JOIN public_water_systems pws ON pws.pwsid = sag.pwsid
           WHERE sag.geom IS NOT NULL
             AND sag.geom && ST_Transform(ST_TileEnvelope(#{z}, #{x}, #{y}), 4326)
-        ) t
-      SQL
-    when "pws_points"
-      <<~SQL.squish
-        SELECT ST_AsMVT(t, 'pws_points', 4096, 'mvtgeom') AS mvt
-        FROM (
-          SELECT
-            ST_AsMVTGeom(
-              ST_Transform(sag.centroid, 3857),
-              ST_TileEnvelope(#{z}, #{x}, #{y}), 4096, 0, false
-            ) AS mvtgeom,
-            pws.pwsid, pws.stusps, pws.pws_name, pws.symbology_field,
-            pws.pop_cat_5, pws.population_served_count, pws.service_connections_count,
-            pws.counties, pws.primacy_agency
-          FROM service_area_geometries sag
-          JOIN public_water_systems pws ON pws.pwsid = sag.pwsid
-          WHERE sag.centroid IS NOT NULL
-            AND sag.centroid && ST_Transform(ST_TileEnvelope(#{z}, #{x}, #{y}), 4326)
         ) t
       SQL
     when "places"
