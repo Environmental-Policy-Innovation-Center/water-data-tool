@@ -18,6 +18,11 @@ RSpec.describe Etl::FileImporter do
   let(:last_updated) { 1.day.ago }
   let(:importer) { importer_class.new(file_url: file_url, last_updated: last_updated) }
 
+  before do
+    allow($stdout).to receive(:puts)
+    allow($stdout).to receive(:flush)
+  end
+
   describe "#call" do
     context "when no prior import exists for this file_url" do
       it "downloads and imports the file, returning :imported" do
