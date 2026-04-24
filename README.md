@@ -157,8 +157,8 @@ bin/rails 'db:seed:states[VT,RI,OH,CO,PR]'
 rm -rf tmp/seeds/ && bin/rails 'db:seed:states[VT,RI,OH,CO,PR]'
 
 # Run full ETL import — loads the entire national dataset (~70k systems)
-# Requires ETL_SOURCE_URL + AWS credentials. Safe to run locally for
-# performance testing (exports, large filter sets, map rendering at scale).
+# Requires ETL_SOURCE_URL. Safe to run locally for performance testing
+# (exports, large filter sets, map rendering at scale).
 bin/rails etl:import
 
 # Run ETL import (single table)
@@ -167,6 +167,20 @@ bin/rails 'etl:import[epa_sabs]'
 # Stop PostgreSQL
 docker compose down
 ```
+
+### Background jobs and tile cache warming
+
+`TileCacheWarmJob` runs automatically after each ETL import to pre-generate z0–z8 map tiles using US region bounding boxes, so the initial national map view is fast for every user.
+
+In production, SolidQueue processes this job as a persistent background worker. In development, the ETL runs as a short-lived rake task (`bin/rails etl:import`) — the warm job is enqueued but the process exits before the job completes, so **the warm job never runs automatically in dev**.
+
+After loading the national dataset locally, warm the tile cache manually:
+
+```bash
+bin/rails runner "TileCacheWarmJob.perform_now"
+```
+
+This blocks until all z0–z8 tiles are generated (~32 minutes at national scale). Progress is logged to stdout.
 
 ---
 
@@ -180,6 +194,7 @@ docker compose down
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Rails app structure — models, controllers, Stimulus, Turbo patterns |
 | [docs/API.md](docs/API.md) | Endpoint specifications — filter API, tiles, export |
 | [docs/ETL.md](docs/ETL.md) | Data pipeline design — S3 to PostgreSQL import flow |
+| [docs/MAPPING.md](docs/MAPPING.md) | Mapping design information |
 
 ---
 
