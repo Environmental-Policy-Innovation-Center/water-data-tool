@@ -115,23 +115,22 @@ These URLs reflect the current hosting environment and should be replaced during
 |----------|----------|-------------|
 | `MAPBOX_ACCESS_TOKEN` | Yes | Mapbox GL JS token for map rendering |
 | `DB_PORT` | No | PostgreSQL port (default `5432`). Only needed if your Docker container is mapped to a non-default port to avoid a conflict with a local PostgreSQL install — see `docker-compose.override.yml`. |
-| `ETL_SOURCE_URL` | **Yes** (setup + ETL) | Base HTTPS URL to the S3 folder containing source data files. Required for both the seed step (`bin/setup`) and the ETL pipeline. |
-| `AWS_ACCESS_KEY_ID` | No | For ETL pipeline S3 access (not needed for local dev with seed data) |
-| `AWS_SECRET_ACCESS_KEY` | No | For ETL pipeline S3 access |
-| `AWS_REGION` | No | Defaults to `us-east-1` |
+| `ETL_SOURCE_URL` | Yes (setup + ETL) | Base HTTPS URL to the S3 folder containing source data files. Required for `bin/setup` and the ETL pipeline. No AWS credentials needed — the bucket is publicly readable. |
 | `RAILS_ENV` | No | Defaults to `development` |
 
 ---
 
-## Ownership Transfer Checklist
+## Deploying
 
-Before deploying in a new environment, replace these values with your organization's settings:
+### Kamal (portable, single host)
 
-- Deploy hosts and container registry in `config/deploy.yml`
-- Secret sources in `.kamal/secrets` (`RAILS_MASTER_KEY`, registry credentials)
-- `ETL_SOURCE_URL` in `.env` (from `.env.example`)
-- Any public app URLs in this README (staging/production)
-- DNS, TLS, and infrastructure wiring for your AWS account
+The app ships with [Kamal](https://kamal-deploy.org/) as a portable self-hosting option. Configuration lives in `config/deploy.yml` and `.kamal/secrets`. Refer to the Kamal docs and the `config/deploy.yml` comments for setup.
+
+### AWS ECS (EPIC production deployment)
+
+The EPIC production, staging, and per-PR preview environments run on AWS ECS, deployed via `.github/workflows/deploy-client-aws.yml`. The workflow is gated on `AWS_DEPLOY_ENABLED=true` — forks and other deployments that don't set this variable will see the job silently skipped.
+
+See [docs/DEPLOYMENTS.md](docs/DEPLOYMENTS.md) for the full reference: environment URLs, how to trigger deploys, how to check what's running, and rollback procedures.
 
 ---
 
@@ -157,8 +156,8 @@ bin/rails 'db:seed:states[VT,RI,OH,CO,PR]'
 rm -rf tmp/seeds/ && bin/rails 'db:seed:states[VT,RI,OH,CO,PR]'
 
 # Run full ETL import — loads the entire national dataset (~70k systems)
-# Requires ETL_SOURCE_URL + AWS credentials. Safe to run locally for
-# performance testing (exports, large filter sets, map rendering at scale).
+# Requires ETL_SOURCE_URL. Safe to run locally for performance testing
+# (exports, large filter sets, map rendering at scale).
 bin/rails etl:import
 
 # Run ETL import (single table)
@@ -174,12 +173,14 @@ docker compose down
 
 | Document | Description |
 |----------|-------------|
-| [docs/DISCOVERY.md](docs/DISCOVERY.md) | Discovery notes from the legacy PHP app analysis |
-| [docs/SCHEMA.md](docs/SCHEMA.md) | Database schema — all tables, columns, types, indexes |
-| [docs/TRANSITION.md](docs/TRANSITION.md) | Migration plan from PHP to Rails with column mapping |
-| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Rails app structure — models, controllers, Stimulus, Turbo patterns |
 | [docs/API.md](docs/API.md) | Endpoint specifications — filter API, tiles, export |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Rails app structure — models, controllers, Stimulus, Turbo patterns |
+| [docs/DEPLOYMENTS.md](docs/DEPLOYMENTS.md) | Deploy environments, how to trigger deploys, checking live state, rollback |
+| [docs/DISCOVERY.md](docs/DISCOVERY.md) | Discovery notes from the legacy PHP app analysis |
 | [docs/ETL.md](docs/ETL.md) | Data pipeline design — S3 to PostgreSQL import flow |
+| [docs/GLOSSARY.md](docs/GLOSSARY.md) | Terminology and domain definitions |
+| [docs/SCHEMA.md](docs/SCHEMA.md) | Database schema — all tables, columns, types, indexes |
+| [docs/TRANSITION.md](docs/TRANSITION.md) | Migration notes from the legacy PHP app to Rails |
 
 ---
 

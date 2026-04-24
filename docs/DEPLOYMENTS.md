@@ -1,0 +1,274 @@
+# Deployments
+
+This document covers how the app is deployed, what environments exist, how to trigger deploys, and how to inspect what's currently running.
+
+For the infrastructure setup and one-time provisioning steps, see the separate AWS infra handoff package.
+
+---
+
+## Environments
+
+There are three environments. Pushing to `main` does **not** trigger a deploy — `main` is the stable canonical branch kept in sync with production.
+
+| | Production | Staging | Per-PR (ephemeral) |
+|---|---|---|---|
+| **Trigger** | Push → `production` branch | Push → `staging` branch | PR opened/updated against `main` |
+| **Teardown** | Manual | Manual | Automatic on PR close |
+| **ECS service** | `ep_app__water_data_tool__dev_us-east-1` | `ep_app__water_data_tool_staging__dev_us-east-1` | `water_data_tool_pr_<N>` |
+| **URL** | `water-data-tool.policyinnovation.info` | `water-data-tool-staging.policyinnovation.info` | `water-data-tool-pr-<N>.policyinnovation.info` |
+| **Database** | `water_data_tool_production` | `water_data_tool_staging` | `water_data_tool_preview` (shared across all PRs) |
+| **ECR image tags** | `prod-<sha>`, `prod-latest` | `staging-<sha>`, `staging-latest` | `pr-<N>-<sha>`, `pr-<N>-latest` |
+| **IAM role** | `ep_gha__water_data_tool` | `ep_gha__water_data_tool` | `ep_gha__water_data_tool_pr` |
+
+All environments run on the same ECS cluster (`ep_core__dev_us-east-1`) and pull images from the same ECR repository (`ep_app_service_water_data_tool`).
+
+---
+
+## How deploys work
+
+The workflow lives at `.github/workflows/deploy-client-aws.yml`. It is gated on a repo variable `AWS_DEPLOY_ENABLED=true` — if that variable is absent or false, all jobs silently skip. This protects forks from accidentally trying to deploy.
+
+Authentication to AWS uses OIDC — no static IAM access keys are stored anywhere. GitHub issues a short-lived signed token per job run; AWS is configured to trust it and exchange it for temporary credentials scoped to the appropriate IAM role.
+
+### Branch deploys (production + staging)
+
+1. Docker image is built and pushed to ECR with two tags: an immutable `<env>-<sha>` tag and a moving `<env>-latest` tag.
+2. `aws ecs update-service --force-new-deployment` is called — ECS cycles in containers running the new image.
+3. The workflow waits up to 15 minutes for the service to stabilize before reporting success.
+
+The ECS task definition references the moving tag (`prod-latest` / `staging-latest`). Terraform is not involved in normal deploys — only the image and the ECS service update cycle.
+
+### Per-PR environments
+
+When a PR is opened or updated against `main`:
+
+1. The image is built and pushed with `pr-<N>-<sha>` and `pr-<N>-latest` tags.
+2. Three Secrets Manager ARNs are looked up (`rails_master_key`, `mapbox_access_token`, `database_url`).
+3. `service_builder` runs with `EP_ACTION=apply` — this provisions a full ECS service, ALB, Route53 DNS record, and ACM certificate unique to that PR. First provision takes ~5–10 minutes (ACM cert validation).
+4. The environment is available at `https://water-data-tool-pr-<N>.policyinnovation.info`.
+
+When the PR is closed, `service_builder` runs with `EP_ACTION=destroy` and tears down all provisioned resources.
+
+> **Stale environments:** Teardown only fires on PR close. If teardown fails, the environment persists. Terraform state is preserved in S3 at `tf/water_data_tool_pr_<N>/water_data_tool_pr_<N>_pr-<N>.tfstate`. Re-run the teardown job in GitHub Actions, or run `terraform destroy` locally using that state file.
+
+---
+
+## Triggering a deploy
+
+### Deploy to production
+
+```bash
+git checkout production
+git merge main          # or cherry-pick specific commits
+git push origin production
+```
+
+### Deploy to staging
+
+```bash
+git checkout staging
+git merge main
+git push origin staging
+```
+
+### First-time branch creation
+
+If the `production` or `staging` branch doesn't exist yet:
+
+```bash
+git checkout -b production
+git commit --allow-empty -m "chore: trigger first AWS deploy"
+git push origin production
+```
+
+Watch progress in the **Actions** tab → **Deploy to AWS ECS**.
+
+---
+
+## Checking what's currently deployed
+
+### Health check all environments
+
+```bash
+# Production
+curl -fsSI https://water-data-tool.policyinnovation.info/up
+
+# Staging
+curl -fsSI https://water-data-tool-staging.policyinnovation.info/up
+
+# A specific PR environment (replace 42 with PR number)
+curl -fsSI https://water-data-tool-pr-42.policyinnovation.info/up
+```
+
+All should return `HTTP/2 200`.
+
+### ECS service status (production + staging)
+
+```bash
+aws ecs describe-services \
+  --cluster ep_core__dev_us-east-1 \
+  --services \
+    ep_app__water_data_tool__dev_us-east-1 \
+    ep_app__water_data_tool_staging__dev_us-east-1 \
+  --query 'services[*].{name:serviceName,status:status,running:runningCount,desired:desiredCount}' \
+  --output table
+```
+
+### List all live PR environments
+
+PR environments are named `water_data_tool_pr_<N>`. To find any that are currently running:
+
+```bash
+aws ecs list-services \
+  --cluster ep_core__dev_us-east-1 \
+  --output text \
+  | tr '\t' '\n' \
+  | grep water_data_tool_pr
+```
+
+To get running counts for all of them at once (replace the service names with output from above):
+
+```bash
+aws ecs describe-services \
+  --cluster ep_core__dev_us-east-1 \
+  --services water_data_tool_pr_12 water_data_tool_pr_15 \
+  --query 'services[*].{name:serviceName,running:runningCount,desired:desiredCount}' \
+  --output table
+```
+
+### What image is currently deployed
+
+The ECS task definition references the moving tag (`prod-latest`, `staging-latest`, `pr-<N>-latest`). To see when that tag was last pushed and what SHA it points to:
+
+```bash
+aws ecr describe-images \
+  --repository-name ep_app_service_water_data_tool \
+  --image-ids imageTag=prod-latest imageTag=staging-latest \
+  --query 'imageDetails[*].{tags:imageTags,pushed:imagePushedAt}' \
+  --output table
+```
+
+To see the most recent 10 images pushed to ECR across all tags:
+
+```bash
+aws ecr describe-images \
+  --repository-name ep_app_service_water_data_tool \
+  --query 'sort_by(imageDetails, &imagePushedAt)[-10:].{tags:imageTags,pushed:imagePushedAt}' \
+  --output table
+```
+
+### Recent container logs
+
+```bash
+# Production (look for "Booted Puma" on startup)
+aws logs tail /aws/ecs/ep_app_service__water_data_tool__dev_us-east-1 --since 30m
+
+# Staging
+aws logs tail /aws/ecs/ep_app_service__water_data_tool_staging__dev_us-east-1 --since 30m
+```
+
+---
+
+## Rollback
+
+To roll back production to the previous image without touching the codebase:
+
+```bash
+# Find the previous immutable tag (e.g. prod-abc1234)
+aws ecr describe-images \
+  --repository-name ep_app_service_water_data_tool \
+  --query 'sort_by(imageDetails, &imagePushedAt)[-5:].{tags:imageTags,pushed:imagePushedAt}' \
+  --output table
+
+# Re-tag it as prod-latest
+PREV_SHA=abc1234   # set to the SHA you want to roll back to
+ECR=516937823875.dkr.ecr.us-east-1.amazonaws.com/ep_app_service_water_data_tool
+
+aws ecr batch-get-image \
+  --repository-name ep_app_service_water_data_tool \
+  --image-ids imageTag=prod-$PREV_SHA \
+  --query 'images[0].imageManifest' --output text \
+| xargs -I{} aws ecr put-image \
+  --repository-name ep_app_service_water_data_tool \
+  --image-tag prod-latest \
+  --image-manifest '{}'
+
+# Force ECS to pull the updated prod-latest
+aws ecs update-service \
+  --cluster ep_core__dev_us-east-1 \
+  --service ep_app__water_data_tool__dev_us-east-1 \
+  --force-new-deployment \
+  --no-cli-pager
+```
+
+The simpler alternative is to revert the commit on the `production` branch and push — this triggers a normal CI deploy.
+
+---
+
+## Required GitHub repo configuration
+
+The workflow reads these from the repository's **Settings → Secrets and variables → Actions**:
+
+### Variables
+
+| Name | Value |
+|---|---|
+| `AWS_DEPLOY_ENABLED` | `true` |
+| `AWS_REGION` | `us-east-1` |
+| `ECR_REPO_URI` | `516937823875.dkr.ecr.us-east-1.amazonaws.com/ep_app_service_water_data_tool` |
+| `ECS_CLUSTER` | `ep_core__dev_us-east-1` |
+| `ECS_SERVICE_PROD` | `ep_app__water_data_tool__dev_us-east-1` |
+| `ECS_SERVICE_STAGING` | `ep_app__water_data_tool_staging__dev_us-east-1` |
+| `SERVICE_BUILDER_IMAGE_URI` | `516937823875.dkr.ecr.us-east-1.amazonaws.com/ep_service_builder:latest` |
+
+### Secrets
+
+| Name | What it is |
+|---|---|
+| `AWS_DEPLOY_ROLE_ARN` | IAM role ARN for branch deploys (production + staging) |
+| `AWS_PR_DEPLOY_ROLE_ARN` | IAM role ARN for per-PR provisioning and teardown |
+
+---
+
+## Known gaps / TODO
+
+### Data population strategy
+
+All three databases (`water_data_tool_production`, `water_data_tool_staging`, `water_data_tool_preview`) start empty after provisioning. Only production self-populates automatically via the recurring SolidQueue ETL job. Staging and preview need an explicit strategy:
+
+**Staging** — recommended: schedule a weekly `pg_dump` of the production DB piped into a `pg_restore` against staging. Both databases live on the same RDS instance so there is no network egress cost. This keeps staging representative of production without waiting for ETL to run independently.
+
+```bash
+# Run from within the VPC (e.g. SSH to an ECS host)
+pg_dump "$PROD_URL" | psql "$STAGING_URL"
+```
+
+**PR / preview** — recommended: trigger a one-time state seed after the PR environment comes up, using the app's existing seed task. A few states is enough to exercise all features including the map.
+
+```bash
+# Via ECS exec after container is healthy
+aws ecs execute-command \
+  --cluster ep_core__dev_us-east-1 \
+  --task <task-arn> \
+  --container water_data_tool_pr_<N> \
+  --interactive \
+  --command "bin/rails 'db:seed:states[VT,RI,OH,CO]'"
+```
+
+This seed command pulls public data from S3 over HTTPS — no AWS credentials required. It could be added as a post-deploy step directly in the `pr-deploy` workflow job once the ECS task is confirmed healthy.
+
+Neither strategy is wired up yet — both are day-two operational items before staging and PR environments are used for meaningful review work.
+
+---
+
+### Stale PR environment cleanup
+
+PR environments are torn down by the `pr-teardown` job when a PR is closed. If teardown fails, the environment persists indefinitely — there is no age-based sweep.
+
+**Recommended:** add `.github/workflows/stale-pr-envs.yml` — a scheduled workflow (e.g. nightly) that:
+
+1. Lists all ECS services in the cluster matching `water_data_tool_pr_*`
+2. For each, checks whether the corresponding PR (`#N`) is still open via the GitHub API
+3. If the PR is merged or closed, runs `service_builder` with `EP_ACTION=destroy` to clean it up
+
+This follows the same pattern as the existing `pr-teardown` job and uses the same `AWS_PR_DEPLOY_ROLE_ARN` role — no new IAM permissions needed. It acts as a safety net, not a replacement for the primary teardown trigger.
