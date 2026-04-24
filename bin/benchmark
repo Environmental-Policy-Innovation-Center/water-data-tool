@@ -1,0 +1,167 @@
+#!/usr/bin/env ruby
+# Benchmarks the key server-side query paths at national scale.
+# Run with: bin/rails runner bin/benchmark
+#
+# Covers the same code paths the server executes per request — no HTTP layer,
+# no browser, no Mapbox. Timings are pure DB + Ruby. Use this to catch slow
+# queries before starting the server and to verify index usage after schema changes.
+#
+# Results are printed to stdout and saved to tmp/benchmarks/<timestamp>.txt
+
+require "benchmark"
+require "fileutils"
+
+SEPARATOR = "-" * 60
+
+output_dir = Rails.root.join("tmp/benchmarks")
+FileUtils.mkdir_p(output_dir)
+output_path = output_dir.join("#{Time.current.strftime("%Y%m%d_%H%M%S")}.txt")
+output = File.open(output_path, "w")
+
+def tee(output, text = "")
+  puts text
+  output.puts text
+end
+
+def section(output, title)
+  tee(output, "\n#{"-" * 60}")
+  tee(output, "  #{title}")
+  tee(output, "-" * 60)
+end
+
+def measure(output, label, &block)
+  result = nil
+  elapsed = Benchmark.realtime { result = block.call }
+  tee(output, format("  %-52s %6.0fms", label, elapsed * 1000))
+  result
+end
+
+tee(output, "\n#{"=" * 60}")
+tee(output, "  Water Data Tool — Query Benchmark")
+tee(output, "  #{PublicWaterSystem.count} systems  |  #{ServiceAreaGeometry.count} geometries")
+tee(output, "  #{Time.current.strftime("%Y-%m-%d %H:%M:%S")}")
+tee(output, "=" * 60)
+
+# ---------------------------------------------------------------------------
+# Seed values — picked live from the DB so the script works on any dataset
+# ---------------------------------------------------------------------------
+sample_county_geoid = CartographicCounty.first&.geoid
+sample_place_geoid  = PlaceSystemCrosswalk.first&.geoid
+largest_state       = PublicWaterSystem.group(:stusps).count.max_by { |_, v| v }&.first
+
+# ---------------------------------------------------------------------------
+# 1. Filter queries — mirrors apply_filters paths in HomeController/StatsController
+# ---------------------------------------------------------------------------
+section(output, "1. Filter queries (apply_filters)")
+
+measure(output, "no filters — count") { PublicWaterSystem.apply_filters({}).count }
+measure(output, "no filters — first page (100 rows)") { PublicWaterSystem.apply_filters({}).limit(100).to_a }
+measure(output, "state filter (#{largest_state})") { PublicWaterSystem.apply_filters({state: largest_state}).count }
+measure(output, "categorical: owner_type + gw_sw_code") { PublicWaterSystem.apply_filters({owner_type: "Private", gw_sw_code: "Groundwater"}).count }
+measure(output, "boolean: is_wholesaler=true") { PublicWaterSystem.apply_filters({is_wholesaler: "true"}).count }
+measure(output, "violations join: health_violations_5yr_min=1") { PublicWaterSystem.apply_filters({health_violations_5yr_min: "1"}).count }
+measure(output, "demographic join: poverty_rate_min=20") { PublicWaterSystem.apply_filters({poverty_rate_min: "20"}).count }
+measure(output, "EJ join: cejst_disadvantaged_pct_min=50") { PublicWaterSystem.apply_filters({cejst_disadvantaged_pct_min: "50"}).count }
+
+if sample_place_geoid
+  measure(output, "place filter (geoid=#{sample_place_geoid})") { PublicWaterSystem.apply_filters({place_geoid: sample_place_geoid}).count }
+end
+
+if sample_county_geoid
+  measure(output, "county spatial filter (geoid=#{sample_county_geoid})") { PublicWaterSystem.apply_filters({county_geoid: sample_county_geoid}).count }
+end
+
+measure(output, "bounds filter (Chicago area)") { PublicWaterSystem.apply_filters({bounds: "-88.5,41.4,-87.2,42.2"}).count }
+
+# ---------------------------------------------------------------------------
+# 2. Map pwsid pluck — HomeController#map path (feeds Mapbox filter expression)
+# ---------------------------------------------------------------------------
+section(output, "2. Map pwsid pluck (HomeController#map)")
+
+no_filter_pwsids = measure(output, "pluck all pwsids — no filter") { PublicWaterSystem.apply_filters({}).pluck(:pwsid) }
+tee(output, "    → #{no_filter_pwsids.size} pwsids returned")
+
+if largest_state
+  state_pwsids = measure(output, "pluck pwsids — state filter (#{largest_state})") { PublicWaterSystem.apply_filters({state: largest_state}).pluck(:pwsid) }
+  tee(output, "    → #{state_pwsids.size} pwsids returned")
+end
+
+# ---------------------------------------------------------------------------
+# 3. Stats/summary aggregation — StatsController#show path
+# ---------------------------------------------------------------------------
+section(output, "3. Stats aggregation (build_summary)")
+
+measure(output, "build_summary — no filter") { PublicWaterSystem.build_summary(PublicWaterSystem.apply_filters({})) }
+measure(output, "build_summary — state filter (#{largest_state})") { PublicWaterSystem.build_summary(PublicWaterSystem.apply_filters({state: largest_state})) }
+measure(output, "build_summary — violations join filter") { PublicWaterSystem.build_summary(PublicWaterSystem.apply_filters({health_violations_5yr_min: "1"})) }
+
+# ---------------------------------------------------------------------------
+# 4. Table page load — HomeController#table path (with preloads)
+# ---------------------------------------------------------------------------
+section(output, "4. Table page load (100 rows with preloads)")
+
+measure(output, "first page, no filter, all associations preloaded") do
+  PublicWaterSystem
+    .apply_filters({})
+    .preload(:violations_summary, :demographic, :environmental_justice,
+      :funding_summary, :watershed_hazard, :boil_water_summary)
+    .order(:pwsid)
+    .limit(100)
+    .to_a
+end
+
+measure(output, "first page, state filter (#{largest_state}), all associations") do
+  PublicWaterSystem
+    .apply_filters({state: largest_state})
+    .preload(:violations_summary, :demographic, :environmental_justice,
+      :funding_summary, :watershed_hazard, :boil_water_summary)
+    .order(:pwsid)
+    .limit(100)
+    .to_a
+end
+
+# ---------------------------------------------------------------------------
+# 5. Tile generation — warm cache retrieval (TilesController#show path)
+#    Measures cache hit speed only. Run bin/benchmark-cold for cold timings.
+# ---------------------------------------------------------------------------
+section(output, "5. Tile generation (warm cache)")
+
+cached_count = TileCache.count
+if cached_count == 0
+  tee(output, "  WARNING: tile_cache is empty — run TileCacheWarmJob first for meaningful results")
+  tee(output, "    bin/rails runner \"TileCacheWarmJob.perform_now\"")
+else
+  tee(output, "  #{cached_count} cached tiles found")
+  [[2, 0, 1], [5, 9, 12], [8, 59, 95]].each do |z, x, y|
+    result = nil
+    warm_ms = (Benchmark.realtime { result = TileGenerator.build_tile(z, x, y) } * 1000).round
+    size_kb = (result.bytesize / 1024.0).round(1)
+    cached = TileCache.where(z: z, x: x, y: y).count
+    status = cached == TileGenerator.layers.size ? "warm" : "partial (#{cached}/#{TileGenerator.layers.size} layers cached)"
+    tee(output, format("  %-52s %6dms  (%s KB)  [%s]", "tile z=#{z} x=#{x} y=#{y}", warm_ms, size_kb, status))
+  end
+end
+
+# ---------------------------------------------------------------------------
+# 6. Full-text search — HomeController#table with search term
+# ---------------------------------------------------------------------------
+section(output, "6. Search query (ILIKE)")
+
+measure(output, "search 'water' — count") do
+  PublicWaterSystem.where(
+    "pws_name ILIKE :q OR pwsid ILIKE :q OR stusps ILIKE :q OR counties ILIKE :q",
+    q: "%water%"
+  ).count
+end
+
+measure(output, "search 'springfield' — count") do
+  PublicWaterSystem.where(
+    "pws_name ILIKE :q OR counties ILIKE :q", q: "%springfield%"
+  ).count
+end
+
+tee(output, "\n#{"-" * 60}")
+tee(output, "  Done. Results saved to #{output_path}")
+tee(output, "-" * 60)
+
+output.close
