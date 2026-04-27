@@ -5,5 +5,5 @@
 # See the ActiveSupport::ParameterFilter documentation for supported notations and behaviors.
 Rails.application.config.filter_parameters += [
   :passw, :email, :secret, :token, :_key, :crypt, :salt, :certificate, :otp, :ssn, :cvv, :cv,
-  :mvt # Binary Mapbox Vector Tile data; filtered to prevent massive binary strings from bloating logs 
+  :mvt # Binary Mapbox Vector Tile data; filtered to prevent massive binary strings from bloating logs
 ]
