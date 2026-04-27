@@ -664,6 +664,17 @@ ul.stats-list li{
   background-color: #f5f5f5;
 }
 
+#container-ak-hi .region-divider {
+  border: none;
+  border-top: 1px solid #ddd;
+  margin: 6px 2px 2px;
+}
+
+#container-ak-hi .territory-btn {
+  color: #666;
+  font-size: .72em;
+}
+
 
 /* TABLE VIEW */
 

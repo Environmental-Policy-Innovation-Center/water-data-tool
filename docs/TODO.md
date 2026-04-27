@@ -12,6 +12,8 @@ These are not milestones — see ROADMAP.md for planned feature work.
 3. **ETL Field Mapping Validation** — Build post-import audit specs that assert expected distinct values per filterable column, catching silent data quality bugs before they surface as broken filters
 
 - ~~Dev Seed Data — Filter Coverage Gaps (add Ohio or similar to cover wholesaler/school filters)~~ Default seed now includes OH, CO, PR alongside VT + RI — verify `is_wholesaler` and `is_school_or_daycare` counts after first seed run
+- Map — State click should update stats bar with counts for that state. Legacy app filtered the stats panel to the clicked state even without any other filters active. V2 draws the border outline on click but does not update stats — clicking a state on the map feels like it does nothing data-wise. Fix: clicking a state should apply a state boundary filter (or trigger a stats refresh scoped to that state).
+- Add Lograge gem to help silence noisy logs
 - Filter UI — `has-filter` green highlight on active filter buttons
 - Filter UI — Verify badge counts match legacy behavior
 - Filter UI — More dropdown expand/collapse sub-filters (violations + watershed hazards)
@@ -26,6 +28,7 @@ These are not milestones — see ROADMAP.md for planned feature work.
 - Frontend Modernization — Activate Tailwind and migrate custom CSS *(on hold)*
 - Export UX — Test CSV and GeoJSON downloads against a large dataset (e.g. full national or a large state). If generation takes more than ~2–3 seconds, add a spinner/disabled-button state to `export_controller.js` to indicate work in progress. The legacy app had no spinner; this is only needed if server-side generation time is noticeable.
 - Map Filter Scale — The current filter→map approach fetches matching pwsids from `GET /map` and spreads them into a Mapbox GL `["in", "pwsid", ...]` filter expression. This works well at state scale but may hit expression size limits or cause noticeable latency at national scale (tens of thousands of systems). If that proves to be the case, the architectural fix is to pass filter params directly into the tile URL so `TilesController` applies `apply_filters` during MVT generation — eliminating the pwsid fetch entirely. That approach would require tile cache keys to include filter params (or bypass the cache for filtered requests).
+- ~~Tile Cache Warm Depth — `TileCacheWarmJob` now warms z0–z8 using US region bounding boxes (continental US, AK, HI, PR, Guam+CNMI), skipping empty ocean/land tiles. 96.5% reduction vs blind z0–z8 approach (3,213 coords vs ~349k). z9 generates on-demand (fast). See `scratch/performance_work.md` for full metrics.~~
 - Other — Ensure Mapbox token is not exposed in browser devtools
 - Other — Add pending migration warning on console/server/spec startup
 - Other — Add `simplecov` and `lefthook` gems

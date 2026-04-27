@@ -18,17 +18,72 @@ All map data comes from a single vector tile source named `"wdt"`, served by `Ti
 GET /tiles/:z/:x/:y
 ```
 
-The source contains five **source layers** (data channels baked into each tile):
+The source contains four **source layers** (data channels baked into each tile):
 
 | Source layer | Contains | Notes |
 |---|---|---|
 | `pws` | PWS service area polygons | Properties: `pwsid`, `pws_name`, `stusps`, `symbology_field`, `population_served_count`, `service_connections_count` |
-| `pws_points` | PWS centroid points | Same properties as `pws`; ensures systems are visible at low zoom before polygons are large enough to click |
 | `places` | Census place boundaries | Properties: `geoid`, `name` |
 | `counties` | County boundaries | Properties: `geoid`, `name` |
 | `states` | State boundaries | Properties: `geoid`, `stusps` |
 
-Tiles are generated on-demand by PostGIS (`ST_AsMVT`) and cached in the `tile_cache` table. See `docs/ETL.md` and `ARCHITECTURE.md` for tile caching and invalidation.
+---
+
+## Tile Caching
+
+Tiles are generated on-demand by PostGIS (`ST_AsMVT`) and cached in the `tile_cache` database table as binary blobs. The cache is **global and shared across all users** — the first user to request any tile pays the generation cost; every subsequent user gets the cached version instantly regardless of who originally generated it.
+
+### Find-or-create per request
+
+`TileGenerator.build_tile(z, x, y)` checks the cache for all 4 layers at once. Any layers already cached are returned immediately; missing layers are generated, persisted, and returned. A partially-cached tile coordinate (e.g. 3 of 4 layers present) only generates the missing layers.
+
+### Cache lifecycle
+
+1. **Cold** — tile has never been requested; PostGIS generates it from `service_area_geometries` (slow, especially at low zoom where many polygons are included)
+2. **Warm** — tile exists in `tile_cache`; returned as a simple DB lookup (fast)
+3. **Invalidated** — ETL runs and calls `bust_tile_cache`, which truncates the entire `tile_cache` table; all tiles revert to cold
+
+The ETL always wipes the full table (not selectively) because tiles embed non-geometry attributes (system names, categories, etc.) that can change from CSV-only imports.
+
+### Pre-warming (TileCacheWarmJob)
+
+After each ETL run, `TileCacheWarmJob` pre-generates tiles for z0–z8 using US region bounding boxes (continental US, AK, HI, PR, Guam+CNMI). This skips empty ocean and land tiles entirely and covers through city/district zoom — the level where users first interact with individual water utility polygons. z9+ tiles generate on-demand (fast, small area).
+
+The warm job takes ~32 minutes at national scale (~44k systems). See `scratch/performance_work.md` for full timing data.
+
+### Zoom level tile counts
+
+Warming stops at z8 because z9+ on-demand generation is fast (each tile covers a small area with few polygons). The smart bounding-box approach uses far fewer coordinates than a blind full-grid warm:
+
+| Zoom | US-only coords | Full grid | Reduction | × 4 layers |
+|------|---------------|-----------|-----------|------------|
+| z0 | 1 | 1 | 0% | 4 |
+| z1 | 2 | 4 | 50% | 8 |
+| z2 | 4 | 16 | 75% | 16 |
+| z3 | 9 | 64 | 86% | 36 |
+| z4 | 23 | 256 | 91% | 92 |
+| z5 | 59 | 1,024 | 94% | 236 |
+| z6 | 172 | 4,096 | 96% | 688 |
+| z7 | 608 | 16,384 | 96% | 2,432 |
+| z8 | 2,335 | 65,536 | 96% | 9,340 |
+| **z0–z8 total** | **3,213** | **349,525** | **96.5%** | **~12,852 ops** |
+| z9+ | — | millions | — | impractical to warm |
+
+### Geometry simplification by zoom
+
+Tile generation applies `ST_SimplifyPreserveTopology` with a tolerance that decreases as zoom increases — coarser at low zoom (national view), finer at high zoom (street level):
+
+| Max zoom | Tolerance |
+|----------|-----------|
+| z≤4 | 0.05 |
+| z5 | 0.01 |
+| z6 | 0.005 |
+| z7 | 0.001 |
+| z8 | 0.0005 |
+| z9 | 0.0001 |
+| z10 | 0.00005 |
+| z11 | 0.00001 |
+| z12+ | 0 (no simplification — raw geometry) |
 
 ---
 
@@ -72,13 +127,11 @@ These layers render the actual drinking water system data.
 | `pws` | `pws` | fill | Always | Green fill (`rgb(78,163,36)`), 20% opacity, black outline | Main polygon fill. **[M10 — not built]** Will be filtered to matching pwsids when filters are active |
 | `pws_outline` | `pws` | line | minzoom 8 | Black, 1.5–3.5px (zoom-interpolated) | Thin border at street-level zoom. **[M10 — not built]** Filtered same as `pws` |
 | `pws_hover` | `pws` | line | On hover only | Black, 2–4.5px (zoom-interpolated) | Thicker border on the hovered system; controlled by `setFilter` |
-| `pws_points` | `pws_points` | circle | maxzoom 8 | Green circle, radius 2–5px by zoom, black 1px stroke, 70% opacity | Centroid dots shown at national/state zoom before polygons are visible. **[M10 — not built]** Filtered same as `pws` |
 | `selected_pws` | `pws` | line | On click only | Red (`#f00`), 2px | Highlights the clicked system; `visibility: none` until a system is clicked |
 
 **Zoom logic:**
-- Below zoom 8: `pws_points` circles are shown; polygons render but are tiny
-- Above zoom 8: `pws_outline` appears; `pws_points` are hidden
-- Clicking a polygon below zoom 8 triggers a `flyTo` to zoom 8.5 instead of opening a popup
+- Below zoom 8: polygon clicks trigger a `flyTo` to zoom 8.5 instead of opening a popup
+- Above zoom 8: `pws_outline` appears; polygon clicks open popups
 
 ---
 
@@ -135,15 +188,6 @@ When the click popup is closed: `selected_pws` layer hidden, popup reference cle
 
 ---
 
-### PWS point click (low zoom)
-
-| Event | Result |
-|---|---|
-| Click `pws_points` | `flyTo` center at click location, zoom 8.5 |
-| Hover `pws_points` | Cursor → pointer |
-
----
-
 ### Geocoder (map search)
 
 The geocoder is rendered into the filter bar (`#geocoder-li`) rather than as a floating map control. When a result is selected, the map flies to it at a zoom level determined by place type:
@@ -166,6 +210,9 @@ These are called by nav/button elements outside the map canvas:
 | `zoom48()` | Clears geocoder input; flies to continental US center (`-97.6, 40.27`, zoom 3.5) |
 | `zoomAk()` | Flies to Alaska (`-149.504, 61.342`, zoom ~5) |
 | `zoomHi()` | Flies to Hawaii (`-157.856, 21.305`, zoom ~6) |
+| `zoomPr()` | Flies to Puerto Rico (`-66.590, 18.220`, zoom 8) |
+| `zoomGu()` | Flies to Guam (`144.794, 13.444`, zoom 10) |
+| `zoomMp()` | Flies to Northern Mariana Islands (`145.674, 15.180`, zoom 9) |
 
 ---
 
@@ -183,7 +230,6 @@ These are called by nav/button elements outside the map canvas:
 | `pws` | All systems visible | **[M10 — not built]** filtered to matching pwsids on filter change |
 | `pws_hover` | Hidden (empty filter) | Mouse enters/leaves a PWS polygon (zoom ≥ 5) |
 | `pws_outline` | Visible at zoom ≥ 8 | Zoom; **[M10 — not built]** filtered same as `pws` |
-| `pws_points` | Visible at zoom < 8 | Zoom; **[M10 — not built]** filtered same as `pws` |
 | `selected_pws` | Hidden (`visibility: none`) | System clicked (shown); popup closed (hidden) |
 
 ---
@@ -192,7 +238,7 @@ These are called by nav/button elements outside the map canvas:
 
 M10 adds filter→map sync. After M10, when the user applies filters:
 
-- `pws`, `pws_outline`, and `pws_points` will each have a Mapbox GL filter expression applied: `["in", "pwsid", ...matchingIds]`
+- `pws` and `pws_outline` will each have a Mapbox GL filter expression applied: `["in", "pwsid", ...matchingIds]`
 - Non-matching systems disappear from the map
 - When all filters are cleared: filter expressions reset to `null` (show all)
 - On page load with filter params in the URL: filter is applied immediately after tiles load
@@ -212,7 +258,7 @@ This feature is not in the current roadmap. It depends on the demographic histog
 ## Glossary
 
 **Centroid**
-The geometric center point of a polygon. Used here as a fallback representation for PWS service areas at low zoom levels — when a polygon is too small to see or click, a centroid dot (`pws_points`) is shown instead.
+The geometric center point of a polygon. Stored in `service_area_geometries.centroid` and used internally (e.g. bounding box filtering in the warm job). Not rendered on the map.
 
 **Choropleth**
 A map where areas are shaded or colored according to a data variable (e.g. median household income). The legacy app supported this via a "Continuous display" toggle on demographic sliders. Not yet built in V2.
@@ -239,7 +285,7 @@ A Mapbox GL layer type that renders a stroke along the edge of a polygon or alon
 The JavaScript library used to render the interactive map. It draws map tiles using WebGL and exposes an API for adding layers, handling events, and applying filters/styles dynamically.
 
 **minzoom / maxzoom**
-Per-layer zoom thresholds. A layer with `minzoom: 8` is invisible below zoom level 8. A layer with `maxzoom: 8` is invisible at zoom level 8 and above. Used here to swap between centroid dots (`pws_points`, maxzoom 8) and polygon outlines (`pws_outline`, minzoom 8).
+Per-layer zoom thresholds. A layer with `minzoom: 8` is invisible below zoom level 8. A layer with `maxzoom: 8` is invisible at zoom level 8 and above. Used here for `pws_outline` (minzoom 8) and `places` (minzoom 8).
 
 **MVT (Mapbox Vector Tile)**
 A binary tile format (protobuf) used to deliver geographic data to the browser in chunks. The server generates tiles on-demand using PostGIS's `ST_AsMVT` function and caches them in the `tile_cache` table. The browser reassembles them into a continuous map.
@@ -257,10 +303,10 @@ A drinking water utility serving the public. The central data entity in this app
 The geographic boundary of a PWS — the area it is licensed to serve. Stored as a PostGIS polygon in the `service_area_geometries` table and served via the `pws` source layer in vector tiles.
 
 **Source layer**
-A named data channel within a vector tile. A single tile request (`/tiles/z/x/y`) returns one binary blob containing multiple source layers (`pws`, `pws_points`, `states`, etc.). Mapbox GL map layers each read from one source layer.
+A named data channel within a vector tile. A single tile request (`/tiles/z/x/y`) returns one binary blob containing multiple source layers (`pws`, `places`, `counties`, `states`). Mapbox GL map layers each read from one source layer.
 
 **Vector tile**
 See MVT. A tile that contains geographic feature data (points, lines, polygons) and their properties, as opposed to a raster tile which contains pre-rendered pixel imagery.
 
 **Zoom level**
-An integer (roughly 0–22) representing how far the map is zoomed in. Zoom 0 shows the whole world; zoom 22 shows individual buildings. Key thresholds in this app: zoom 5 (PWS hover activates), zoom 8 (polygon clicks open popups; `pws_outline` appears; `pws_points` disappear).
+An integer (roughly 0–22) representing how far the map is zoomed in. Zoom 0 shows the whole world; zoom 22 shows individual buildings. Key thresholds in this app: zoom 3 (minimum zoom — restricted to North America view), zoom 5 (PWS hover activates), zoom 8 (polygon clicks open popups; `pws_outline` appears).

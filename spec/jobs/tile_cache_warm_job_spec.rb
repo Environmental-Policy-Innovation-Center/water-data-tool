@@ -1,50 +1,60 @@
 require "rails_helper"
 
 RSpec.describe TileCacheWarmJob, type: :job do
-  describe "#perform without a zoom_level argument" do
-    it "enqueues a separate job for each zoom level 0 through MAX_WARM_ZOOM" do
-      expect {
-        described_class.perform_now
-      }.to have_enqueued_job(described_class)
-        .exactly(described_class::MAX_WARM_ZOOM + 1).times
+  before do
+    allow(TileGenerator).to receive(:generate_tile!)
+    allow($stdout).to receive(:puts)
+    allow($stdout).to receive(:flush)
+  end
+
+  describe "#perform" do
+    it "calls generate_tile! for each layer at every zoom level" do
+      # Stub tile_coordinates to return one coord per zoom to keep the test fast.
+      # The coordinate math is covered by the #tile_coordinates unit tests below.
+      allow_any_instance_of(described_class).to receive(:tile_coordinates).and_return([[0, 0]])
+
+      described_class.perform_now
+
+      TileGenerator.layers.each do |layer|
+        expect(TileGenerator).to have_received(:generate_tile!)
+          .with(layer, anything, 0, 0).at_least(:once)
+      end
+    end
+
+    it "continues warming remaining tiles when one layer raises" do
+      call_count = 0
+      allow(TileGenerator).to receive(:generate_tile!) { |layer, z, x, y|
+        raise "boom" if z == 1 && x == 0 && y == 0 && layer == "pws"
+        call_count += 1
+      }
+
+      expect { described_class.perform_now }.not_to raise_error
+      expect(call_count).to be > 0
     end
   end
 
-  describe "#perform with a zoom_level argument" do
-    it "generates tiles for every coordinate at the given zoom level" do
-      call_count = 0
-      allow(TileGenerator).to receive(:generate_tile!) { call_count += 1 }
+  describe "#tile_coordinates" do
+    subject(:job) { described_class.new }
 
-      described_class.new.perform(2)
-
-      # z2: 4x4 grid = 16 coords × 5 layers = 80 calls
-      expect(call_count).to eq(16 * 5)
+    it "returns far fewer coordinates than the full grid at high zoom" do
+      full_grid_z7 = (2**7)**2  # 16,384 — the blind approach
+      us_only_z7 = job.send(:tile_coordinates, 7).size
+      expect(us_only_z7).to be < full_grid_z7 / 10
     end
 
-    it "calls generate_tile! (skip-cache variant) for each layer" do
-      layers_called = []
-      allow(TileGenerator).to receive(:generate_tile!) { |layer, _z, _x, _y|
-        layers_called << layer
-      }
+    it "includes corner tiles for all defined regions at z7" do
+      coords = job.send(:tile_coordinates, 7)
 
-      described_class.new.perform(0)
-
-      expect(layers_called).to match_array(TileGenerator.layers)
+      described_class::REGION_BOUNDS.each do |west, south, east, north|
+        x_min, x_max, y_min, y_max = job.send(:bbox_to_tile_range, west, south, east, north, 7)
+        expect(coords).to include([x_min, y_min]), "expected NW corner for bbox [#{west},#{south},#{east},#{north}]"
+        expect(coords).to include([x_max, y_max]), "expected SE corner for bbox [#{west},#{south},#{east},#{north}]"
+      end
     end
 
-    it "continues generating remaining layers when one layer fails" do
-      call_args = []
-      allow(TileGenerator).to receive(:generate_tile!) { |layer, z, x, y|
-        raise "boom" if x == 0 && y == 0 && layer == "pws"
-        call_args << [layer, z, x, y]
-      }
-
-      expect { described_class.new.perform(1) }.not_to raise_error
-
-      # z1 = 2x2 grid = 4 coords × 5 layers = 20 total calls.
-      # Only pws at (0,0) fails; the other 4 layers at (0,0) succeed.
-      # So 20 - 1 = 19 successful calls.
-      expect(call_args.length).to eq(19)
+    it "produces no duplicate coordinates" do
+      coords = job.send(:tile_coordinates, 7)
+      expect(coords.uniq.size).to eq(coords.size)
     end
   end
 end

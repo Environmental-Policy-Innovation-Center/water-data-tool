@@ -167,6 +167,20 @@ bin/rails 'etl:import[epa_sabs]'
 docker compose down
 ```
 
+### Background jobs and tile cache warming
+
+`TileCacheWarmJob` runs automatically after each ETL import to pre-generate z0–z8 map tiles using US region bounding boxes, so the initial national map view is fast for every user.
+
+In production, SolidQueue processes this job as a persistent background worker. In development, the ETL runs as a short-lived rake task (`bin/rails etl:import`) — the warm job is enqueued but the process exits before the job completes, so **the warm job never runs automatically in dev**.
+
+After loading the national dataset locally, warm the tile cache manually:
+
+```bash
+bin/rails runner "TileCacheWarmJob.perform_now"
+```
+
+This blocks until all z0–z8 tiles are generated (~32 minutes at national scale). Progress is logged to stdout.
+
 ---
 
 ## Documentation
@@ -179,6 +193,7 @@ docker compose down
 | [docs/DISCOVERY.md](docs/DISCOVERY.md) | Discovery notes from the legacy PHP app analysis |
 | [docs/ETL.md](docs/ETL.md) | Data pipeline design — S3 to PostgreSQL import flow |
 | [docs/GLOSSARY.md](docs/GLOSSARY.md) | Terminology and domain definitions |
+| [docs/MAPPING.md](docs/MAPPING.md) | Mapping design information |
 | [docs/SCHEMA.md](docs/SCHEMA.md) | Database schema — all tables, columns, types, indexes |
 | [docs/TRANSITION.md](docs/TRANSITION.md) | Migration notes from the legacy PHP app to Rails |
 

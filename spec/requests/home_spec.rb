@@ -81,13 +81,13 @@ RSpec.describe "Home", type: :request do
     end
 
     it "returns only a pwsids key — no other fields" do
-      create(:public_water_system)
+      pws = create(:public_water_system)
 
       get map_path
 
       json = response.parsed_body
       expect(json.keys).to eq(["pwsids"])
-      expect(json["pwsids"].first).to be_a(String)
+      expect(json["pwsids"].first).to eq(pws.pwsid)
     end
   end
 

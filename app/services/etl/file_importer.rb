@@ -14,13 +14,25 @@ module Etl
     end
 
     def call
-      return :skipped unless needs_import?
+      filename = @file_url.split("/").last
 
+      unless needs_import?
+        log("[ETL] #{filename}: skipped (unchanged since last import)")
+        return :skipped
+      end
+
+      log("[ETL] #{filename}: downloading...")
+      started_at = Time.current
       content = download
+      elapsed = (Time.current - started_at).round(1)
+      size_mb = (content.bytesize / 1_048_576.0).round(1)
+      log("[ETL] #{filename}: downloaded #{size_mb} MB in #{elapsed}s")
+
       rows = parse(content)
       validate!(rows)
       import!(rows)
       record_import
+      log("[ETL] #{filename}: import complete")
       :imported
     end
 
@@ -48,6 +60,12 @@ module Etl
 
     def record_import
       DataImport.create!(file_url: @file_url, imported_at: Time.current)
+    end
+
+    def log(msg)
+      Rails.logger.info(msg)
+      $stdout.puts msg
+      $stdout.flush
     end
 
     # Subclasses must implement:

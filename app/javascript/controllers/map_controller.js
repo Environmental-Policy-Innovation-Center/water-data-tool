@@ -20,11 +20,15 @@ export default class extends Controller {
       container: "map",
       style: "mapbox://styles/mapbox/light-v11",
       center: [-97.6, 40.27],
-      zoom: 2,
-      projection: "mercator"
+      zoom: 3,
+      minZoom: 3,
+      projection: "mercator",
+      renderWorldCopies: false
     })
 
     this.map.dragRotate.disable()
+    // Dev convenience: mapDebug.getZoom(), mapDebug.getCenter(), etc. in browser console.
+    if (window.location.hostname === "localhost") window.mapDebug = this.map
     this.hoverPopup = null
     this.hoveredPwsid = null
     this.activeFilterRequest = null
@@ -257,23 +261,6 @@ export default class extends Controller {
       filter: ["in", "pwsid", ""]
     })
 
-    // ── PWS centroid points (visible at lower zooms) ───────────────────────────
-
-    this.map.addLayer({
-      id: "pws_points",
-      type: "circle",
-      source: "wdt",
-      "source-layer": "pws_points",
-      maxzoom: 8,
-      layout: { visibility: "visible" },
-      paint: {
-        "circle-color": "rgb(78, 163, 36)",
-        "circle-radius": { base: 3, stops: [[2, 2], [7, 5]] },
-        "circle-stroke-color": "#000",
-        "circle-stroke-width": 1,
-        "circle-opacity": 0.7
-      }
-    })
   }
 
   #styleWater() {
@@ -408,19 +395,6 @@ export default class extends Controller {
       })
     })
 
-    // ── pws_points click (lower zooms) → zoom in ─────────────────────────────
-
-    this.map.on("click", "pws_points", (e) => {
-      this.map.flyTo({ center: e.lngLat, zoom: 8.5 })
-    })
-
-    this.map.on("mousemove", "pws_points", () => {
-      this.map.getCanvas().style.cursor = "pointer"
-    })
-
-    this.map.on("mouseleave", "pws_points", () => {
-      this.map.getCanvas().style.cursor = ""
-    })
   }
 
   zoom48() {
@@ -445,6 +419,27 @@ export default class extends Controller {
     })
   }
 
+  zoomPr() {
+    this.map.flyTo({ center: [-66.590, 18.220], zoom: 5 })
+    this.map.once("idle", () => {
+      this.map.flyTo({ zoom: 8, duration: 3600 })
+    })
+  }
+
+  zoomGu() {
+    this.map.flyTo({ center: [144.794, 13.444], zoom: 7 })
+    this.map.once("idle", () => {
+      this.map.flyTo({ zoom: 10, duration: 3600 })
+    })
+  }
+
+  zoomMp() {
+    this.map.flyTo({ center: [145.674, 15.180], zoom: 7 })
+    this.map.once("idle", () => {
+      this.map.flyTo({ zoom: 9, duration: 3600 })
+    })
+  }
+
   async #onFiltersChanged() {
     if (!this.map?.getLayer("pws")) return
 
@@ -453,7 +448,6 @@ export default class extends Controller {
     if (Object.keys(filters).length === 0) {
       this.map.setFilter("pws", null)
       this.map.setFilter("pws_outline", null)
-      this.map.setFilter("pws_points", null)
       return
     }
 
@@ -476,7 +470,6 @@ export default class extends Controller {
 
       this.map.setFilter("pws", expr)
       this.map.setFilter("pws_outline", expr)
-      this.map.setFilter("pws_points", expr)
     } catch (err) {
       if (err.name !== "AbortError") console.error("[map] filter fetch failed", err)
     }

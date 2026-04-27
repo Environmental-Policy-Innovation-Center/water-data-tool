@@ -16,9 +16,9 @@ RSpec.describe Etl::Importers::EpaSabsGeoms do
     end
 
     it "stores raw GeoJSON geometry string for SQL import" do
-      expect(rows.first[:geom_json]).to be_a(String)
       parsed = JSON.parse(rows.first[:geom_json])
       expect(parsed["type"]).to eq("MultiPolygon")
+      expect(parsed["coordinates"]).to be_an(Array)
     end
   end
 

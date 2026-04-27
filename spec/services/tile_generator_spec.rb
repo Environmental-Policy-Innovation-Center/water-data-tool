@@ -6,8 +6,8 @@ RSpec.describe TileGenerator do
   let(:y) { 12 }
 
   describe ".layers" do
-    it "returns the five expected layer names" do
-      expect(described_class.layers).to eq(%w[pws pws_points places counties states])
+    it "returns the four expected layer names" do
+      expect(described_class.layers).to eq(%w[pws places counties states])
     end
   end
 
@@ -43,10 +43,10 @@ RSpec.describe TileGenerator do
     end
 
     context "when no cached tile exists (empty database)" do
-      it "returns a binary string" do
+      it "returns the generated MVT binary and caches it" do
         result = described_class.generate_tile("pws", z, x, y)
-        expect(result).to be_a(String)
-        expect(result.encoding).to eq(Encoding::ASCII_8BIT)
+        cached = TileCache.find_by!(layer: "pws", z: z, x: x, y: y)
+        expect(result).to eq(cached.mvt)
       end
 
       it "persists the generated tile to the cache" do
@@ -58,10 +58,9 @@ RSpec.describe TileGenerator do
 
   describe ".generate_tile!" do
     context "when no cached tile exists (empty database)" do
-      it "returns a binary string without checking the cache" do
+      it "returns the generated MVT binary without checking the cache" do
         expect(TileCache).not_to receive(:find_by)
         result = described_class.generate_tile!("pws", z, x, y)
-        expect(result).to be_a(String)
         expect(result.encoding).to eq(Encoding::ASCII_8BIT)
       end
 
@@ -73,7 +72,7 @@ RSpec.describe TileGenerator do
   end
 
   describe ".build_tile" do
-    context "when all 5 layers are cached" do
+    context "when all layers are cached" do
       let(:mvt_data) { "\x1a\x10tile_data".b }
 
       before do
@@ -84,15 +83,17 @@ RSpec.describe TileGenerator do
 
       it "returns concatenated MVT binary from all cached layers" do
         result = described_class.build_tile(z, x, y)
-        expect(result.bytesize).to eq(mvt_data.bytesize * 5)
+        expect(result.bytesize).to eq(mvt_data.bytesize * 4)
       end
     end
 
     context "when no tiles are cached" do
-      it "returns a binary string" do
+      it "returns concatenated MVT matching the sum of all generated layer tiles" do
         result = described_class.build_tile(z, x, y)
-        expect(result).to be_a(String)
-        expect(result.encoding).to eq(Encoding::ASCII_8BIT)
+        expected_size = described_class.layers.sum { |layer|
+          TileCache.find_by!(layer: layer, z: z, x: x, y: y).mvt.bytesize
+        }
+        expect(result.bytesize).to eq(expected_size)
       end
     end
   end
