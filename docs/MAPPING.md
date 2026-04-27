@@ -255,6 +255,37 @@ This feature is not in the current roadmap. It depends on the demographic histog
 
 ---
 
+## Dev Console (localhost only)
+
+`mapDebug` is assigned to the Mapbox GL map instance when running on `localhost` (see `map_controller.js`). It is `undefined` in production.
+
+### Useful commands
+
+| Command | What it returns |
+|---|---|
+| `mapDebug.getZoom()` | Current zoom level (once) |
+| `mapDebug.getCenter()` | Current map center `{lng, lat}` (once) |
+| `mapDebug.getStyle().layers` | Array of all active Mapbox GL layers and their current state |
+| `mapDebug.queryRenderedFeatures()` | All features visible in the current viewport |
+
+### Continuous tracking
+
+Register a listener to log on every zoom change:
+
+```js
+mapDebug.on('zoom', () => console.log(mapDebug.getZoom()))
+```
+
+Same pattern works for any map event (`move`, `moveend`, `click`, etc.):
+
+```js
+mapDebug.on('move', () => console.log(mapDebug.getCenter()))
+```
+
+These listeners persist for the browser session. Reload the page to clear them.
+
+---
+
 ## Glossary
 
 **Centroid**
