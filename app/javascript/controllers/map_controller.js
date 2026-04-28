@@ -18,7 +18,7 @@ export default class extends Controller {
 
     this.map = new window.mapboxgl.Map({
       container: "map",
-      style: "mapbox://styles/mapbox/light-v11",
+      style: document.head.querySelector('meta[name="mapbox-style"]')?.content,
       center: [-97.6, 40.27],
       zoom: 3,
       minZoom: 3,
