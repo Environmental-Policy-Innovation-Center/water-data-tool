@@ -188,6 +188,14 @@ This eliminates dark/white PNG pairs — color is controlled via Tailwind `text-
 - Logo variants (dark/light/monochrome) as SVG
 - Design tokens: colors, spacing, typography, border radius, shadow values
 
+STATUS UPDATE: 
+  - 42 SVG files were downloaded from the 'Icons & Logos' section of the design system in Figma.
+  These have been saves in the `app/assets/dwet_design_system_svgs` directory
+    - These were downloaded, presumably using the `RGB` selection for 'Colors', and `sRGB (same as file)` for the 'Color profile' option
+    - `currentColor` was not an option
+  - Presumably we are missing some navigation arrows, when comparing to the current `/iamges/icons` dir.
+  - TBD if Figma has more content in the 'Buttons' collections, or elsewhere
+
 Standard editor access is sufficient. Dev Mode is optional but useful for exact spacing values.
 
 ---
