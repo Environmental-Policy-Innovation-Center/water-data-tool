@@ -65,6 +65,7 @@ export default class extends Controller {
     this.#syncToUrl()
     this.#updateBadges()
     document.dispatchEvent(new CustomEvent("filters:changed"))
+    this.#reloadStatsFrame()
   }
 
   resetAll(event) {
@@ -248,6 +249,7 @@ export default class extends Controller {
     this.#restoreDomState(params)
     FilterState.set(params)
     document.dispatchEvent(new CustomEvent("filters:changed"))
+    this.#reloadStatsFrame()
   }
 
   #restoreDomState(params) {
@@ -403,6 +405,18 @@ export default class extends Controller {
         moreBadge.style.display = "none"
       }
     }
+  }
+
+  #reloadStatsFrame() {
+    const frame = document.querySelector("turbo-frame#stats-bar")
+    if (!frame) return
+
+    const newSrc = `/public_water_systems/stats?${FilterState.toUrlParams()}`
+    if (frame.src === newSrc) return
+    frame.src = newSrc
+
+    const intro = document.getElementById("container-map-content-bottom")
+    if (intro) intro.classList.add("has-stats")
   }
 
   // Breakpoints match the legacy app (adjusted for map container width rather than window width).
