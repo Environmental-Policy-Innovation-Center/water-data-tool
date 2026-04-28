@@ -89,7 +89,35 @@ Tile generation applies `ST_SimplifyPreserveTopology` with a tolerance that decr
 
 ## Map Layers
 
-Layers are added in this order (bottom → top). Layers added earlier appear below layers added later. Some layers are inserted before the first line layer in the base Mapbox style (`firstLineId`) so road and label layers stay on top.
+`map_controller.js` adds 11 layers across two insertion modes:
+
+- **`addLayer(layer, firstLineId)`** — inserts the layer *before* the first line layer in the base Mapbox style, placing it below roads and labels
+- **`addLayer(layer)`** (no second argument) — appends to the top of the full layer stack, placing it above roads and labels
+
+This creates a **roads-in-the-middle sandwich**: data fills and hover borders sit below roads (so road labels stay readable), while selection highlights and outlines sit above roads (so they're always visible regardless of base map content).
+
+### All Layers — Render Order Summary
+
+Listed bottom → top as actually rendered, not in code insertion order:
+
+| # | Layer id | Type | Source layer | Purpose | Insertion |
+|---|---|---|---|---|---|
+| 1 | `states` | fill | `states` | Transparent hit area for state hover/click | before `firstLineId` |
+| 2 | `counties` | fill | `counties` | Transparent hit area for county hover/click | before `firstLineId` |
+| 3 | `places` | fill (minzoom 8) | `places` | Transparent hit area for place hover/click | before `firstLineId` |
+| 4 | `pws` | fill | `pws` | Main PWS polygon fill (green, 20% opacity) | before `firstLineId` |
+| 5 | `pws_hover` | line | `pws` | Thicker black stroke on hovered PWS polygon | before `firstLineId` |
+| — | *(roads & labels from base style)* | — | — | — | — |
+| 6 | `states_hover` | fill | `states` | Green fill while mousing over a state | appended to top |
+| 7 | `states_filter` | line | `states` | Black border outline after clicking a state | appended to top |
+| 8 | `counties_filter` | line | `counties` | Green border on selected county *(not yet triggered)* | appended to top |
+| 9 | `places_filter` | line | `places` | Green border on selected place *(not yet triggered)* | appended to top |
+| 10 | `pws_outline` | line (minzoom 8) | `pws` | Thin black stroke at street-level zoom | appended to top |
+| 11 | `selected_pws` | line | `pws` | Red stroke on clicked PWS polygon | appended to top |
+
+**Why this order matters for `pws_hover`:** the hover border (row 5) sits below roads — road labels can overdraw it at low zoom, but this is acceptable because hover is only active at zoom ≥ 5 and becomes less ambiguous at higher zoom. All selection and filter highlights (rows 6–11) are above roads and are always unobscured.
+
+Detailed paint properties, visibility rules, and interaction triggers for each group are in the sections below.
 
 ### Geographic boundary fills (hit areas)
 
@@ -252,6 +280,49 @@ See `scratch/roadmap_m10/m10_guide.md` for implementation details.
 The legacy app had a "Continuous display" checkbox under each demographic histogram slider. Checking it color-coded all visible PWS polygons in 8 quantile buckets by that variable (e.g. median household income, poverty rate). This used `map.setPaintProperty("pws", "fill-color", fillExpression)` with a case expression mapping pwsid ranges to colors.
 
 This feature is not in the current roadmap. It depends on the demographic histogram sliders being built first (the largest remaining filter UI gap — see `docs/TODO.md`). When it is built, it will modify the paint property of the existing `pws` layer rather than adding a new layer.
+
+---
+
+## TODO
+
+### 1. Fix overlapping-layer click bug
+
+**Problem:** `map.on("click", "pws", ...)` and `map.on("click", "states", ...)` are registered as independent handlers. Mapbox GL JS does not stop propagation between layer-scoped handlers, so a click on a PWS polygon at zoom ≥ 8 fires **both** simultaneously — the PWS popup opens and the state border highlight (`states_filter`) is set. This is unintentional.
+
+**Fix:** Replace all layer-scoped click handlers with a single `map.on("click", ...)` handler that uses `queryRenderedFeatures` to check layers in explicit priority order and returns early after the first match:
+
+```js
+map.on("click", (e) => {
+  const pws = map.queryRenderedFeatures(e.point, { layers: ["pws"] })
+  if (pws.length > 0) { /* handle PWS — return */ return }
+
+  const counties = map.queryRenderedFeatures(e.point, { layers: ["counties"] })
+  if (counties.length > 0) { /* handle county — return */ return }
+
+  const states = map.queryRenderedFeatures(e.point, { layers: ["states"] })
+  if (states.length > 0) { /* handle state */ }
+})
+```
+
+Priority order: `pws` > `counties` > `places` > `states`. This is the conventional Mapbox GL JS pattern for overlapping interactive layers.
+
+---
+
+### 2. Wire up `counties_filter` and `places_filter`
+
+**Problem:** Both layers exist and are styled but are never triggered by any UI interaction. In the legacy app, clicking a county or place boundary was the primary geographic filter mechanism — it highlighted the border and narrowed the visible PWS polygons to systems within that geography.
+
+**What the legacy app did:**
+- County/place features had pre-baked `county_pwsids`/`place_pwsids` JSON arrays embedded directly in tile properties. Clicking a boundary extracted that list and passed it to `updateFilter()`.
+- `counties_hover` and `places_hover` fill layers (analogous to `states_hover`) also existed in the legacy app but were not ported to V2.
+
+**What V2 needs:**
+1. `mousemove`/`mouseleave` handlers on `counties` and `places` to drive hover highlights. This requires adding `counties_hover` and `places_hover` fill layers (same pattern as `states_hover`) — these layers were dropped during the port and need to be added back.
+2. Click handlers on `counties` and `places` that set `counties_filter`/`places_filter` and trigger a `/map?...` server fetch (the V2 filter approach), rather than relying on pre-baked tile properties.
+3. Geocoder integration: when a geocoder result has `place_type` of `district` or `place`, set the corresponding filter layer (legacy already did this via `queryRenderedFeatures` after flying to the result).
+4. Zoom gates: legacy used zoom 6–10 for county hover/click and zoom ≥ 10 for place hover/click — reasonable starting point for V2.
+
+**Note:** These click handlers should be implemented inside the consolidated single-handler described in TODO #1, not as additional layer-scoped handlers.
 
 ---
 
