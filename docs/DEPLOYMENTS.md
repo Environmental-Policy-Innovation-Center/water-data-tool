@@ -43,7 +43,7 @@ The ECS task definition references the moving tag (`prod-latest` / `staging-late
 When a PR is opened or updated against `main`:
 
 1. The image is built and pushed with `pr-<N>-<sha>` and `pr-<N>-latest` tags.
-2. Three Secrets Manager ARNs are looked up (`rails_master_key`, `mapbox_access_token`, `database_url`).
+2. Secrets Manager ARNs are looked up (`rails_master_key`, `mapbox_access_token`, `mapbox_style_url`, `database_url`).
 3. `service_builder` runs with `EP_ACTION=apply` — this provisions a full ECS service, ALB, Route53 DNS record, and ACM certificate unique to that PR. First provision takes ~5–10 minutes (ACM cert validation).
 4. The environment is available at `https://water-data-tool-pr-<N>.policyinnovation.info`.
 
