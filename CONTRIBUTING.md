@@ -71,6 +71,24 @@ Open a GitHub Issue with:
 
 ---
 
+## Releases
+
+`main` is the source of truth. `staging` and `production` are pointers that get fast-forwarded; never commit to them directly.
+
+- All work goes through PRs to `main`.
+- Promote `main` → `staging`:    `git push origin main:staging`
+- Promote `staging` → `production`: `git push origin staging:production`
+
+Each push triggers the corresponding deploy in `.github/workflows/deploy-client-aws.yml`.
+
+If `staging` or `production` ever ends up with commits not on `main` (hotfix, mistake), fast-forward `main` from that branch immediately:
+
+```bash
+git checkout main && git merge --ff-only <branch> && git push origin main
+```
+
+---
+
 ## Commit Messages
 
 Use conventional commit format:
