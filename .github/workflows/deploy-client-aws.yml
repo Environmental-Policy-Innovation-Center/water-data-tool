@@ -168,7 +168,9 @@ jobs:
           ENV_VARS_JSON='[
             {"name":"RAILS_ENV",           "value":"production"},
             {"name":"RAILS_LOG_TO_STDOUT", "value":"1"},
-            {"name":"SOLID_QUEUE_IN_PUMA", "value":"true"}
+            {"name":"SOLID_QUEUE_IN_PUMA", "value":"true"},
+            {"name":"HTTP_PORT",           "value":"3000"},
+            {"name":"TARGET_PORT",         "value":"3001"}
           ]'
 
           docker run --rm \
@@ -183,8 +185,8 @@ jobs:
             -e EP_SERVICE_CONTAINER_RAM_MB="1700" \
             -e EP_SERVICE_CONTAINER_IMAGE_URI="${{ env.ECR_REPO_URI }}:pr-${{ env.PR_NUM }}-${{ github.sha }}" \
             -e EP_SERVICE_DOMAIN="water-data-tool-pr-${{ env.PR_NUM }}.policyinnovation.info" \
-            -e EP_SERVICE_PORT="80" \
-            -e EP_SERVICE_HEALTH_PORT="80" \
+            -e EP_SERVICE_PORT="3000" \
+            -e EP_SERVICE_HEALTH_PORT="3000" \
             -e EP_SERVICE_HEALTH_CHECK_PATH="/up" \
             -e EP_SERVICE_ENV_VARS_JSON="$ENV_VARS_JSON" \
             -e EP_SERVICE_SECRETS_JSON="$SECRETS_JSON" \
@@ -239,8 +241,8 @@ jobs:
             -e EP_SERVICE_INSTANCE_COUNT="1" \
             -e EP_SERVICE_CONTAINER_RAM_MB="1700" \
             -e EP_SERVICE_DOMAIN="water-data-tool-pr-${{ env.PR_NUM }}.policyinnovation.info" \
-            -e EP_SERVICE_PORT="80" \
-            -e EP_SERVICE_HEALTH_PORT="80" \
+            -e EP_SERVICE_PORT="3000" \
+            -e EP_SERVICE_HEALTH_PORT="3000" \
             -e EP_SERVICE_HEALTH_CHECK_PATH="/up" \
             -e EP_CREATE_ECR_REPO="false" \
             -e AWS_ACCESS_KEY_ID="$AWS_ACCESS_KEY_ID" \
