@@ -85,6 +85,8 @@ jobs:
     env:
       RAILS_ENV: test
       DATABASE_URL: postgis://postgres:postgres@localhost:5432/water_data_tool_test
+      MAPBOX_ACCESS_TOKEN: fake_access_token
+      MAPBOX_STYLE_URL: fake_style_url
 
     steps:
       - name: Checkout code
