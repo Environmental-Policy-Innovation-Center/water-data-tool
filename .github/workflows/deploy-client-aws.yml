@@ -152,23 +152,23 @@ jobs:
             --secret-id "ep/wdt/dev/database_url" \
             --query 'ARN' --output text)
 
-          echo "master_key_arn=$MASTER_KEY_ARN"       >> "$GITHUB_OUTPUT"
-          echo "mapbox_arn=$MAPBOX_ARN"               >> "$GITHUB_OUTPUT"
-          echo "mapbox_style_arn=$MAPBOX_STYLE_ARN"   >> "$GITHUB_OUTPUT"
-          echo "db_url_arn=$DB_URL_ARN"               >> "$GITHUB_OUTPUT"
+          echo "master_key_arn=$MASTER_KEY_ARN"     >> "$GITHUB_OUTPUT"
+          echo "mapbox_arn=$MAPBOX_ARN"             >> "$GITHUB_OUTPUT"
+          echo "mapbox_style_arn=$MAPBOX_STYLE_ARN" >> "$GITHUB_OUTPUT"
+          echo "db_url_arn=$DB_URL_ARN"             >> "$GITHUB_OUTPUT"
 
       - name: Create PR environment via service_builder
         run: |
           SECRETS_JSON=$(jq -cn \
-            --arg mk  "${{ steps.secrets.outputs.master_key_arn }}" \
-            --arg db  "${{ steps.secrets.outputs.db_url_arn }}:preview::" \
-            --arg mbx "${{ steps.secrets.outputs.mapbox_arn }}" \
-            --arg mbs "${{ steps.secrets.outputs.mapbox_style_arn }}" \
+            --arg mk    "${{ steps.secrets.outputs.master_key_arn }}" \
+            --arg db    "${{ steps.secrets.outputs.db_url_arn }}:preview::" \
+            --arg mbx   "${{ steps.secrets.outputs.mapbox_arn }}" \
+            --arg style "${{ steps.secrets.outputs.mapbox_style_arn }}" \
             '[
               {"name":"RAILS_MASTER_KEY",    "valueFrom":$mk},
               {"name":"DATABASE_URL",        "valueFrom":$db},
               {"name":"MAPBOX_ACCESS_TOKEN", "valueFrom":$mbx},
-              {"name":"MAPBOX_STYLE_URL",    "valueFrom":$mbs}
+              {"name":"MAPBOX_STYLE_URL",    "valueFrom":$style}
             ]')
 
           ENV_VARS_JSON='[
@@ -183,7 +183,7 @@ jobs:
             -e EP_ACTION=apply \
             -e EP_ENV="pr-${{ env.PR_NUM }}" \
             -e EP_SERVICE_NAME="water_data_tool_pr_${{ env.PR_NUM }}" \
-            -e EP_SERVICE_SHORT_NAME="wdtpr${{ env.PR_NUM }}" \
+            -e EP_SERVICE_SHORT_NAME="pr${{ env.PR_NUM }}" \
             -e EP_ECS_CLUSTER_NAME="$ECS_CLUSTER" \
             -e EP_TF_STATE_S3_BUCKET_NAME="ep-service-builder" \
             -e EP_SERVICE_INSTANCE_TYPE="t3.small" \
@@ -240,7 +240,7 @@ jobs:
             -e EP_ACTION=destroy \
             -e EP_ENV="pr-${{ env.PR_NUM }}" \
             -e EP_SERVICE_NAME="water_data_tool_pr_${{ env.PR_NUM }}" \
-            -e EP_SERVICE_SHORT_NAME="wdtpr${{ env.PR_NUM }}" \
+            -e EP_SERVICE_SHORT_NAME="pr${{ env.PR_NUM }}" \
             -e EP_ECS_CLUSTER_NAME="$ECS_CLUSTER" \
             -e EP_TF_STATE_S3_BUCKET_NAME="ep-service-builder" \
             -e EP_SERVICE_INSTANCE_TYPE="t3.small" \
