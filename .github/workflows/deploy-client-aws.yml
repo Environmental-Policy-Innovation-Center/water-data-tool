@@ -103,6 +103,7 @@ jobs:
     permissions:
       id-token: write
       contents: read
+      pull-requests: write
     env:
       AWS_REGION:      ${{ vars.AWS_REGION }}
       ECR_REPO_URI:    ${{ vars.ECR_REPO_URI }}
@@ -203,6 +204,28 @@ jobs:
             -e AWS_REGION="$AWS_REGION" \
             "$SERVICE_BUILDER_IMAGE"
 
+      - name: Allow PR nodes to reach RDS
+        run: |
+          NODE_SG_ID=$(aws ec2 describe-security-groups \
+            --filters "Name=group-name,Values=epapp__nodes_water_data_tool_pr_${{ env.PR_NUM }}__dev_us-east-1" \
+            --query 'SecurityGroups[0].GroupId' --output text)
+          aws ec2 authorize-security-group-ingress \
+            --group-id "${{ vars.RDS_SG_ID }}" \
+            --protocol tcp \
+            --port 5432 \
+            --source-group "$NODE_SG_ID" || true
+
+      - name: Comment URL on PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          PR_URL="https://water-data-tool-pr-${{ env.PR_NUM }}.policyinnovation.info/"
+          gh pr comment ${{ env.PR_NUM }} \
+            --body "**Preview environment deployed:** $PR_URL" \
+            --edit-last || \
+          gh pr comment ${{ env.PR_NUM }} \
+            --body "**Preview environment deployed:** $PR_URL"
+
       - name: Summary
         run: |
           PR_URL="https://water-data-tool-pr-${{ env.PR_NUM }}.policyinnovation.info/"
@@ -219,6 +242,7 @@ jobs:
     permissions:
       id-token: write
       contents: read
+      pull-requests: write
     env:
       AWS_REGION:            ${{ vars.AWS_REGION }}
       ECS_CLUSTER:           ${{ vars.ECS_CLUSTER }}
@@ -233,6 +257,21 @@ jobs:
 
       - name: Login to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Remove PR nodes from RDS allowlist
+        run: |
+          NODE_SG_ID=$(aws ec2 describe-security-groups \
+            --filters "Name=group-name,Values=epapp__nodes_water_data_tool_pr_${{ env.PR_NUM }}__dev_us-east-1" \
+            --query 'SecurityGroups[0].GroupId' --output text)
+          if [ -z "$NODE_SG_ID" ] || [ "$NODE_SG_ID" = "None" ]; then
+            echo "PR node SG not found, nothing to revoke."
+            exit 0
+          fi
+          aws ec2 revoke-security-group-ingress \
+            --group-id "${{ vars.RDS_SG_ID }}" \
+            --protocol tcp \
+            --port 5432 \
+            --source-group "$NODE_SG_ID" || true
 
       - name: Destroy PR environment via service_builder
         run: |
@@ -256,6 +295,16 @@ jobs:
             -e AWS_SESSION_TOKEN="$AWS_SESSION_TOKEN" \
             -e AWS_REGION="$AWS_REGION" \
             "$SERVICE_BUILDER_IMAGE"
+
+      - name: Comment teardown on PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh pr comment ${{ env.PR_NUM }} \
+            --body "**Preview environment torn down.** This PR has been closed." \
+            --edit-last || \
+          gh pr comment ${{ env.PR_NUM }} \
+            --body "**Preview environment torn down.** This PR has been closed."
 
       - name: Summary
         run: |
