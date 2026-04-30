@@ -8,6 +8,10 @@
    - Slider/histogram styles (was lines 827–940): slider_controller is a stub
    - #filter-list-container styles (was lines 1716–1751): element always display:none
    - Choropleth legend styles (was lines 1840–1895): feature not built
+
+   Removed DataTables CSS (April 2026 — Tier 2):
+   - #results-table .dt-* styles: DataTables removed, replaced by Turbo Frame table
+   - #data-table, .first-col, .dt-scroll-body: replaced by Tailwind in _table.html.erb
 */
 
 /*
@@ -672,7 +676,11 @@ ul.stats-list li{
 
 .table-header{
   margin-top: 60px;
-  height: 0px;
+  overflow: hidden;
+}
+
+turbo-frame#data-table {
+  display: block;
 }
 
 .table-head-col-1,
@@ -708,105 +716,6 @@ ul.stats-list li{
   left: 10px;
 }
 
-/* DataTables wrapper — sits inside .container-section-inner */
-#results-table .dt-container {
-  font-size: 14px;
-}
-
-/* Search box */
-#results-table .dt-search input {
-  border: 1px solid #bfbfbf;
-  border-radius: 20px;
-  padding: 4px 12px;
-  font-size: 14px;
-  outline: none;
-}
-
-/* Remove default DT label text ("Search:") */
-#results-table .dt-search label {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-/* Info text and pagination */
-#results-table .dt-layout-row:last-child {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 6px 0;
-  font-size: 13px;
-}
-
-/* Paging buttons */
-#results-table .dt-paging .dt-paging-button {
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  padding: 2px 8px;
-  cursor: pointer;
-  background: #fff;
-  font-size: 13px;
-}
-#results-table .dt-paging .dt-paging-button.current {
-  background: #e7ede2;
-  border-color: #4ea324;
-  color: #333;
-}
-#results-table .dt-paging .dt-paging-button:hover:not(.disabled) {
-  background: #f5f5f5;
-}
-
-/* Processing indicator */
-#results-table .dt-processing {
-  font-size: 13px;
-  color: #666;
-}
-
-/* The table element itself — DataTables scroll handles height */
-#data-table {
-  width: 100%;
-  border-collapse: collapse;
-  border: 1px solid #eee;
-}
-
-.first-col {
-  position: sticky;
-  left: 0;
-  z-index: 1;
-  background-color: #fff;
-}
-
-#data-table thead tr {
-  z-index: 999;
-  font-size: 14px;
-}
-
-#data-table th {
-  background-color: #fafafa;
-  min-width: 200px;
-  font-weight: 500;
-  font-size: 14px;
-  vertical-align: baseline;
-  text-align: left;
-  white-space: nowrap;
-}
-#data-table th:hover {
-  background-color: #f2f2f2;
-  text-decoration: underline;
-}
-
-#data-table tbody tr {
-  border: 1px solid #eee;
-}
-#data-table tbody tr.active {
-  background-color: #f5f5f5;
-}
-
-/* DataTables scroll body border */
-.dt-scroll-body {
-  border: 1px solid #eee;
-  margin-top: 8px;
-}
 
 
 .container-population-filter-grid{
@@ -1195,6 +1104,9 @@ ul.stats-list li{
 
 /* table-mode: show the table panel */
 #container-map.table-mode #container-table { display: block; }
+
+/* table-mode: hide stats bar (only relevant on the map view) */
+#container-map.table-mode turbo-frame#stats-bar { display: none; }
 
 
 /* REPORT */
@@ -1870,10 +1782,6 @@ ul.stats-list li{
   #container-mobile-menu .container-mobile-menu-inner ul li a{
     max-width:216px;
     margin-left:0px;
-  }
-
-  #data-table th{
-    min-width:120px;
   }
 
   .container-ak-hi-mobile{

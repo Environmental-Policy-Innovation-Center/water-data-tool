@@ -91,111 +91,92 @@ RSpec.describe "Home", type: :request do
     end
   end
 
-  describe "GET /table.json" do
-    let(:ssp_params) { {draw: 1, start: 0, length: 100, "search[value]": "", "order[0][column]": 0, "order[0][dir]": "asc"} }
-
+  describe "GET /table" do
     it "returns 200" do
-      get table_path, params: ssp_params
+      get table_path
       expect(response).to have_http_status(:ok)
     end
 
-    it "returns JSON with DataTables SSP keys" do
-      get table_path, params: ssp_params
-      body = response.parsed_body
-      expect(body.keys).to include("draw", "recordsTotal", "recordsFiltered", "data")
+    it "renders a turbo-frame with id=data-table" do
+      get table_path
+      expect(response.body).to include('id="data-table"')
     end
 
-    it "echoes the draw parameter" do
-      get table_path, params: ssp_params.merge(draw: 7)
-      expect(response.parsed_body["draw"]).to eq(7)
+    it "renders column headers" do
+      get table_path
+      expect(response.body).to include("Utility Name")
+      expect(response.body).to include("State")
+      expect(response.body).to include("County")
     end
 
-    it "returns a row hash for each PWS" do
+    it "renders pws_name in the table body" do
       create(:public_water_system, pws_name: "Aloha Water")
-      get table_path, params: ssp_params
-      row = response.parsed_body["data"].first
-      expect(row["pws_name"]).to eq("Aloha Water")
-      expect(row).to have_key("pwsid")
-      expect(row).to have_key("stusps")
-      expect(row).to have_key("health_violations_5yr")
-      expect(row).to have_key("total_population")
-      expect(row).to have_key("cejst_disadvantaged_pct")
-      expect(row).to have_key("total_srf_assistance")
-      expect(row).to have_key("impaired_streams_303d")
+      get table_path
+      expect(response.body).to include("Aloha Water")
     end
 
-    it "reflects recordsTotal and recordsFiltered" do
-      create_list(:public_water_system, 3)
-      get table_path, params: ssp_params
-      body = response.parsed_body
-      expect(body["recordsTotal"]).to eq(3)
-      expect(body["recordsFiltered"]).to eq(3)
+    it "renders an EPA facility report link when present" do
+      create(:public_water_system, pws_name: "Aloha Water", detailed_facility_report: "https://example.com/report")
+      get table_path
+      expect(response.body).to include("https://example.com/report")
     end
 
-    it "filters by search value (pws_name)" do
+    it "sorts ascending by pws_name by default" do
+      create(:public_water_system, pws_name: "Zebra Water")
+      create(:public_water_system, pws_name: "Alpha Water")
+      get table_path
+      expect(response.body.index("Alpha Water")).to be < response.body.index("Zebra Water")
+    end
+
+    it "sorts descending when direction=desc" do
+      create(:public_water_system, pws_name: "Alpha Water")
+      create(:public_water_system, pws_name: "Zebra Water")
+      get table_path, params: {sort: "pws_name", direction: "desc"}
+      expect(response.body.index("Zebra Water")).to be < response.body.index("Alpha Water")
+    end
+
+    it "sorts by a valid non-default column" do
+      create(:public_water_system, stusps: "AK", pws_name: "System A")
+      create(:public_water_system, stusps: "ZZ", pws_name: "System Z")
+      get table_path, params: {sort: "stusps", direction: "asc"}
+      expect(response.body.index("System A")).to be < response.body.index("System Z")
+    end
+
+    it "falls back to pws_name sort for an unknown column" do
+      create(:public_water_system, pws_name: "Alpha Water")
+      create(:public_water_system, pws_name: "Zebra Water")
+      get table_path, params: {sort: "nonexistent_column"}
+      expect(response.body.index("Alpha Water")).to be < response.body.index("Zebra Water")
+    end
+
+    it "paginates — renders Next link when results exceed per_page" do
+      create_list(:public_water_system, 55)
+      get table_path, params: {per_page: 50}
+      expect(response.body).to include("Next")
+    end
+
+    it "filters by gw_sw_code" do
+      create(:public_water_system, gw_sw_code: "GW", pws_name: "Groundwater System")
+      create(:public_water_system, gw_sw_code: "SW", pws_name: "Surface System")
+      get table_path, params: {gw_sw_code: "GW"}
+      expect(response.body).to include("Groundwater System")
+      expect(response.body).not_to include("Surface System")
+    end
+
+    it "filters by owner_type array" do
+      create(:public_water_system, owner_type: "Federal", pws_name: "Federal System")
+      create(:public_water_system, owner_type: "State", pws_name: "State System")
+      get table_path, params: {owner_type: ["Federal"]}
+      expect(response.body).to include("Federal System")
+      expect(response.body).not_to include("State System")
+    end
+
+    it "searches by pws_name" do
       create(:public_water_system, pws_name: "Aloha Water District")
       create(:public_water_system, pws_name: "Blue River Authority")
-      get table_path, params: ssp_params.merge("search[value]": "aloha")
-      body = response.parsed_body
-      expect(body["recordsFiltered"]).to eq(1)
-      expect(body["data"].first["pws_name"]).to eq("Aloha Water District")
-    end
-
-    it "paginates via start and length" do
-      create(:public_water_system, pws_name: "Alpha Water")
-      create(:public_water_system, pws_name: "Zebra Water")
-      get table_path, params: ssp_params.merge(start: 1, length: 1)
-      body = response.parsed_body
-      expect(body["data"].length).to eq(1)
-      expect(body["data"].first["pws_name"]).to eq("Zebra Water")
-    end
-
-    it "orders by pws_name desc when requested" do
-      create(:public_water_system, pws_name: "Alpha Water")
-      create(:public_water_system, pws_name: "Zebra Water")
-      get table_path, params: ssp_params.merge("order[0][dir]": "desc")
-      names = response.parsed_body["data"].map { |r| r["pws_name"] }
-      expect(names).to eq(["Zebra Water", "Alpha Water"])
-    end
-
-    it "falls back to pws_name ordering for an invalid column index" do
-      create(:public_water_system, pws_name: "Alpha Water")
-      create(:public_water_system, pws_name: "Zebra Water")
-      get table_path, params: ssp_params.merge("order[0][column]": 999)
-      names = response.parsed_body["data"].map { |r| r["pws_name"] }
-      expect(names).to eq(["Alpha Water", "Zebra Water"])
-    end
-
-    context "with filter params" do
-      it "filters by gw_sw_code" do
-        create(:public_water_system, gw_sw_code: "GW")
-        create(:public_water_system, gw_sw_code: "SW")
-        get table_path, params: ssp_params.merge(gw_sw_code: "GW")
-        expect(response.parsed_body["recordsFiltered"]).to eq(1)
-      end
-
-      it "filters by owner_type array" do
-        create(:public_water_system, owner_type: "Federal")
-        create(:public_water_system, owner_type: "State")
-        get table_path, params: ssp_params.merge(owner_type: ["Federal"])
-        expect(response.parsed_body["recordsFiltered"]).to eq(1)
-      end
-
-      it "filters open violations" do
-        create(:public_water_system, open_health_viol: "Yes")
-        create(:public_water_system, open_health_viol: "No")
-        get table_path, params: ssp_params.merge(has_open_violations: "true")
-        expect(response.parsed_body["recordsFiltered"]).to eq(1)
-      end
-
-      it "does not change recordsTotal when filters are applied" do
-        create_list(:public_water_system, 3, gw_sw_code: "GW")
-        create(:public_water_system, gw_sw_code: "SW")
-        get table_path, params: ssp_params.merge(gw_sw_code: "GW")
-        body = response.parsed_body
-        expect(body["recordsTotal"]).to eq(4)
-        expect(body["recordsFiltered"]).to eq(3)
-      end
+      get table_path, params: {search: "aloha"}
+      expect(response.body).to include("Aloha Water District")
+      expect(response.body).not_to include("Blue River Authority")
     end
   end
 end

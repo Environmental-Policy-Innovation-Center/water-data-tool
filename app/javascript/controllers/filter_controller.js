@@ -23,7 +23,9 @@ export default class extends Controller {
         this.#closeAll()
       }
     }
+    this._statsFrame = document.querySelector("turbo-frame#stats-bar")
     document.addEventListener("click", this._outsideClick)
+    document.addEventListener("table:show", this.#onTableShow)
     this.#setupResponsiveFilters()
     this.#restoreFromUrl()
     this.#updateBadges()
@@ -31,6 +33,7 @@ export default class extends Controller {
 
   disconnect() {
     document.removeEventListener("click", this._outsideClick)
+    document.removeEventListener("table:show", this.#onTableShow)
     this.#teardownResponsiveFilters()
   }
 
@@ -66,6 +69,7 @@ export default class extends Controller {
     this.#updateBadges()
     document.dispatchEvent(new CustomEvent("filters:changed"))
     this.#reloadStatsFrame()
+    this.#reloadTableFrame()
   }
 
   resetAll(event) {
@@ -250,6 +254,7 @@ export default class extends Controller {
     FilterState.set(params)
     document.dispatchEvent(new CustomEvent("filters:changed"))
     this.#reloadStatsFrame()
+    this.#reloadTableFrame()
   }
 
   #restoreDomState(params) {
@@ -408,15 +413,29 @@ export default class extends Controller {
   }
 
   #reloadStatsFrame() {
-    const frame = document.querySelector("turbo-frame#stats-bar")
-    if (!frame) return
-
+    if (!this._statsFrame) return
     const newSrc = `/public_water_systems/stats?${FilterState.toUrlParams()}`
-    if (frame.src === newSrc) return
-    frame.src = newSrc
+    if (this._statsFrame.src === newSrc) return
+    this._statsFrame.src = newSrc
+    document.getElementById("container-map-content-bottom")?.classList.add("has-stats")
+  }
 
-    const intro = document.getElementById("container-map-content-bottom")
-    if (intro) intro.classList.add("has-stats")
+  // Only visits if the frame has been shown at least once — avoids a background
+  // request before the user has navigated to Table view.
+  #reloadTableFrame() {
+    if (!this.#tableLoaded) return
+    this.#visitTableFrame()
+  }
+
+  #tableLoaded = false
+
+  #onTableShow = () => {
+    this.#tableLoaded = true
+    this.#visitTableFrame()
+  }
+
+  #visitTableFrame() {
+    Turbo.visit(`/table?${FilterState.toUrlParams()}`, { frame: "data-table" })
   }
 
   // Breakpoints match the legacy app (adjusted for map container width rather than window width).

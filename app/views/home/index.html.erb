@@ -142,7 +142,7 @@
       bar stays visible when the user switches to it.
       Shown/hidden via the .table-mode class on container-map.
       ===================================================== %>
-  <div id="container-table" data-controller="table">
+  <div id="container-table">
     <div class="container-section-inner">
       <div class="table-header">
         <div class="table-head-col-1">
@@ -157,10 +157,10 @@
         </div>
       </div>
 
-      <%# DataTables initialised by table_controller on connect %>
-      <div id="results-table">
-        <table id="data-table" class="display stripe"></table>
-      </div>
+      <%# Table loaded via Turbo Frame — filter_controller sets src on table:show %>
+      <turbo-frame id="data-table" aria-live="polite" aria-label="Public water systems table">
+        <p class="px-3 py-8 text-center text-gray-400 text-sm">Loading data table…</p>
+      </turbo-frame>
     </div>
   </div>
 </div>

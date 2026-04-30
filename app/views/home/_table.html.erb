@@ -1,0 +1,261 @@
+<%# Reusable class strings for header and data cells.
+    table-fixed layout requires explicit w-* (not min-w-*) so column widths are
+    determined by the header row and never resize based on cell content. %>
+<% th = "bg-gray-50 border-b border-gray-200 px-3 py-2 font-medium text-left w-48 overflow-hidden" %>
+<% th_sm = "bg-gray-50 border-b border-gray-200 px-3 py-2 font-medium text-left w-24 overflow-hidden" %>
+<% th_sticky = "sticky left-0 z-10 bg-gray-50 border-b border-gray-200 px-3 py-2 font-medium text-left w-56 overflow-hidden" %>
+<% td = "px-3 py-2 border-b border-gray-100 overflow-hidden" %>
+<% td_sticky = "sticky left-0 z-10 bg-white px-3 py-2 border-b border-gray-100 overflow-hidden" %>
+<% td_num = "px-3 py-2 border-b border-gray-100 tabular-nums text-right overflow-hidden" %>
+
+<turbo-frame id="data-table">
+  <%# Horizontal scroll region — tabindex makes it keyboard-focusable for arrow-key scrolling %>
+  <div class="overflow-x-auto" role="region" aria-label="Public water systems data" tabindex="0">
+    <table class="table-fixed border-collapse text-sm">
+      <caption class="sr-only">
+        Public water systems — <%= @pagy.count %> total<%= params[:search].present? ? ", filtered by search: #{h params[:search]}" : "" %>
+      </caption>
+      <thead>
+        <tr>
+          <%# ── Core identity ─────────────────────────────────────── %>
+          <th scope="col" class="<%= th_sticky %>" aria-sort="<%= aria_sort("pws_name") %>">
+            <%= table_sort_link("pws_name", "Utility Name") %>
+          </th>
+          <th scope="col" class="<%= th %>" aria-sort="<%= aria_sort("pwsid") %>">
+            <%= table_sort_link("pwsid", "Utility ID") %>
+          </th>
+          <th scope="col" class="<%= th_sm %>">EPA Facility Report</th>
+          <th scope="col" class="<%= th_sm %>" aria-sort="<%= aria_sort("stusps") %>">
+            <%= table_sort_link("stusps", "State") %>
+          </th>
+          <%# ── Geography & system type ─────────────────────────── %>
+          <th scope="col" class="<%= th %>" aria-sort="<%= aria_sort("counties") %>">
+            <%= table_sort_link("counties", "County") %>
+          </th>
+          <th scope="col" class="<%= th %>" aria-sort="<%= aria_sort("gw_sw_code") %>">
+            <%= table_sort_link("gw_sw_code", "Source type") %>
+          </th>
+          <th scope="col" class="<%= th %>" aria-sort="<%= aria_sort("source_water_protection_code") %>">
+            <%= table_sort_link("source_water_protection_code", "Source protection") %>
+          </th>
+          <th scope="col" class="<%= th %>" aria-sort="<%= aria_sort("owner_type") %>">
+            <%= table_sort_link("owner_type", "Ownership") %>
+          </th>
+          <th scope="col" class="<%= th %>" aria-sort="<%= aria_sort("primacy_type") %>">
+            <%= table_sort_link("primacy_type", "Authority") %>
+          </th>
+          <th scope="col" class="<%= th %>" aria-sort="<%= aria_sort("is_wholesaler") %>">
+            <%= table_sort_link("is_wholesaler", "Wholesaler") %>
+          </th>
+          <th scope="col" class="<%= th %>" aria-sort="<%= aria_sort("is_school_or_daycare") %>">
+            <%= table_sort_link("is_school_or_daycare", "Facility type (School or daycare)") %>
+          </th>
+          <th scope="col" class="<%= th %>" aria-sort="<%= aria_sort("symbology_field") %>">
+            <%= table_sort_link("symbology_field", "Boundary type") %>
+          </th>
+          <th scope="col" class="<%= th %>" aria-sort="<%= aria_sort("area_sq_miles") %>">
+            <%= table_sort_link("area_sq_miles", "Size (sq mi)") %>
+          </th>
+          <th scope="col" class="<%= th %>" aria-sort="<%= aria_sort("open_health_viol") %>">
+            <%= table_sort_link("open_health_viol", "Open violations") %>
+          </th>
+          <%# ── Violations — 5 year ─────────────────────────────── %>
+          <th scope="col" class="<%= th %>">Health violations (5yr)</th>
+          <th scope="col" class="<%= th %>">Groundwater rule violations (5yr)</th>
+          <th scope="col" class="<%= th %>">Surface water treatment violations (5yr)</th>
+          <th scope="col" class="<%= th %>">Lead & copper violations (5yr)</th>
+          <th scope="col" class="<%= th %>">Radionuclides violations (5yr)</th>
+          <th scope="col" class="<%= th %>">Inorganic chemicals violations (5yr)</th>
+          <th scope="col" class="<%= th %>">Synthetic organic chemicals violations (5yr)</th>
+          <th scope="col" class="<%= th %>">Volatile organic chemicals violations (5yr)</th>
+          <th scope="col" class="<%= th %>">Coliform violations (5yr)</th>
+          <th scope="col" class="<%= th %>">Stage 1 disinfectants violations (5yr)</th>
+          <th scope="col" class="<%= th %>">Stage 2 disinfectants violations (5yr)</th>
+          <%# ── Violations — 10 year ────────────────────────────── %>
+          <th scope="col" class="<%= th %>">Health violations (10yr)</th>
+          <th scope="col" class="<%= th %>">Groundwater rule violations (10yr)</th>
+          <th scope="col" class="<%= th %>">Surface water treatment violations (10yr)</th>
+          <th scope="col" class="<%= th %>">Lead & copper violations (10yr)</th>
+          <th scope="col" class="<%= th %>">Radionuclides violations (10yr)</th>
+          <th scope="col" class="<%= th %>">Inorganic chemicals violations (10yr)</th>
+          <th scope="col" class="<%= th %>">Synthetic organic chemicals violations (10yr)</th>
+          <th scope="col" class="<%= th %>">Volatile organic chemicals violations (10yr)</th>
+          <th scope="col" class="<%= th %>">Coliform violations (10yr)</th>
+          <th scope="col" class="<%= th %>">Stage 1 disinfectants violations (10yr)</th>
+          <th scope="col" class="<%= th %>">Stage 2 disinfectants violations (10yr)</th>
+          <%# ── Non-health violations ───────────────────────────── %>
+          <th scope="col" class="<%= th %>">Non-health violations (5yr)</th>
+          <th scope="col" class="<%= th %>">Non-health violations (10yr)</th>
+          <%# ── Boil water ──────────────────────────────────────── %>
+          <th scope="col" class="<%= th %>">Boil water notices</th>
+          <%# ── Demographics ────────────────────────────────────── %>
+          <th scope="col" class="<%= th %>">Population size</th>
+          <th scope="col" class="<%= th %>">Population density (per sq mi)</th>
+          <th scope="col" class="<%= th %>">Households below poverty line</th>
+          <th scope="col" class="<%= th %>">Unemployment</th>
+          <th scope="col" class="<%= th %>">Median household income</th>
+          <th scope="col" class="<%= th %>">Higher education attainment</th>
+          <th scope="col" class="<%= th %>">Children under 5</th>
+          <th scope="col" class="<%= th %>">Elderly over 61</th>
+          <th scope="col" class="<%= th %>">People of color</th>
+          <th scope="col" class="<%= th %>">White</th>
+          <th scope="col" class="<%= th %>">Black</th>
+          <th scope="col" class="<%= th %>">American Indian & Alaskan Native</th>
+          <th scope="col" class="<%= th %>">Native Hawaiian & Pacific Islander</th>
+          <th scope="col" class="<%= th %>">Asian</th>
+          <th scope="col" class="<%= th %>">Latino/a</th>
+          <th scope="col" class="<%= th %>">Other race</th>
+          <th scope="col" class="<%= th %>">Mixed race</th>
+          <th scope="col" class="<%= th %>">Annual water & sewer bill</th>
+          <%# ── Environmental justice ───────────────────────────── %>
+          <th scope="col" class="<%= th %>">Disadvantaged area</th>
+          <th scope="col" class="<%= th %>">Social Vulnerability Index</th>
+          <th scope="col" class="<%= th %>">Climate Vulnerability Index</th>
+          <%# ── Funding ─────────────────────────────────────────── %>
+          <th scope="col" class="<%= th %>">SRF financing (2021–2025) — times received</th>
+          <th scope="col" class="<%= th %>">SRF assistance (2021–2025)</th>
+          <th scope="col" class="<%= th %>">SRF principal forgiveness (2021–2025)</th>
+          <%# ── Watershed hazards ───────────────────────────────── %>
+          <th scope="col" class="<%= th %>">Source water connections</th>
+          <th scope="col" class="<%= th %>">Pollution permits with breaches</th>
+          <th scope="col" class="<%= th %>">Underground storage tanks</th>
+          <th scope="col" class="<%= th %>">Risk management plan facilities</th>
+          <th scope="col" class="<%= th %>">Impaired or threatened streams</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @systems.each do |pws| %>
+          <% vs  = pws.violations_summary %>
+          <% dm  = pws.demographic %>
+          <% ej  = pws.environmental_justice %>
+          <% fs  = pws.funding_summary %>
+          <% wh  = pws.watershed_hazard %>
+          <% bws = pws.boil_water_summary %>
+          <tr class="even:bg-gray-50 hover:bg-blue-50 transition-colors">
+            <%# ── Core identity ─────────────────────────────────── %>
+            <td class="<%= td_sticky %>" scope="row"><%= pws.pws_name %></td>
+            <td class="<%= td %>"><%= pws.pwsid %></td>
+            <td class="<%= td_sm = td %>">
+              <% if pws.detailed_facility_report.present? %>
+                <%= link_to "report",
+                    pws.detailed_facility_report,
+                    target: "_blank",
+                    rel: "noopener noreferrer",
+                    class: "text-blue-600 hover:underline focus:underline focus:outline-none",
+                    aria: {label: "EPA facility report for #{pws.pws_name} (opens in new tab)"} %>
+              <% end %>
+            </td>
+            <td class="<%= td %>"><%= pws.stusps %></td>
+            <%# ── Geography & system type ─────────────────────── %>
+            <td class="<%= td %>"><%= pws.counties %></td>
+            <td class="<%= td %>"><%= pws.gw_sw_code %></td>
+            <td class="<%= td %>"><%= pws.source_water_protection_code %></td>
+            <td class="<%= td %>"><%= pws.owner_type %></td>
+            <td class="<%= td %>"><%= pws.primacy_type %></td>
+            <td class="<%= td %>"><%= pws.is_wholesaler ? "Yes" : "No" %></td>
+            <td class="<%= td %>"><%= pws.is_school_or_daycare ? "Yes" : "No" %></td>
+            <td class="<%= td %>"><%= pws.symbology_field %></td>
+            <td class="<%= td_num %>"><%= fmt_dec(pws.area_sq_miles) %></td>
+            <td class="<%= td %>"><%= pws.open_health_viol %></td>
+            <%# ── Violations — 5 year ─────────────────────────── %>
+            <td class="<%= td_num %>"><%= fmt_num(vs&.health_violations_5yr) %></td>
+            <td class="<%= td_num %>"><%= fmt_num(vs&.groundwater_rule_5yr) %></td>
+            <td class="<%= td_num %>"><%= fmt_num(vs&.surface_water_treatment_5yr) %></td>
+            <td class="<%= td_num %>"><%= fmt_num(vs&.lead_and_copper_5yr) %></td>
+            <td class="<%= td_num %>"><%= fmt_num(vs&.radionuclides_5yr) %></td>
+            <td class="<%= td_num %>"><%= fmt_num(vs&.inorganic_chemicals_5yr) %></td>
+            <td class="<%= td_num %>"><%= fmt_num(vs&.synthetic_organic_chemicals_5yr) %></td>
+            <td class="<%= td_num %>"><%= fmt_num(vs&.volatile_organic_chemicals_5yr) %></td>
+            <td class="<%= td_num %>"><%= fmt_num(vs&.total_coliform_5yr) %></td>
+            <td class="<%= td_num %>"><%= fmt_num(vs&.stage_1_disinfectants_5yr) %></td>
+            <td class="<%= td_num %>"><%= fmt_num(vs&.stage_2_disinfectants_5yr) %></td>
+            <%# ── Violations — 10 year ────────────────────────── %>
+            <td class="<%= td_num %>"><%= fmt_num(vs&.health_violations_10yr) %></td>
+            <td class="<%= td_num %>"><%= fmt_num(vs&.groundwater_rule_10yr) %></td>
+            <td class="<%= td_num %>"><%= fmt_num(vs&.surface_water_treatment_10yr) %></td>
+            <td class="<%= td_num %>"><%= fmt_num(vs&.lead_and_copper_10yr) %></td>
+            <td class="<%= td_num %>"><%= fmt_num(vs&.radionuclides_10yr) %></td>
+            <td class="<%= td_num %>"><%= fmt_num(vs&.inorganic_chemicals_10yr) %></td>
+            <td class="<%= td_num %>"><%= fmt_num(vs&.synthetic_organic_chemicals_10yr) %></td>
+            <td class="<%= td_num %>"><%= fmt_num(vs&.volatile_organic_chemicals_10yr) %></td>
+            <td class="<%= td_num %>"><%= fmt_num(vs&.total_coliform_10yr) %></td>
+            <td class="<%= td_num %>"><%= fmt_num(vs&.stage_1_disinfectants_10yr) %></td>
+            <td class="<%= td_num %>"><%= fmt_num(vs&.stage_2_disinfectants_10yr) %></td>
+            <%# ── Non-health violations ───────────────────────── %>
+            <td class="<%= td_num %>"><%= fmt_num(vs&.paperwork_violations_5yr) %></td>
+            <td class="<%= td_num %>"><%= fmt_num(vs&.paperwork_violations_10yr) %></td>
+            <%# ── Boil water ──────────────────────────────────── %>
+            <td class="<%= td_num %>"><%= fmt_num(bws&.total_notices) %></td>
+            <%# ── Demographics ────────────────────────────────── %>
+            <td class="<%= td_num %>"><%= fmt_num(dm&.total_population) %></td>
+            <td class="<%= td_num %>"><%= fmt_dec(dm&.population_density, precision: 0) %></td>
+            <td class="<%= td_num %>"><%= fmt_pct(dm&.poverty_rate) %></td>
+            <td class="<%= td_num %>"><%= fmt_pct(dm&.unemployment_rate) %></td>
+            <td class="<%= td_num %>"><%= fmt_cur(dm&.median_household_income) %></td>
+            <td class="<%= td_num %>"><%= fmt_pct(dm&.bachelors_degree_rate) %></td>
+            <td class="<%= td_num %>"><%= fmt_pct(dm&.age_under_5_rate) %></td>
+            <td class="<%= td_num %>"><%= fmt_pct(dm&.age_over_61_rate) %></td>
+            <td class="<%= td_num %>"><%= fmt_pct(dm&.poc_rate) %></td>
+            <td class="<%= td_num %>"><%= fmt_pct(dm&.white_rate) %></td>
+            <td class="<%= td_num %>"><%= fmt_pct(dm&.black_rate) %></td>
+            <td class="<%= td_num %>"><%= fmt_pct(dm&.aian_rate) %></td>
+            <td class="<%= td_num %>"><%= fmt_pct(dm&.napi_rate) %></td>
+            <td class="<%= td_num %>"><%= fmt_pct(dm&.asian_rate) %></td>
+            <td class="<%= td_num %>"><%= fmt_pct(dm&.hispanic_rate) %></td>
+            <td class="<%= td_num %>"><%= fmt_pct(dm&.other_race_rate) %></td>
+            <td class="<%= td_num %>"><%= fmt_pct(dm&.mixed_race_rate) %></td>
+            <td class="<%= td %>"><%= dm&.most_common_rate_tier %></td>
+            <%# ── Environmental justice ───────────────────────── %>
+            <td class="<%= td_num %>"><%= fmt_pct(ej&.cejst_disadvantaged_pct) %></td>
+            <td class="<%= td_num %>"><%= fmt_pct(ej&.svi_overall_pctl) %></td>
+            <td class="<%= td_num %>"><%= fmt_pct(ej&.cvi_overall_score) %></td>
+            <%# ── Funding ─────────────────────────────────────── %>
+            <td class="<%= td_num %>"><%= fmt_num(fs&.times_funded) %></td>
+            <td class="<%= td_num %>"><%= fmt_cur(fs&.total_srf_assistance, precision: 2) %></td>
+            <td class="<%= td_num %>"><%= fmt_cur(fs&.total_principal_forgiveness, precision: 2) %></td>
+            <%# ── Watershed hazards ───────────────────────────── %>
+            <td class="<%= td_num %>"><%= fmt_num(wh&.num_facilities) %></td>
+            <td class="<%= td_num %>"><%= fmt_num(wh&.permit_effluent_violations) %></td>
+            <td class="<%= td_num %>"><%= fmt_num(wh&.open_underground_storage_tanks) %></td>
+            <td class="<%= td_num %>"><%= fmt_num(wh&.risk_management_plan_facilities) %></td>
+            <td class="<%= td_num %>"><%= fmt_num(wh&.impaired_streams_303d) %></td>
+          </tr>
+        <% end %>
+        <% if @systems.empty? %>
+          <tr>
+            <td colspan="69" class="px-3 py-8 text-center text-gray-500">No results match the current filters.</td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+
+  <%# Pagination %>
+  <% if @pagy.pages > 1 %>
+    <nav class="mt-4 flex flex-wrap items-center gap-2 text-sm" aria-label="Table page navigation">
+      <% if @pagy.previous %>
+        <%= link_to "← Previous",
+            url_for(request.query_parameters.merge("page" => @pagy.previous)),
+            class: "border border-gray-300 rounded px-3 py-1 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-gray-400",
+            aria: {label: "Go to previous page"} %>
+      <% else %>
+        <span class="border border-gray-200 rounded px-3 py-1 text-gray-400" aria-disabled="true">← Previous</span>
+      <% end %>
+
+      <span class="text-gray-600">Page <%= @pagy.page %> of <%= @pagy.last %></span>
+
+      <% if @pagy.next %>
+        <%= link_to "Next →",
+            url_for(request.query_parameters.merge("page" => @pagy.next)),
+            class: "border border-gray-300 rounded px-3 py-1 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-gray-400",
+            aria: {label: "Go to next page"} %>
+      <% else %>
+        <span class="border border-gray-200 rounded px-3 py-1 text-gray-400" aria-disabled="true">Next →</span>
+      <% end %>
+
+      <span class="text-gray-500 ml-2"><%= number_with_delimiter(@pagy.count) %> total systems</span>
+    </nav>
+  <% else %>
+    <p class="mt-3 text-sm text-gray-500"><%= number_with_delimiter(@pagy.count) %> total systems</p>
+  <% end %>
+</turbo-frame>
