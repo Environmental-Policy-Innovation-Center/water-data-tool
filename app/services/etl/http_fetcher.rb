@@ -16,6 +16,27 @@ module Etl
       Net::HTTP.get(uri)
     end
 
+    # Streams the HTTPS response body to a Tempfile in chunks, never buffering
+    # the full response in memory. Returns the open, rewound Tempfile — caller
+    # is responsible for calling close! when done.
+    def stream_to_tempfile(url)
+      uri = validated_https_uri(url)
+      ext = File.extname(uri.path)
+      tmpfile = Tempfile.new(["etl_download", ext], binmode: true)
+
+      Net::HTTP.start(uri.host, uri.port, use_ssl: true) do |http|
+        http.request_get(uri.request_uri) do |response|
+          response.read_body { |chunk| tmpfile.write(chunk) }
+        end
+      end
+
+      tmpfile.rewind
+      tmpfile
+    rescue
+      tmpfile&.close!
+      raise
+    end
+
     def head_url(url)
       uri = validated_https_uri(url)
       Net::HTTP.start(uri.host, uri.port, use_ssl: true) do |http|
