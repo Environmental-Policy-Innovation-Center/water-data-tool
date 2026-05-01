@@ -152,7 +152,8 @@ RSpec.describe "Home", type: :request do
     it "paginates — renders Next link when results exceed per_page" do
       create_list(:public_water_system, 55)
       get table_path, params: {per_page: 50}
-      expect(response.body).to include("Next")
+      expect(response.body).to include("›")
+      expect(response.body).to include("entries")
     end
 
     it "filters by gw_sw_code" do
@@ -177,6 +178,54 @@ RSpec.describe "Home", type: :request do
       get table_path, params: {search: "aloha"}
       expect(response.body).to include("Aloha Water District")
       expect(response.body).not_to include("Blue River Authority")
+    end
+
+    it "sorts null values last when sorting ascending" do
+      create(:public_water_system, pws_name: "Null System", area_sq_miles: nil)
+      create(:public_water_system, pws_name: "Data System", area_sq_miles: 10.0)
+      get table_path, params: {sort: "area_sq_miles", direction: "asc"}
+      expect(response.body.index("Data System")).to be < response.body.index("Null System")
+    end
+
+    it "sorts null values last when sorting descending" do
+      create(:public_water_system, pws_name: "Null System", area_sq_miles: nil)
+      create(:public_water_system, pws_name: "Data System", area_sq_miles: 10.0)
+      get table_path, params: {sort: "area_sq_miles", direction: "desc"}
+      expect(response.body.index("Data System")).to be < response.body.index("Null System")
+    end
+
+    it "renders — for nil boolean columns, not No" do
+      create(:public_water_system, pws_name: "Test System", is_wholesaler: nil, is_school_or_daycare: nil)
+      get table_path
+      expect(response.body).not_to match(/<td[^>]*>No<\/td>/)
+    end
+
+    it "renders No for false boolean columns" do
+      create(:public_water_system, pws_name: "Test System", is_wholesaler: false, is_school_or_daycare: false)
+      get table_path
+      expect(response.body).to include("No")
+    end
+
+    it "renders Yes for true boolean columns" do
+      create(:public_water_system, pws_name: "Test System", is_wholesaler: true)
+      get table_path
+      expect(response.body).to include("Yes")
+    end
+
+    it "renders stacked ▲▼ sort icons on column headers" do
+      get table_path
+      expect(response.body).to include("▲")
+      expect(response.body).to include("▼")
+    end
+
+    it "highlights the up arrow (text-gray-600) on the active column when sorted asc" do
+      get table_path, params: {sort: "pws_name", direction: "asc"}
+      expect(response.body).to include("text-gray-600")
+    end
+
+    it "highlights the down arrow (text-gray-600) on the active column when sorted desc" do
+      get table_path, params: {sort: "pws_name", direction: "desc"}
+      expect(response.body).to include("text-gray-600")
     end
   end
 end

@@ -50,6 +50,7 @@ class HomeController < ApplicationController
   def order_clause
     col = SORTABLE_COLUMNS.include?(params[:sort]) ? params[:sort] : "pws_name"
     dir = (params[:direction] == "desc") ? "DESC" : "ASC"
-    Arel.sql("public_water_systems.#{col} #{dir}")
+    tiebreaker = (col == "pws_name") ? "" : ", public_water_systems.pws_name ASC"
+    Arel.sql("public_water_systems.#{col} #{dir} NULLS LAST#{tiebreaker}")
   end
 end

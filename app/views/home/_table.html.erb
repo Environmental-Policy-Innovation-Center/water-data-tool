@@ -1,17 +1,35 @@
-<%# Reusable class strings for header and data cells.
-    table-fixed layout requires explicit w-* (not min-w-*) so column widths are
-    determined by the header row and never resize based on cell content. %>
-<% th = "bg-gray-50 border-b border-gray-200 px-3 py-2 font-medium text-left w-48 overflow-hidden" %>
-<% th_sm = "bg-gray-50 border-b border-gray-200 px-3 py-2 font-medium text-left w-24 overflow-hidden" %>
-<% th_sticky = "sticky left-0 z-10 bg-gray-50 border-b border-gray-200 px-3 py-2 font-medium text-left w-56 overflow-hidden" %>
-<% td = "px-3 py-2 border-b border-gray-100 overflow-hidden" %>
-<% td_sticky = "sticky left-0 z-10 bg-white px-3 py-2 border-b border-gray-100 overflow-hidden" %>
+<%# TODO (Tier 3): Replace these ERB class-string variables with ViewComponents.
+    Current pattern works but is a stopgap — class strings are invisible to tooling,
+    scoped only to this partial, and mix presentation config into template logic.
+
+    Suggested components:
+      - TableHeaderComponent     renders <th scope="col"> with sort link and aria-sort
+          props: column:, label:, size: (:default | :sm | :wide | :sticky)
+          absorbs: table_sort_link(), aria_sort(), col_highlight() helper calls
+          template owns the Tailwind classes (no more ERB string variables)
+
+      - TableCellComponent       renders <td> or sticky <th scope="row">
+          props: sticky: false, numeric: false, highlight_column: nil, row_stripe: nil
+          absorbs: td / td_num / td_sticky_base class assembly + col_highlight()
+
+    The table_sort_link helper in home_helper.rb also generates HTML with embedded
+    Tailwind — that moves into TableHeaderComponent's template at the same time.
+
+    Reference: docs/frontend_refactor/DATA_TABLE.md — "Key Files and Patterns" section.
+    ViewComponent gem is already a candidate dependency for Tier 3 (see FE_Architecture_Plan.md). %>
+<%# Reusable class strings for header and data cells — see TODO above. %>
+<% th = "sticky top-0 z-20 bg-gray-100 border-b border-gray-200 px-3 py-2 font-medium text-left whitespace-nowrap min-w-[10rem]" %>
+<% th_sm = "sticky top-0 z-20 bg-gray-100 border-b border-gray-200 px-3 py-2 font-medium text-left whitespace-nowrap min-w-[8rem]" %>
+<% th_wide = "sticky top-0 z-20 bg-gray-100 border-b border-gray-200 px-3 py-2 font-medium text-left whitespace-nowrap min-w-[14rem]" %>
+<% th_sticky = "sticky left-0 top-0 z-30 bg-gray-100 border-b border-gray-200 px-3 py-2 font-medium text-left whitespace-nowrap min-w-[12rem]" %>
+<% td = "px-3 py-2 border-b border-gray-100 overflow-hidden max-w-48" %>
+<% td_sticky_base = "sticky left-0 z-10 font-normal text-left group-hover:bg-blue-50 transition-colors px-3 py-2 border-b border-gray-100 overflow-hidden max-w-xs" %>
 <% td_num = "px-3 py-2 border-b border-gray-100 tabular-nums text-right overflow-hidden" %>
 
 <turbo-frame id="data-table">
-  <%# Horizontal scroll region — tabindex makes it keyboard-focusable for arrow-key scrolling %>
-  <div class="overflow-x-auto" role="region" aria-label="Public water systems data" tabindex="0">
-    <table class="table-fixed border-collapse text-sm">
+  <%# Single scroll region handles both axes; sticky <th top-0> sticks within this container %>
+  <div class="table-scroll overflow-auto flex-1 min-h-0" role="region" aria-label="Public water systems data" tabindex="0">
+    <table class="border-collapse text-sm">
       <caption class="sr-only">
         Public water systems — <%= @pagy.count %> total<%= params[:search].present? ? ", filtered by search: #{h params[:search]}" : "" %>
       </caption>
@@ -29,7 +47,7 @@
             <%= table_sort_link("stusps", "State") %>
           </th>
           <%# ── Geography & system type ─────────────────────────── %>
-          <th scope="col" class="<%= th %>" aria-sort="<%= aria_sort("counties") %>">
+          <th scope="col" class="<%= th_wide %>" aria-sort="<%= aria_sort("counties") %>">
             <%= table_sort_link("counties", "County") %>
           </th>
           <th scope="col" class="<%= th %>" aria-sort="<%= aria_sort("gw_sw_code") %>">
@@ -124,18 +142,21 @@
         </tr>
       </thead>
       <tbody>
-        <% @systems.each do |pws| %>
+        <% sort_is_pws_name = params[:sort] == "pws_name" %>
+        <% @systems.each_with_index do |pws, idx| %>
+          <% row_stripe = idx.even? ? "bg-white" : "bg-gray-50" %>
+          <% td_sticky = "#{td_sticky_base} #{sort_is_pws_name ? 'bg-blue-50' : row_stripe}" %>
           <% vs  = pws.violations_summary %>
           <% dm  = pws.demographic %>
           <% ej  = pws.environmental_justice %>
           <% fs  = pws.funding_summary %>
           <% wh  = pws.watershed_hazard %>
           <% bws = pws.boil_water_summary %>
-          <tr class="even:bg-gray-50 hover:bg-blue-50 transition-colors">
+          <tr class="group <%= row_stripe %> hover:bg-blue-50 transition-colors">
             <%# ── Core identity ─────────────────────────────────── %>
-            <td class="<%= td_sticky %>" scope="row"><%= pws.pws_name %></td>
-            <td class="<%= td %>"><%= pws.pwsid %></td>
-            <td class="<%= td_sm = td %>">
+            <th class="<%= td_sticky %>" scope="row"><%= pws.pws_name %></th>
+            <td class="<%= td %><%= col_highlight("pwsid") %>"><%= pws.pwsid %></td>
+            <td class="<%= td %>">
               <% if pws.detailed_facility_report.present? %>
                 <%= link_to "report",
                     pws.detailed_facility_report,
@@ -145,18 +166,18 @@
                     aria: {label: "EPA facility report for #{pws.pws_name} (opens in new tab)"} %>
               <% end %>
             </td>
-            <td class="<%= td %>"><%= pws.stusps %></td>
+            <td class="<%= td %><%= col_highlight("stusps") %>"><%= fmt_str(pws.stusps) %></td>
             <%# ── Geography & system type ─────────────────────── %>
-            <td class="<%= td %>"><%= pws.counties %></td>
-            <td class="<%= td %>"><%= pws.gw_sw_code %></td>
-            <td class="<%= td %>"><%= pws.source_water_protection_code %></td>
-            <td class="<%= td %>"><%= pws.owner_type %></td>
-            <td class="<%= td %>"><%= pws.primacy_type %></td>
-            <td class="<%= td %>"><%= pws.is_wholesaler ? "Yes" : "No" %></td>
-            <td class="<%= td %>"><%= pws.is_school_or_daycare ? "Yes" : "No" %></td>
-            <td class="<%= td %>"><%= pws.symbology_field %></td>
-            <td class="<%= td_num %>"><%= fmt_dec(pws.area_sq_miles) %></td>
-            <td class="<%= td %>"><%= pws.open_health_viol %></td>
+            <td class="<%= td %><%= col_highlight("counties") %>"><%= fmt_str(pws.counties) %></td>
+            <td class="<%= td %><%= col_highlight("gw_sw_code") %>"><%= fmt_str(pws.gw_sw_code) %></td>
+            <td class="<%= td %><%= col_highlight("source_water_protection_code") %>"><%= fmt_str(pws.source_water_protection_code) %></td>
+            <td class="<%= td %><%= col_highlight("owner_type") %>"><%= fmt_str(pws.owner_type) %></td>
+            <td class="<%= td %><%= col_highlight("primacy_type") %>"><%= fmt_str(pws.primacy_type) %></td>
+            <td class="<%= td %><%= col_highlight("is_wholesaler") %>"><%= fmt_bool(pws.is_wholesaler) %></td>
+            <td class="<%= td %><%= col_highlight("is_school_or_daycare") %>"><%= fmt_bool(pws.is_school_or_daycare) %></td>
+            <td class="<%= td %><%= col_highlight("symbology_field") %>"><%= fmt_str(pws.symbology_field) %></td>
+            <td class="<%= td_num %><%= col_highlight("area_sq_miles") %>"><%= fmt_dec(pws.area_sq_miles) %></td>
+            <td class="<%= td_num %><%= col_highlight("open_health_viol") %>"><%= fmt_num(pws.open_health_viol) %></td>
             <%# ── Violations — 5 year ─────────────────────────── %>
             <td class="<%= td_num %>"><%= fmt_num(vs&.health_violations_5yr) %></td>
             <td class="<%= td_num %>"><%= fmt_num(vs&.groundwater_rule_5yr) %></td>
@@ -204,7 +225,7 @@
             <td class="<%= td_num %>"><%= fmt_pct(dm&.hispanic_rate) %></td>
             <td class="<%= td_num %>"><%= fmt_pct(dm&.other_race_rate) %></td>
             <td class="<%= td_num %>"><%= fmt_pct(dm&.mixed_race_rate) %></td>
-            <td class="<%= td %>"><%= dm&.most_common_rate_tier %></td>
+            <td class="<%= td %>"><%= fmt_str(dm&.most_common_rate_tier) %></td>
             <%# ── Environmental justice ───────────────────────── %>
             <td class="<%= td_num %>"><%= fmt_pct(ej&.cejst_disadvantaged_pct) %></td>
             <td class="<%= td_num %>"><%= fmt_pct(ej&.svi_overall_pctl) %></td>
@@ -223,39 +244,94 @@
         <% end %>
         <% if @systems.empty? %>
           <tr>
-            <td colspan="69" class="px-3 py-8 text-center text-gray-500">No results match the current filters.</td>
+            <td colspan="68" class="px-3 py-8 text-center text-gray-500">No results match the current filters.</td>
           </tr>
         <% end %>
       </tbody>
     </table>
   </div>
 
-  <%# Pagination %>
-  <% if @pagy.pages > 1 %>
-    <nav class="mt-4 flex flex-wrap items-center gap-2 text-sm" aria-label="Table page navigation">
-      <% if @pagy.previous %>
-        <%= link_to "← Previous",
-            url_for(request.query_parameters.merge("page" => @pagy.previous)),
-            class: "border border-gray-300 rounded px-3 py-1 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-gray-400",
-            aria: {label: "Go to previous page"} %>
+  <%# Bottom nav bar — 3 columns: entry count | pagination nav | map/table toggle %>
+  <nav class="flex-shrink-0 flex items-center gap-4 text-sm border-t border-gray-200 px-4 py-3" aria-label="Table navigation">
+    <%# Col 1 — entry count, left-aligned, never wraps %>
+    <div class="shrink-0 whitespace-nowrap text-gray-500">
+      <% if @pagy.pages > 1 %>
+        Showing <%= number_with_delimiter(@pagy.from) %> to <%= number_with_delimiter(@pagy.to) %> of <%= number_with_delimiter(@pagy.count) %> entries
       <% else %>
-        <span class="border border-gray-200 rounded px-3 py-1 text-gray-400" aria-disabled="true">← Previous</span>
+        Showing <%= number_with_delimiter(@pagy.count) %> entries
       <% end %>
+    </div>
 
-      <span class="text-gray-600">Page <%= @pagy.page %> of <%= @pagy.last %></span>
+    <%# Col 2 — pagination controls, centered %>
+    <div class="flex-1 min-w-0 flex items-center justify-center gap-1">
+      <% if @pagy.pages > 1 %>
+        <%# First %>
+        <% if @pagy.page > 1 %>
+          <%= link_to "«",
+              url_for(request.query_parameters.merge("page" => 1)),
+              class: "border border-gray-300 rounded px-2 py-1 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-400",
+              aria: {label: "Go to first page"} %>
+        <% else %>
+          <span class="border border-gray-200 rounded px-2 py-1 text-gray-300" aria-disabled="true">«</span>
+        <% end %>
 
-      <% if @pagy.next %>
-        <%= link_to "Next →",
-            url_for(request.query_parameters.merge("page" => @pagy.next)),
-            class: "border border-gray-300 rounded px-3 py-1 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-gray-400",
-            aria: {label: "Go to next page"} %>
-      <% else %>
-        <span class="border border-gray-200 rounded px-3 py-1 text-gray-400" aria-disabled="true">Next →</span>
+        <%# Previous %>
+        <% if @pagy.previous %>
+          <%= link_to "‹",
+              url_for(request.query_parameters.merge("page" => @pagy.previous)),
+              class: "border border-gray-300 rounded px-2 py-1 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-400",
+              aria: {label: "Go to previous page"} %>
+        <% else %>
+          <span class="border border-gray-200 rounded px-2 py-1 text-gray-300" aria-disabled="true">‹</span>
+        <% end %>
+
+        <%# Page input form — submits as a Turbo Frame navigation %>
+        <form method="get" action="/table" data-turbo-frame="data-table" class="flex items-center gap-1.5">
+          <% request.query_parameters.except("page").each do |k, v| %>
+            <% if v.is_a?(Array) %>
+              <% v.each do |item| %><input type="hidden" name="<%= "#{k}[]" %>" value="<%= item %>"><% end %>
+            <% else %>
+              <input type="hidden" name="<%= k %>" value="<%= v %>">
+            <% end %>
+          <% end %>
+          <input type="number" name="page" value="<%= @pagy.page %>"
+                 min="1" max="<%= @pagy.last %>"
+                 class="border border-gray-300 rounded px-1.5 py-1 w-14 text-center focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-400"
+                 aria-label="Page number">
+          <span class="text-gray-500 whitespace-nowrap">of <%= number_with_delimiter(@pagy.last) %></span>
+          <button type="submit" class="sr-only">Go to page</button>
+        </form>
+
+        <%# Next %>
+        <% if @pagy.next %>
+          <%= link_to "›",
+              url_for(request.query_parameters.merge("page" => @pagy.next)),
+              class: "border border-gray-300 rounded px-2 py-1 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-400",
+              aria: {label: "Go to next page"} %>
+        <% else %>
+          <span class="border border-gray-200 rounded px-2 py-1 text-gray-300" aria-disabled="true">›</span>
+        <% end %>
+
+        <%# Last %>
+        <% if @pagy.page < @pagy.last %>
+          <%= link_to "»",
+              url_for(request.query_parameters.merge("page" => @pagy.last)),
+              class: "border border-gray-300 rounded px-2 py-1 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-400",
+              aria: {label: "Go to last page"} %>
+        <% else %>
+          <span class="border border-gray-200 rounded px-2 py-1 text-gray-300" aria-disabled="true">»</span>
+        <% end %>
       <% end %>
+    </div>
 
-      <span class="text-gray-500 ml-2"><%= number_with_delimiter(@pagy.count) %> total systems</span>
-    </nav>
-  <% else %>
-    <p class="mt-3 text-sm text-gray-500"><%= number_with_delimiter(@pagy.count) %> total systems</p>
-  <% end %>
+    <%# Col 3 — map/table toggle, right-aligned %>
+    <div class="shrink-0 flex justify-end gap-1">
+      <a href="javascript:void(0);" data-section="map"
+         class="nav-item nav-map-toggle border border-gray-300 rounded-full px-4 py-1.5 text-xs text-gray-600 hover:bg-gray-100 transition-colors whitespace-nowrap"
+         data-action="click->nav#show">Map</a>
+      <a href="javascript:void(0);" data-section="table"
+         class="nav-item nav-table active border border-transparent rounded-full px-4 py-1.5 text-xs bg-gray-500 text-white whitespace-nowrap"
+         data-action="click->nav#show">Table</a>
+    </div>
+  </nav>
 </turbo-frame>
