@@ -43,7 +43,7 @@ module Etl
                   INSERT INTO service_area_geometries (pwsid, geom, created_at, updated_at)
                   VALUES ($1, ST_GeomFromGeoJSON($2), NOW(), NOW())
                   ON CONFLICT (pwsid) DO UPDATE
-                    SET geom       = EXCLUDED.geom,
+                    SET geom = EXCLUDED.geom,
                         updated_at = NOW()
                 SQL
                 "EpaSabsGeoms#import!",

@@ -22,15 +22,16 @@ RSpec.describe Etl::Importers::EpaSabsGeoms do
 
   describe "#call" do
     context "when no prior import exists" do
-      before { create(:public_water_system, pwsid: "VT0000001") }
+      before do
+        create(:public_water_system, pwsid: "VT0000001")
+        stub_download
+      end
 
       it "inserts service_area_geometry records via PostGIS" do
-        stub_download
         expect { importer.call }.to change(ServiceAreaGeometry, :count).by(1)
       end
 
       it "persists a valid geometry" do
-        stub_download
         importer.call
         sag = ServiceAreaGeometry.find_by(pwsid: "VT0000001")
         expect(sag).not_to be_nil
@@ -38,17 +39,14 @@ RSpec.describe Etl::Importers::EpaSabsGeoms do
       end
 
       it "returns :imported" do
-        stub_download
         expect(importer.call).to eq(:imported)
       end
 
       it "records a DataImport entry" do
-        stub_download
         expect { importer.call }.to change(DataImport, :count).by(1)
       end
 
       it "stores the correct file_url on the DataImport record" do
-        stub_download
         importer.call
         expect(DataImport.last.file_url).to eq(file_url)
       end
@@ -85,12 +83,12 @@ RSpec.describe Etl::Importers::EpaSabsGeoms do
       before do
         create(:public_water_system, pwsid: "VT0000001")
         create(:data_import, file_url: file_url, imported_at: 1.hour.ago)
+        stub_download
       end
 
       let(:importer) { described_class.new(file_url: file_url, last_updated: 2.hours.ago, force: true) }
 
       it "imports even when the file has not changed" do
-        stub_download
         expect { importer.call }.to change(ServiceAreaGeometry, :count).by(1)
       end
     end

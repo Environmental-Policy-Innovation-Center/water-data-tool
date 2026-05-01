@@ -178,7 +178,7 @@ jobs:
             {"name":"SOLID_QUEUE_IN_PUMA", "value":"true"},
             {"name":"HTTP_PORT",           "value":"3000"},
             {"name":"TARGET_PORT",         "value":"3001"},
-            {"name":"ETL_SOURCE_URL",      "value":"https://tech-team-data.s3.us-east-1.amazonaws.com/national-dw-tool/test-staged"}
+            {"name":"ETL_SOURCE_URL",      "value":"${{ vars.ETL_SOURCE_URL }}"}
           ]'
 
           docker run --rm \
