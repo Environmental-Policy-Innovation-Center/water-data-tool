@@ -670,8 +670,13 @@ ul.stats-list li{
   background-color:#fff;
 }
 
-#container-table .container-section-inner{
-  padding:20px;
+/* TEMP need to move to Tailwinds use or potentially a view component*/
+#container-table .container-section-inner {
+  padding: 20px 20px 0 20px;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .table-header{
@@ -679,8 +684,36 @@ ul.stats-list li{
   overflow: hidden;
 }
 
+/* TEMP need to move to Tailwinds use or potentially a view component*/
 turbo-frame#data-table {
-  display: block;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+/* Styled scrollbars for the single table scroll container (handles both axes) */
+.table-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: #b0b0b0 #f1f1f1;
+}
+.table-scroll::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.table-scroll::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+.table-scroll::-webkit-scrollbar-thumb {
+  background: #b0b0b0;
+  border-radius: 4px;
+}
+.table-scroll::-webkit-scrollbar-thumb:hover {
+  background: #888;
+}
+.table-scroll::-webkit-scrollbar-corner {
+  background: #f1f1f1;
 }
 
 .table-head-col-1,
@@ -699,18 +732,18 @@ turbo-frame#data-table {
 
 .btn-export{
   text-decoration: none;
-  padding: 8px 12px 8px 40px;
+  padding: 7px 13px 7px 38px;
   margin-right: 4px;
   color: #fff;
   border-radius: 20px;
   background-color: #67a25e;
   border: 1px solid #bfbfbf;
-  font-size: .9em;
+  font-size: 0.875em;
   position:relative;
 }
 
 .btn-export img{
-  width: 18px;
+  width: 16px;
   position: absolute;
   top: 6px;
   left: 10px;
@@ -1094,7 +1127,6 @@ turbo-frame#data-table {
   bottom: 0;
   background-color: #fff;
   z-index: 3; /* above map canvas, below filter bar (z-index: 5) */
-  overflow-y: auto;
 }
 
 /* table-mode: hide map canvas and map-only overlays */
@@ -1102,8 +1134,11 @@ turbo-frame#data-table {
 #container-map.table-mode .hide-for-table { display: none; }
 #container-map.table-mode .mapboxgl-ctrl-top-left { display: none; }
 
-/* table-mode: show the table panel */
-#container-map.table-mode #container-table { display: block; }
+/* table-mode: show the table panel as a flex column so sticky headers and pinned footer work */
+#container-map.table-mode #container-table {
+  display: flex;
+  flex-direction: column;
+}
 
 /* table-mode: hide stats bar (only relevant on the map view) */
 #container-map.table-mode turbo-frame#stats-bar { display: none; }

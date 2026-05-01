@@ -116,7 +116,7 @@
       full report loaded into report-body Turbo Frame below %>
 
   <%# Map/Table view toggle — bottom right of map canvas %>
-  <div id="container-map-ui-bottom" class="container-map-ui hide-for-mobile">
+  <div id="container-map-ui-bottom" class="container-map-ui hide-for-mobile hide-for-table">
     <ul>
       <li>
         <a href="javascript:void(0);" data-section="map" class="nav-item nav-map-toggle active"
@@ -144,21 +144,21 @@
       ===================================================== %>
   <div id="container-table">
     <div class="container-section-inner">
-      <div class="table-header">
+      <div class="table-header py-6">
         <div class="table-head-col-1">
-          <p><strong>Public Water Utilities <span class="geo-filter"></span></strong></p>
+          <p class="text-m"><strong>Public Water Utilities <span class="geo-filter"></span></strong></p>
         </div>
         <div class="table-head-col-2" data-controller="export">
           <a href="#" class="btn-export" data-action="click->export#download">
             <%= image_tag "icon-downloads-white.png" %>Export
           </a>
-          <input type="radio" name="file-type" id="file-csv" value="csv" checked data-export-target="format" /><label for="file-csv">.csv</label>
-          <input type="radio" name="file-type" id="file-geojson" value="geojson" class="file-geojson" data-export-target="format" /><label for="file-geojson" class="file-geojson">.geojson</label>
+          <input type="radio" name="file-type" id="file-csv" value="csv" checked data-export-target="format" class="ml-4" /><label for="file-csv">.csv</label>
+          <input type="radio" name="file-type" id="file-geojson" value="geojson" class="file-geojson ml-3" data-export-target="format" /><label for="file-geojson" class="file-geojson">.geojson</label>
         </div>
       </div>
 
       <%# Table loaded via Turbo Frame — filter_controller sets src on table:show %>
-      <turbo-frame id="data-table" aria-live="polite" aria-label="Public water systems table">
+      <turbo-frame id="data-table" aria-live="polite" aria-label="Public water systems table" data-controller="table-frame">
         <p class="px-3 py-8 text-center text-gray-400 text-sm">Loading data table…</p>
       </turbo-frame>
     </div>
