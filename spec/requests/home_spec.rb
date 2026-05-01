@@ -194,10 +194,10 @@ RSpec.describe "Home", type: :request do
       expect(response.body.index("Data System")).to be < response.body.index("Null System")
     end
 
-    it "renders — for nil boolean columns, not No" do
-      create(:public_water_system, pws_name: "Test System", is_wholesaler: nil, is_school_or_daycare: nil)
+    it "renders Yes for true boolean columns" do
+      create(:public_water_system, pws_name: "Test System", is_wholesaler: true)
       get table_path
-      expect(response.body).not_to match(/<td[^>]*>No<\/td>/)
+      expect(response.body).to include("Yes")
     end
 
     it "renders No for false boolean columns" do
@@ -206,10 +206,17 @@ RSpec.describe "Home", type: :request do
       expect(response.body).to include("No")
     end
 
-    it "renders Yes for true boolean columns" do
-      create(:public_water_system, pws_name: "Test System", is_wholesaler: true)
+    it "renders '—' for nil boolean columns" do
+      create(:public_water_system, pws_name: "Test System", is_wholesaler: nil, is_school_or_daycare: nil, open_health_viol: nil)
       get table_path
-      expect(response.body).to include("Yes")
+      expect(response.body).not_to match(/<td[^>]*>\s*No\s*<\/td>/)
+      expect(response.body).to include("—")
+    end
+
+    it "renders '—' for nil string columns" do
+      create(:public_water_system, pws_name: "Test System", source_water_protection_code: nil)
+      get table_path
+      expect(response.body).to include("—")
     end
 
     it "renders stacked ▲▼ sort icons on column headers" do
