@@ -177,7 +177,8 @@ jobs:
             {"name":"RAILS_LOG_TO_STDOUT", "value":"1"},
             {"name":"SOLID_QUEUE_IN_PUMA", "value":"true"},
             {"name":"HTTP_PORT",           "value":"3000"},
-            {"name":"TARGET_PORT",         "value":"3001"}
+            {"name":"TARGET_PORT",         "value":"3001"},
+            {"name":"ETL_SOURCE_URL",      "value":"${{ vars.ETL_SOURCE_URL }}"}
           ]'
 
           docker run --rm \

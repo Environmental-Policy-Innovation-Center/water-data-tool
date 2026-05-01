@@ -49,6 +49,9 @@ gem "image_processing", "~> 1.2"
 gem "lograge"
 gem "lograge-sql"
 
+# Fast JSON parser with streaming/SAX support — used by ETL to process large GeoJSON without OOM
+gem "oj"
+
 group :development, :test do
   # Load environment variables from .env [https://github.com/bkeepers/dotenv]
   gem "dotenv-rails"
