@@ -189,12 +189,11 @@ This eliminates dark/white PNG pairs — color is controlled via Tailwind `text-
 - Design tokens: colors, spacing, typography, border radius, shadow values
 
 STATUS UPDATE: 
-  - 42 SVG files were downloaded from the 'Icons & Logos' section of the design system in Figma.
+  - ~44 SVG files were downloaded from the 'Icons & Logos' section of the design system in Figma.
   These have been saves in the `app/assets/dwet_design_system_svgs` directory
     - These were downloaded, presumably using the `RGB` selection for 'Colors', and `sRGB (same as file)` for the 'Color profile' option
     - `currentColor` was not an option
-  - Presumably we are missing some navigation arrows, when comparing to the current `/iamges/icons` dir.
-  - TBD if Figma has more content in the 'Buttons' collections, or elsewhere
+  - Presumably we are missing some navigation arrows, when comparing to the current `/images/icons` dir.
 
 Standard editor access is sufficient. Dev Mode is optional but useful for exact spacing values.
 
@@ -211,14 +210,14 @@ Standard editor access is sufficient. Dev Mode is optional but useful for exact 
 | **T1-C** | ✅ Done | **Move stats-bar reload to `filter_controller`.** Remove `#reloadStatsFrame()` from `table_controller.js`. Add it to `filter_controller`'s `apply()` and `#restoreFromUrl()`. Stats bar reloads on any filter change, regardless of which section is visible. | Apply a filter on the Map view → stats bar updates. Switch to Table view → stats bar is already current. Reload page with filter params in URL → stats bar reflects restored filters. |
 | **T1-D** | ✅ Done | **Delete dead CSS.** Removed Tippy.js, slider/histogram, `#filter-list-container`, choropleth legend from `water_tool.css`. ~390 lines removed. | No visible regressions in map, table, filter bar, or report overlay. |
 
-### Tier 2 — Replace DataTables with Turbo Frame Table
+### Tier 2 — Replace DataTables with Turbo Frame Table ✅
 
-| Task | Description |
-|---|---|
-| **T2-A** | **Create `_table.html.erb` partial.** Server-rendered HTML table wrapped in `<turbo-frame id="data-table">`. Column definitions move from 69 DataTables JS defs to ERB. Tailwind classes for styling. |
-| **T2-B** | **Add `HomeController#table` action.** Renders `_table.html.erb` as a Turbo Frame response. Accepts filter params. Reuses existing `Filterable` concern. |
-| **T2-C** | **Update `filter_controller` to reload Turbo Frame.** On `filters:changed`, set `turbo-frame#data-table` src to `/table?[params]`. |
-| **T2-D** | **Remove DataTables, jQuery, `table_controller`.** Remove CDN script tags from `application.html.erb`. Remove or gut `table_controller.js`. Remove DataTables CSS overrides from `water_tool.css`. |
+| Task | Status | Description | Test |
+|---|---|---|---|
+| **T2-A** | ✅ Done | **Create `_table.html.erb` partial.** Server-rendered HTML table wrapped in `<turbo-frame id="data-table">`. Column definitions move from 69 DataTables JS defs to ERB. Tailwind classes for styling. `table-fixed` layout with explicit `w-*` widths prevents column shift on filter. Boolean columns render "Yes"/"No". All columns have sort links with ↑/↓ indicators. | Rendered in browser: correct columns, Tailwind styling, sort links work, Yes/No booleans display, horizontal scroll position stable after filter apply. |
+| **T2-B** | ✅ Done | **Add `HomeController#table` action.** Renders `_table.html.erb` as a Turbo Frame response. Accepts filter params. Reuses existing `Filterable` concern. `SORTABLE_COLUMNS` allowlist guards `ORDER BY`. | Visited `/table?gw_sw_code=Groundwater` directly — returns Turbo Frame response with filtered rows. 12 request specs pass (`bundle exec rspec spec/requests/home_spec.rb`). |
+| **T2-C** | ✅ Done | **Update `filter_controller` to reload Turbo Frame.** On `filters:changed`, calls `Turbo.visit("/table?[params]", { frame: "data-table" })`. Guards on `#tableLoaded` flag so no background requests fire until user opens Table view. | Applied filters while in Table view — frame reloads with filtered data. Switched from Map view to Table view after changing filters — table reflects current filters. |
+| **T2-D** | ✅ Done | **Remove DataTables, jQuery, `table_controller`.** Remove CDN script tags from `application.html.erb`. Delete `table_controller.js`. Remove DataTables CSS overrides from `water_tool.css`. | Confirmed in browser console: `typeof window.DataTable === "undefined"`. No requests to `datatables.net` or `jquery` CDNs in Network tab on a fresh private window load. |
 
 ### Tier 3 — Introduce ViewComponent + Tailwind Components
 
