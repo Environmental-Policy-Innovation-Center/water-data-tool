@@ -64,6 +64,13 @@ class PublicWaterSystem < ApplicationRecord
 
   validates :pwsid, presence: true, format: {with: PWSID_FORMAT}
 
+  alias_attribute :area, :area_sq_miles
+  alias_attribute :counties_served, :counties
+  alias_attribute :name, :pws_name
+  alias_attribute :population_served, :population_served_count
+  alias_attribute :report_link, :detailed_facility_report
+  alias_attribute :source_protection, :source_water_protection_code
+
   # unscope(:order) required — ORDER BY is invalid on aggregates.
   # left_joins(:demographic) may duplicate a join from apply_filters, but PostgreSQL
   # handles duplicate LEFT JOINs on a non-nullable PK cleanly.
