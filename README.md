@@ -63,6 +63,8 @@ These URLs reflect the current hosting environment and should be replaced during
 
    Edit `.env` and fill in the required values:
    - `MAPBOX_ACCESS_TOKEN` — for map rendering
+   - `MAPBOX_STYLE_URL` — for account specific styling configs
+      - _placeholder value: `mapbox://styles/mapbox/light-v11Mapbox`_ 
    - `ETL_SOURCE_URL` — required for the database seed step. Both seeding and the ETL pipeline use this URL to locate source data files on S3 (see Prerequisites above)
 
    See the Environment Variables section below for the full list. If you have a port conflict with a local PostgreSQL install, also set `DB_PORT`.
@@ -114,6 +116,7 @@ These URLs reflect the current hosting environment and should be replaced during
 | Variable | Required | Description |
 |----------|----------|-------------|
 | `MAPBOX_ACCESS_TOKEN` | Yes | Mapbox GL JS token for map rendering |
+| `MAPBOX_STYLE_URL` | Yes | Mapbox Style URL for account specific styling config |
 | `DB_PORT` | No | PostgreSQL port (default `5432`). Only needed if your Docker container is mapped to a non-default port to avoid a conflict with a local PostgreSQL install — see `docker-compose.override.yml`. |
 | `ETL_SOURCE_URL` | Yes (setup + ETL) | Base HTTPS URL to the S3 folder containing source data files. Required for `bin/setup` and the ETL pipeline. No AWS credentials needed — the bucket is publicly readable. |
 | `RAILS_ENV` | No | Defaults to `development` |

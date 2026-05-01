@@ -6,7 +6,8 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="application-name" content="Water Data Tool">
     <meta name="mobile-web-app-capable" content="yes">
-    <meta name="mapbox-token" content="<%= ENV["MAPBOX_ACCESS_TOKEN"] %>">
+    <meta name="mapbox-token" content="<%= ENV.fetch("MAPBOX_ACCESS_TOKEN") %>">
+    <meta name="mapbox-style" content="<%= ENV.fetch("MAPBOX_STYLE_URL") %>">
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
 

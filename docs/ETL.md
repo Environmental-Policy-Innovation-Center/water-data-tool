@@ -65,11 +65,13 @@ Compare each file's `Last-Modified` against the most recent `imported_at` for th
 
 For each file that needs updating:
 
-1. Download the file via HTTP GET into memory
+1. Download the file (streamed to disk for large files — see below)
 2. Parse (CSV or GeoJSON)
 3. Validate row counts and data integrity
 4. Upsert into the live table (`ON CONFLICT UPDATE`)
 5. Record the import in `data_imports`
+
+**Large file handling**: `epa_sabs_geoms.geojson` is ~1 GB and is handled differently from CSVs. It is streamed to a tempfile via chunked HTTP download (`Net::HTTP` block form), then SAX-parsed one feature at a time using `Oj::Saj`. Features are inserted in 500-record batches and the batch is cleared after each insert, keeping peak memory at O(batch_size) rather than O(file_size). This prevents OOM kills in the 1700 MB container.
 
 ### Step 4: Run post-import steps
 
@@ -221,7 +223,7 @@ Configure a recurring job in `config/recurring.yml`:
 ```yaml
 etl_import:
   class: EtlImportJob
-  schedule: every day at 6am
+  schedule: every day at 12am America/New_York
 ```
 
 The job issues HEAD requests per file and only imports files with updated `Last-Modified` timestamps — safe to run frequently.

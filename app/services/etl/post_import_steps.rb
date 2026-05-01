@@ -9,8 +9,8 @@ module Etl
       generate_centroids
       assign_state_codes
       build_county_associations
-      build_place_crosswalks
       rebuild_spatial_indexes
+      build_place_crosswalks
     end
 
     # Repair invalid geometries using ST_Buffer trick. Runs until none remain
@@ -80,33 +80,43 @@ module Etl
 
     # Rebuild the place_system_crosswalks table from spatial intersections.
     # Runs atomically: the table is either fully rebuilt or left untouched.
+    #
+    # Single-pass CTE: computes ST_Intersection once per pair, derives both
+    # fractions from that result, and filters below-threshold pairs inline.
+    # The explicit && bounding-box pre-filter ensures the GiST index is used.
+    # Must run after rebuild_spatial_indexes so the index is fresh.
     def build_place_crosswalks
       ApplicationRecord.connection.transaction do
         ApplicationRecord.connection.execute("DELETE FROM place_system_crosswalks")
 
         inserted = ApplicationRecord.connection.execute(<<~SQL).cmd_tuples
-          INSERT INTO place_system_crosswalks (geoid, pwsid, created_at, updated_at)
-          SELECT cp.geoid, sag.pwsid, NOW(), NOW()
-          FROM cartographic_places cp
-          JOIN service_area_geometries sag ON ST_Intersects(sag.geom, cp.geom)
+          WITH intersections AS (
+            SELECT
+              cp.geoid,
+              sag.pwsid,
+              ST_Intersection(sag.geom, cp.geom) AS ix_geom,
+              ST_Area(sag.geom)                  AS sag_area,
+              ST_Area(cp.geom)                   AS place_area
+            FROM cartographic_places cp
+            JOIN service_area_geometries sag
+              ON sag.geom && cp.geom
+             AND ST_Intersects(sag.geom, cp.geom)
+          )
+          INSERT INTO place_system_crosswalks
+            (geoid, pwsid, fraction_of_service_area, fraction_of_place, created_at, updated_at)
+          SELECT
+            geoid,
+            pwsid,
+            ST_Area(ix_geom) / NULLIF(sag_area, 0),
+            ST_Area(ix_geom) / NULLIF(place_area, 0),
+            NOW(), NOW()
+          FROM intersections
+          WHERE ST_Area(ix_geom) / NULLIF(sag_area, 0)   >= 0.01
+             OR ST_Area(ix_geom) / NULLIF(place_area, 0) >= 0.01
           ON CONFLICT (geoid, pwsid) DO NOTHING
         SQL
 
-        ApplicationRecord.connection.execute(<<~SQL)
-          UPDATE place_system_crosswalks psc
-          SET fraction_of_service_area = ST_Area(ST_Intersection(sag.geom, cp.geom)) / NULLIF(ST_Area(sag.geom), 0),
-              fraction_of_place        = ST_Area(ST_Intersection(sag.geom, cp.geom)) / NULLIF(ST_Area(cp.geom), 0)
-          FROM service_area_geometries sag
-          JOIN cartographic_places cp ON ST_Intersects(sag.geom, cp.geom)
-          WHERE psc.pwsid = sag.pwsid AND psc.geoid = cp.geoid
-        SQL
-
-        pruned = ApplicationRecord.connection.execute(<<~SQL).cmd_tuples
-          DELETE FROM place_system_crosswalks
-          WHERE fraction_of_service_area < 0.01 OR fraction_of_place < 0.01
-        SQL
-
-        Rails.logger.info("[ETL] build_place_crosswalks: inserted #{inserted}, pruned #{pruned} crosswalk(s)")
+        Rails.logger.info("[ETL] build_place_crosswalks: inserted #{inserted} crosswalk(s)")
       end
     end
 
