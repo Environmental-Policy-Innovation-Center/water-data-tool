@@ -10,15 +10,15 @@ module Etl
         CSV.parse(content, headers: true) do |row|
           rows << {
             pwsid: row["pwsid"],
-            first_advisory_date: row["date_of_first_advisory"],
-            last_advisory_date: row["date_of_last_advisory"],
+            first_advisory_date: cast_string(row["date_of_first_advisory"]),
+            last_advisory_date: cast_string(row["date_of_last_advisory"]),
             total_notices: cast_int(row["total_bwn"]),
-            state_reporting_year_min: row["min_reporting_year_for_state"],
-            state_reporting_year_max: row["max_reporting_year_for_state"],
-            state: row["state"],
-            tooltip_text: row["data_tool_tip"],
-            download_url: row["download_link"],
-            date_range_display: row["clean_date_range"],
+            state_reporting_year_min: cast_string(row["min_reporting_year_for_state"]),
+            state_reporting_year_max: cast_string(row["max_reporting_year_for_state"]),
+            state: cast_string(row["state"]),
+            tooltip_text: cast_string(row["data_tool_tip"]),
+            download_url: cast_string(row["download_link"]),
+            date_range_display: cast_string(row["clean_date_range"]),
             created_at: Time.current,
             updated_at: Time.current
           }

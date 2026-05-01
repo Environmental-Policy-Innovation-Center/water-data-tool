@@ -1,18 +1,8 @@
 module Etl
   module TypeCaster
-    def cast_int(val)
-      return nil if val.nil?
-      stripped = val.strip
-      return nil if stripped.empty? || stripped.upcase == "NA"
-      stripped.to_i
-    end
-
-    def cast_dec(val)
-      return nil if val.nil?
-      stripped = val.strip
-      return nil if stripped.empty? || stripped.upcase == "NA"
-      stripped.to_d
-    end
+    def cast_int(val) = normalize(val)&.to_i
+    def cast_dec(val) = normalize(val)&.to_d
+    def cast_string(val) = normalize(val)
 
     def cast_bool(val)
       return nil if val.nil?
@@ -22,11 +12,14 @@ module Etl
     end
 
     # Source scores are stored as 0–1 floats; multiply by 100 at import time.
-    def cast_score(val)
+    def cast_score(val) = normalize(val)&.then { |v| (v.to_f * 100).round(2) }
+
+    private
+
+    def normalize(val)
       return nil if val.nil?
       stripped = val.strip
-      return nil if stripped.empty? || stripped.upcase == "NA"
-      (stripped.to_f * 100).round(2)
+      stripped unless stripped.empty? || stripped.upcase == "NA"
     end
   end
 end
