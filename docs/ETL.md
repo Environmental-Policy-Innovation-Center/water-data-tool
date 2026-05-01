@@ -85,17 +85,19 @@ Truncate the `tile_cache` table (if all source tables changed) or delete specifi
 
 ## Type Casting Rules
 
-The legacy ETL imports everything as TEXT. The new ETL casts at import time:
+The legacy ETL imports everything as TEXT. The new ETL casts at import time via helpers in `Etl::TypeCaster`:
 
-| Source Pattern | Target Type | Rule |
-|---------------|------------|------|
-| Numeric strings (`"42"`, `"1250000"`) | `integer` | `value.to_i` (NULL if blank or `"NA"`) |
-| Decimal strings (`"0.85"`, `"12.3"`) | `decimal` | `value.to_d` (NULL if blank or `"NA"`) |
-| `"Yes"`/`"No"` or `"Y"`/`"N"` indicators | `boolean` | `%w[Y YES].include?(value.strip.upcase)` |
-| 0-to-1 scores | `decimal` (×100) | `(value.to_f * 100).round(2)` — applies to `a_int_identified_as_disadvantaged`, `pw_int_pop_rpl_themes`, `a_int_overall_cvi_score` |
-| `"NA"` | `NULL` | All columns — legacy ETL already does this |
-| Empty strings | `NULL` | Treat as missing data |
-| Date-like strings | `string` | Keep as-is (date formats vary by state for BWN data) |
+| Helper | Source columns | DB type | Behavior |
+|--------|---------------|---------|----------|
+| `cast_int` | Numeric strings (`"42"`, `"1250000"`) | `integer` | `nil` if blank, `nil`/`NULL`, or `"NA"` (case-insensitive) |
+| `cast_dec` | Decimal strings (`"0.85"`, `"12.3"`) | `decimal` | `nil` if blank, `nil`/`NULL`, or `"NA"` |
+| `cast_score` | 0-to-1 floats (`a_int_identified_as_disadvantaged`, `pw_int_pop_rpl_themes`, `a_int_overall_cvi_score`) | `decimal` (×100) | `(value.to_f * 100).round(2)`, `nil` if blank or `"NA"` |
+| `cast_bool` | `"Yes"`/`"No"` or `"Y"`/`"N"` indicators | `boolean` | `true` if `Y`/`YES`, `false` otherwise, `nil` if blank |
+| `cast_string` | Free-text / categorical string columns | `string` | Strips whitespace; `nil` if blank or `"NA"`. Real values (`"Territory"`, `"State"`, `"Tribal"`, `"Surface Water"`, `"No"`, etc.) pass through unchanged. |
+
+**"NA" is a missing-value sentinel in the source CSVs** (a common convention in R/pandas pipelines). All five helpers normalize it to `NULL` in the database. No raw `"NA"` strings are stored.
+
+> **Open question — descriptive sentinel strings:** Some CSV columns contain longer explanatory strings instead of `"NA"` for missing data (e.g. `most_common_rate_tidy` uses `"No Information on annual water & sewer rates"`). These are not currently normalized and are stored as-is. Confirm with the EPIC data team whether these strings should be displayed to users or suppressed in favour of a `NULL` / "No data" display.
 
 ### Column Name Mapping
 
