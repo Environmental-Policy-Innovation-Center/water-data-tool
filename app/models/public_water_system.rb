@@ -41,7 +41,7 @@
 class PublicWaterSystem < ApplicationRecord
   include Filterable
 
-  PWSID_FORMAT = /\A[A-Z]{2}\d{7}\z/
+  PWSID_FORMAT = /\A[A-Z0-9]{9}\z/
 
   self.primary_key = "pwsid"
 

@@ -75,28 +75,38 @@ RSpec.describe PublicWaterSystem, type: :model do
   describe "validations" do
     it { is_expected.to validate_presence_of(:pwsid) }
 
-    it "accepts valid pwsid format" do
+    it "accepts standard state pwsid format" do
       pws = build(:public_water_system, pwsid: "VT0012345")
       expect(pws).to be_valid
     end
 
-    it "rejects lowercase state codes" do
+    it "accepts Utah-style pwsid with letters in the system-number portion" do
+      pws = build(:public_water_system, pwsid: "UTAH01001")
+      expect(pws).to be_valid
+    end
+
+    it "accepts tribal pwsid with numeric EPA region prefix" do
+      pws = build(:public_water_system, pwsid: "084690440")
+      expect(pws).to be_valid
+    end
+
+    it "rejects lowercase characters" do
       pws = build(:public_water_system, pwsid: "vt0012345")
       expect(pws).not_to be_valid
     end
 
-    it "rejects pwsid with wrong length" do
+    it "rejects pwsid shorter than 9 characters" do
       pws = build(:public_water_system, pwsid: "VT123")
       expect(pws).not_to be_valid
     end
 
-    it "rejects digits in place of state code" do
-      pws = build(:public_water_system, pwsid: "120012345")
+    it "rejects pwsid longer than 9 characters" do
+      pws = build(:public_water_system, pwsid: "VT00123456")
       expect(pws).not_to be_valid
     end
 
-    it "rejects non-digit characters in the numeric portion" do
-      pws = build(:public_water_system, pwsid: "VT001234X")
+    it "rejects pwsid containing special characters" do
+      pws = build(:public_water_system, pwsid: "VT-012345")
       expect(pws).not_to be_valid
     end
   end
