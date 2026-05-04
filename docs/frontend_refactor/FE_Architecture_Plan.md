@@ -159,27 +159,46 @@ Tailwind v4 uses CSS-based configuration. The source file is `app/assets/tailwin
 ### 4.1 Current State
 
 All ~50 icons are PNG files in `app/assets/images/`, used as CSS `background-image` references or `image_tag` helpers. Many come in dark/white pairs (e.g. `icon-explore-dark.png` / `icon-explore-white.png`). No SVG system exists.
+- Update: many SVG versions of the existing assets have been downloaded in .svg form and can be found in the `app/assets/dwet_design_system_svgs` directory. Flag any missing SVG files that we need to find and download.
 
-### 4.2 Target: Inline SVG via Helper
+### 4.2 Inline SVG via Helper — Implemented
 
-Replace PNGs with SVGs exported from Figma. The target pattern:
+The `icon()` helper is live in `app/helpers/ApplicationHelper`. Current implementation:
 
 ```ruby
 # app/helpers/application_helper.rb
-def icon(name, classes: nil)
-  file = Rails.root.join("app/assets/images/icons/#{name}.svg")
-  svg = file.read
-  svg = svg.sub('<svg', "<svg class='#{classes}'") if classes
-  svg.html_safe
+ICON_CACHE = Hash.new do |h, k|
+  h[k] = begin
+    File.read(Rails.root.join("app/assets/images/icons/#{k}.svg"))
+  rescue Errno::ENOENT
+    ""
+  end
+end
+
+def icon(name, classes: nil, aria_hidden: true)
+  safe_name = name.to_s.gsub(/[^a-z0-9\-_]/, "")   # path sanitization
+  svg = ICON_CACHE[safe_name]
+  return "".html_safe if svg.empty?
+  attrs = []
+  attrs << "class=\"#{ERB::Util.html_escape(classes)}\"" if classes
+  attrs << 'aria-hidden="true"' if aria_hidden
+  replacement = attrs.any? ? "<svg #{attrs.join(" ")}" : "<svg"
+  svg.sub("<svg", replacement).html_safe
 end
 ```
 
 ```erb
 <%# In a template or component %>
-<%= icon('explore', classes: 'w-5 h-5 fill-current text-gray-600') %>
+<%= icon('external-link', classes: 'inline w-4 h-4') %>
 ```
 
-This eliminates dark/white PNG pairs — color is controlled via Tailwind `text-*` or `fill-*` classes.
+Key behaviors:
+- `ICON_CACHE` caches reads per process — no repeated disk I/O per request
+- Returns `"".html_safe` (safe empty string) for missing files — callers never see broken images
+- `aria-hidden: true` by default — pass `aria_hidden: false` for icons that need announcement
+- `classes` is HTML-escaped before injection — safe against XSS from dynamic class strings
+- Icon names are sanitized to `[a-z0-9\-_]` — prevents path traversal
+- Filenames follow Figma names (kebab-case, no `icon-` prefix). Example: `icon('external-link')` not `icon('icon-ext-link')`
 
 ### 4.3 What to Get from Figma
 
@@ -219,55 +238,129 @@ Standard editor access is sufficient. Dev Mode is optional but useful for exact 
 | **T2-C** | ✅ Done | **Update `filter_controller` to reload Turbo Frame.** On `filters:changed`, calls `Turbo.visit("/table?[params]", { frame: "data-table" })`. Guards on `#tableLoaded` flag so no background requests fire until user opens Table view. | Applied filters while in Table view — frame reloads with filtered data. Switched from Map view to Table view after changing filters — table reflects current filters. |
 | **T2-D** | ✅ Done | **Remove DataTables, jQuery, `table_controller`.** Remove CDN script tags from `application.html.erb`. Delete `table_controller.js`. Remove DataTables CSS overrides from `water_tool.css`. | Confirmed in browser console: `typeof window.DataTable === "undefined"`. No requests to `datatables.net` or `jquery` CDNs in Network tab on a fresh private window load. |
 
-### Tier 3 — Introduce ViewComponent + Tailwind Components
+### Tier 3 — Introduce ViewComponent + Tailwind Components ✅
 
-| Task | Description |
-|---|---|
-| **T3-A** | **Install `view_component` and `lookbook` gems.** Configure Lookbook in development only. Verify `app/components/` is autoloaded. |
-| **T3-B** | **Extract `UI::DetailSectionComponent`.** The 8 report section partials follow the same pattern. Create component accepting `title:`, `rows:` array of `{label:, value:}`. Replace all 8 partials. |
-| **T3-C** | **Extract `UI::DatasetCardComponent` + make `_datasets.html.erb` data-driven.** Create `datasets.yml` or `Dataset` PORO. Replace 671-line hardcoded partial with a loop. |
-| **T3-D** | **Add SVG icon system.** Export SVGs from Figma into `app/assets/images/icons/`. Add `icon()` helper. Replace all `image_tag` icon references and CSS `background-image` icon references. |
-| **T3-E** | **Configure Figma design tokens in Tailwind.** Extract colors, spacing, font sizes from Figma. Define as `@theme` tokens in `app/assets/tailwind/application.css`. |
+| Task | Status | Description | Test |
+|---|---|---|
+| **T3-A** | ✅ Done | **Install `view_component` (4.8.0) and `lookbook` (2.3.14) gems.** Lookbook mounted at `/lookbook` in development only. `UI::` acronym inflection added to `config/initializers/inflections.rb` so Zeitwerk resolves the namespace. `spec/support/view_component.rb` wires `ViewComponent::TestHelpers` into RSpec. |
+| **T3-B** | ✅ Done | **Extract `UI::DetailSectionComponent`.** Accepts `title:`, `rows: [{label:, value:}]`, `data_available: true`. Violations section uses content-block form (its table has multi-column headers that don't fit the row model). Trends flag spans encoded as html_safe values in the row's value field. All 8 partials replaced. |
+| **T3-C** | ✅ Done | **Extract `UI::DatasetCardComponent` + make `_datasets.html.erb` data-driven.** All 27 datasets extracted to `config/datasets.yml`. `HomeHelper::DATASETS` constant loads YAML once at boot (not per-request). `HomeHelper#datasets` returns the constant. The 671-line hardcoded partial is now a 5-line loop. Dataset count in the header is dynamic. |
+| **T3-D** | ✅ Done | **SVG icon system wired up.** `icon()` helper added to `ApplicationHelper` — inlines SVG, adds `aria-hidden="true"` by default. 30 SVGs copied to `app/assets/images/icons/` using Figma SVG names (not legacy `icon-*.png` names). All 10 `image_tag` icon references in views replaced. **7 SVGs still missing — see below.** CSS `background-image` PNG references in `water_tool.css` are not yet replaced (deferred until surrounding HTML is converted to components). |
+| **T3-E** | ✅ Done | **Tailwind `@theme` tokens configured.** Confirmed tokens added: `--font-sans`, `--color-brand-primary` (#1054A8), `--color-brand-accent` (#4EA324), `--color-brand-dark` (#13171F), neutral scale. **Tokens requiring Figma confirmation are marked with comments in the file** — secondary color, hover states, border-radius values, shadows. |
 
-#### Tier 3 - Definition of done for every component
+#### Tier 3 — Implementation notes for future agents
 
-Every component task (T3-B, T3-C, and any future component extraction) is not complete until all three of the following exist:
+**Project uses RSpec, not Minitest.** Component specs live in `spec/components/ui/` (not `test/`). The `spec/support/view_component.rb` file includes `ViewComponent::TestHelpers`. Capybara is not installed — use `Nokogiri::HTML.parse(rendered_content)` for structural assertions, `rendered_content` with `include` for text checks.
+
+**`UI::` namespace requires an inflection.** Without it Zeitwerk maps `app/components/ui/` to `Ui::` (wrong). The fix is in `config/initializers/inflections.rb` and is already in place.
+
+**`icon()` helper behavior:** Returns `"".html_safe` (empty string) if the SVG file doesn't exist — safe to call for icons that haven't been migrated yet. `aria-hidden: true` is the default; pass `aria_hidden: false` for decorative icons that need to be announced. SVG content is cached in `ICON_CACHE` (process-level Hash) — no per-request disk reads.
+
+**SVG icon status — see [`docs/frontend_refactor/SVG_ICONS.md`](SVG_ICONS.md)** for:
+- Which SVG files are still needed to complete the PNG migration
+- The ideal end-state file list (full `currentColor` set, ~28 files)
+- Which current dark/white pairs can be consolidated once replacements are in place
+
+All 30 existing SVGs in `app/assets/images/icons/` have been updated to use `fill="currentColor"`.
+
+#### Tier 3 — Definition of done for every component
+
+Every component task is not complete until all three of the following exist:
 
 | Requirement | Detail |
 |---|---|
-| **Unit test** | `test/components/ui/[name]_component_test.rb` using `ViewComponent::TestCase`. Must cover: default render, any meaningful variants, and nil/empty edge cases for optional arguments. |
-| **Lookbook preview** | `app/components/previews/ui/[name]_component_preview.rb` with at least a default preview and one variant preview. This is the visual documentation — designers reference this alongside Figma. |
-| **No ActiveRecord in test** | Tests pass plain data only (strings, arrays, hashes). If you find yourself loading a fixture or factory to test a component, the component is violating R-01. |
+| **RSpec spec** | `spec/components/ui/[name]_component_spec.rb` with `type: :component`. Must cover: default render, meaningful variants, nil/empty edge cases. Use `Nokogiri::HTML.parse(rendered_content)` for structural assertions. |
+| **Lookbook preview** | `app/components/previews/ui/[name]_component_preview.rb` with at least a default preview and one variant preview. |
+| **No ActiveRecord in spec** | Tests pass plain data only (strings, arrays, hashes). If you load a fixture or factory, the component violates R-01. |
 
-Example test structure:
+Example spec structure:
 ```ruby
-# test/components/ui/detail_section_component_test.rb
-class UI::DetailSectionComponentTest < ViewComponent::TestCase
-  def test_renders_title
-    render_inline(UI::DetailSectionComponent.new(
-      title: "Water Source",
-      rows: [{ label: "Type", value: "Groundwater" }]
-    ))
-    assert_selector "h3", text: "Water Source"
-    assert_selector "td", text: "Groundwater"
+# spec/components/ui/detail_section_component_spec.rb
+RSpec.describe UI::DetailSectionComponent, type: :component do
+  def html = Nokogiri::HTML.parse(rendered_content)
+
+  it "renders the title" do
+    render_inline described_class.new(title: "Water Source", rows: [{label: "Type", value: "Groundwater"}])
+    expect(html.css("h3").text).to include("Water Source")
   end
 
-  def test_handles_empty_rows
-    render_inline(UI::DetailSectionComponent.new(title: "Empty", rows: []))
-    assert_selector "h3", text: "Empty"
-    refute_selector "td"
+  it "renders data not available when data_available is false" do
+    render_inline described_class.new(title: "Trends", data_available: false)
+    expect(rendered_content).to include("Data not available")
+    expect(html.css("table")).to be_empty
   end
 end
 ```
 
+#### Tier 3 — A11y + Code Quality Pass (done after initial Tier 3)
+
+A follow-up pass was applied to all Tier 3 output. The following were fixed — a new agent does not need to redo these:
+
+**Accessibility:**
+- Filter/sort panel toggle links (`<a href="javascript:void(0)">`) converted to `<button type="button">` with `aria-expanded` and `aria-controls`
+- Filter frequency buttons and sort buttons: `aria-pressed` state managed by `datasets_controller.js`
+- Violations table: `<thead><th scope="col">` added; visual column labels div marked `aria-hidden="true"`
+- Sidebar: `<div>` → `<aside>`, `<div class="container-sidebar-nav">` → `<nav>`, toggle button has `aria-label`, nav links have `aria-current="page"` managed by `nav_controller.js`
+- Logo images have `alt` text; decorative logo stacked text marked `aria-hidden="true"` in report header
+- Reset sort `<a>` converted to `<button type="button">`
+
+**Code quality / correctness:**
+- `trend_value` bug fixed: 0% now renders neutral gray span, not a misleading red down-arrow
+- `datasets_controller.js`: `togglePanel` mirror duplication collapsed to symmetric 8-line implementation; `#clearButtonGroup` private method extracted from 4 callers
+- `dataset_card_controller.js`: `expand()` no longer duplicates `_updateToggleVisibility` state (delegates to `_scheduleUpdate`); window resize listener removed (ResizeObserver covers viewport reflows); double `requestAnimationFrame` collapsed to single; `_destroyed` guard prevents `fonts.ready` callback firing after disconnect
+- `detail_section_component.html.erb`: `unless/else + if/else` nesting flattened to `if/elsif/else`
+- `icon()` helper: `ICON_CACHE` constant added (no per-request disk reads); `classes` HTML-escaped via `ERB::Util.html_escape`; path sanitized against traversal
+- `DATASETS` constant: YAML parsed once at boot, returned by `HomeHelper#datasets` — no per-request I/O
+
+#### Tier 3 — Manual test checklist
+
+Run `bin/dev` and verify the following before marking Tier 3 closed:
+
+**T3-A — ViewComponent / Lookbook**
+- [x] Visit `/lookbook` in browser → Lookbook UI loads, no errors
+- [x] `UI::DetailSectionComponent` and `UI::DatasetCardComponent` previews appear in the left-hand catalog
+
+**T3-B — DetailSectionComponent**
+- [x] Click a map marker → report overlay opens → all 8 sections render with titles and data rows
+- [ ] For a PWS that has no demographic data → Demographics section shows "Data not available" [Cannot find a PWS without demographic data]
+- [x] Violations section renders with 5-Year / 10-Year column headers and a Total row
+- [x] Trends section shows flag spans (e.g. "▲" or "▼" badge) next to values where applicable
+
+**T3-C — DatasetCardComponent / datasets loop**
+- [x] Navigate to Datasets section → all 27 cards render
+- [x] Header reads "27 datasets available"
+- [x] Filter by source (e.g. EPA) → only EPA cards remain visible
+- [x] Filter by frequency (Annually) → correct subset shown
+- [x] Sort by Newest / Oldest → cards reorder correctly
+- [x] "Show all" resets filters and count
+- [x] Each card shows title, description, source link, last-updated date (M/D/YYYY format), update frequency, and caveats list
+
+**T3-D — Icon system**
+- [x] Mobile hamburger icon renders as inline SVG (not an `<img>` tag) — inspect element to confirm
+- [x] Tapping hamburger opens mobile menu; X (close icon) is shown and works
+    [No close Icon]
+- [ ] Map/Table toggle icons appear correctly (map-white/map-dark, table-dark/table-white)
+    [I do not see these on mobile, where would I expect to find them?]
+- [ ] Export button shows downloads icon
+- [ ] Report close button (X) renders and closes the overlay
+- [ ] Sidebar: Documentation, Github, Feedback links show external-link SVG icon; Contact shows email icon
+    [Side bar does not appear to show on mobile]
+- [ ] Print button on report overlay still renders (still uses `icon-print.png` PNG — confirm no broken image)
+
+**T3-E — Tailwind tokens**
+- [x] Open browser DevTools → computed styles on a Tailwind-styled element → confirm `font-family` includes `Public Sans`
+- [x] `bg-brand-primary` class in any template renders as `#1054A8` blue
+
+---
+
 ### Tier 4 — Refactor `filter_controller.js`
 
-| Task | Description |
+| Task | Description | Test |
 |---|---|
 | **T4-A** | **Define declarative `FILTERS` config array.** Each entry: `{ id, param, type, default }`. Single source of truth for the filter ↔ DOM mapping. |
 | **T4-B** | **Rewrite `#collectFilters()` as a loop.** Replace 100-line imperative DOM-reading with a loop over `FILTERS`. |
 | **T4-C** | **Rewrite `#restoreDomState()` as a loop.** Replace 100-line imperative DOM-writing with a loop over `FILTERS`. Adding a new filter is now one line in the config array. |
-| **T4-D** | **Extract sub-controllers.** Split the 466-line controller: `FilterMenuController` (open/close/dismiss), `FilterLayoutController` (ResizeObserver logic), keeping `filter_controller` focused on state collect/restore/dispatch. |
+| **T4-D** | **Extract sub-controllers.** Split the 499-line controller: `FilterMenuController` (open/close/dismiss), `FilterLayoutController` (ResizeObserver logic), keeping `filter_controller` focused on state collect/restore/dispatch. |
 
 ### Tier 5 — Implement Histogram Slider
 
@@ -322,3 +415,31 @@ Standard editor access is sufficient for all initial work. Dev Mode is optional.
 - `docs/arch_01_layer_structure.png` — layer structure diagram
 - `docs/arch_02_filter_event_flow.png` — filter event flow diagram
 - `docs/FE_Architecture_Decision_Rationale.md` — why Hotwire, why not React
+
+---
+
+## Open Work Items
+
+### Map
+  - State Zoom upon state click
+
+### Datasets
+  - Done?
+
+### Downloads
+  - General formatting
+
+### Mobile Issues
+  - Need to make sure we see all the saem featured and content, even when displayed differently
+  - map and table toggles not available
+  - filter buttons not available
+  TEST CASES
+  - [ ] Map/Table toggle icons appear correctly (map-white/map-dark, table-dark/table-white)
+  - [ ] Export button shows downloads icon
+  - [ ] Report close button (X) renders and closes the overlay
+  - [ ] Sidebar: Documentation, Github, Feedback links show external-link SVG icon; Contact shows email icon
+  - [ ] Print button on report overlay still renders (still uses `icon-print.png` PNG — confirm no broken image)
+
+### application.css
+  - confirm defaults
+  - clean up/remove notes
