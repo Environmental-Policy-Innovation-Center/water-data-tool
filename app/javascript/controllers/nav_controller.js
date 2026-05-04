@@ -59,6 +59,14 @@ export default class extends Controller {
       el.classList.toggle("active", el.dataset.section === section)
     })
 
+    document.querySelectorAll("#container-sidebar a[data-section]").forEach((el) => {
+      if (el.classList.contains("active")) {
+        el.setAttribute("aria-current", "page")
+      } else {
+        el.removeAttribute("aria-current")
+      }
+    })
+
     this.#closeMobileMenu()
   }
 
