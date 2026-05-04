@@ -13,7 +13,7 @@ concurrency:
 
 jobs:
   promote:
-    if: vars.AWS_DEPLOY_ENABLED == 'true' && github.event.inputs.confirm == 'promote'
+    if: vars.AWS_DEPLOY_ENABLED == 'true'
     runs-on: ubuntu-latest
     environment: production
     permissions:
@@ -26,6 +26,14 @@ jobs:
       ECS_SERVICE_PROD: ${{ vars.ECS_SERVICE_PROD }}
 
     steps:
+      # No checkout needed — promotes an existing ECR image without rebuilding
+
+      - name: Validate confirmation input
+        if: github.event.inputs.confirm != 'promote'
+        run: |
+          echo "::error::Confirmation input must be exactly 'promote'. Got: '${{ github.event.inputs.confirm }}'"
+          exit 1
+
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -57,11 +65,11 @@ jobs:
             --query 'imageDetails[0].imageDigest' \
             --output text)
 
-          # First 8 hex chars of the digest used as a human-readable label (intentional truncation)
+          # First 8 hex chars of the digest — intentional truncation for a human-readable label
           SHORT_DIGEST="${DIGEST#sha256:}"
           SHORT_DIGEST="${SHORT_DIGEST:0:8}"
 
-          # Use a random delimiter to guard against manifest JSON containing a bare "EOF" line
+          # Random delimiter guards against manifest JSON containing a bare "EOF" line
           DELIM=$(openssl rand -hex 8)
 
           echo "repo_name=$ECR_REPO_NAME"                 >> "$GITHUB_OUTPUT"
@@ -72,23 +80,32 @@ jobs:
           echo "immutable_tag=prod-promoted-$SHORT_DIGEST" >> "$GITHUB_OUTPUT"
 
       - name: Re-tag staging image as production
+        # Pass manifest via env var so the shell owns quoting — avoids Actions expression
+        # engine mangling the JSON before the shell sees it
+        env:
+          MANIFEST:      ${{ steps.staging.outputs.manifest }}
+          REPO_NAME:     ${{ steps.staging.outputs.repo_name }}
+          IMMUTABLE_TAG: ${{ steps.staging.outputs.immutable_tag }}
         run: |
           put_image() {
             local tag="$1"
-            aws ecr put-image \
-              --repository-name "${{ steps.staging.outputs.repo_name }}" \
+            local out
+            out=$(aws ecr put-image \
+              --repository-name "$REPO_NAME" \
               --image-tag "$tag" \
-              --image-manifest "${{ steps.staging.outputs.manifest }}" \
-              --no-cli-pager \
-              2>&1 || {
-                rc=$?
-                # Exit 254 = ImageAlreadyExistsException: tag already points to this digest, safe to ignore
-                [[ $rc -eq 254 ]] && echo "Tag '$tag' already current — skipping" || exit $rc
+              --image-manifest "$MANIFEST" \
+              --no-cli-pager 2>&1) || {
+                if echo "$out" | grep -q 'ImageAlreadyExistsException'; then
+                  echo "Tag '$tag' already current — skipping"
+                else
+                  echo "$out" >&2
+                  exit 1
+                fi
               }
           }
 
           put_image "prod-latest"
-          put_image "${{ steps.staging.outputs.immutable_tag }}"
+          put_image "$IMMUTABLE_TAG"
 
       - name: Force ECS redeploy
         run: |
@@ -106,14 +123,17 @@ jobs:
             --services "$ECS_SERVICE_PROD"
 
       - name: Summary
+        env:
+          DIGEST:        ${{ steps.staging.outputs.digest }}
+          IMMUTABLE_TAG: ${{ steps.staging.outputs.immutable_tag }}
         run: |
           {
             echo "## Promotion complete"
             echo ""
             echo "| | |"
             echo "|---|---|"
-            echo "| **Image digest** | \`${{ steps.staging.outputs.digest }}\` |"
-            echo "| **ECR tag** | \`${{ steps.staging.outputs.immutable_tag }}\` |"
+            echo "| **Image digest** | \`$DIGEST\` |"
+            echo "| **ECR tag** | \`$IMMUTABLE_TAG\` |"
             echo "| **Production URL** | ${{ vars.PROD_URL }} |"
             echo "| **Triggered by** | @${{ github.actor }} |"
             echo "| **Time** | $(date -u '+%Y-%m-%d %H:%M UTC') |"
