@@ -4,8 +4,8 @@
   <h1>Drinking Water Explorer</h1>
   <div class="m-header-right">
     <a href="javascript:void(0)" id="mobile-menu-toggle" class="mobile-btn closed" data-action="click->nav#toggleMobile">
-      <%= image_tag "icon-mobile-menu.png", class: "mm-icon-bars" %>
-      <%= image_tag "icon-mobile-menu-x.png", class: "mm-icon-x hidden" %>
+      <%= icon "mobile-menu", classes: "mm-icon-bars" %>
+      <%= icon "close", classes: "mm-icon-x hidden" %>
     </a>
   </div>
 </div>
@@ -115,22 +115,25 @@
   <%# Detail data loaded via Mapbox popup on map click;
       full report loaded into report-body Turbo Frame below %>
 
-  <%# Map/Table view toggle — bottom right of map canvas %>
-  <div id="container-map-ui-bottom" class="container-map-ui hide-for-mobile hide-for-table">
-    <ul>
-      <li>
-        <a href="javascript:void(0);" data-section="map" class="nav-item nav-map-toggle active"
+  <%# Map/Table view toggle — bottom right of map canvas (Tailwind; icon swap in application.css) %>
+  <div id="container-map-ui-bottom"
+       class="hide-for-mobile hide-for-table absolute right-5 bottom-[30px] z-[999]">
+    <ul class="m-0 flex list-none flex-nowrap items-center gap-1.5 pt-1.5 pl-5">
+      <li class="relative shrink-0">
+        <a href="javascript:void(0);"
+           data-section="map"
+           class="nav-item nav-map-toggle active relative inline-flex items-center whitespace-nowrap rounded-full border border-neutral-400 bg-[#fdfefb] px-3 py-2 pl-8 text-base font-normal leading-none text-neutral-700 no-underline [&.active]:bg-[#989898] [&.active]:text-white"
            data-action="click->nav#show">
-          <%= image_tag "icon-map-toggle-white.png", class: "map-white" %>
-          <%= image_tag "icon-map-toggle-dark.png", class: "map-dark" %>
+          <%= icon "map", classes: "pointer-events-none absolute left-2.5 top-1/2 size-[17px] -translate-y-1/2" %>
           Map
         </a>
       </li>
-      <li>
-        <a href="javascript:void(0);" data-section="table" class="nav-item nav-table"
+      <li class="relative shrink-0">
+        <a href="javascript:void(0);"
+           data-section="table"
+           class="nav-item nav-table relative inline-flex items-center whitespace-nowrap rounded-full border border-neutral-400 bg-[#fdfefb] px-3 py-2 pl-8 text-base font-normal leading-none text-neutral-700 no-underline [&.active]:bg-[#989898] [&.active]:text-white"
            data-action="click->nav#show">
-          <%= image_tag "icon-table-dark.png", class: "table-dark" %>
-          <%= image_tag "icon-table-white.png", class: "table-white" %>
+          <%= icon "table", classes: "pointer-events-none absolute left-2.5 top-1/2 size-[17px] -translate-y-1/2" %>
           Table
         </a>
       </li>
@@ -143,22 +146,44 @@
       Shown/hidden via the .table-mode class on container-map.
       ===================================================== %>
   <div id="container-table">
-    <div class="container-section-inner">
-      <div class="table-header py-6">
-        <div class="table-head-col-1">
-          <p class="text-m"><strong>Public Water Utilities <span class="geo-filter"></span></strong></p>
+    <div class="container-section-inner flex min-h-0 flex-1 flex-col px-5 pb-0 pt-5">
+      <div class="mt-[60px] flex min-w-0 flex-col gap-4 overflow-hidden py-6 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
+        <div class="min-w-0 shrink">
+          <p class="m-0 p-0 text-base">
+            <strong>Public Water Utilities <span class="geo-filter"></span></strong>
+          </p>
         </div>
-        <div class="table-head-col-2" data-controller="export">
-          <a href="#" class="btn-export" data-action="click->export#download">
-            <%= image_tag "icon-downloads-white.png" %>Export
+        <div class="flex min-w-0 shrink-0 flex-nowrap items-center justify-end gap-3 sm:gap-4"
+             data-controller="export">
+          <a href="#"
+             class="relative inline-flex flex-nowrap items-center whitespace-nowrap rounded-full border border-neutral-400 bg-[#67a25e] px-3 py-1.5 pl-9 text-sm font-normal leading-none text-white no-underline"
+             data-action="click->export#download">
+            <%= icon "downloads",
+                  classes: "pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2" %>
+            Export
           </a>
-          <input type="radio" name="file-type" id="file-csv" value="csv" checked data-export-target="format" class="ml-4" /><label for="file-csv">.csv</label>
-          <input type="radio" name="file-type" id="file-geojson" value="geojson" class="file-geojson ml-3" data-export-target="format" /><label for="file-geojson" class="file-geojson">.geojson</label>
+          <span class="inline-flex flex-nowrap items-center gap-3">
+            <span class="inline-flex items-center gap-1.5 whitespace-nowrap">
+              <input type="radio" name="file-type" id="file-csv" value="csv" checked
+                     data-export-target="format"
+                     class="m-0" />
+              <label for="file-csv">.csv</label>
+            </span>
+            <span class="inline-flex items-center gap-1.5 whitespace-nowrap">
+              <input type="radio" name="file-type" id="file-geojson" value="geojson"
+                     class="file-geojson m-0" data-export-target="format" />
+              <label for="file-geojson" class="file-geojson">.geojson</label>
+            </span>
+          </span>
         </div>
       </div>
 
       <%# Table loaded via Turbo Frame — filter_controller sets src on table:show %>
-      <turbo-frame id="data-table" aria-live="polite" aria-label="Public water systems table" data-controller="table-frame">
+      <turbo-frame id="data-table"
+                   class="flex min-h-0 flex-1 flex-col"
+                   aria-live="polite"
+                   aria-label="Public water systems table"
+                   data-controller="table-frame">
         <p class="px-3 py-8 text-center text-gray-400 text-sm">Loading data table…</p>
       </turbo-frame>
     </div>
@@ -197,29 +222,10 @@
     ===================================================== %>
 <div id="container-report" class="hidden" data-controller="report" data-report-target="overlay">
   <a href="javascript:void(0);" onclick="window.print()" id="tt-print-report" class="btn-report btn-print-report"><%= image_tag "icon-print.png" %></a>
-  <a href="javascript:void(0);" id="tt-close-report" class="btn-report btn-close-report" data-action="click->report#close"><%= image_tag "icon-close.png" %></a>
+  <a href="javascript:void(0);" id="tt-close-report" class="btn-report btn-close-report" data-action="click->report#close"><%= icon "close" %></a>
 
   <div class="container-report-section-inner">
-    <div class="header">
-      <div class="header-logo">
-        <div class="id-logo">
-          <%= image_tag "logo-drinking-water-explorer.png", class: "logo" %>
-        </div>
-        <div class="id-text">
-          <p>Drinking</p>
-          <p>Water</p>
-          <p>Explorer</p>
-        </div>
-      </div>
-      <div class="header-title">
-        <p style="margin-bottom:10px;">Utility Report</p>
-        <p><strong>Utility Name: </strong><span data-report-target="utilityName"></span></p>
-        <p><strong>System ID: </strong><span data-report-target="systemId"></span></p>
-        <p><strong><span class="report-city">City</span>, <span data-report-target="state">State</span></strong></p>
-      </div>
-    </div>
-    <div class="clearfix"></div>
-    <div class="container-report-body">
+    <div class="container-report-body mt-0!">
       <turbo-frame id="report-body" data-report-target="frame">
         <%# Report content loaded via Turbo Frame from ReportsController %>
       </turbo-frame>
