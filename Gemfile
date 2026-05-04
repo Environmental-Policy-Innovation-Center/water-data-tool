@@ -49,6 +49,9 @@ gem "image_processing", "~> 1.2"
 gem "lograge"
 gem "lograge-sql"
 
+# ViewComponent — server-rendered UI components [https://viewcomponent.org]
+gem "view_component"
+
 # Fast JSON parser with streaming/SAX support — used by ETL to process large GeoJSON without OOM
 gem "oj"
 
@@ -83,6 +86,9 @@ end
 group :development do
   # Use console on exceptions pages [https://github.com/rails/web-console]
   gem "web-console"
+
+  # Lookbook — ViewComponent dev preview catalog [https://lookbook.build]
+  gem "lookbook"
 
   # Annotate models with schema comments [https://github.com/drwl/annotaterb]
   gem "annotaterb", require: false
