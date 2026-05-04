@@ -1,31 +1,12 @@
-<div class="detail-section">
-  <h3>Trends</h3>
-  <% if trends.nil? %>
-    <p class="detail-na">Data not available</p>
-  <% else %>
-    <table class="detail-table">
-      <tr>
-        <td>Population Change</td>
-        <td>
-          <%= trends.population_pct_change ? number_to_percentage(trends.population_pct_change, precision: 1) : "N/A" %>
-          <% if trends.population_change_flag.present? %>
-            <span class="detail-flag"><%= trends.population_change_flag %></span>
-          <% end %>
-        </td>
-      </tr>
-      <tr>
-        <td>Median Income Change</td>
-        <td>
-          <%= trends.mhi_pct_change ? number_to_percentage(trends.mhi_pct_change, precision: 1) : "N/A" %>
-          <% if trends.income_change_flag.present? %>
-            <span class="detail-flag"><%= trends.income_change_flag %></span>
-          <% end %>
-        </td>
-      </tr>
-      <tr><td>Households Change</td><td><%= trends.households_pct_change ? number_to_percentage(trends.households_pct_change, precision: 1) : "N/A" %></td></tr>
-      <tr><td>Poverty Change</td><td><%= trends.poverty_pct_change ? number_to_percentage(trends.poverty_pct_change, precision: 1) : "N/A" %></td></tr>
-      <tr><td>Unemployment Change</td><td><%= trends.unemployment_pct_change ? number_to_percentage(trends.unemployment_pct_change, precision: 1) : "N/A" %></td></tr>
-      <tr><td>POC Change</td><td><%= trends.poc_pct_change ? number_to_percentage(trends.poc_pct_change, precision: 1) : "N/A" %></td></tr>
-    </table>
-  <% end %>
-</div>
+<%= render UI::DetailSectionComponent.new(
+  title: "10-Year Trends (2011–2021)",
+  data_available: trends.present?,
+  rows: trends ? [
+    {label: "Population Change", value: trend_value(trends.population_pct_change)},
+    {label: "Median Income Change", value: trend_value(trends.mhi_pct_change)},
+    {label: "Households Change", value: trend_value(trends.households_pct_change)},
+    {label: "Poverty Change", value: trend_value(trends.poverty_pct_change)},
+    {label: "Unemployment Change", value: trend_value(trends.unemployment_pct_change)},
+    {label: "Race/Ethnicity Change", value: trend_value(trends.poc_pct_change)}
+  ] : []
+) %>

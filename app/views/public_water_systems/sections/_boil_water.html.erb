@@ -1,16 +1,16 @@
-<div class="detail-section">
-  <h3>Boil Water Notices</h3>
-  <% if boil_water.nil? %>
-    <p class="detail-na">Data not available</p>
-  <% else %>
-    <table class="detail-table">
-      <tr><td>Total Notices</td><td><%= boil_water.total_notices %></td></tr>
-      <tr><td>Date Range</td><td><%= boil_water.date_range_display || "N/A" %></td></tr>
-      <tr><td>First Advisory</td><td><%= boil_water.first_advisory_date || "N/A" %></td></tr>
-      <tr><td>Last Advisory</td><td><%= boil_water.last_advisory_date || "N/A" %></td></tr>
-      <% if boil_water.state_reporting_year_min && boil_water.state_reporting_year_max %>
-        <tr><td>State Reporting Years</td><td><%= boil_water.state_reporting_year_min %>&ndash;<%= boil_water.state_reporting_year_max %></td></tr>
-      <% end %>
-    </table>
-  <% end %>
-</div>
+<%
+  boil_rows = boil_water ? [
+    {label: "Total Notices", value: boil_water.total_notices},
+    {label: "Date Range", value: boil_water.date_range_display || "N/A"},
+    {label: "First Advisory", value: boil_water.first_advisory_date || "N/A"},
+    {label: "Last Advisory", value: boil_water.last_advisory_date || "N/A"}
+  ] : []
+  if boil_water&.state_reporting_year_min && boil_water&.state_reporting_year_max
+    boil_rows << {label: "State Reporting Years", value: "#{boil_water.state_reporting_year_min}–#{boil_water.state_reporting_year_max}"}
+  end
+%>
+<%= render UI::DetailSectionComponent.new(
+  title: "Boil Water Notices",
+  data_available: boil_water.present?,
+  rows: boil_rows
+) %>

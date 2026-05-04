@@ -1,26 +1,45 @@
-<div class="detail-section">
-  <h3>Violations</h3>
-  <% if violations.nil? %>
-    <p class="detail-na">Data not available</p>
-  <% else %>
-    <table class="detail-table">
-      <tr><th></th><th>5-Year</th><th>10-Year</th></tr>
-      <tr><td>Health</td><td><%= violations.health_violations_5yr %></td><td><%= violations.health_violations_10yr %></td></tr>
-      <tr><td>Groundwater Rule</td><td><%= violations.groundwater_rule_5yr %></td><td><%= violations.groundwater_rule_10yr %></td></tr>
-      <tr><td>Surface Water Treatment</td><td><%= violations.surface_water_treatment_5yr %></td><td><%= violations.surface_water_treatment_10yr %></td></tr>
-      <tr><td>Lead & Copper</td><td><%= violations.lead_and_copper_5yr %></td><td><%= violations.lead_and_copper_10yr %></td></tr>
-      <tr><td>Radionuclides</td><td><%= violations.radionuclides_5yr %></td><td><%= violations.radionuclides_10yr %></td></tr>
-      <tr><td>Inorganic Chemicals</td><td><%= violations.inorganic_chemicals_5yr %></td><td><%= violations.inorganic_chemicals_10yr %></td></tr>
-      <tr><td>Synthetic Organic</td><td><%= violations.synthetic_organic_chemicals_5yr %></td><td><%= violations.synthetic_organic_chemicals_10yr %></td></tr>
-      <tr><td>Volatile Organic</td><td><%= violations.volatile_organic_chemicals_5yr %></td><td><%= violations.volatile_organic_chemicals_10yr %></td></tr>
-      <tr><td>Total Coliform</td><td><%= violations.total_coliform_5yr %></td><td><%= violations.total_coliform_10yr %></td></tr>
-      <tr><td>Stage 1 Disinfectants</td><td><%= violations.stage_1_disinfectants_5yr %></td><td><%= violations.stage_1_disinfectants_10yr %></td></tr>
-      <tr><td>Stage 2 Disinfectants</td><td><%= violations.stage_2_disinfectants_5yr %></td><td><%= violations.stage_2_disinfectants_10yr %></td></tr>
-      <tr><td>Paperwork</td><td><%= violations.paperwork_violations_5yr %></td><td><%= violations.paperwork_violations_10yr %></td></tr>
-      <tr class="detail-table-total"><td>Total</td><td><%= violations.total_violations_5yr %></td><td><%= violations.total_violations_10yr %></td></tr>
-    </table>
-    <% if violations.violations_all_years %>
-      <p class="detail-footnote">All years total: <%= violations.violations_all_years %></p>
-    <% end %>
+<%= render UI::DetailSectionComponent.new(
+  title: "Violations",
+  data_available: violations.present?,
+  column_labels: ["5-Year", "10-Year"]
+) do %>
+  <table class="w-full text-sm">
+    <thead class="sr-only">
+      <tr>
+        <th scope="col">Violation type</th>
+        <th scope="col">5-Year</th>
+        <th scope="col">10-Year</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% [
+        ["Health",                violations.health_violations_5yr,              violations.health_violations_10yr],
+        ["Groundwater Rule",      violations.groundwater_rule_5yr,               violations.groundwater_rule_10yr],
+        ["Surface Water",         violations.surface_water_treatment_5yr,        violations.surface_water_treatment_10yr],
+        ["Lead & Copper",         violations.lead_and_copper_5yr,                violations.lead_and_copper_10yr],
+        ["Radionuclides",         violations.radionuclides_5yr,                  violations.radionuclides_10yr],
+        ["Inorganic Chemicals",   violations.inorganic_chemicals_5yr,            violations.inorganic_chemicals_10yr],
+        ["Synthetic Organic",     violations.synthetic_organic_chemicals_5yr,    violations.synthetic_organic_chemicals_10yr],
+        ["Volatile Organic",      violations.volatile_organic_chemicals_5yr,     violations.volatile_organic_chemicals_10yr],
+        ["Total Coliform",        violations.total_coliform_5yr,                 violations.total_coliform_10yr],
+        ["Stage 1 Disinfectants", violations.stage_1_disinfectants_5yr,         violations.stage_1_disinfectants_10yr],
+        ["Stage 2 Disinfectants", violations.stage_2_disinfectants_5yr,         violations.stage_2_disinfectants_10yr],
+        ["Paperwork",             violations.paperwork_violations_5yr,           violations.paperwork_violations_10yr]
+      ].each do |label, five_yr, ten_yr| %>
+        <tr class="border-b border-gray-100 last:border-0">
+          <td class="py-1.5 text-gray-500 w-1/2"><%= label %></td>
+          <td class="py-1.5 font-medium text-gray-800"><%= five_yr %></td>
+          <td class="py-1.5 font-medium text-gray-800"><%= ten_yr %></td>
+        </tr>
+      <% end %>
+      <tr class="border-t border-gray-300">
+        <td class="py-1.5 font-semibold text-gray-700 w-1/2">Total</td>
+        <td class="py-1.5 font-semibold text-gray-800"><%= violations.total_violations_5yr %></td>
+        <td class="py-1.5 font-semibold text-gray-800"><%= violations.total_violations_10yr %></td>
+      </tr>
+    </tbody>
+  </table>
+  <% if violations.violations_all_years %>
+    <p class="mt-2 text-xs text-gray-500">All years total: <%= violations.violations_all_years %></p>
   <% end %>
-</div>
+<% end %>
