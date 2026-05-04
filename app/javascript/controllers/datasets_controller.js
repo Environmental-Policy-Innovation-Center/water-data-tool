@@ -14,17 +14,19 @@ export default class extends Controller {
   }
 
   togglePanel(event) {
-    event.preventDefault()
-    const panel = event.currentTarget.dataset.panel
-    if (panel === "filter") {
-      const visible = this.filterPanelTarget.style.display !== "none"
-      this.filterPanelTarget.style.display = visible ? "none" : "block"
-      this.sortPanelTarget.style.display = "none"
-    } else {
-      const visible = this.sortPanelTarget.style.display !== "none"
-      this.sortPanelTarget.style.display = visible ? "none" : "block"
-      this.filterPanelTarget.style.display = "none"
-    }
+    const btn = event.currentTarget
+    const active = btn.dataset.panel
+    const other = active === "filter" ? "sort" : "filter"
+
+    const selfPanel = this[`${active}PanelTarget`]
+    const otherPanel = this[`${other}PanelTarget`]
+    const otherBtn = this.element.querySelector(`[data-panel='${other}']`)
+
+    const nowVisible = selfPanel.style.display === "none"
+    selfPanel.style.display = nowVisible ? "block" : "none"
+    btn.setAttribute("aria-expanded", String(nowVisible))
+    otherPanel.style.display = "none"
+    if (otherBtn) otherBtn.setAttribute("aria-expanded", "false")
   }
 
   filterBySource() {
@@ -34,18 +36,21 @@ export default class extends Controller {
 
   filterByFrequency(event) {
     const btn = event.currentTarget
-    btn.parentElement.querySelectorAll(".btn-filter").forEach(b => b.classList.remove("is-checked"))
+    this.#clearButtonGroup(".btn-filter", btn.parentElement)
     btn.classList.add("is-checked")
+    btn.setAttribute("aria-pressed", "true")
     this.frequencyFilter = btn.dataset.frequency
     this.applyFilters()
   }
 
   sortByDate(event) {
-    const direction = event.currentTarget.dataset.direction
-    event.currentTarget.parentElement.querySelectorAll(".btn-sort").forEach(b => b.classList.remove("is-checked"))
-    event.currentTarget.classList.add("is-checked")
+    const btn = event.currentTarget
+    this.#clearButtonGroup(".btn-sort", btn.parentElement)
+    btn.classList.add("is-checked")
+    btn.setAttribute("aria-pressed", "true")
     this.resetSortTarget.style.display = "inline"
 
+    const direction = btn.dataset.direction
     const sorted = [...this.items].sort((a, b) => {
       const da = new Date(a.dataset.date)
       const db = new Date(b.dataset.date)
@@ -55,19 +60,17 @@ export default class extends Controller {
     sorted.forEach(item => this.gridTarget.appendChild(item))
   }
 
-  resetSort(event) {
-    event.preventDefault()
+  resetSort() {
     this.originalOrder.forEach(item => this.gridTarget.appendChild(item))
     this.resetSortTarget.style.display = "none"
-    this.sortPanelTarget.querySelectorAll(".btn-sort").forEach(b => b.classList.remove("is-checked"))
+    this.#clearButtonGroup(".btn-sort", this.sortPanelTarget)
   }
 
-  showAll(event) {
-    event.preventDefault()
+  showAll() {
     this.sourceFilter = ""
     this.frequencyFilter = ""
     this.sourceSelectTarget.value = ""
-    this.element.querySelectorAll(".btn-filter").forEach(b => b.classList.remove("is-checked"))
+    this.#clearButtonGroup(".btn-filter")
     this.applyFilters()
   }
 
@@ -92,5 +95,12 @@ export default class extends Controller {
     }
 
     this.noResultsTarget.style.display = visibleCount === 0 ? "" : "none"
+  }
+
+  #clearButtonGroup(selector, container = this.element) {
+    container.querySelectorAll(selector).forEach(b => {
+      b.classList.remove("is-checked")
+      b.setAttribute("aria-pressed", "false")
+    })
   }
 }

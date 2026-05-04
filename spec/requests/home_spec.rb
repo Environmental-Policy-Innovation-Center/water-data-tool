@@ -33,7 +33,7 @@ RSpec.describe "Home", type: :request do
       expect(response.body).to include("Community Water System Service Area Boundaries")
       expect(response.body).to include("Safe Drinking Water Information System")
       expect(response.body).to include("Texas Drinking Water Advisories")
-      expect(response.body.scan('class="grid-item"').count).to eq(27)
+      expect(response.body.scan("grid-item").count).to eq(27)
     end
 
     it "renders dataset source links and metadata" do
