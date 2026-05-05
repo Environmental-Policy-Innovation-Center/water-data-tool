@@ -7,7 +7,7 @@ RSpec.describe Etl::Importers::EpaSabs do
     subject(:rows) { described_class.new(file_url: "http://x.com/f.csv", last_updated: 1.day.ago).parse(csv_content) }
 
     it "returns one row per CSV line" do
-      expect(rows.length).to eq(2)
+      expect(rows.length).to eq(3)
     end
 
     it "maps pwsid" do
@@ -27,7 +27,7 @@ RSpec.describe Etl::Importers::EpaSabs do
     end
 
     it "returns nil for NA area values" do
-      expect(rows.last[:area_sq_miles]).to be_nil
+      expect(rows.second[:area_sq_miles]).to be_nil
     end
 
     it "derives stusps from the first two characters of pwsid" do
@@ -38,6 +38,35 @@ RSpec.describe Etl::Importers::EpaSabs do
       expect(rows.first).to have_key(:created_at)
       expect(rows.first).to have_key(:updated_at)
     end
+
+    context "with NA string values in the source CSV" do
+      let(:na_row) { rows.last }
+
+      it "converts NA pws_name to nil" do
+        expect(na_row[:pws_name]).to be_nil
+      end
+
+      it "converts NA pop_cat_5 to nil" do
+        expect(na_row[:pop_cat_5]).to be_nil
+      end
+
+      it "converts NA service_area_type to nil" do
+        expect(na_row[:service_area_type]).to be_nil
+      end
+
+      it "converts NA detailed_facility_report to nil" do
+        expect(na_row[:detailed_facility_report]).to be_nil
+      end
+
+      it "converts NA ewg_report_link to nil" do
+        expect(na_row[:ewg_report_link]).to be_nil
+      end
+
+      it "preserves real string values on the same row" do
+        expect(na_row[:primacy_agency]).to eq("Vermont DEC")
+        expect(na_row[:symbology_field]).to eq("System Sourced")
+      end
+    end
   end
 
   describe "#import!" do
@@ -45,7 +74,7 @@ RSpec.describe Etl::Importers::EpaSabs do
 
     it "upserts rows into public_water_systems" do
       rows = importer.parse(csv_content)
-      expect { importer.import!(rows) }.to change(PublicWaterSystem, :count).by(2)
+      expect { importer.import!(rows) }.to change(PublicWaterSystem, :count).by(3)
     end
 
     it "updates existing records on conflict" do
@@ -53,6 +82,15 @@ RSpec.describe Etl::Importers::EpaSabs do
       rows = importer.parse(csv_content)
       importer.import!(rows)
       expect(PublicWaterSystem.find("VT0000001").pws_name).to eq("Green Mountain Water")
+    end
+
+    it "stores nil (not NA string) for NA string columns" do
+      rows = importer.parse(csv_content)
+      importer.import!(rows)
+      pws = PublicWaterSystem.find("VT0000003")
+      expect(pws.pws_name).to be_nil
+      expect(pws.pop_cat_5).to be_nil
+      expect(pws.service_area_type).to be_nil
     end
   end
 end

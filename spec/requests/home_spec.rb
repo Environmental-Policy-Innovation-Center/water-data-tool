@@ -166,6 +166,14 @@ RSpec.describe "Home", type: :request do
       expect(names).to eq(["Alpha Water", "Zebra Water"])
     end
 
+    it "renders — for nil boolean and string columns, not No" do
+      create(:public_water_system, pws_name: "Test System", is_wholesaler: nil, is_school_or_daycare: nil, open_health_viol: nil)
+      get table_path
+      # fmt_bool(nil) and fmt_str(nil) must render "—", not fall through to "No".
+      # Regex allows for td attributes (e.g. class) since cells may carry styling.
+      expect(response.body).not_to match(/<td[^>]*>No<\/td>/)
+    end
+
     context "with filter params" do
       it "filters by gw_sw_code" do
         create(:public_water_system, gw_sw_code: "GW")

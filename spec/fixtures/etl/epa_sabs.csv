@@ -1,3 +1,4 @@
 pwsid,pws_name,primacy_agency,pop_cat_5,population_served_count,service_connections_count,service_area_type,symbology_field,detailed_facility_report,ewg_report_link,epic_area_mi2
 VT0000001,Green Mountain Water,Vermont DEC,Small,1500,600,System Sourced,Community Water System,http://example.com/dfr/VT0000001,http://example.com/ewg/VT0000001,12.5
 VT0000002,Maple Valley Water,Vermont DEC,Medium,5000,2000,System Sourced,Community Water System,,,NA
+VT0000003,NA,Vermont DEC,NA,250,100,NA,System Sourced,NA,NA,5.0

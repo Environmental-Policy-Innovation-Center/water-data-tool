@@ -1,3 +1,4 @@
 pwsid,date_of_first_advisory,date_of_last_advisory,total_bwn,min_reporting_year_for_state,max_reporting_year_for_state,state,data_tool_tip,download_link,clean_date_range
 VT0000001,2015-03-12,2021-08-05,3,2010,2023,VT,3 boil water notices between 2015-2021,https://example.com/dl/VT,2015–2021
 VT0000002,2019-07-22,2019-07-30,1,2010,2023,VT,1 boil water notice in 2019,https://example.com/dl/VT,2019
+VT0000003,NA,NA,0,2010,2023,VT,No boil water notices,https://example.com/dl/VT,

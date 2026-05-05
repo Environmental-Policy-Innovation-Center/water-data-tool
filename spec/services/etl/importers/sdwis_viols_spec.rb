@@ -8,8 +8,8 @@ RSpec.describe Etl::Importers::SdwisViols do
     subject(:rows) { importer.parse(csv_content) }
 
     it "returns one pws_row and one viol_row per CSV line" do
-      expect(rows[:pws_rows].length).to eq(2)
-      expect(rows[:viol_rows].length).to eq(2)
+      expect(rows[:pws_rows].length).to eq(3)
+      expect(rows[:viol_rows].length).to eq(3)
     end
 
     it "casts boolean indicators on pws_rows" do
@@ -28,15 +28,54 @@ RSpec.describe Etl::Importers::SdwisViols do
       expect(viol).to have_key(:surface_water_treatment_5yr)
       expect(viol).to have_key(:lead_and_copper_5yr)
     end
+
+    context "with NA string values in the source CSV" do
+      let(:na_row) { rows[:pws_rows].last }
+
+      it "converts NA gw_sw_code to nil" do
+        expect(na_row[:gw_sw_code]).to be_nil
+      end
+
+      it "converts NA primary_source_code to nil" do
+        expect(na_row[:primary_source_code]).to be_nil
+      end
+
+      it "converts NA first_reported_date to nil" do
+        expect(na_row[:first_reported_date]).to be_nil
+      end
+
+      it "converts NA owner_type to nil" do
+        expect(na_row[:owner_type]).to be_nil
+      end
+
+      it "converts NA primacy_type to nil" do
+        expect(na_row[:primacy_type]).to be_nil
+      end
+
+      it "converts NA source_water_protection_code to nil" do
+        expect(na_row[:source_water_protection_code]).to be_nil
+      end
+
+      it "converts NA phone_number to nil" do
+        expect(na_row[:phone_number]).to be_nil
+      end
+
+      it "converts NA open_health_viol to nil" do
+        expect(na_row[:open_health_viol]).to be_nil
+      end
+    end
   end
 
   describe "#import!" do
-    before { create(:public_water_system, pwsid: "VT0000001") }
-    before { create(:public_water_system, pwsid: "VT0000002") }
+    before do
+      create(:public_water_system, pwsid: "VT0000001")
+      create(:public_water_system, pwsid: "VT0000002")
+      create(:public_water_system, pwsid: "VT0000003")
+    end
 
     it "upserts pws attribute columns and creates violations_summaries" do
       rows = importer.parse(csv_content)
-      expect { importer.import!(rows) }.to change(ViolationsSummary, :count).by(2)
+      expect { importer.import!(rows) }.to change(ViolationsSummary, :count).by(3)
     end
 
     it "sets boolean fields on PublicWaterSystem" do
@@ -45,6 +84,16 @@ RSpec.describe Etl::Importers::SdwisViols do
       pws = PublicWaterSystem.find("VT0000001")
       expect(pws.is_grant_eligible).to be(true)
       expect(pws.is_wholesaler).to be(false)
+    end
+
+    it "stores nil (not NA string) for NA string columns" do
+      rows = importer.parse(csv_content)
+      importer.import!(rows)
+      pws = PublicWaterSystem.find("VT0000003")
+      expect(pws.gw_sw_code).to be_nil
+      expect(pws.owner_type).to be_nil
+      expect(pws.primacy_type).to be_nil
+      expect(pws.open_health_viol).to be_nil
     end
   end
 end

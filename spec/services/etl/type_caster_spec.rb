@@ -95,6 +95,42 @@ RSpec.describe Etl::TypeCaster do
     end
   end
 
+  describe "#cast_string" do
+    it "returns the value stripped" do
+      expect(caster.cast_string("  Territory  ")).to eq("Territory")
+    end
+
+    it "passes through real categorical values unchanged" do
+      expect(caster.cast_string("State")).to eq("State")
+      expect(caster.cast_string("Territory")).to eq("Territory")
+      expect(caster.cast_string("No")).to eq("No")
+      expect(caster.cast_string("Yes")).to eq("Yes")
+      expect(caster.cast_string("No Information")).to eq("No Information")
+      expect(caster.cast_string("Not Enough Data - Operating < 10 years")).to eq("Not Enough Data - Operating < 10 years")
+    end
+
+    it "returns nil for NA" do
+      expect(caster.cast_string("NA")).to be_nil
+    end
+
+    it "returns nil for case-variant NA" do
+      expect(caster.cast_string("na")).to be_nil
+      expect(caster.cast_string("Na")).to be_nil
+    end
+
+    it "returns nil for blank string" do
+      expect(caster.cast_string("")).to be_nil
+    end
+
+    it "returns nil for whitespace-only string" do
+      expect(caster.cast_string("   ")).to be_nil
+    end
+
+    it "returns nil for nil" do
+      expect(caster.cast_string(nil)).to be_nil
+    end
+  end
+
   describe "#cast_score" do
     it "converts a 0-to-1 float string to a percentage rounded to 2 decimal places" do
       expect(caster.cast_score("0.65")).to eq(65.0)

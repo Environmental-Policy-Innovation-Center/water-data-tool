@@ -14,18 +14,18 @@ module Etl
         CSV.parse(content, headers: true) do |row|
           pws_rows << {
             pwsid: row["pwsid"],
-            gw_sw_code: row["gw_sw_code"],
-            primary_source_code: row["primary_source_code"],
-            first_reported_date: row["first_reported_date"],
+            gw_sw_code: cast_string(row["gw_sw_code"]),
+            primary_source_code: cast_string(row["primary_source_code"]),
+            first_reported_date: cast_string(row["first_reported_date"]),
             years_operating: cast_int(row["years_operating"]),
-            owner_type: row["owner_type"],
-            primacy_type: row["primacy_type"],
+            owner_type: cast_string(row["owner_type"]),
+            primacy_type: cast_string(row["primacy_type"]),
             is_grant_eligible: cast_bool(row["is_grant_eligible_ind"]),
             is_wholesaler: cast_bool(row["is_wholesaler_ind"]),
             is_school_or_daycare: cast_bool(row["is_school_or_daycare_ind"]),
-            source_water_protection_code: row["source_water_protection_code"],
-            phone_number: row["phone_number"],
-            open_health_viol: row["open_health_viol"],
+            source_water_protection_code: cast_string(row["source_water_protection_code"]),
+            phone_number: cast_string(row["phone_number"]),
+            open_health_viol: cast_string(row["open_health_viol"]),
             updated_at: Time.current
           }
 
