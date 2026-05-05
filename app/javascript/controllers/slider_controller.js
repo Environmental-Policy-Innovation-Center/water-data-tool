@@ -18,6 +18,7 @@ export default class extends Controller {
   #curMin = 0
   #curMax = 0
   #dragging = null
+  #tip = null
 
   async connect() {
     const field = this.fieldValue
@@ -73,6 +74,7 @@ export default class extends Controller {
     svg.setAttribute("viewBox", `0 0 ${SVG_W} ${SVG_H}`)
     svg.setAttribute("preserveAspectRatio", "none")
     svg.innerHTML = ""
+    this.#tip = null
 
     if (!this.#bins.length) return
 
@@ -102,11 +104,11 @@ export default class extends Controller {
       }))
     })
 
-    const tip = this.#el("text", {
+    this.#tip = this.#el("text", {
       "text-anchor": "middle", "font-size": 10, fill: "#333", class: "slider-tip"
     })
-    tip.style.display = "none"
-    svg.appendChild(tip)
+    this.#tip.style.display = "none"
+    svg.appendChild(this.#tip)
 
     this.#addHandle("min", this.#valToX(this.#curMin))
     this.#addHandle("max", this.#valToX(this.#curMax))
@@ -171,17 +173,15 @@ export default class extends Controller {
   }
 
   #showTip(val, x) {
-    const tip = this.chartTarget.querySelector(".slider-tip")
-    if (!tip) return
-    tip.textContent = this.#fmt(val)
-    tip.setAttribute("x", String(x))
-    tip.setAttribute("y", String(SVG_H - HANDLE_R * 2 - 4))
-    tip.style.display = ""
+    if (!this.#tip) return
+    this.#tip.textContent = this.#fmt(val)
+    this.#tip.setAttribute("x", String(x))
+    this.#tip.setAttribute("y", String(SVG_H - HANDLE_R * 2 - 4))
+    this.#tip.style.display = ""
   }
 
   #hideTip() {
-    const tip = this.chartTarget.querySelector(".slider-tip")
-    if (tip) tip.style.display = "none"
+    if (this.#tip) this.#tip.style.display = "none"
   }
 
   #valToX(val) {

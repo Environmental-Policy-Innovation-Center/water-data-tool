@@ -13,7 +13,7 @@ module ApplicationHelper
     svg = ICON_CACHE[safe_name]
     return "".html_safe if svg.empty?
     attrs = []
-    attrs << "class=\"#{ERB::Util.html_escape(classes)}\"" if classes
+    attrs << "class=\"#{html_escape(classes)}\"" if classes
     attrs << 'aria-hidden="true"' if aria_hidden
     replacement = attrs.any? ? "<svg #{attrs.join(" ")}" : "<svg"
     svg.sub("<svg", replacement).html_safe

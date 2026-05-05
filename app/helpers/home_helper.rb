@@ -6,8 +6,16 @@ module HomeHelper
     .map(&:symbolize_keys)
     .freeze
 
+  FILTER_TOOLTIPS = YAML.safe_load_file(Rails.root.join("config/tooltips.yml"))
+    .fetch("filter_menus")
+    .freeze
+
   def datasets
     DATASETS
+  end
+
+  def filter_tooltips
+    FILTER_TOOLTIPS
   end
 
   # Renders a sortable column header link with 3-state cycling: unsorted → asc → desc → unsorted.

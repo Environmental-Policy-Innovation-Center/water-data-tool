@@ -1,7 +1,6 @@
 import { Controller } from "@hotwired/stimulus"
 
-// Preserves horizontal scroll position across frame reloads without a visible flash.
-// Used in the Data Table frame, which has a scrollable table that can be reloaded by filters and pagination.
+// Preserves horizontal scroll position across Turbo frame reloads to avoid a visible flash.
 
 export default class extends Controller {
   connect() {

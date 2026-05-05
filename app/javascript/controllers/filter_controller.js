@@ -108,6 +108,7 @@ const RANGE_FILTERS = FILTERS.filter(f => f.type === "range")
 // Menu open/close lives in filter_menu_controller. Responsive layout in filter_layout_controller.
 export default class extends Controller {
   #statsFrame = null
+  #tableLoaded = false
 
   connect() {
     this.#statsFrame = document.querySelector("turbo-frame#stats-bar")
@@ -173,8 +174,8 @@ export default class extends Controller {
     this.apply(event)
   }
 
-  // Reveals/hides the subcat panel linked by data-panel-id on the checkbox.
-  // On uncheck: hides panel and resets subcat checkboxes to checked.
+  // On check: opens panel and checks all subcats.
+  // On uncheck: unchecks all subcats but leaves panel open so user can re-select.
   toggleSubcat(event) {
     const checkbox = event.currentTarget
     const panelId = checkbox.dataset.panelId
@@ -183,13 +184,45 @@ export default class extends Controller {
 
     if (checkbox.checked) {
       panel.classList.remove("hidden")
-    } else {
-      panel.classList.add("hidden")
+      this.#setToggleArrow(panelId, true)
       panel.querySelectorAll("input[type='checkbox']").forEach(cb => { cb.checked = true })
+    } else {
+      panel.querySelectorAll("input[type='checkbox']").forEach(cb => { cb.checked = false })
       panel.querySelectorAll("input[type='hidden']").forEach(inp => { inp.value = "" })
       const sliderCtrl = this.application.getControllerForElementAndIdentifier(panel, "slider")
       sliderCtrl?.resetToFullRange()
     }
+  }
+
+  // Collapses/expands the subcat panel independently of the parent checkbox.
+  toggleSubcatPanel(event) {
+    event.preventDefault()
+    const panelId = event.currentTarget.dataset.panelId
+    const panel = panelId && document.getElementById(panelId)
+    if (!panel) return
+
+    const willShow = panel.classList.contains("hidden")
+    panel.classList.toggle("hidden")
+    this.#setToggleArrow(panelId, willShow)
+  }
+
+  // Keeps parent checkbox in sync when subcats are individually toggled.
+  // Parent is checked if any subcat is checked; unchecked if none are.
+  syncParentFromSubcat(event) {
+    const panel = event.currentTarget
+    const filter = HEALTH_SUBCAT_FILTERS.find(f => f.panelId === panel.id)
+    if (!filter) return
+
+    const anyChecked = filter.subcats.some(s => document.getElementById(s.id)?.checked)
+    const parentEl = document.getElementById(filter.parentId)
+    if (parentEl) parentEl.checked = anyChecked
+  }
+
+  #setToggleArrow(panelId, expanded) {
+    const btn = this.element.querySelector(`button[data-panel-id="${panelId}"]`)
+    if (!btn) return
+    btn.setAttribute("aria-expanded", String(expanded))
+    btn.querySelector("svg")?.classList.toggle("rotate-180", expanded)
   }
 
   #onLayoutChanged = () => this.#updateBadges()
@@ -199,8 +232,6 @@ export default class extends Controller {
     this.#visitTableFrame()
   }
 
-  #tableLoaded = false
-
   #resetMenu(menu) {
     menu.querySelectorAll("input[type='radio']").forEach(r => { r.checked = r.hasAttribute("data-default") })
     menu.querySelectorAll("input[type='checkbox']").forEach(cb => { cb.checked = cb.classList.contains("default-checked") })
@@ -209,6 +240,10 @@ export default class extends Controller {
       panel.querySelectorAll("input[type='hidden']").forEach(inp => { inp.value = "" })
       const sliderCtrl = this.application.getControllerForElementAndIdentifier(panel, "slider")
       sliderCtrl?.resetToFullRange()
+    })
+    menu.querySelectorAll("button[data-panel-id]").forEach(btn => {
+      btn.setAttribute("aria-expanded", "false")
+      btn.querySelector("svg")?.classList.remove("rotate-180")
     })
     menu.querySelectorAll("select.min-select").forEach(s => { s.selectedIndex = 0 })
     menu.querySelectorAll("select.max-select").forEach(s => { s.selectedIndex = s.options.length - 1 })
@@ -360,18 +395,19 @@ export default class extends Controller {
           if (parent) parent.checked = true
           const panel = document.getElementById(f.panelId)
           if (panel) panel.classList.remove("hidden")
+          this.#setToggleArrow(f.panelId, true)
 
-          if (!aggregateSet) {
-            // Some subcats unchecked — reset all, then re-check only those in params
+          if (aggregateSet) {
+            // All subcats active — check them all explicitly (they start unchecked in HTML)
             f.subcats.forEach(s => {
               const el = document.getElementById(s.id)
-              if (el) el.checked = false
+              if (el) el.checked = true
             })
+          } else {
+            // Partial selection — only the subcats present in params are checked
             f.subcats.forEach(s => {
-              if (params[s.param] != null) {
-                const el = document.getElementById(s.id)
-                if (el) el.checked = true
-              }
+              const el = document.getElementById(s.id)
+              if (el) el.checked = params[s.param] != null
             })
           }
           break
@@ -385,6 +421,7 @@ export default class extends Controller {
           if (parent) parent.checked = true
           const panel = document.getElementById(f.panelId)
           if (panel) panel.classList.remove("hidden")
+          this.#setToggleArrow(f.panelId, true)
 
           const minEl = document.getElementById(f.minInputId)
           if (minEl && minSet) minEl.value = params[f.param_min]

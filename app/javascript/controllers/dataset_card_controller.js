@@ -3,40 +3,59 @@ import { Controller } from "@hotwired/stimulus"
 // Subpixel tolerance when comparing sentinel bottom to the content box (layout noise).
 const CLIP_EPSILON_PX = 2
 
-// Toggles "show more" / "show less" when .dataset-card-body clips copy (see application.css).
-// Uses a bottom sentinel + getBoundingClientRect instead of scrollHeight − clientHeight so we
-// detect real clipping (including thin overflows) without a large arbitrary px threshold.
+// Uses a sentinel + getBoundingClientRect for clip detection instead of scrollHeight heuristics.
 export default class extends Controller {
   static targets = ["content", "toggle", "sentinel"]
 
+  #destroyed = false
+  #resizeObserver = null
+  #rafId = null
+
   connect() {
-    this._destroyed = false
-    this._resizeObserver = new ResizeObserver(() => this._scheduleUpdate())
-    this._resizeObserver.observe(this.contentTarget)
+    this.#resizeObserver = new ResizeObserver(() => this.#scheduleUpdate())
+    this.#resizeObserver.observe(this.contentTarget)
 
     if (document.fonts?.ready) {
-      document.fonts.ready.then(() => this._scheduleUpdate())
+      document.fonts.ready.then(() => this.#scheduleUpdate())
     }
 
-    this._scheduleUpdate()
+    this.#scheduleUpdate()
   }
 
   disconnect() {
-    this._destroyed = true
-    this._resizeObserver?.disconnect()
-    if (this._rafId) cancelAnimationFrame(this._rafId)
+    this.#destroyed = true
+    this.#resizeObserver?.disconnect()
+    if (this.#rafId) cancelAnimationFrame(this.#rafId)
   }
 
-  _scheduleUpdate() {
-    if (this._destroyed) return
-    if (this._rafId) cancelAnimationFrame(this._rafId)
-    this._rafId = requestAnimationFrame(() => {
-      this._rafId = null
-      this._updateToggleVisibility()
+  toggle() {
+    if (this.contentTarget.classList.contains("dataset-card-body")) {
+      this.expand()
+    } else {
+      this.collapse()
+    }
+  }
+
+  expand() {
+    this.contentTarget.classList.remove("dataset-card-body")
+    this.#scheduleUpdate()
+  }
+
+  collapse() {
+    this.contentTarget.classList.add("dataset-card-body")
+    this.#scheduleUpdate()
+  }
+
+  #scheduleUpdate() {
+    if (this.#destroyed) return
+    if (this.#rafId) cancelAnimationFrame(this.#rafId)
+    this.#rafId = requestAnimationFrame(() => {
+      this.#rafId = null
+      this.#updateToggleVisibility()
     })
   }
 
-  _contentIsClipped() {
+  #contentIsClipped() {
     const el = this.contentTarget
     if (this.hasSentinelTarget) {
       const cr = el.getBoundingClientRect()
@@ -46,7 +65,7 @@ export default class extends Controller {
     return el.scrollHeight - el.clientHeight > CLIP_EPSILON_PX
   }
 
-  _updateToggleVisibility() {
+  #updateToggleVisibility() {
     if (!this.hasContentTarget || !this.hasToggleTarget) return
 
     const el = this.contentTarget
@@ -65,7 +84,7 @@ export default class extends Controller {
       return
     }
 
-    const needsToggle = this._contentIsClipped()
+    const needsToggle = this.#contentIsClipped()
     this.toggleTarget.hidden = !needsToggle
     if (needsToggle) {
       this.toggleTarget.textContent = "show more"
@@ -73,23 +92,5 @@ export default class extends Controller {
     } else {
       this.toggleTarget.removeAttribute("aria-expanded")
     }
-  }
-
-  toggle() {
-    if (this.contentTarget.classList.contains("dataset-card-body")) {
-      this.expand()
-    } else {
-      this.collapse()
-    }
-  }
-
-  expand() {
-    this.contentTarget.classList.remove("dataset-card-body")
-    this._scheduleUpdate()
-  }
-
-  collapse() {
-    this.contentTarget.classList.add("dataset-card-body")
-    this._scheduleUpdate()
   }
 }
