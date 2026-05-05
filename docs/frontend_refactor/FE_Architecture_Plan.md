@@ -353,14 +353,63 @@ Run `bin/dev` and verify the following before marking Tier 3 closed:
 
 ---
 
-### Tier 4 — Refactor `filter_controller.js`
+### Tier 4 — Refactor `filter_controller.js` ✅
 
-| Task | Description | Test |
-|---|---|
-| **T4-A** | **Define declarative `FILTERS` config array.** Each entry: `{ id, param, type, default }`. Single source of truth for the filter ↔ DOM mapping. |
-| **T4-B** | **Rewrite `#collectFilters()` as a loop.** Replace 100-line imperative DOM-reading with a loop over `FILTERS`. |
-| **T4-C** | **Rewrite `#restoreDomState()` as a loop.** Replace 100-line imperative DOM-writing with a loop over `FILTERS`. Adding a new filter is now one line in the config array. |
-| **T4-D** | **Extract sub-controllers.** Split the 499-line controller: `FilterMenuController` (open/close/dismiss), `FilterLayoutController` (ResizeObserver logic), keeping `filter_controller` focused on state collect/restore/dispatch. |
+| Task | Status | Description | Test |
+|---|---|---|---|
+| **T4-A** | ✅ Done | **Define declarative `FILTERS` config array.** Each entry defines `{ type, group, param, ...type-specific }`. Types: `radio`, `bool`, `group`, `select`, `pop_cat`, `place`. `GROUP_KEYS` derived at module load via `FILTERS.reduce()`. | FILTERS drives both collect and restore — adding a new filter is one config entry. |
+| **T4-B** | ✅ Done | **Rewrite `#collectFilters()` as a loop.** Replaced ~100-line imperative DOM-reading with a `for` loop over `FILTERS` with a `switch` on type. | Each filter type reads correctly; URL params match expected values after Apply. |
+| **T4-C** | ✅ Done | **Rewrite `#restoreDomState()` as a loop.** Replaced ~100-line imperative DOM-writing with a symmetric loop. URL restore on page reload correctly restores all filter types. | Copy URL with params → open new tab → all filter DOM state restores correctly. |
+| **T4-D** | ✅ Done | **Extract sub-controllers.** `filter_menu_controller.js` (open/close/dismiss, outside-click, `filter:close-all` listener). `filter_layout_controller.js` (ResizeObserver, breakpoint-crossing guard, DOM reparenting into More menu). `filter_controller.js` reduced to state collect/restore/dispatch only. | Dropdown open/close, outside-click dismiss, responsive tab collapse all work independently. |
+
+#### Tier 4 — Fixes applied during testing
+
+| Fix | File(s) | Notes |
+|---|---|---|
+| `filter:close-all` moved inside breakpoint-crossing branch | `filter_layout_controller.js` | Was firing on every resize pixel; now only fires when a breakpoint actually crosses |
+| `#setBadge(badge, count)` helper extracted | `filter_controller.js` | Eliminated duplicated badge DOM write in `#updateBadges()` |
+| `countKeys` predicate simplified | `filter_controller.js` | `val !== undefined && val !== null && val !== ""` → `val != null && val !== ""` |
+| Source (group 1) added to `RESPONSIVE_FILTERS` at 580px | `filter_layout_controller.js` | Source now collapses into More at narrow widths; More tab persists on its own |
+| Datasets mobile: sticky header → `md:sticky` | `_datasets.html.erb` | Sticky header took up too much vertical space on mobile, appearing to block scrolling |
+| Datasets mobile: padding `px-9` → `px-4 md:px-9` | `_datasets.html.erb` | Tighter horizontal padding on mobile |
+| Datasets mobile: description text hidden on mobile | `_datasets.html.erb` | "EPIC wants to know…" copy hidden on mobile to reduce header height |
+| Datasets mobile: data source `<select>` overflow fixed | `_datasets.html.erb` | `inline-block` wrapper → `block w-full`; `<select>` gets `w-full` |
+
+#### Tier 4 — Manual test checklist
+
+**T4-A/B/C — Filter collect and restore**
+- [x] Apply each filter type (radio, bool, group, select, pop_cat) → correct URL params appear after Apply
+- [x] Copy URL with params → open new tab → all filter DOM state restores (radio checked, checkboxes, pop-size buttons active)
+- [x] Reset in a menu → filter clears, URL param removed
+- [x] Reset All → all menus reset, clean URL
+
+**T4-D — FilterMenuController**
+- [x] Click filter tab → dropdown appears below button
+- [x] Click same tab again → closes
+- [x] Click a different tab → previous closes, new one opens (only one at a time)
+- [x] Click outside any open menu → closes
+- [x] Click inside open menu → stays open
+- [x] Apply → dropdown closes
+
+**T4-D — FilterLayoutController** *(tested at zoom 100%, Chrome)*
+> Note: breakpoints are **container widths** (not window widths). The sidebar takes ~250px, so observed window widths are ~250px larger than the `RESPONSIVE_FILTERS` values.
+- [x] Wide viewport: all 5 filter tabs visible
+- [x] Narrow: Population collapses into More (at container ~1190px / window ~1440px)
+- [x] Narrow further: Compliance, Boundaries, Attributes collapse in sequence
+- [x] Narrow further: Source collapses into More (at container ~580px)
+- [x] Widen back → tabs re-appear; More no longer contains them
+- [x] Resize with a dropdown open → dropdown closes automatically
+
+**Badge counts**
+- [x] No filters → all badge circles hidden
+- [x] Apply Source filter → badge count appears on Source tab
+- [x] Collapse Source into More → badge count moves to More tab
+- [x] Combine More-menu filters with collapsed Source → More badge shows combined total
+
+**Stats bar + table frame**
+- [x] Apply any filter → stats bar updates
+- [x] Filter while in Table view → table reloads
+- [x] Switch views → no stale data, no double-reload
 
 ### Tier 5 — Implement Histogram Slider
 
@@ -416,30 +465,3 @@ Standard editor access is sufficient for all initial work. Dev Mode is optional.
 - `docs/arch_02_filter_event_flow.png` — filter event flow diagram
 - `docs/FE_Architecture_Decision_Rationale.md` — why Hotwire, why not React
 
----
-
-## Open Work Items
-
-### Map
-  - State Zoom upon state click
-
-### Datasets
-  - Done?
-
-### Downloads
-  - General formatting
-
-### Mobile Issues
-  - Need to make sure we see all the saem featured and content, even when displayed differently
-  - map and table toggles not available
-  - filter buttons not available
-  TEST CASES
-  - [ ] Map/Table toggle icons appear correctly (map-white/map-dark, table-dark/table-white)
-  - [ ] Export button shows downloads icon
-  - [ ] Report close button (X) renders and closes the overlay
-  - [ ] Sidebar: Documentation, Github, Feedback links show external-link SVG icon; Contact shows email icon
-  - [ ] Print button on report overlay still renders (still uses `icon-print.png` PNG — confirm no broken image)
-
-### application.css
-  - confirm defaults
-  - clean up/remove notes

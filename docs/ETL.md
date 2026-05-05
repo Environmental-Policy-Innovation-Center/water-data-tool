@@ -34,20 +34,22 @@ There is no per-environment S3 bucket — a single bucket serves development, st
 
 ## Source Files
 
-| File | Target Model | Format | Notes |
-|------|-------------|--------|-------|
-| `epa_sabs_geoms.geojson` | `ServiceAreaGeometry` | GeoJSON | MultiPolygon service area boundaries |
-| `epa_sabs.csv` | `PublicWaterSystem` (partial) | CSV | Core PWS attributes |
-| `sdwis_viols.csv` | `PublicWaterSystem` (partial) + `ViolationsSummary` | CSV | Attributes split between two models |
-| `epa_sabs_xwalk.csv` | `Demographic` | CSV | ACS census crosswalk |
-| `xwalk_pct_change_10yr.csv` | `TrendDatum` | CSV | 10yr demographic changes |
-| `cejst.csv` | `EnvironmentalJustice` (partial) | CSV | CEJST indicators |
-| `ejscreen.csv` | `EnvironmentalJustice` (partial) | CSV | EJScreen indicators |
-| `svi.csv` | `EnvironmentalJustice` (partial) | CSV | Social Vulnerability Index |
-| `cvi.csv` | `EnvironmentalJustice` (partial) | CSV | Climate Vulnerability Index |
-| `national_bwn_highlevel_summary.csv` | `BoilWaterSummary` | CSV | Boil water notice history |
-| `pwsid_funded_highlevel_summary.csv` | `FundingSummary` | CSV | SRF funding summaries |
-| `pwsid_npdes_usts_rmps_imp.csv` | `WatershedHazard` | CSV | Watershed hazards (aggregated at import) |
+
+| File                                 | Target Model                                        | Format  | Notes                                    |
+| ------------------------------------ | --------------------------------------------------- | ------- | ---------------------------------------- |
+| `epa_sabs_geoms.geojson`             | `ServiceAreaGeometry`                               | GeoJSON | MultiPolygon service area boundaries     |
+| `epa_sabs.csv`                       | `PublicWaterSystem` (partial)                       | CSV     | Core PWS attributes                      |
+| `sdwis_viols.csv`                    | `PublicWaterSystem` (partial) + `ViolationsSummary` | CSV     | Attributes split between two models      |
+| `epa_sabs_xwalk.csv`                 | `Demographic`                                       | CSV     | ACS census crosswalk                     |
+| `xwalk_pct_change_10yr.csv`          | `TrendDatum`                                        | CSV     | 10yr demographic changes                 |
+| `cejst.csv`                          | `EnvironmentalJustice` (partial)                    | CSV     | CEJST indicators                         |
+| `ejscreen.csv`                       | `EnvironmentalJustice` (partial)                    | CSV     | EJScreen indicators                      |
+| `svi.csv`                            | `EnvironmentalJustice` (partial)                    | CSV     | Social Vulnerability Index               |
+| `cvi.csv`                            | `EnvironmentalJustice` (partial)                    | CSV     | Climate Vulnerability Index              |
+| `national_bwn_highlevel_summary.csv` | `BoilWaterSummary`                                  | CSV     | Boil water notice history                |
+| `pwsid_funded_highlevel_summary.csv` | `FundingSummary`                                    | CSV     | SRF funding summaries                    |
+| `pwsid_npdes_usts_rmps_imp.csv`      | `WatershedHazard`                                   | CSV     | Watershed hazards (aggregated at import) |
+
 
 ---
 
@@ -87,13 +89,15 @@ Truncate the `tile_cache` table (if all source tables changed) or delete specifi
 
 The legacy ETL imports everything as TEXT. The new ETL casts at import time via helpers in `Etl::TypeCaster`:
 
-| Helper | Source columns | DB type | Behavior |
-|--------|---------------|---------|----------|
-| `cast_int` | Numeric strings (`"42"`, `"1250000"`) | `integer` | `nil` if blank, `nil`/`NULL`, or `"NA"` (case-insensitive) |
-| `cast_dec` | Decimal strings (`"0.85"`, `"12.3"`) | `decimal` | `nil` if blank, `nil`/`NULL`, or `"NA"` |
-| `cast_score` | 0-to-1 floats (`a_int_identified_as_disadvantaged`, `pw_int_pop_rpl_themes`, `a_int_overall_cvi_score`) | `decimal` (×100) | `(value.to_f * 100).round(2)`, `nil` if blank or `"NA"` |
-| `cast_bool` | `"Yes"`/`"No"` or `"Y"`/`"N"` indicators | `boolean` | `true` if `Y`/`YES`, `false` otherwise, `nil` if blank |
-| `cast_string` | Free-text / categorical string columns | `string` | Strips whitespace; `nil` if blank or `"NA"`. Real values (`"Territory"`, `"State"`, `"Tribal"`, `"Surface Water"`, `"No"`, etc.) pass through unchanged. |
+
+| Helper        | Source columns                                                                                          | DB type          | Behavior                                                                                                                                                 |
+| ------------- | ------------------------------------------------------------------------------------------------------- | ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `cast_int`    | Numeric strings (`"42"`, `"1250000"`)                                                                   | `integer`        | `nil` if blank, `nil`/`NULL`, or `"NA"` (case-insensitive)                                                                                               |
+| `cast_dec`    | Decimal strings (`"0.85"`, `"12.3"`)                                                                    | `decimal`        | `nil` if blank, `nil`/`NULL`, or `"NA"`                                                                                                                  |
+| `cast_score`  | 0-to-1 floats (`a_int_identified_as_disadvantaged`, `pw_int_pop_rpl_themes`, `a_int_overall_cvi_score`) | `decimal` (×100) | `(value.to_f * 100).round(2)`, `nil` if blank or `"NA"`                                                                                                  |
+| `cast_bool`   | `"Yes"`/`"No"` or `"Y"`/`"N"` indicators                                                                | `boolean`        | `true` if `Y`/`YES`, `false` otherwise, `nil` if blank                                                                                                   |
+| `cast_string` | Free-text / categorical string columns                                                                  | `string`         | Strips whitespace; `nil` if blank or `"NA"`. Real values (`"Territory"`, `"State"`, `"Tribal"`, `"Surface Water"`, `"No"`, etc.) pass through unchanged. |
+
 
 **"NA" is a missing-value sentinel in the source CSVs** (a common convention in R/pandas pipelines). All five helpers normalize it to `NULL` in the database. No raw `"NA"` strings are stored.
 
@@ -115,12 +119,13 @@ COLUMN_MAP = {
 
 ### Special Cases
 
-**`sdwis_viols.csv`** — this single CSV feeds two models:
+`**sdwis_viols.csv**` — this single CSV feeds two models:
+
 - Attribute columns (`gw_sw_code`, `owner_type`, `primacy_type`, etc.) → `public_water_systems`
 - Violation count columns → `violations_summaries`
 - Boolean indicators (`is_wholesaler_ind`, etc.) use `"Yes"`/`"No"` in the source — cast via `Etl::TypeCaster#cast_bool`
 
-**`pwsid_npdes_usts_rmps_imp.csv`** — has multiple rows per PWS (one per HUC12 watershed). Pre-aggregate with `GROUP BY pwsid, SUM(...)` during import to produce one row per PWS for `watershed_hazards`.
+`**pwsid_npdes_usts_rmps_imp.csv**` — has multiple rows per PWS (one per HUC12 watershed). Pre-aggregate with `GROUP BY pwsid, SUM(...)` during import to produce one row per PWS for `watershed_hazards`.
 
 **Environmental justice CSVs** (`cejst.csv`, `ejscreen.csv`, `svi.csv`, `cvi.csv`) — four separate files that all feed into the single `environmental_justices` table. Import each file's columns and merge on `pwsid`.
 
@@ -234,13 +239,15 @@ The job issues HEAD requests per file and only imports files with updated `Last-
 
 ## Error Handling
 
-| Scenario | Behavior |
-|----------|----------|
-| S3 unreachable | Log error, skip import, retry on next scheduled run |
-| Malformed CSV row | Log warning with row number and file, skip row, continue import |
-| Invalid geometry | Logged during post-import repair step; `ST_Buffer(geom, 0)` fixes most cases |
-| Import fails mid-transaction | Transaction rolls back — old data remains intact |
-| Duplicate `pwsid` in source | Last row wins (UPSERT / `ON CONFLICT UPDATE`) |
+
+| Scenario                     | Behavior                                                                     |
+| ---------------------------- | ---------------------------------------------------------------------------- |
+| S3 unreachable               | Log error, skip import, retry on next scheduled run                          |
+| Malformed CSV row            | Log warning with row number and file, skip row, continue import              |
+| Invalid geometry             | Logged during post-import repair step; `ST_Buffer(geom, 0)` fixes most cases |
+| Import fails mid-transaction | Transaction rolls back — old data remains intact                             |
+| Duplicate `pwsid` in source  | Last row wins (UPSERT / `ON CONFLICT UPDATE`)                                |
+
 
 All import activity is logged with: file URL, row count imported, duration, errors encountered.
 
@@ -248,9 +255,12 @@ All import activity is logged with: file URL, row count imported, duration, erro
 
 ## Security Improvements over Legacy
 
-| Issue | Legacy (Python) | New (Rails) |
-|-------|----------------|-------------|
-| SQL injection | f-string query building | Parameterized queries via ActiveRecord |
-| Credentials | Flat `credentials.py` file | Rails encrypted credentials (`bin/rails credentials:edit`) or environment variables |
-| S3 access | HTTP public URLs | Public HTTPS — no credentials required for reads; IAM only needed if bucket is made private |
-| Schema isolation | Schema name in f-strings | Rails environments (`development` / `staging` / `production`) |
+
+| Issue            | Legacy (Python)            | New (Rails)                                                                                 |
+| ---------------- | -------------------------- | ------------------------------------------------------------------------------------------- |
+| SQL injection    | f-string query building    | Parameterized queries via ActiveRecord                                                      |
+| Credentials      | Flat `credentials.py` file | Rails encrypted credentials (`bin/rails credentials:edit`) or environment variables         |
+| S3 access        | HTTP public URLs           | Public HTTPS — no credentials required for reads; IAM only needed if bucket is made private |
+| Schema isolation | Schema name in f-strings   | Rails environments (`development` / `staging` / `production`)                               |
+
+
