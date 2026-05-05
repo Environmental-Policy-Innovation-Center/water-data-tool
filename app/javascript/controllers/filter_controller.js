@@ -15,7 +15,7 @@ const OWNER_TYPE_MAP = {
 
 // Single source of truth for every filter ↔ DOM mapping.
 // Adding a new filter = one entry below; no other code changes needed.
-// Types: 'radio' | 'bool' | 'group' | 'select' | 'pop_cat' | 'place'
+// Types: 'radio' | 'bool' | 'group' | 'select' | 'pop_cat' | 'place' | 'health_subcat' | 'range'
 const FILTERS = [
   // ── Source (menu 1) ──────────────────────────────────────────────────────
   { type: "radio",   group: 1,  param: "gw_sw_code",              ids: { "ws-ground": "Groundwater", "ws-surface": "Surface Water" } },
@@ -34,11 +34,49 @@ const FILTERS = [
   { type: "select",  group: 3,  param: "area_max",        id: "area-max", sentinel: "999999" },
 
   // ── Compliance (menu 4) ──────────────────────────────────────────────────
-  { type: "bool",    group: 4,  param: "has_open_violations",          id: "compliance-open-violations", value: "true" },
-  { type: "bool",    group: 4,  param: "health_violations_5yr_min",    id: "viols-health-5yrs",          value: "1" },
-  { type: "bool",    group: 4,  param: "health_violations_10yr_min",   id: "viols-health",               value: "1" },
-  { type: "bool",    group: 4,  param: "paperwork_violations_5yr_min", id: "viols-paperwork-5yrs",       value: "1" },
-  { type: "bool",    group: 4,  param: "paperwork_violations_10yr_min",id: "viols-paperwork",            value: "1" },
+  { type: "bool",    group: 4,  param: "has_open_violations", id: "compliance-open-violations", value: "true" },
+
+  { type: "health_subcat", group: 4, parentId: "viols-health-5yrs",
+    panelId: "subcat-health-5yr", aggregateParam: "health_violations_5yr_min",
+    subcats: [
+      { id: "viols-groundwater-5yr",           param: "groundwater_rule_5yr_min" },
+      { id: "viols-surface-water-5yr",         param: "surface_water_treatment_5yr_min" },
+      { id: "viols-lead-copper-5yr",           param: "lead_and_copper_5yr_min" },
+      { id: "viols-radionuclides-5yr",         param: "radionuclides_5yr_min" },
+      { id: "viols-inorganic-5yr",             param: "inorganic_chemicals_5yr_min" },
+      { id: "viols-synthetic-5yr",             param: "synthetic_organic_chemicals_5yr_min" },
+      { id: "viols-vocs-5yr",                  param: "volatile_organic_chemicals_5yr_min" },
+      { id: "viols-coliform-5yr",              param: "total_coliform_5yr_min" },
+      { id: "viols-stage-1-disinfectants-5yr", param: "stage_1_disinfectants_5yr_min" },
+      { id: "viols-stage-2-disinfectants-5yr", param: "stage_2_disinfectants_5yr_min" }
+    ]
+  },
+
+  { type: "health_subcat", group: 4, parentId: "viols-health",
+    panelId: "subcat-health-10yr", aggregateParam: "health_violations_10yr_min",
+    subcats: [
+      { id: "viols-groundwater-10yr",           param: "groundwater_rule_10yr_min" },
+      { id: "viols-surface-water-10yr",         param: "surface_water_treatment_10yr_min" },
+      { id: "viols-lead-copper-10yr",           param: "lead_and_copper_10yr_min" },
+      { id: "viols-radionuclides-10yr",         param: "radionuclides_10yr_min" },
+      { id: "viols-inorganic-10yr",             param: "inorganic_chemicals_10yr_min" },
+      { id: "viols-synthetic-10yr",             param: "synthetic_organic_chemicals_10yr_min" },
+      { id: "viols-vocs-10yr",                  param: "volatile_organic_chemicals_10yr_min" },
+      { id: "viols-coliform-10yr",              param: "total_coliform_10yr_min" },
+      { id: "viols-stage-1-disinfectants-10yr", param: "stage_1_disinfectants_10yr_min" },
+      { id: "viols-stage-2-disinfectants-10yr", param: "stage_2_disinfectants_10yr_min" }
+    ]
+  },
+
+  { type: "range", group: 4,
+    param_min: "paperwork_violations_5yr_min", param_max: "paperwork_violations_5yr_max",
+    parentId: "viols-paperwork-5yrs", panelId: "subcat-paperwork-5yr",
+    minInputId: "min-paperwork-5yr", maxInputId: "max-paperwork-5yr" },
+
+  { type: "range", group: 4,
+    param_min: "paperwork_violations_10yr_min", param_max: "paperwork_violations_10yr_max",
+    parentId: "viols-paperwork", panelId: "subcat-paperwork-10yr",
+    minInputId: "min-paperwork", maxInputId: "max-paperwork" },
 
   // ── Population (menu 5) ──────────────────────────────────────────────────
   { type: "pop_cat", group: 5,  param: "pop_cat_5" },
@@ -56,11 +94,15 @@ const FILTERS = [
   { type: "bool",    group: 10, param: "impaired_streams_303d_min",           id: "more-impaired-streams",           value: "1" },
 ]
 
-// Derived from FILTERS — maps menu group number to its param keys for badge counting.
-const GROUP_KEYS = FILTERS.reduce((acc, { group, param }) => {
-  (acc[group] ||= []).push(param)
+// Filters with .param contribute a single URL key counted directly.
+// health_subcat and range omit .param and are counted separately below.
+const GROUP_KEYS = FILTERS.reduce((acc, f) => {
+  if (f.param) (acc[f.group] ||= []).push(f.param)
   return acc
 }, {})
+
+const HEALTH_SUBCAT_FILTERS = FILTERS.filter(f => f.type === "health_subcat")
+const RANGE_FILTERS = FILTERS.filter(f => f.type === "range")
 
 // Collects filter state → writes to FilterState → dispatches filters:changed.
 // Menu open/close lives in filter_menu_controller. Responsive layout in filter_layout_controller.
@@ -131,6 +173,25 @@ export default class extends Controller {
     this.apply(event)
   }
 
+  // Reveals/hides the subcat panel linked by data-panel-id on the checkbox.
+  // On uncheck: hides panel and resets subcat checkboxes to checked.
+  toggleSubcat(event) {
+    const checkbox = event.currentTarget
+    const panelId = checkbox.dataset.panelId
+    const panel = panelId && document.getElementById(panelId)
+    if (!panel) return
+
+    if (checkbox.checked) {
+      panel.classList.remove("hidden")
+    } else {
+      panel.classList.add("hidden")
+      panel.querySelectorAll("input[type='checkbox']").forEach(cb => { cb.checked = true })
+      panel.querySelectorAll("input[type='hidden']").forEach(inp => { inp.value = "" })
+      const sliderCtrl = this.application.getControllerForElementAndIdentifier(panel, "slider")
+      sliderCtrl?.resetToFullRange()
+    }
+  }
+
   #onLayoutChanged = () => this.#updateBadges()
 
   #onTableShow = () => {
@@ -143,6 +204,12 @@ export default class extends Controller {
   #resetMenu(menu) {
     menu.querySelectorAll("input[type='radio']").forEach(r => { r.checked = r.hasAttribute("data-default") })
     menu.querySelectorAll("input[type='checkbox']").forEach(cb => { cb.checked = cb.classList.contains("default-checked") })
+    menu.querySelectorAll("[data-subcat-panel]").forEach(panel => {
+      panel.classList.add("hidden")
+      panel.querySelectorAll("input[type='hidden']").forEach(inp => { inp.value = "" })
+      const sliderCtrl = this.application.getControllerForElementAndIdentifier(panel, "slider")
+      sliderCtrl?.resetToFullRange()
+    })
     menu.querySelectorAll("select.min-select").forEach(s => { s.selectedIndex = 0 })
     menu.querySelectorAll("select.max-select").forEach(s => { s.selectedIndex = s.options.length - 1 })
     menu.querySelectorAll(".pop-size-box").forEach(b => b.classList.remove("active"))
@@ -197,6 +264,28 @@ export default class extends Controller {
             const nameEl = document.querySelector(f.nameSelector)
             if (nameEl?.value) p[f.nameParam] = nameEl.value
           }
+          break
+        }
+        case "health_subcat": {
+          const parent = document.getElementById(f.parentId)
+          if (!parent?.checked) break
+          const allChecked = f.subcats.every(s => document.getElementById(s.id)?.checked)
+          if (allChecked) {
+            p[f.aggregateParam] = "1"
+          } else {
+            for (const s of f.subcats) {
+              if (document.getElementById(s.id)?.checked) p[s.param] = "1"
+            }
+          }
+          break
+        }
+        case "range": {
+          const parent = document.getElementById(f.parentId)
+          if (!parent?.checked) break
+          const minVal = document.getElementById(f.minInputId)?.value
+          const maxVal = document.getElementById(f.maxInputId)?.value
+          if (minVal) p[f.param_min] = minVal
+          if (maxVal) p[f.param_max] = maxVal
           break
         }
       }
@@ -262,6 +351,48 @@ export default class extends Controller {
           if (nameEl) nameEl.value = params[f.nameParam] || params[f.param]
           break
         }
+        case "health_subcat": {
+          const aggregateSet = params[f.aggregateParam] != null
+          const anySubcatSet = f.subcats.some(s => params[s.param] != null)
+          if (!aggregateSet && !anySubcatSet) break
+
+          const parent = document.getElementById(f.parentId)
+          if (parent) parent.checked = true
+          const panel = document.getElementById(f.panelId)
+          if (panel) panel.classList.remove("hidden")
+
+          if (!aggregateSet) {
+            // Some subcats unchecked — reset all, then re-check only those in params
+            f.subcats.forEach(s => {
+              const el = document.getElementById(s.id)
+              if (el) el.checked = false
+            })
+            f.subcats.forEach(s => {
+              if (params[s.param] != null) {
+                const el = document.getElementById(s.id)
+                if (el) el.checked = true
+              }
+            })
+          }
+          break
+        }
+        case "range": {
+          const minSet = params[f.param_min] != null
+          const maxSet = params[f.param_max] != null
+          if (!minSet && !maxSet) break
+
+          const parent = document.getElementById(f.parentId)
+          if (parent) parent.checked = true
+          const panel = document.getElementById(f.panelId)
+          if (panel) panel.classList.remove("hidden")
+
+          const minEl = document.getElementById(f.minInputId)
+          if (minEl && minSet) minEl.value = params[f.param_min]
+          const maxEl = document.getElementById(f.maxInputId)
+          if (maxEl && maxSet) maxEl.value = params[f.param_max]
+          // slider_controller reads hidden inputs on connect() to restore handle positions
+          break
+        }
       }
     }
   }
@@ -290,15 +421,25 @@ export default class extends Controller {
 
     const countKeys = (keys) => keys.filter(k => p[k] != null && p[k] !== "").length
 
+    const countHealthSubcats = (group) =>
+      HEALTH_SUBCAT_FILTERS.filter(f => f.group === group).filter(f =>
+        p[f.aggregateParam] != null || f.subcats.some(s => p[s.param] != null)
+      ).length
+
+    const countRanges = (group) =>
+      RANGE_FILTERS.filter(f => f.group === group).filter(f =>
+        p[f.param_min] != null || p[f.param_max] != null
+      ).length
+
     // Groups 1–5: if collapsed into More, add their count to More's badge instead
-    let moreCount = countKeys(GROUP_KEYS[10])
+    let moreCount = countKeys(GROUP_KEYS[10] || [])
 
     for (const [groupStr, keys] of Object.entries(GROUP_KEYS)) {
       const group = Number(groupStr)
       if (group === 10) continue
 
       const li = document.querySelector(`.filter-${group}`)
-      const count = countKeys(keys)
+      const count = countKeys(keys) + countHealthSubcats(group) + countRanges(group)
 
       if (li?.classList.contains("hidden")) {
         moreCount += count

@@ -18,6 +18,7 @@ Rails.application.routes.draw do
     collection do
       resource :stats, only: :show, module: :public_water_systems
       resource :export, only: :show, module: :public_water_systems
+      resource :histogram, only: :show, module: :public_water_systems
     end
     member do
       resource :report, only: :show, module: :public_water_systems

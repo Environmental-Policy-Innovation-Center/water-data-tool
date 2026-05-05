@@ -109,10 +109,164 @@
     <h3>Violations</h3>
     <ul>
       <li><input type="checkbox" class="toggle" id="compliance-open-violations"><label for="compliance-open-violations">Open violations</label></li>
-      <li><input type="checkbox" class="" id="viols-health-5yrs"><label for="viols-health-5yrs">Health violations in the last 5 years</label></li>
-      <li><input type="checkbox" class="" id="viols-health"><label for="viols-health">Health violations in the last 10 years</label></li>
-      <li><input type="checkbox" class="toggle" id="viols-paperwork-5yrs"><label for="viols-paperwork-5yrs">Non-health violations in the last 5 years</label></li>
-      <li><input type="checkbox" class="toggle" id="viols-paperwork"><label for="viols-paperwork">Non-health violations in the last 10 years</label></li>
+      <li>
+        <input type="checkbox" class="toggle" id="viols-health-5yrs"
+               data-action="change->filter#toggleSubcat"
+               data-panel-id="subcat-health-5yr">
+        <label for="viols-health-5yrs">Health violations in the last 5 years</label>
+        <div id="subcat-health-5yr" class="hidden pl-4 pb-1" data-subcat-panel>
+        <ul class="space-y-0.5 mt-1">
+          <li>
+            <input type="checkbox" class="toggle default-checked" checked id="viols-groundwater-5yr">
+            <label for="viols-groundwater-5yr">Ground water rule</label>
+            <span class="ml-1 text-neutral-400 text-xs cursor-help" title="The ground water rule provides protection against microbial pathogens in public water systems using ground water sources.">ⓘ</span>
+          </li>
+          <li>
+            <input type="checkbox" class="toggle default-checked" checked id="viols-surface-water-5yr">
+            <label for="viols-surface-water-5yr">Surface water treatment rules</label>
+            <span class="ml-1 text-neutral-400 text-xs cursor-help" title="The surface water treatment rules require water systems to filter and disinfect surface water sources.">ⓘ</span>
+          </li>
+          <li>
+            <input type="checkbox" class="toggle default-checked" checked id="viols-lead-copper-5yr">
+            <label for="viols-lead-copper-5yr">Lead &amp; copper</label>
+            <span class="ml-1 text-neutral-400 text-xs cursor-help" title="The lead and copper rule requires public water systems to take action when they fail to meet the rule's requirements such as corrosion control, public notifications, or service line replacement.">ⓘ</span>
+          </li>
+          <li>
+            <input type="checkbox" class="toggle default-checked" checked id="viols-radionuclides-5yr">
+            <label for="viols-radionuclides-5yr">Radionuclides</label>
+            <span class="ml-1 text-neutral-400 text-xs cursor-help" title="Violations for radionuclides in drinking water involve exceeding legal limits for radioactive contaminants.">ⓘ</span>
+          </li>
+          <li>
+            <input type="checkbox" class="toggle default-checked" checked id="viols-inorganic-5yr">
+            <label for="viols-inorganic-5yr">Inorganic chemicals</label>
+            <span class="ml-1 text-neutral-400 text-xs cursor-help" title="Violations for inorganic chemicals in drinking water involve exceeding legal limits for contaminants like arsenic, nitrate, and lead.">ⓘ</span>
+          </li>
+          <li>
+            <input type="checkbox" class="toggle default-checked" checked id="viols-synthetic-5yr">
+            <label for="viols-synthetic-5yr">Synthetic organic chemicals</label>
+            <span class="ml-1 text-neutral-400 text-xs cursor-help" title="Violations for synthetic organic chemicals occur when the maximum contaminant levels are exceeded.">ⓘ</span>
+          </li>
+          <li>
+            <input type="checkbox" class="toggle default-checked" checked id="viols-vocs-5yr">
+            <label for="viols-vocs-5yr">Volatile organic chemicals</label>
+            <span class="ml-1 text-neutral-400 text-xs cursor-help" title="Violations for volatile organic chemicals occur when the maximum contaminant levels are exceeded.">ⓘ</span>
+          </li>
+          <li>
+            <input type="checkbox" class="toggle default-checked" checked id="viols-coliform-5yr">
+            <label for="viols-coliform-5yr">Coliform</label>
+            <span class="ml-1 text-neutral-400 text-xs cursor-help" title="Violations for coliforms occur when more than five percent of samples taken from public water systems contain coliforms.">ⓘ</span>
+          </li>
+          <li>
+            <input type="checkbox" class="toggle default-checked" checked id="viols-stage-1-disinfectants-5yr">
+            <label for="viols-stage-1-disinfectants-5yr">Stage 1 disinfectants</label>
+            <span class="ml-1 text-neutral-400 text-xs cursor-help" title="Violations for stage 1 disinfectants occur when public water systems exceed the maximum containment levels for disinfectants and byproducts.">ⓘ</span>
+          </li>
+          <li>
+            <input type="checkbox" class="toggle default-checked" checked id="viols-stage-2-disinfectants-5yr">
+            <label for="viols-stage-2-disinfectants-5yr">Stage 2 disinfectants</label>
+            <span class="ml-1 text-neutral-400 text-xs cursor-help" title="Violations for stage 2 disinfectants occur when public water systems exceed the maximum exposures for total trihalomethanes and haloacetic acids, byproducts in water disinfected with chlorine or chloramine.">ⓘ</span>
+          </li>
+        </ul>
+        </div>
+      </li>
+      <li>
+        <input type="checkbox" class="toggle" id="viols-health"
+               data-action="change->filter#toggleSubcat"
+               data-panel-id="subcat-health-10yr">
+        <label for="viols-health">Health violations in the last 10 years</label>
+        <div id="subcat-health-10yr" class="hidden pl-4 pb-1" data-subcat-panel>
+        <ul class="space-y-0.5 mt-1">
+          <li>
+            <input type="checkbox" class="toggle default-checked" checked id="viols-groundwater-10yr">
+            <label for="viols-groundwater-10yr">Ground water rule</label>
+            <span class="ml-1 text-neutral-400 text-xs cursor-help" title="The ground water rule provides protection against microbial pathogens in public water systems using ground water sources.">ⓘ</span>
+          </li>
+          <li>
+            <input type="checkbox" class="toggle default-checked" checked id="viols-surface-water-10yr">
+            <label for="viols-surface-water-10yr">Surface water treatment rules</label>
+            <span class="ml-1 text-neutral-400 text-xs cursor-help" title="The surface water treatment rules require water systems to filter and disinfect surface water sources.">ⓘ</span>
+          </li>
+          <li>
+            <input type="checkbox" class="toggle default-checked" checked id="viols-lead-copper-10yr">
+            <label for="viols-lead-copper-10yr">Lead &amp; copper</label>
+            <span class="ml-1 text-neutral-400 text-xs cursor-help" title="The lead and copper rule requires public water systems to take action when they fail to meet the rule's requirements such as corrosion control, public notifications, or service line replacement.">ⓘ</span>
+          </li>
+          <li>
+            <input type="checkbox" class="toggle default-checked" checked id="viols-radionuclides-10yr">
+            <label for="viols-radionuclides-10yr">Radionuclides</label>
+            <span class="ml-1 text-neutral-400 text-xs cursor-help" title="Violations for radionuclides in drinking water involve exceeding legal limits for radioactive contaminants.">ⓘ</span>
+          </li>
+          <li>
+            <input type="checkbox" class="toggle default-checked" checked id="viols-inorganic-10yr">
+            <label for="viols-inorganic-10yr">Inorganic chemicals</label>
+            <span class="ml-1 text-neutral-400 text-xs cursor-help" title="Violations for inorganic chemicals in drinking water involve exceeding legal limits for contaminants like arsenic, nitrate, and lead.">ⓘ</span>
+          </li>
+          <li>
+            <input type="checkbox" class="toggle default-checked" checked id="viols-synthetic-10yr">
+            <label for="viols-synthetic-10yr">Synthetic organic chemicals</label>
+            <span class="ml-1 text-neutral-400 text-xs cursor-help" title="Violations for synthetic organic chemicals occur when the maximum contaminant levels are exceeded.">ⓘ</span>
+          </li>
+          <li>
+            <input type="checkbox" class="toggle default-checked" checked id="viols-vocs-10yr">
+            <label for="viols-vocs-10yr">Volatile organic chemicals</label>
+            <span class="ml-1 text-neutral-400 text-xs cursor-help" title="Violations for volatile organic chemicals occur when the maximum contaminant levels are exceeded.">ⓘ</span>
+          </li>
+          <li>
+            <input type="checkbox" class="toggle default-checked" checked id="viols-coliform-10yr">
+            <label for="viols-coliform-10yr">Coliform</label>
+            <span class="ml-1 text-neutral-400 text-xs cursor-help" title="Violations for coliforms occur when more than five percent of samples taken from public water systems contain coliforms.">ⓘ</span>
+          </li>
+          <li>
+            <input type="checkbox" class="toggle default-checked" checked id="viols-stage-1-disinfectants-10yr">
+            <label for="viols-stage-1-disinfectants-10yr">Stage 1 disinfectants</label>
+            <span class="ml-1 text-neutral-400 text-xs cursor-help" title="Violations for stage 1 disinfectants occur when public water systems exceed the maximum containment levels for disinfectants and byproducts.">ⓘ</span>
+          </li>
+          <li>
+            <input type="checkbox" class="toggle default-checked" checked id="viols-stage-2-disinfectants-10yr">
+            <label for="viols-stage-2-disinfectants-10yr">Stage 2 disinfectants</label>
+            <span class="ml-1 text-neutral-400 text-xs cursor-help" title="Violations for stage 2 disinfectants occur when public water systems exceed the maximum exposures for total trihalomethanes and haloacetic acids, byproducts in water disinfected with chlorine or chloramine.">ⓘ</span>
+          </li>
+        </ul>
+        </div>
+      </li>
+      <li>
+        <input type="checkbox" class="toggle" id="viols-paperwork-5yrs"
+               data-action="change->filter#toggleSubcat"
+               data-panel-id="subcat-paperwork-5yr">
+        <label for="viols-paperwork-5yrs">Non-health violations in the last 5 years</label>
+        <div id="subcat-paperwork-5yr" class="hidden px-4 py-2" data-subcat-panel
+             data-controller="slider"
+             data-slider-field-value="paperwork_violations_5yr"
+             data-slider-url-value="/public_water_systems/histogram">
+          <p class="text-xs text-neutral-400 mb-1">Number of violations</p>
+          <svg data-slider-target="chart" class="w-full" height="80" aria-hidden="true"></svg>
+          <div class="flex justify-between text-xs mt-1">
+            <span data-slider-target="minLabel"></span>
+            <span data-slider-target="maxLabel"></span>
+          </div>
+          <input type="hidden" data-slider-target="minInput" id="min-paperwork-5yr">
+          <input type="hidden" data-slider-target="maxInput" id="max-paperwork-5yr">
+        </div>
+      </li>
+      <li>
+        <input type="checkbox" class="toggle" id="viols-paperwork"
+               data-action="change->filter#toggleSubcat"
+               data-panel-id="subcat-paperwork-10yr">
+        <label for="viols-paperwork">Non-health violations in the last 10 years</label>
+        <div id="subcat-paperwork-10yr" class="hidden px-4 py-2" data-subcat-panel
+             data-controller="slider"
+             data-slider-field-value="paperwork_violations_10yr"
+             data-slider-url-value="/public_water_systems/histogram">
+          <p class="text-xs text-neutral-400 mb-1">Number of violations</p>
+          <svg data-slider-target="chart" class="w-full" height="80" aria-hidden="true"></svg>
+          <div class="flex justify-between text-xs mt-1">
+            <span data-slider-target="minLabel"></span>
+            <span data-slider-target="maxLabel"></span>
+          </div>
+          <input type="hidden" data-slider-target="minInput" id="min-paperwork">
+          <input type="hidden" data-slider-target="maxInput" id="max-paperwork">
+        </div>
+      </li>
     </ul>
     <h3>Notices</h3>
     <ul>

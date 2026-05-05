@@ -19,8 +19,8 @@ export default class extends Controller {
     this.map = new window.mapboxgl.Map({
       container: "map",
       style: document.head.querySelector('meta[name="mapbox-style"]')?.content,
-      center: [-97.6, 40.27],
-      zoom: 3,
+      bounds: [[-125.5, 23.5], [-65.5, 49.5]],
+      fitBoundsOptions: { padding: 20 },
       minZoom: 3,
       projection: "mercator",
       renderWorldCopies: false
@@ -63,11 +63,7 @@ export default class extends Controller {
       this.#onFiltersChanged()
     }
 
-    // Once the initial tiles settle, animate to working zoom and reveal the UI
-    this.map.once("idle", () => {
-      this.map.setZoom(3.5)
-      this.#hideLoadingMask()
-    })
+    this.map.once("idle", () => this.#hideLoadingMask())
   }
 
   #addControls() {
@@ -402,7 +398,7 @@ export default class extends Controller {
     if (input) input.value = ""
     const closeBtn = document.querySelector(".mapboxgl-ctrl-geocoder--icon-close")
     if (closeBtn) closeBtn.click()
-    this.map.flyTo({ center: [-97.6, 40.27], zoom: 3.5 })
+    this.map.fitBounds([[-125.5, 23.5], [-65.5, 49.5]], { padding: 20 })
   }
 
   zoomAk() {

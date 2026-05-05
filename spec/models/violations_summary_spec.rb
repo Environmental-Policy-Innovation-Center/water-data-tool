@@ -48,4 +48,51 @@ RSpec.describe ViolationsSummary, type: :model do
   describe "validations" do
     it { is_expected.to validate_presence_of(:pwsid) }
   end
+
+  describe ".histogram_bins" do
+    it "returns bin structure with min, max, and count" do
+      pwss = create_list(:public_water_system, 3)
+      create(:violations_summary, pwsid: pwss[0].pwsid, paperwork_violations_5yr: 1)
+      create(:violations_summary, pwsid: pwss[1].pwsid, paperwork_violations_5yr: 5)
+      create(:violations_summary, pwsid: pwss[2].pwsid, paperwork_violations_5yr: 10)
+
+      result = ViolationsSummary.histogram_bins("paperwork_violations_5yr")
+
+      expect(result[:domain_min]).to eq(1)
+      expect(result[:domain_max]).to eq(10)
+      expect(result[:bins]).to be_an(Array)
+      expect(result[:bins]).not_to be_empty
+      expect(result[:bins].first).to include(:min, :max, :count)
+      expect(result[:bins].sum { |b| b[:count] }).to eq(3)
+    end
+
+    it "excludes nil and zero values" do
+      pws = create(:public_water_system)
+      create(:violations_summary, pwsid: pws.pwsid, paperwork_violations_5yr: 0)
+
+      result = ViolationsSummary.histogram_bins("paperwork_violations_5yr")
+
+      expect(result[:bins]).to be_empty
+      expect(result[:domain_min]).to eq(0)
+      expect(result[:domain_max]).to eq(0)
+    end
+
+    it "returns empty result when no rows exist" do
+      result = ViolationsSummary.histogram_bins("paperwork_violations_5yr")
+
+      expect(result).to eq({bins: [], domain_min: 0, domain_max: 0})
+    end
+
+    it "handles single-value data (domain_min == domain_max)" do
+      pwss = create_list(:public_water_system, 2)
+      create(:violations_summary, pwsid: pwss[0].pwsid, paperwork_violations_5yr: 3)
+      create(:violations_summary, pwsid: pwss[1].pwsid, paperwork_violations_5yr: 3)
+
+      result = ViolationsSummary.histogram_bins("paperwork_violations_5yr")
+
+      expect(result[:domain_min]).to eq(3)
+      expect(result[:domain_max]).to eq(3)
+      expect(result[:bins].sum { |b| b[:count] }).to eq(2)
+    end
+  end
 end
