@@ -1,6 +1,6 @@
 <div data-controller="datasets">
   <%# Sticky header -%>
-  <div class="datasets-header sticky top-0 z-[9999999] bg-white px-9 pt-4 pb-3 border-b border-gray-200">
+  <div class="datasets-header md:sticky top-0 z-[9999999] bg-white px-4 md:px-9 pt-4 pb-3 border-b border-gray-200">
     <div class="flex flex-col md:flex-row md:items-start">
 
       <%# Left: title, count, description -%>
@@ -23,7 +23,7 @@
              class="inline-block px-5 py-2.5 bg-brand-primary text-white no-underline rounded-full border border-brand-primary text-sm">
             Recommend Datasets
           </a>
-          <p class="text-sm text-neutral-700 m-0">EPIC wants to know what other datasets should be included in the tool.</p>
+          <p class="hidden md:block text-sm text-neutral-700 m-0">EPIC wants to know what other datasets should be included in the tool.</p>
           <div class="flex gap-3">
             <button type="button"
                     data-action="click->datasets#togglePanel"
@@ -51,10 +51,10 @@
     <div id="datasets-filter-panel" class="pt-4" style="display:none;" data-datasets-target="filterPanel">
       <p class="font-semibold text-sm mb-3">Filter</p>
       <div class="flex flex-wrap gap-8">
-        <div>
+        <div class="w-full md:w-auto">
           <p class="text-sm text-neutral-600 italic mb-2">Data source:</p>
-          <div class="relative inline-block">
-            <select class="appearance-none bg-white border border-neutral-400 text-neutral-700 pl-5 pr-10 py-2.5 rounded-full text-sm cursor-pointer"
+          <div class="relative block">
+            <select class="w-full appearance-none bg-white border border-neutral-400 text-neutral-700 pl-5 pr-10 py-2.5 rounded-full text-sm cursor-pointer"
                     name="ds-dataSource" id="ds-dataSource"
                     data-action="change->datasets#filterBySource"
                     data-datasets-target="sourceSelect">
@@ -119,7 +119,7 @@
   </div>
 
   <%# Card grid -%>
-  <div class="grid grid-cols-1 md:grid-cols-2 mx-4" data-datasets-target="grid">
+  <div class="grid grid-cols-1 md:grid-cols-2 mx-2 md:mx-4" data-datasets-target="grid">
     <% datasets.each do |ds| %>
       <%= render UI::DatasetCardComponent.new(**ds) %>
     <% end %>

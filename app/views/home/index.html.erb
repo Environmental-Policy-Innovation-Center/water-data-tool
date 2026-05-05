@@ -30,7 +30,7 @@
     Map view (default section)
     ===================================================== %>
 <div id="container-map" class="container-main-content"
-     data-controller="map filter"
+     data-controller="map filter filter-menu filter-layout"
      data-map-tile-url-value="/tiles/{z}/{x}/{y}">
 
   <%# Filter tab bar %>
@@ -42,37 +42,37 @@
         <div class="container-filter-count container-filter-count-menu-1">
           <span class="filter-count-group-1">0</span>
         </div>
-        <a href="javascript:void(0);" data-menu="1" class="filter-menu-btn" id="container-menu-btn-1" data-action="click->filter#toggleMenu">Source</a>
+        <a href="javascript:void(0);" data-menu="1" class="filter-menu-btn" id="container-menu-btn-1" data-action="click->filter-menu#toggleMenu">Source</a>
       </li>
       <li class="filter-2">
         <div class="container-filter-count container-filter-count-menu-2">
           <span class="filter-count-group-2">0</span>
         </div>
-        <a href="javascript:void(0);" data-menu="2" class="filter-menu-btn" id="container-menu-btn-2" data-action="click->filter#toggleMenu">Attributes</a>
+        <a href="javascript:void(0);" data-menu="2" class="filter-menu-btn" id="container-menu-btn-2" data-action="click->filter-menu#toggleMenu">Attributes</a>
       </li>
       <li class="filter-3">
         <div class="container-filter-count container-filter-count-menu-3">
           <span class="filter-count-group-3">0</span>
         </div>
-        <a href="javascript:void(0);" data-menu="3" class="filter-menu-btn" id="container-menu-btn-3" data-action="click->filter#toggleMenu">Boundaries</a>
+        <a href="javascript:void(0);" data-menu="3" class="filter-menu-btn" id="container-menu-btn-3" data-action="click->filter-menu#toggleMenu">Boundaries</a>
       </li>
       <li class="filter-4">
         <div class="container-filter-count container-filter-count-menu-4">
           <span class="filter-count-group-4">0</span>
         </div>
-        <a href="javascript:void(0);" data-menu="4" class="filter-menu-btn" id="container-menu-btn-4" data-action="click->filter#toggleMenu">Compliance</a>
+        <a href="javascript:void(0);" data-menu="4" class="filter-menu-btn" id="container-menu-btn-4" data-action="click->filter-menu#toggleMenu">Compliance</a>
       </li>
       <li class="filter-5">
         <div class="container-filter-count container-filter-count-menu-5">
           <span class="filter-count-group-5">0</span>
         </div>
-        <a href="javascript:void(0);" data-menu="5" class="filter-menu-btn" id="container-menu-btn-5" data-action="click->filter#toggleMenu">Population</a>
+        <a href="javascript:void(0);" data-menu="5" class="filter-menu-btn" id="container-menu-btn-5" data-action="click->filter-menu#toggleMenu">Population</a>
       </li>
       <li class="filter-10">
         <div class="container-filter-count container-filter-count-menu-10">
           <span class="filter-count-group-10">0</span>
         </div>
-        <a href="javascript:void(0);" data-menu="10" class="filter-menu-btn" id="container-menu-btn-10" data-action="click->filter#toggleMenu">More</a>
+        <a href="javascript:void(0);" data-menu="10" class="filter-menu-btn" id="container-menu-btn-10" data-action="click->filter-menu#toggleMenu">More</a>
       </li>
     </ul>
   </div>
@@ -115,7 +115,7 @@
   <%# Detail data loaded via Mapbox popup on map click;
       full report loaded into report-body Turbo Frame below %>
 
-  <%# Map/Table view toggle — bottom right of map canvas (Tailwind; icon swap in application.css) %>
+  <%# Map/Table view toggle — bottom right of map canvas %>
   <div id="container-map-ui-bottom"
        class="hide-for-mobile hide-for-table absolute right-5 bottom-[30px] z-[999]">
     <ul class="m-0 flex list-none flex-nowrap items-center gap-1.5 pt-1.5 pl-5">
