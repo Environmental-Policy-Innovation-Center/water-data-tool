@@ -50,9 +50,12 @@ class ViolationsSummary < ApplicationRecord
     return {bins: [], domain_min: 0, domain_max: 0} if min_val.nil?
 
     upper_bound = max_val + 1  # width_bucket upper bound is exclusive; +1 ensures max_val lands in the last bucket
+    q_min = connection.quote(min_val)
+    q_upper = connection.quote(upper_bound)
+    q_bins = connection.quote(num_bins)
     rows = scope.select(
       Arel.sql(
-        "width_bucket(#{quoted}::numeric, #{min_val}, #{upper_bound}, #{num_bins}) AS bucket,
+        "width_bucket(#{quoted}::numeric, #{q_min}, #{q_upper}, #{q_bins}) AS bucket,
          MIN(#{quoted}) AS bin_min,
          MAX(#{quoted}) AS bin_max,
          COUNT(*) AS bin_count"

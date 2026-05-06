@@ -80,6 +80,32 @@ RSpec.describe "Home", type: :request do
       expect(response.parsed_body["pwsids"]).to eq([])
     end
 
+    it "filters by health subcat range params through the controller" do
+      match = create(:public_water_system)
+      excluded = create(:public_water_system)
+      create(:violations_summary, pwsid: match.pwsid, groundwater_rule_5yr: 5)
+      create(:violations_summary, pwsid: excluded.pwsid, groundwater_rule_5yr: 1)
+
+      get map_path, params: {groundwater_rule_5yr_min: 4, groundwater_rule_5yr_max: 10}
+
+      json = response.parsed_body
+      expect(json["pwsids"]).to include(match.pwsid)
+      expect(json["pwsids"]).not_to include(excluded.pwsid)
+    end
+
+    it "filters by paperwork violations range params through the controller" do
+      match = create(:public_water_system)
+      excluded = create(:public_water_system)
+      create(:violations_summary, pwsid: match.pwsid, paperwork_violations_5yr: 10)
+      create(:violations_summary, pwsid: excluded.pwsid, paperwork_violations_5yr: 1)
+
+      get map_path, params: {paperwork_violations_5yr_min: 5, paperwork_violations_5yr_max: 20}
+
+      json = response.parsed_body
+      expect(json["pwsids"]).to include(match.pwsid)
+      expect(json["pwsids"]).not_to include(excluded.pwsid)
+    end
+
     it "returns only a pwsids key — no other fields" do
       pws = create(:public_water_system)
 

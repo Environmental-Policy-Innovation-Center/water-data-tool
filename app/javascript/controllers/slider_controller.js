@@ -55,6 +55,14 @@ export default class extends Controller {
     this.maxInputTarget.value = ""
   }
 
+  // Called by filter_controller when a health subcat slider panel is revealed.
+  // Ensures inputs carry domain defaults so Apply always sends params for checked subcats.
+  populateDefaultsIfEmpty() {
+    if (!this.#bins.length) return
+    if (!this.minInputTarget.value) this.minInputTarget.value = this.#domMin
+    if (!this.maxInputTarget.value) this.maxInputTarget.value = this.#domMax
+  }
+
   #init({ bins, domain_min, domain_max }) {
     this.#bins = bins
     this.#domMin = domain_min

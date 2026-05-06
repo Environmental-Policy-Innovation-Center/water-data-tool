@@ -17,7 +17,7 @@ RSpec.describe "Histograms", type: :request do
       end
 
       it "returns 200 for all allowed fields" do
-        %w[paperwork_violations_5yr paperwork_violations_10yr].each do |field|
+        PublicWaterSystems::HistogramsController::ALLOWED_FIELDS.each do |field|
           get histogram_path, params: {field: field}
 
           expect(response).to have_http_status(:ok), "Expected 200 for field=#{field}"

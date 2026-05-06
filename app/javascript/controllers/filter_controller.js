@@ -188,7 +188,11 @@ export default class extends Controller {
       this.#setToggleArrow(panelId, true)
       panel.querySelectorAll("input[type='checkbox']").forEach(cb => { cb.checked = true })
       filter?.subcats.forEach(s => {
-        if (s.sliderPanelId) document.getElementById(s.sliderPanelId)?.classList.remove("hidden")
+        if (!s.sliderPanelId) return
+        const sliderPanel = document.getElementById(s.sliderPanelId)
+        if (!sliderPanel) return
+        sliderPanel.classList.remove("hidden")
+        this.application.getControllerForElementAndIdentifier(sliderPanel, "slider")?.populateDefaultsIfEmpty()
       })
     } else {
       panel.querySelectorAll("input[type='checkbox']").forEach(cb => { cb.checked = false })
@@ -228,6 +232,7 @@ export default class extends Controller {
 
     if (event.target.checked) {
       sliderPanel.classList.remove("hidden")
+      this.application.getControllerForElementAndIdentifier(sliderPanel, "slider")?.populateDefaultsIfEmpty()
     } else {
       this.#hideAndResetSlider(sliderPanel)
     }
