@@ -37,34 +37,34 @@ const FILTERS = [
   { type: "bool",    group: 4,  param: "has_open_violations", id: "compliance-open-violations", value: "true" },
 
   { type: "health_subcat", group: 4, parentId: "viols-health-5yrs",
-    panelId: "subcat-health-5yr", aggregateParam: "health_violations_5yr_min",
+    panelId: "subcat-health-5yr", aggregateParam: "health_violations_5yr",
     subcats: [
-      { id: "viols-groundwater-5yr",           param: "groundwater_rule_5yr_min" },
-      { id: "viols-surface-water-5yr",         param: "surface_water_treatment_5yr_min" },
-      { id: "viols-lead-copper-5yr",           param: "lead_and_copper_5yr_min" },
-      { id: "viols-radionuclides-5yr",         param: "radionuclides_5yr_min" },
-      { id: "viols-inorganic-5yr",             param: "inorganic_chemicals_5yr_min" },
-      { id: "viols-synthetic-5yr",             param: "synthetic_organic_chemicals_5yr_min" },
-      { id: "viols-vocs-5yr",                  param: "volatile_organic_chemicals_5yr_min" },
-      { id: "viols-coliform-5yr",              param: "total_coliform_5yr_min" },
-      { id: "viols-stage-1-disinfectants-5yr", param: "stage_1_disinfectants_5yr_min" },
-      { id: "viols-stage-2-disinfectants-5yr", param: "stage_2_disinfectants_5yr_min" }
+      { id: "viols-groundwater-5yr",           param: "groundwater_rule_5yr" },
+      { id: "viols-surface-water-5yr",         param: "surface_water_treatment_5yr" },
+      { id: "viols-lead-copper-5yr",           param: "lead_and_copper_5yr" },
+      { id: "viols-radionuclides-5yr",         param: "radionuclides_5yr" },
+      { id: "viols-inorganic-5yr",             param: "inorganic_chemicals_5yr" },
+      { id: "viols-synthetic-5yr",             param: "synthetic_organic_chemicals_5yr" },
+      { id: "viols-vocs-5yr",                  param: "volatile_organic_chemicals_5yr" },
+      { id: "viols-coliform-5yr",              param: "total_coliform_5yr" },
+      { id: "viols-stage-1-disinfectants-5yr", param: "stage_1_disinfectants_5yr" },
+      { id: "viols-stage-2-disinfectants-5yr", param: "stage_2_disinfectants_5yr" }
     ]
   },
 
   { type: "health_subcat", group: 4, parentId: "viols-health",
-    panelId: "subcat-health-10yr", aggregateParam: "health_violations_10yr_min",
+    panelId: "subcat-health-10yr", aggregateParam: "health_violations_10yr",
     subcats: [
-      { id: "viols-groundwater-10yr",           param: "groundwater_rule_10yr_min" },
-      { id: "viols-surface-water-10yr",         param: "surface_water_treatment_10yr_min" },
-      { id: "viols-lead-copper-10yr",           param: "lead_and_copper_10yr_min" },
-      { id: "viols-radionuclides-10yr",         param: "radionuclides_10yr_min" },
-      { id: "viols-inorganic-10yr",             param: "inorganic_chemicals_10yr_min" },
-      { id: "viols-synthetic-10yr",             param: "synthetic_organic_chemicals_10yr_min" },
-      { id: "viols-vocs-10yr",                  param: "volatile_organic_chemicals_10yr_min" },
-      { id: "viols-coliform-10yr",              param: "total_coliform_10yr_min" },
-      { id: "viols-stage-1-disinfectants-10yr", param: "stage_1_disinfectants_10yr_min" },
-      { id: "viols-stage-2-disinfectants-10yr", param: "stage_2_disinfectants_10yr_min" }
+      { id: "viols-groundwater-10yr",           param: "groundwater_rule_10yr" },
+      { id: "viols-surface-water-10yr",         param: "surface_water_treatment_10yr" },
+      { id: "viols-lead-copper-10yr",           param: "lead_and_copper_10yr" },
+      { id: "viols-radionuclides-10yr",         param: "radionuclides_10yr" },
+      { id: "viols-inorganic-10yr",             param: "inorganic_chemicals_10yr" },
+      { id: "viols-synthetic-10yr",             param: "synthetic_organic_chemicals_10yr" },
+      { id: "viols-vocs-10yr",                  param: "volatile_organic_chemicals_10yr" },
+      { id: "viols-coliform-10yr",              param: "total_coliform_10yr" },
+      { id: "viols-stage-1-disinfectants-10yr", param: "stage_1_disinfectants_10yr" },
+      { id: "viols-stage-2-disinfectants-10yr", param: "stage_2_disinfectants_10yr" }
     ]
   },
 
@@ -306,10 +306,10 @@ export default class extends Controller {
           if (!parent?.checked) break
           const allChecked = f.subcats.every(s => document.getElementById(s.id)?.checked)
           if (allChecked) {
-            p[f.aggregateParam] = "1"
+            p[f.aggregateParam] = "true"
           } else {
             for (const s of f.subcats) {
-              if (document.getElementById(s.id)?.checked) p[s.param] = "1"
+              if (document.getElementById(s.id)?.checked) p[s.param] = "true"
             }
           }
           break

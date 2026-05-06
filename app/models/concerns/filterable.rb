@@ -1,6 +1,22 @@
 module Filterable
   extend ActiveSupport::Concern
 
+  HEALTH_SUBCAT_5YR = %i[
+    groundwater_rule_5yr surface_water_treatment_5yr lead_and_copper_5yr
+    radionuclides_5yr inorganic_chemicals_5yr synthetic_organic_chemicals_5yr
+    volatile_organic_chemicals_5yr total_coliform_5yr
+    stage_1_disinfectants_5yr stage_2_disinfectants_5yr
+  ].freeze
+
+  HEALTH_SUBCAT_10YR = %i[
+    groundwater_rule_10yr surface_water_treatment_10yr lead_and_copper_10yr
+    radionuclides_10yr inorganic_chemicals_10yr synthetic_organic_chemicals_10yr
+    volatile_organic_chemicals_10yr total_coliform_10yr
+    stage_1_disinfectants_10yr stage_2_disinfectants_10yr
+  ].freeze
+
+  HEALTH_SUBCATS_ALL = (HEALTH_SUBCAT_5YR + HEALTH_SUBCAT_10YR).freeze
+
   class_methods do
     def apply_filters(params)
       scope = all
@@ -28,20 +44,17 @@ module Filterable
       scope = scope.where(stusps: params[:state]) if params[:state].present?
 
       # --- Violations range filters (join to violations_summaries) ---
-      violations_range_filters = %i[
-        health_violations_5yr
-        groundwater_rule_5yr surface_water_treatment_5yr lead_and_copper_5yr
-        radionuclides_5yr inorganic_chemicals_5yr synthetic_organic_chemicals_5yr
-        volatile_organic_chemicals_5yr total_coliform_5yr
-        stage_1_disinfectants_5yr stage_2_disinfectants_5yr paperwork_violations_5yr
-        health_violations_10yr
-        groundwater_rule_10yr surface_water_treatment_10yr lead_and_copper_10yr
-        radionuclides_10yr inorganic_chemicals_10yr synthetic_organic_chemicals_10yr
-        volatile_organic_chemicals_10yr total_coliform_10yr
-        stage_1_disinfectants_10yr stage_2_disinfectants_10yr paperwork_violations_10yr
-      ]
+      # Aggregate and non-health columns use standard AND range logic.
+      # Individual health sub-category columns are handled separately below with OR logic.
+      violations_range_filters = %i[paperwork_violations_5yr paperwork_violations_10yr]
 
-      if violations_range_filters.any? { |col| params[:"#{col}_min"].present? || params[:"#{col}_max"].present? }
+      health_aggregate_params = %i[health_violations_5yr health_violations_10yr]
+      violations_join_needed =
+        violations_range_filters.any? { |col| params[:"#{col}_min"].present? || params[:"#{col}_max"].present? } ||
+        health_aggregate_params.any? { |col| params[col] == "true" } ||
+        HEALTH_SUBCATS_ALL.any? { |col| params[col] == "true" }
+
+      if violations_join_needed
         scope, joined = left_join_once(scope, joined, :violations_summary)
       end
 
@@ -52,6 +65,19 @@ module Filterable
         if params[:"#{col}_max"].present?
           scope = scope.where("violations_summaries.#{col} <= ?", params[:"#{col}_max"].to_i)
         end
+      end
+
+      # Health aggregate filters — parent checkbox checked with all subcats selected.
+      health_aggregate_params.each do |col|
+        scope = scope.where("violations_summaries.#{col} >= 1") if params[col] == "true"
+      end
+
+      # Health sub-category filters — OR within each time window.
+      # A system matches if it has >= 1 violation in ANY of the selected sub-categories.
+      [HEALTH_SUBCAT_5YR, HEALTH_SUBCAT_10YR].each do |group|
+        active = group.select { |col| params[col] == "true" }
+        next if active.empty?
+        scope = scope.where(active.map { |col| "violations_summaries.#{col} >= 1" }.join(" OR "))
       end
 
       # --- Boil water notice range filter ---
