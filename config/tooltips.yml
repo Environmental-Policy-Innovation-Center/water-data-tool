@@ -1,0 +1,11 @@
+filter_menus:
+  groundwater_rule: "The ground water rule provides protection against microbial pathogens in public water systems using ground water sources."
+  surface_water_treatment: "The surface water treatment rules require water systems to filter and disinfect surface water sources."
+  lead_and_copper: "The lead and copper rule requires public water systems to take action when they fail to meet the rule's requirements such as corrosion control, public notifications, or service line replacement."
+  radionuclides: "Violations for radionuclides in drinking water involve exceeding legal limits for radioactive contaminants."
+  inorganic_chemicals: "Violations for inorganic chemicals in drinking water involve exceeding legal limits for contaminants like arsenic, nitrate, and lead."
+  synthetic_organic_chemicals: "Violations for synthetic organic chemicals occur when the maximum contaminant levels are exceeded."
+  volatile_organic_chemicals: "Violations for volatile organic chemicals occur when the maximum contaminant levels are exceeded."
+  total_coliform: "Violations for coliforms occur when more than five percent of samples taken from public water systems contain coliforms."
+  stage_1_disinfectants: "Violations for stage 1 disinfectants occur when public water systems exceed the maximum containment levels for disinfectants and byproducts."
+  stage_2_disinfectants: "Violations for stage 2 disinfectants occur when public water systems exceed the maximum exposures for total trihalomethanes and haloacetic acids, byproducts in water disinfected with chlorine or chloramine."

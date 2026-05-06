@@ -75,29 +75,70 @@ RSpec.describe PublicWaterSystem, type: :model do
   describe "validations" do
     it { is_expected.to validate_presence_of(:pwsid) }
 
-    it "accepts valid pwsid format" do
+    it "accepts standard state pwsid format" do
       pws = build(:public_water_system, pwsid: "VT0012345")
       expect(pws).to be_valid
     end
 
-    it "rejects lowercase state codes" do
+    it "accepts Utah-style pwsid with letters in the system-number portion" do
+      pws = build(:public_water_system, pwsid: "UTAH01001")
+      expect(pws).to be_valid
+    end
+
+    it "accepts tribal pwsid with numeric EPA region prefix" do
+      pws = build(:public_water_system, pwsid: "084690440")
+      expect(pws).to be_valid
+    end
+
+    it "rejects lowercase characters" do
       pws = build(:public_water_system, pwsid: "vt0012345")
       expect(pws).not_to be_valid
     end
 
-    it "rejects pwsid with wrong length" do
+    it "rejects pwsid shorter than 9 characters" do
       pws = build(:public_water_system, pwsid: "VT123")
       expect(pws).not_to be_valid
     end
 
-    it "rejects digits in place of state code" do
-      pws = build(:public_water_system, pwsid: "120012345")
+    it "rejects pwsid longer than 9 characters" do
+      pws = build(:public_water_system, pwsid: "VT00123456")
       expect(pws).not_to be_valid
     end
 
-    it "rejects non-digit characters in the numeric portion" do
-      pws = build(:public_water_system, pwsid: "VT001234X")
+    it "rejects pwsid containing special characters" do
+      pws = build(:public_water_system, pwsid: "VT-012345")
       expect(pws).not_to be_valid
+    end
+  end
+
+  describe "attribute aliases" do
+    it "aliases area to area_sq_miles" do
+      pws = create(:public_water_system, area_sq_miles: 12.34)
+      expect(pws.area).to eq(12.34)
+    end
+
+    it "aliases counties_served to counties" do
+      pws = create(:public_water_system, counties: "County A, County B")
+      expect(pws.counties_served).to eq("County A, County B")
+    end
+    it "aliases name to pws_name" do
+      pws = create(:public_water_system, pws_name: "Test PWS")
+      expect(pws.name).to eq("Test PWS")
+    end
+
+    it "aliases population_served to population_served_count" do
+      pws = create(:public_water_system, population_served_count: 1_000)
+      expect(pws.population_served).to eq(1_000)
+    end
+
+    it "aliases report_link to detailed_facility_report" do
+      pws = create(:public_water_system, detailed_facility_report: "http://example.com/report")
+      expect(pws.report_link).to eq("http://example.com/report")
+    end
+
+    it "aliases source_protection to source_water_protection_code" do
+      pws = create(:public_water_system, source_water_protection_code: "SPC123")
+      expect(pws.source_protection).to eq("SPC123")
     end
   end
 

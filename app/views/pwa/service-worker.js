@@ -1,3 +1,5 @@
+// TODO: Is this and the manifest.json.erb file needed, or are they artifacts?
+
 // Add a service worker for processing Web Push notifications:
 //
 // self.addEventListener("push", async (event) => {

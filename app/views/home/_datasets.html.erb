@@ -1,671 +1,132 @@
 <div data-controller="datasets">
-<div class="dataset-header">
-  <div class="col-1">
-    <h3>Datasets</h3>
-    <p class="ds-no-filters" data-datasets-target="noFilters">27 datasets available</p>
-    <div class="container-fs-group filter-group filter-group-3 container-show-all" style="display:none;" data-datasets-target="showAllBar">
-      <p>Showing <span data-datasets-target="filteredCount"></span> of 27 datasets available</p>
-      <button class="button btn-show-all" data-action="click->datasets#showAll">show all</button>
-    </div>
-    <p>This inventory of drinking water datasets includes information from various public data providers. Here, you can learn details about specific sources and considerations for use. Please visit the documentation for additional information.</p>
-  </div>
+  <%# Sticky header -%>
+  <div class="datasets-header md:sticky top-0 z-[9999999] bg-white px-4 md:px-9 pt-4 pb-3 border-b border-gray-200">
+    <div class="flex flex-col md:flex-row md:items-start">
 
-  <div class="col-2">
-    <div class="inner">
-      <a href="https://docs.google.com/forms/d/e/1FAIpQLSc6H73GVlF-dlmJrjpRa1J-kgkbzGIHoys5Tcnn3DNzCZlt4Q/viewform?usp=dialog" target="_blank" rel="noopener noreferrer" class="btn-rounded btn-recommend-datasets">Recommend Datasets</a>
-      <p>EPIC wants to know what other datasets should be included in the tool.</p>
-      <div class="ds-ui">
-        <a href="javascript:void(0);" data-action="click->datasets#togglePanel" data-panel="filter" class="btn-ds-ui btn-rounded btn-ds-filter">Filter</a>
-        <a href="javascript:void(0);" data-action="click->datasets#togglePanel" data-panel="sort" class="btn-ds-ui btn-rounded btn-ds-sort">Sort</a>
+      <%# Left: title, count, description -%>
+      <div class="flex-1 min-w-0">
+        <h3 class="m-0 mb-3 font-bold">Datasets</h3>
+        <p class="m-0 mb-3" data-datasets-target="noFilters"><%= datasets.count %> datasets available</p>
+        <div class="inline-flex items-center gap-4 mb-3" style="display:none;" data-datasets-target="showAllBar">
+          <p class="m-0">Showing <span data-datasets-target="filteredCount"></span> of <%= datasets.count %> datasets available</p>
+          <button class="px-5 py-2.5 bg-white text-neutral-700 border border-neutral-400 rounded-full text-sm cursor-pointer hover:bg-neutral-200"
+                  data-action="click->datasets#showAll">show all</button>
+        </div>
+        <p class="m-0 text-sm text-neutral-700">This inventory of drinking water datasets includes information from various public data providers. Here, you can learn details about specific sources and considerations for use. Please visit the documentation for additional information.</p>
       </div>
-    </div>
-  </div>
-  <div class="clearfix"></div>
 
-  <div class="container-ds-filter filters" style="display:none;" data-datasets-target="filterPanel">
-    <p><strong>Filter</strong></p>
-    <div class="button-group filter-button-group">
-      <div class="container-fs-group filter-group filter-group-1">
-        <p><em>Data source:</em></p>
-        <select class="filters-select" name="ds-dataSource" id="ds-dataSource" data-action="change->datasets#filterBySource" data-datasets-target="sourceSelect">
-          <option value="" selected>Show all</option>
-          <option value="AK-Department-of-Environmental-Conservation">AK Department of Environmental Conservation</option>
-          <option value="AR-Department-of-Health">AR Department of Health</option>
-          <option value="Center-for-Disease-Control">Center for Disease Control</option>
-          <option value="Environmental-Defense-Fund">Environmental Defense Fund</option>
-          <option value="Florida-Health">Florida Health</option>
-          <option value="Louisiana-Department-of-Health">Louisiana Department of Health</option>
-          <option value="Maine-Department-of-Health-and-Human-Services">Maine Department of Health and Human Services</option>
-          <option value="Massachusetts-Department-of-Environmental-Protection">Massachusetts Department of Environmental Protection</option>
-          <option value="New-Mexico-Environment-Department">New Mexico Environment Department</option>
-          <option value="Ohio-Environmental-Protection-Agency">Ohio Environmental Protection Agency</option>
-          <option value="opha">Oregon Public Health Authority</option>
-          <option value="Public-Environmental-Data-Partners">Public Environmental Data Partners</option>
-          <option value="Rhode-Island-Department-of-Health">Rhode Island Department of Health</option>
-          <option value="State-of-Missouri-Data-Portal">State of Missouri Data Portal</option>
-          <option value="TCEQ">Texas Commission on Environmental Quality (TCEQ)</option>
-          <option value="census">U.S. Census Bureau</option>
-          <option value="epa">U.S. Environmental Protection Agency (EPA)</option>
-          <option value="Washington-Department-of-Health">Washington Department of Health</option>
-          <option value="WV-Department-of-Health-and-Human-Services">WV Department of Health and Human Services</option>
-        </select>
-      </div>
-      <div class="container-fs-group filter-group filter-group-2">
-        <p><em>Update frequency:</em></p>
-        <div class="option-set" data-filter-group="update-frequency">
-          <button class="button btn-filter" data-action="click->datasets#filterByFrequency" data-frequency="annually">Annually</button>
-          <button class="button btn-filter" data-action="click->datasets#filterByFrequency" data-frequency="quarterly">Quarterly</button>
-          <button class="button btn-filter" data-action="click->datasets#filterByFrequency" data-frequency="static">Static</button>
+      <%# Right: recommend button + filter/sort toggles -%>
+      <div class="flex-1 mt-4 md:mt-0 md:ml-8">
+        <div class="flex flex-col items-center md:items-end gap-3">
+          <a href="https://docs.google.com/forms/d/e/1FAIpQLSc6H73GVlF-dlmJrjpRa1J-kgkbzGIHoys5Tcnn3DNzCZlt4Q/viewform?usp=dialog"
+             target="_blank" rel="noopener noreferrer"
+             class="inline-block px-5 py-2.5 bg-brand-primary text-white no-underline rounded-full border border-brand-primary text-sm">
+            Recommend Datasets
+          </a>
+          <p class="hidden md:block text-sm text-neutral-700 m-0">EPIC wants to know what other datasets should be included in the tool.</p>
+          <div class="flex gap-3">
+            <button type="button"
+                    data-action="click->datasets#togglePanel"
+                    data-panel="filter"
+                    aria-expanded="false"
+                    aria-controls="datasets-filter-panel"
+                    class="inline-flex items-center gap-2 px-5 py-2.5 bg-white text-neutral-700 border border-neutral-400 rounded-full text-sm hover:bg-neutral-200 cursor-pointer">
+              <%= image_tag "icons/filter.svg", class: "w-4 h-4", alt: "" %>
+              Filter
+            </button>
+            <button type="button"
+                    data-action="click->datasets#togglePanel"
+                    data-panel="sort"
+                    aria-expanded="false"
+                    aria-controls="datasets-sort-panel"
+                    class="inline-flex items-center px-5 py-2.5 bg-white text-neutral-700 border border-neutral-400 rounded-full text-sm hover:bg-neutral-200 cursor-pointer">
+              Sort
+            </button>
+          </div>
         </div>
       </div>
-      <div class="clearfix"></div>
     </div>
-  </div>
 
-  <div class="container-ds-sort" style="display:none;" data-datasets-target="sortPanel">
-    <p><strong>Sort by:</strong></p>
-    <div class="container-fs-group button-group sort-by-button-group">
-      <p><em>Last updated</em></p>
-      <button class="button btn-sort" data-action="click->datasets#sortByDate" data-direction="desc">Newest</button>
-      <button class="button btn-sort" data-action="click->datasets#sortByDate" data-direction="asc">Oldest</button>
-      <a href="javascript:void(0);" class="button btn-reset-ds-sort" data-action="click->datasets#resetSort" data-datasets-target="resetSort" style="display:none;">reset order</a>
-    </div>
-    <div class="clearfix"></div>
-  </div>
-</div>
-
-<div class="grid" data-datasets-target="grid">
-  <%# 1. Community Water System Service Area Boundaries %>
-  <div class="grid-item" data-source="epa" data-frequency="annually" data-date="2026-01-27">
-    <div class="dataset-inner default">
-      <div class="ds-content">
-        <h2>Community Water System Service Area Boundaries</h2>
-        <p class="ds-description">This dataset contains geographic service area boundaries for U.S. Community Water Systems in the U.S. and select territories (Puerto Rico, Guam, Northern Mariana Islands). As of October 2025, over half of the approximately 50,000 water system boundaries come from authoritative data sources.</p>
-        <div class="ds-callout">
-          <p class="ds-source">Data source: <a href="https://www.epa.gov/ground-water-and-drinking-water/community-water-system-service-area-boundaries" target="_blank" rel="noopener noreferrer">U.S. Environmental Protection Agency (EPA)</a></p>
-          <p>Last updated: <span class="date">1/27/2026</span></p>
-          <p class="ds-update-frequency">Update frequency: Annually</p>
+    <%# Filter panel -%>
+    <div id="datasets-filter-panel" class="pt-4" style="display:none;" data-datasets-target="filterPanel">
+      <p class="font-semibold text-sm mb-3">Filter</p>
+      <div class="flex flex-wrap gap-8">
+        <div class="w-full md:w-auto">
+          <p class="text-sm text-neutral-600 italic mb-2">Data source:</p>
+          <div class="relative block">
+            <select class="w-full appearance-none bg-white border border-neutral-400 text-neutral-700 pl-5 pr-10 py-2.5 rounded-full text-sm cursor-pointer"
+                    name="ds-dataSource" id="ds-dataSource"
+                    data-action="change->datasets#filterBySource"
+                    data-datasets-target="sourceSelect">
+              <option value="" selected>Show all</option>
+              <option value="AK-Department-of-Environmental-Conservation">AK Department of Environmental Conservation</option>
+              <option value="AR-Department-of-Health">AR Department of Health</option>
+              <option value="Center-for-Disease-Control">Center for Disease Control</option>
+              <option value="Environmental-Defense-Fund">Environmental Defense Fund</option>
+              <option value="Florida-Health">Florida Health</option>
+              <option value="Louisiana-Department-of-Health">Louisiana Department of Health</option>
+              <option value="Maine-Department-of-Health-and-Human-Services">Maine Department of Health and Human Services</option>
+              <option value="Massachusetts-Department-of-Environmental-Protection">Massachusetts Department of Environmental Protection</option>
+              <option value="New-Mexico-Environment-Department">New Mexico Environment Department</option>
+              <option value="Ohio-Environmental-Protection-Agency">Ohio Environmental Protection Agency</option>
+              <option value="opha">Oregon Public Health Authority</option>
+              <option value="Public-Environmental-Data-Partners">Public Environmental Data Partners</option>
+              <option value="Rhode-Island-Department-of-Health">Rhode Island Department of Health</option>
+              <option value="State-of-Missouri-Data-Portal">State of Missouri Data Portal</option>
+              <option value="TCEQ">Texas Commission on Environmental Quality (TCEQ)</option>
+              <option value="census">U.S. Census Bureau</option>
+              <option value="epa">U.S. Environmental Protection Agency (EPA)</option>
+              <option value="Washington-Department-of-Health">Washington Department of Health</option>
+              <option value="WV-Department-of-Health-and-Human-Services">WV Department of Health and Human Services</option>
+            </select>
+            <span class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-neutral-500 text-xs">▾</span>
+          </div>
         </div>
-        <p><strong>Things you should know</strong></p>
-        <ul>
-          <li>For many systems, this dataset uses modeled boundaries that approximate, not confirm, the true service area of a water system</li>
-          <li>Modeled areas are derived from population and infrastructure inference methods</li>
-          <li>Overlapping boundaries may occur between neighboring systems</li>
-          <li>Some boundaries map to multiple water system IDs</li>
-          <li>Releases generally occur annually but have come more frequently</li>
-        </ul>
+        <div>
+          <p class="text-sm text-neutral-600 italic mb-2">Update frequency:</p>
+          <div class="flex gap-2" data-filter-group="update-frequency">
+            <button type="button" class="btn-filter px-5 py-2.5 bg-white text-neutral-700 border border-neutral-400 rounded-full text-sm cursor-pointer hover:bg-neutral-200"
+                    data-action="click->datasets#filterByFrequency" data-frequency="annually" aria-pressed="false">Annually</button>
+            <button type="button" class="btn-filter px-5 py-2.5 bg-white text-neutral-700 border border-neutral-400 rounded-full text-sm cursor-pointer hover:bg-neutral-200"
+                    data-action="click->datasets#filterByFrequency" data-frequency="quarterly" aria-pressed="false">Quarterly</button>
+            <button type="button" class="btn-filter px-5 py-2.5 bg-white text-neutral-700 border border-neutral-400 rounded-full text-sm cursor-pointer hover:bg-neutral-200"
+                    data-action="click->datasets#filterByFrequency" data-frequency="static" aria-pressed="false">Static</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <%# Sort panel -%>
+    <div id="datasets-sort-panel" class="pt-4" style="display:none;" data-datasets-target="sortPanel">
+      <p class="font-semibold text-sm mb-3">Sort by:</p>
+      <div class="flex flex-wrap gap-8">
+        <div>
+          <p class="text-sm text-neutral-600 italic mb-2">Last updated</p>
+          <div class="flex gap-2 items-center">
+            <button type="button" class="btn-sort px-5 py-2.5 bg-white text-neutral-700 border border-neutral-400 rounded-full text-sm cursor-pointer hover:bg-neutral-200"
+                    data-action="click->datasets#sortByDate" data-direction="desc" aria-pressed="false">Newest</button>
+            <button type="button" class="btn-sort px-5 py-2.5 bg-white text-neutral-700 border border-neutral-400 rounded-full text-sm cursor-pointer hover:bg-neutral-200"
+                    data-action="click->datasets#sortByDate" data-direction="asc" aria-pressed="false">Oldest</button>
+            <button type="button"
+                    class="ml-2 px-5 py-2.5 bg-white text-neutral-700 border border-neutral-400 rounded-full text-sm cursor-pointer hover:bg-neutral-200"
+                    data-action="click->datasets#resetSort"
+                    data-datasets-target="resetSort"
+                    style="display:none;">reset order</button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
 
-  <%# 2. Safe Drinking Water Information System (SDWIS) %>
-  <div class="grid-item" data-source="epa" data-frequency="quarterly" data-date="2026-02-20">
-    <div class="dataset-inner default">
-      <div class="ds-content">
-        <h2>Safe Drinking Water Information System</h2>
-        <p class="ds-description">Water system violation, enforcement, and system information submitted by states and utilities.</p>
-        <div class="ds-callout">
-          <p class="ds-source">Data source: <a href="https://www.epa.gov/ground-water-and-drinking-water/safe-drinking-water-information-system-sdwis-federal-reporting" target="_blank" rel="noopener noreferrer">U.S. Environmental Protection Agency (EPA)</a></p>
-          <p>Last updated: <span class="date">2/20/2026</span></p>
-          <p class="ds-update-frequency">Update frequency: Quarterly</p>
-        </div>
-        <p><strong>Things you should know</strong></p>
-        <ul>
-          <li>Several variables in SDWIS reflect regulatory reporting structures rather than underlying infrastructure conditions</li>
-          <li>Violations are known to be underreported and vary with enforcement practices</li>
-          <li>In some instances, system age represents the first regulatory record rather than the construction date</li>
-          <li>The maximum age of any system in this dataset is 45 years due to data reporting beginning in 1979</li>
-        </ul>
-      </div>
-    </div>
+  <%# Card grid -%>
+  <div class="grid grid-cols-1 md:grid-cols-2 mx-2 md:mx-4" data-datasets-target="grid">
+    <% datasets.each do |ds| %>
+      <%= render UI::DatasetCardComponent.new(**ds) %>
+    <% end %>
   </div>
 
-  <%# 3. U.S. Census %>
-  <div class="grid-item" data-source="census" data-frequency="annually" data-date="2026-02-02">
-    <div class="dataset-inner default">
-      <div class="ds-content">
-        <h2>U.S. Census</h2>
-        <p class="ds-description">The dataset combines 2021 American Community Survey (ACS) demographic and socioeconomic estimates with EPA drinking water system service area boundaries. EPIC allocated ACS census variables to system service areas using spatial crosswalk methods based on EPA boundary files. The result is a set of estimated community characteristics for each drinking water system, not direct measurements of the populations served.</p>
-        <div class="ds-callout">
-          <p class="ds-source">Data source: <a href="https://www.census.gov/programs-surveys/acs.html" target="_blank" rel="noopener noreferrer">U.S. Census Bureau</a></p>
-          <p>Last updated: <span class="date">2/2/2026</span></p>
-          <p class="ds-update-frequency">Update frequency: Annually</p>
-        </div>
-        <p><strong>Things you should know</strong></p>
-        <ul>
-          <li>Values are statistical estimates and include uncertainty</li>
-          <li>Population characteristics are modeled using an EPA crosswalk rather than statistics observed at the system level</li>
-          <li>Income fields are interpolated estimates derived between known values</li>
-          <li>Results represent characteristics of the estimated service population, not confirmed customer records</li>
-        </ul>
-      </div>
-    </div>
+  <%# Empty state -%>
+  <div id="no-results" class="px-9 py-8 text-neutral-600" style="display:none;" data-datasets-target="noResults">
+    <p>No results for the selected filters</p>
   </div>
-
-  <%# 4. NPDES Permits %>
-  <div class="grid-item" data-source="epa" data-frequency="quarterly" data-date="2026-02-03">
-    <div class="dataset-inner default">
-      <div class="ds-content">
-        <h2>National Pollutant Discharge Elimination System (NPDES) Permits</h2>
-        <p class="ds-description">This dataset includes permitted discharge outfalls from the EPA National Pollutant Discharge Elimination System (NPDES). NPDES documents point-source pollutant discharges to surface waters under the Clean Water Act. EPIC links permitted discharge locations to nearby drinking water systems to identify potential upstream pollution pressures. The dataset reflects regulated discharge activity, not measured drinking water contamination or human exposure.</p>
-        <div class="ds-callout">
-          <p class="ds-source">Data source: <a href="https://www.epa.gov/npdes" target="_blank" rel="noopener noreferrer">U.S. Environmental Protection Agency (EPA)</a></p>
-          <p>Last updated: <span class="date">2/3/2026</span></p>
-          <p class="ds-update-frequency">Update frequency: Quarterly</p>
-        </div>
-        <p><strong>Things you should know</strong></p>
-        <ul>
-          <li>This dataset indicates the presence of regulated discharges, not contamination at a drinking water intake</li>
-          <li>Water system treatment processes may remove pollutants</li>
-          <li>A single permitted facility may appear in multiple watersheds due to multiple outfalls</li>
-          <li>Violation records reflect regulatory compliance status, not magnitude of pollutant transport</li>
-          <li>EPIC is working to pinpoint specific features in violation for future tool updates</li>
-        </ul>
-      </div>
-    </div>
-  </div>
-
-  <%# 5. 303(d) Impaired Waterways %>
-  <div class="grid-item" data-source="epa" data-frequency="quarterly" data-date="2026-02-03">
-    <div class="dataset-inner default">
-      <div class="ds-content">
-        <h2>303(d) Impaired Waterways</h2>
-        <p class="ds-description">This dataset contains impaired surface waters reported by states to EPA under Clean Water Act Sections 303(d) and 305(b) through the Integrated Report. States identify assessment units that do not meet one or more designated water quality uses and require corrective action. EPIC links impaired waters to nearby drinking water systems as a potential indicator of source water characteristics, not treated drinking water quality.</p>
-        <div class="ds-callout">
-          <p class="ds-source">Data source: <a href="https://www.epa.gov/waterdata/attains" target="_blank" rel="noopener noreferrer">U.S. Environmental Protection Agency (EPA)</a></p>
-          <p>Last updated: <span class="date">2/3/2026</span></p>
-          <p class="ds-update-frequency">Update frequency: Quarterly</p>
-        </div>
-        <p><strong>Things you should know</strong></p>
-        <ul>
-          <li>This dataset represents regulatory impairment status, not contaminant concentrations at drinking water intakes</li>
-          <li>Listing criteria and assessment coverage vary significantly by state</li>
-          <li>Drinking water treatment may remove listed pollutants</li>
-          <li>Not all waters are assessed each cycle</li>
-          <li>A listed water body does not imply customer exposure or Safe Drinking Water Act violations</li>
-        </ul>
-      </div>
-    </div>
-  </div>
-
-  <%# 6. Oregon Drinking Water Advisories %>
-  <div class="grid-item" data-source="opha" data-frequency="quarterly" data-date="2026-02-03">
-    <div class="dataset-inner default">
-      <div class="ds-content">
-        <h2>Oregon Drinking Water Advisories</h2>
-        <p class="ds-description">Publicly available drinking water advisories for water systems located in Oregon. Provided by the Oregon Public Health Authority.</p>
-        <div class="ds-callout">
-          <p class="ds-source">Data source: <a href="https://yourwater.oregon.gov/advisories.php?areasw=x&areap=x&popa=x&popv=x&open=x&lifted=x&begin=&end=&sort=start" target="_blank" rel="noopener noreferrer">Oregon Public Health Authority</a></p>
-          <p>Last updated: <span class="date">2/3/2026</span></p>
-          <p class="ds-update-frequency">Update frequency: Quarterly</p>
-        </div>
-        <p><strong>Things you should know</strong></p>
-        <ul>
-          <li>Data represents historical advisory events, not current drinking water conditions</li>
-          <li>The official state site should be used for real-time public health information</li>
-          <li>Advisories include precautionary notices such as boil water alerts, service interruptions, and planned maintenance events, not just contamination incidents</li>
-          <li>It is assumed that a system would have maximum one advisory on a given day, and advisories that have been edited by the state are considered a distinct advisory</li>
-        </ul>
-      </div>
-    </div>
-  </div>
-
-  <%# 7. CEJST %>
-  <div class="grid-item" data-source="Public-Environmental-Data-Partners" data-frequency="quarterly" data-date="2026-01-29">
-    <div class="dataset-inner default">
-      <div class="ds-content">
-        <h2>Climate and Economic Justice Screening Tool</h2>
-        <p class="ds-description">Built for Biden&rsquo;s Justice40 initiative, the CEJST uses datasets that are indicators of burdens in eight categories: climate change, energy, health, housing, legacy pollution, transportation, water and wastewater, and workforce development.</p>
-        <div class="ds-callout">
-          <p class="ds-source">Data source: <a href="https://public-environmental-data-partners.github.io/j40-cejst-2/en/#3/33.47/-97.5" target="_blank" rel="noopener noreferrer">Public Environmental Data Partners</a></p>
-          <p>Last updated: <span class="date">1/29/2026</span></p>
-          <p class="ds-update-frequency">Update frequency: Quarterly</p>
-        </div>
-        <p><strong>Things you should know</strong></p>
-        <ul>
-          <li>Data were interpolated using a mix of population, household, and areal interpolation. As a result, some variables for some water systems could not be calculated.</li>
-        </ul>
-      </div>
-    </div>
-  </div>
-
-  <%# 8. Climate Vulnerability Index %>
-  <div class="grid-item" data-source="Environmental-Defense-Fund" data-frequency="quarterly" data-date="2026-01-29">
-    <div class="dataset-inner default">
-      <div class="ds-content">
-        <h2>Climate Vulnerability Index</h2>
-        <p class="ds-description">The U.S. Climate Vulnerability Index helps you see which communities face the greatest challenges from the impacts of a changing climate.</p>
-        <div class="ds-callout">
-          <p class="ds-source">Data source: <a href="https://climatevulnerabilityindex.org/" target="_blank" rel="noopener noreferrer">Environmental Defense Fund</a></p>
-          <p>Last updated: <span class="date">1/29/2026</span></p>
-          <p class="ds-update-frequency">Update frequency: Quarterly</p>
-        </div>
-        <p><strong>Things you should know</strong></p>
-        <ul>
-          <li>Data were interpolated using a mix of population, household, and areal interpolation. As a result, some variables for some water systems could not be calculated.</li>
-        </ul>
-      </div>
-    </div>
-  </div>
-
-  <%# 9. Social Vulnerability Index %>
-  <div class="grid-item" data-source="Center-for-Disease-Control" data-frequency="quarterly" data-date="2026-01-29">
-    <div class="dataset-inner default">
-      <div class="ds-content">
-        <h2>Social Vulnerability Index</h2>
-        <p class="ds-description">This SVI tool is a place-based index, database, and mapping application designed to identify and quantify communities experiencing social vulnerability. It uses 16 U.S. Census variables from the 5-year American Community Survey (ACS) to identify communities that may need support before, during, or after disasters.</p>
-        <div class="ds-callout">
-          <p class="ds-source">Data source: <a href="https://www.atsdr.cdc.gov/place-health/php/svi/index.html" target="_blank" rel="noopener noreferrer">Center for Disease Control</a></p>
-          <p>Last updated: <span class="date">1/29/2026</span></p>
-          <p class="ds-update-frequency">Update frequency: Quarterly</p>
-        </div>
-        <p><strong>Things you should know</strong></p>
-        <ul>
-          <li>Data were interpolated using a mix of population, household, and areal interpolation. As a result, some variables for some water systems could not be calculated.</li>
-        </ul>
-      </div>
-    </div>
-  </div>
-
-  <%# 10. Drinking Water State Revolving Funds Awards %>
-  <div class="grid-item" data-source="epa" data-frequency="annually" data-date="2026-02-20">
-    <div class="dataset-inner default">
-      <div class="ds-content">
-        <h2>Drinking Water State Revolving Funds Awards</h2>
-        <p class="ds-description">These data represent funding awards for drinking water investment and improvement from the Drinking Water State Revolving Fund. Disseminated by states, awards are given largely in the form of loans to communities based on federal allotments and state-based programs.</p>
-        <div class="ds-callout">
-          <p class="ds-source">Data source: <a href="https://sdwis.epa.gov/ords/sfdw_pub/r/sfdw/owsrf_public/assistance-agreement-report-filters" target="_blank" rel="noopener noreferrer">U.S. Environmental Protection Agency (EPA)</a></p>
-          <p>Last updated: <span class="date">2/20/2026</span></p>
-          <p class="ds-update-frequency">Update frequency: Annually</p>
-        </div>
-        <p><strong>Things you should know</strong></p>
-        <ul>
-          <li>This dataset contains downloaded data from EPA&rsquo;s State Revolving Fund Public Portal for federal fiscal years 2021-2025</li>
-          <li>Principle forgiveness represents "Additional Subsidy Amount", which includes direct principle forgiveness, as well as negative interest rates and grants</li>
-        </ul>
-      </div>
-    </div>
-  </div>
-
-  <%# 11. Water System Watersheds %>
-  <div class="grid-item" data-source="epa" data-frequency="static" data-date="2024-10-07">
-    <div class="dataset-inner default">
-      <div class="ds-content">
-        <h2>Water System Watersheds for Well &amp; Intake Locations</h2>
-        <p class="ds-description">These data show the relationship between a water system, and its source watershed. While data on specific intake locations is private given security concerns, this match between a water system and a watershed is shared by the EPA.</p>
-        <div class="ds-callout">
-          <p class="ds-source">Data source: <a href="https://mywaterway.epa.gov/" target="_blank" rel="noopener noreferrer">U.S. Environmental Protection Agency (EPA)</a></p>
-          <p>Last updated: <span class="date">10/7/2024</span></p>
-          <p class="ds-update-frequency">Update frequency: Static</p>
-        </div>
-        <p><strong>Things you should know</strong></p>
-        <ul>
-          <li>This data is static and reflects a snapshot of the information contained in EPA's How's My Waterway</li>
-        </ul>
-      </div>
-    </div>
-  </div>
-
-  <%# 12. Facilities with Risk Management Plans %>
-  <div class="grid-item" data-source="epa" data-frequency="quarterly" data-date="2026-02-03">
-    <div class="dataset-inner default">
-      <div class="ds-content">
-        <h2>Facilities with Risk Management Plans</h2>
-        <p class="ds-description">These data contains location and facility identification information from EPA's Facility Registry Service (FRS) for the subset of facilities that link to the Risk Management Plan (RMP) System. The Risk Management Plan (RMP) database stores the risk management plans reported by companies that handle, manufacture, use, or store certain flammable or toxic substances.</p>
-        <div class="ds-callout">
-          <p class="ds-source">Data source: <a href="https://catalog.data.gov/dataset/epa-facility-registry-service-frs-rmp6" target="_blank" rel="noopener noreferrer">U.S. Environmental Protection Agency (EPA)</a></p>
-          <p>Last updated: <span class="date">2/3/2026</span></p>
-          <p class="ds-update-frequency">Update frequency: Quarterly</p>
-        </div>
-        <p><strong>Things you should know</strong></p>
-        <ul>
-          <li>This dataset is aimed to communicate potential hazards, rather than an actual risk to drinking water</li>
-        </ul>
-      </div>
-    </div>
-  </div>
-
-  <%# 13. Underground Storage Tanks %>
-  <div class="grid-item" data-source="epa" data-frequency="static" data-date="2026-02-03">
-    <div class="dataset-inner default">
-      <div class="ds-content">
-        <h2>Underground Storage Tanks</h2>
-        <p class="ds-description">This data provides the attributes and locations of active and closed Underground Storage Tanks (USTs), UST facilities, and UST releases in states as of 2018-2019, US territories as of 2020-2021, and Tribal lands as of 2025.</p>
-        <div class="ds-callout">
-          <p class="ds-source">Data source: <a href="https://www.epa.gov/ust/ust-finder" target="_blank" rel="noopener noreferrer">U.S. Environmental Protection Agency (EPA)</a></p>
-          <p>Last updated: <span class="date">2/3/2026</span></p>
-          <p class="ds-update-frequency">Update frequency: Static</p>
-        </div>
-        <p><strong>Things you should know</strong></p>
-        <ul>
-          <li>Please note this dataset is static, and only contains a snapshot of information from 2018 - 2019.</li>
-          <li>Because the exact location of underground storage tanks are not provided, it is assumed that facilities with underground storage tanks are close in proximity to the storage tanks they manage.</li>
-          <li>Both "open" and "temporarily out of service" tanks are included in this calculation to be consistent with EPA standards</li>
-          <li>This dataset is aimed to communicate potential hazards, rather than an actual risk to drinking water</li>
-        </ul>
-      </div>
-    </div>
-  </div>
-
-  <%# 14. Percent Change in U.S. Census Variables %>
-  <div class="grid-item" data-source="census" data-frequency="annually" data-date="2026-02-03">
-    <div class="dataset-inner default">
-      <div class="ds-content">
-        <h2>Percent Change in U.S. Census Variables</h2>
-        <p class="ds-description">This dataset contains the 10-year percent change (2011 ACS vs 2021 ACS) in ~70 different census variables for EPA's Service Area Boundaries. EPIC used the EPA ORD crosswalk and NHGIS crosswalk files to estimate counts for 2011 data, and household-weighted interpolation for income variables.</p>
-        <div class="ds-callout">
-          <p class="ds-source">Data source: <a href="https://www.census.gov/programs-surveys/acs.html" target="_blank" rel="noopener noreferrer">U.S. Census Bureau</a></p>
-          <p>Last updated: <span class="date">2/3/2026</span></p>
-          <p class="ds-update-frequency">Update frequency: Annually</p>
-        </div>
-        <p><strong>Things you should know</strong></p>
-        <ul>
-          <li>Not all census variables were available for the 2011 ACS 5-year estimate</li>
-          <li>Water systems with duplicated boundaries could not be calculated (approximately 7 water systems)</li>
-          <li>For the purposes of the application, percent change is capped at 200%</li>
-          <li>Income variables were adjusted for inflation using methods identical to the BLS CPI Inflation calculator</li>
-          <li>Calculated from 5-year ACS estimates from 2011 and 2021. See Github methods &amp; documentation for more details</li>
-        </ul>
-      </div>
-    </div>
-  </div>
-
-  <%# 15. West Virginia Drinking Water Advisories %>
-  <div class="grid-item" data-source="WV-Department-of-Health-and-Human-Services" data-frequency="quarterly" data-date="2026-02-03">
-    <div class="dataset-inner default">
-      <div class="ds-content">
-        <h2>West Virginia Drinking Water Advisories</h2>
-        <p class="ds-description">Publicly available drinking water advisories for water systems located in West Virginia. Provided by the West Virginia Department of Health and Human Resources.</p>
-        <div class="ds-callout">
-          <p class="ds-source">Data source: <a href="https://oehsportal.wvdhhr.org/boilwater" target="_blank" rel="noopener noreferrer">WV Department of Health and Human Services</a></p>
-          <p>Last updated: <span class="date">2/3/2026</span></p>
-          <p class="ds-update-frequency">Update frequency: Quarterly</p>
-        </div>
-        <p><strong>Things you should know</strong></p>
-        <ul>
-          <li>Data represents historical advisory events, not current drinking water conditions</li>
-          <li>The official state site should be used for real-time public health information</li>
-          <li>Advisories include precautionary notices such as boil water alerts, service interruptions, and planned maintenance events, not just contamination incidents</li>
-          <li>It is assumed that a system would have maximum one advisory on a given day, and advisories that have been edited by the state are considered a distinct advisory</li>
-        </ul>
-      </div>
-    </div>
-  </div>
-
-  <%# 16. New Mexico Drinking Water Advisories %>
-  <div class="grid-item" data-source="New-Mexico-Environment-Department" data-frequency="quarterly" data-date="2026-02-03">
-    <div class="dataset-inner default">
-      <div class="ds-content">
-        <h2>New Mexico Drinking Water Advisories</h2>
-        <p class="ds-description">Publicly available drinking water advisories for water systems located in New Mexico. Provided by the New Mexico Environment Department.</p>
-        <div class="ds-callout">
-          <p class="ds-source">Data source: <a href="https://www.env.nm.gov/drinking_water/boil-water-advisories/" target="_blank" rel="noopener noreferrer">New Mexico Environment Department</a></p>
-          <p>Last updated: <span class="date">2/3/2026</span></p>
-          <p class="ds-update-frequency">Update frequency: Quarterly</p>
-        </div>
-        <p><strong>Things you should know</strong></p>
-        <ul>
-          <li>Data represents historical advisory events, not current drinking water conditions</li>
-          <li>The official state site should be used for real-time public health information</li>
-          <li>Advisories include precautionary notices such as boil water alerts, service interruptions, and planned maintenance events, not just contamination incidents</li>
-          <li>Please note that if an advisory listed multiple water system IDs, the record was duplicated for each water system</li>
-          <li>It is assumed that a system would have maximum one advisory on a given day, and advisories that have been edited by the state are considered a distinct advisory</li>
-        </ul>
-      </div>
-    </div>
-  </div>
-
-  <%# 17. Ohio Drinking Water Advisories %>
-  <div class="grid-item" data-source="Ohio-Environmental-Protection-Agency" data-frequency="static" data-date="2025-07-30">
-    <div class="dataset-inner default">
-      <div class="ds-content">
-        <h2>Ohio Drinking Water Advisories</h2>
-        <p class="ds-description">Publicly available drinking water advisories for water systems located in Ohio. Previously provided by the Ohio Environmental Protection Agency.</p>
-        <div class="ds-callout">
-          <p class="ds-source">Data source: <a href="https://geo.epa.ohio.gov/portal/apps/experiencebuilder/experience/?id=72cf2af9e2dd459aa5d758b54fb10c0c&page=Page-1&views=About" target="_blank" rel="noopener noreferrer">Ohio Environmental Protection Agency</a></p>
-          <p>Last updated: <span class="date">7/30/2025</span></p>
-          <p class="ds-update-frequency">Update frequency: Static</p>
-        </div>
-        <p><strong>Things you should know</strong></p>
-        <ul>
-          <li>Data represents historical advisory events, not current drinking water conditions</li>
-          <li>The official state site should be used for real-time public health information</li>
-          <li>Advisories include precautionary notices such as boil water alerts, service interruptions, and planned maintenance events, not just contamination incidents</li>
-          <li>This dataset is no longer being maintained by the state of Ohio</li>
-          <li>It is assumed that a system would have maximum one advisory on a given day, and advisories that have been edited by the state are considered a distinct advisory</li>
-        </ul>
-      </div>
-    </div>
-  </div>
-
-  <%# 18. Rhode Island Drinking Water Advisories %>
-  <div class="grid-item" data-source="Rhode-Island-Department-of-Health" data-frequency="static" data-date="2025-07-30">
-    <div class="dataset-inner default">
-      <div class="ds-content">
-        <h2>Rhode Island Drinking Water Advisories</h2>
-        <p class="ds-description">Publicly available drinking water advisories for water systems located in Rhode Island. Provided by the Rhode Island Department of Health.</p>
-        <div class="ds-callout">
-          <p class="ds-source">Data source: <a href="https://health.ri.gov/drinking-water-quality/information/public-water-emergency-information-consumers" target="_blank" rel="noopener noreferrer">Rhode Island Department of Health</a></p>
-          <p>Last updated: <span class="date">7/30/2025</span></p>
-          <p class="ds-update-frequency">Update frequency: Static</p>
-        </div>
-        <p><strong>Things you should know</strong></p>
-        <ul>
-          <li>Data represents historical advisory events, not current drinking water conditions</li>
-          <li>The official state site should be used for real-time public health information</li>
-          <li>Advisories include precautionary notices such as boil water alerts, service interruptions, and planned maintenance events, not just contamination incidents</li>
-          <li>The last update of this dataset occurred on July 30th, 2025. Our team is working on updating this dataset</li>
-          <li>It is assumed that a system would have maximum one advisory on a given day, and advisories that have been edited by the state are considered a distinct advisory</li>
-        </ul>
-      </div>
-    </div>
-  </div>
-
-  <%# 19. Washington Drinking Water Advisories %>
-  <div class="grid-item" data-source="Washington-Department-of-Health" data-frequency="quarterly" data-date="2026-02-04">
-    <div class="dataset-inner default">
-      <div class="ds-content">
-        <h2>Washington Drinking Water Advisories</h2>
-        <p class="ds-description">Publicly available drinking water advisories for water systems located in Washington. Provided by the Washington Department of Health.</p>
-        <div class="ds-callout">
-          <p class="ds-source">Data source: <a href="https://doh.wa.gov/community-and-environment/drinking-water/active-alerts?county=All&combine=" target="_blank" rel="noopener noreferrer">Washington Department of Health</a></p>
-          <p>Last updated: <span class="date">2/4/2026</span></p>
-          <p class="ds-update-frequency">Update frequency: Quarterly</p>
-        </div>
-        <p><strong>Things you should know</strong></p>
-        <ul>
-          <li>Data represents historical advisory events, not current drinking water conditions</li>
-          <li>The official state site should be used for real-time public health information</li>
-          <li>Advisories include precautionary notices such as boil water alerts, service interruptions, and planned maintenance events, not just contamination incidents</li>
-          <li>It is assumed that a system would have maximum one advisory on a given day, and advisories that have been edited by the state are considered a distinct advisory</li>
-        </ul>
-      </div>
-    </div>
-  </div>
-
-  <%# 20. Missouri Drinking Water Advisories %>
-  <div class="grid-item" data-source="State-of-Missouri-Data-Portal" data-frequency="quarterly" data-date="2026-02-03">
-    <div class="dataset-inner default">
-      <div class="ds-content">
-        <h2>Missouri Drinking Water Advisories</h2>
-        <p class="ds-description">Publicly available advisories for systems with long-term contaminant issues in Missouri. Provided by the State of Missouri Data Portal.</p>
-        <div class="ds-callout">
-          <p class="ds-source">Data source: <a href="https://data.mo.gov/Regulatory/DNR-WPP-Boil-Order-Report/j2a5-itxh/data_preview" target="_blank" rel="noopener noreferrer">State of Missouri Data Portal</a></p>
-          <p>Last updated: <span class="date">2/3/2026</span></p>
-          <p class="ds-update-frequency">Update frequency: Quarterly</p>
-        </div>
-        <p><strong>Things you should know</strong></p>
-        <ul>
-          <li>Data represents historical advisory events, not current drinking water conditions</li>
-          <li>The official state site should be used for real-time public health information</li>
-          <li>Advisories include precautionary notices such as boil water alerts, service interruptions, and planned maintenance events, not just contamination incidents</li>
-          <li>This is not a comprehensive record, as this dataset only contains advisories from long-term contaminant issues</li>
-          <li>It is assumed that a system would have maximum one advisory on a given day, and advisories that have been edited by the state are considered a distinct advisory</li>
-        </ul>
-      </div>
-    </div>
-  </div>
-
-  <%# 21. Maine Drinking Water Advisories %>
-  <div class="grid-item" data-source="Maine-Department-of-Health-and-Human-Services" data-frequency="quarterly" data-date="2026-02-04">
-    <div class="dataset-inner default">
-      <div class="ds-content">
-        <h2>Maine Drinking Water Advisories</h2>
-        <p class="ds-description">Publicly available drinking water advisories for water systems located in Maine. Provided by the Maine Department of Health and Human Services.</p>
-        <div class="ds-callout">
-          <p class="ds-source">Data source: <a href="https://www.maine.gov/dhhs/mecdc/healthy-living/health-safety/drinking-water-safety/information-for-consumers/drinking-water-safety-alerts" target="_blank" rel="noopener noreferrer">Maine Department of Health and Human Services</a></p>
-          <p>Last updated: <span class="date">2/4/2026</span></p>
-          <p class="ds-update-frequency">Update frequency: Quarterly</p>
-        </div>
-        <p><strong>Things you should know</strong></p>
-        <ul>
-          <li>Data represents historical advisory events, not current drinking water conditions</li>
-          <li>The official state site should be used for real-time public health information</li>
-          <li>Advisories include precautionary notices such as boil water alerts, service interruptions, and planned maintenance events, not just contamination incidents</li>
-          <li>It is assumed that a system would have maximum one advisory on a given day, and advisories that have been edited by the state are considered a distinct advisory</li>
-        </ul>
-      </div>
-    </div>
-  </div>
-
-  <%# 22. Alaska Drinking Water Advisories %>
-  <div class="grid-item" data-source="AK-Department-of-Environmental-Conservation" data-frequency="quarterly" data-date="2026-02-04">
-    <div class="dataset-inner default">
-      <div class="ds-content">
-        <h2>Alaska Drinking Water Advisories</h2>
-        <p class="ds-description">Publicly available drinking water advisories for water systems located in Alaska. Provided by Alaska's Department of Environmental Conservation.</p>
-        <div class="ds-callout">
-          <p class="ds-source">Data source: <a href="https://gis.data.alaska.gov/datasets/ADEC::boil-water-and-do-not-drink-notice-open/explore?location=56.210819%2C-157.551116%2C7.85&showTable=true" target="_blank" rel="noopener noreferrer">AK Department of Environmental Conservation</a></p>
-          <p>Last updated: <span class="date">2/4/2026</span></p>
-          <p class="ds-update-frequency">Update frequency: Quarterly</p>
-        </div>
-        <p><strong>Things you should know</strong></p>
-        <ul>
-          <li>Data represents historical advisory events, not current drinking water conditions</li>
-          <li>The official state site should be used for real-time public health information</li>
-          <li>Advisories include precautionary notices such as boil water alerts, service interruptions, and planned maintenance events, not just contamination incidents</li>
-          <li>It is assumed that a system would have maximum one advisory on a given day, and advisories that have been edited by the state are considered a distinct advisory</li>
-        </ul>
-      </div>
-    </div>
-  </div>
-
-  <%# 23. Arkansas Drinking Water Advisories %>
-  <div class="grid-item" data-source="AR-Department-of-Health" data-frequency="quarterly" data-date="2026-02-03">
-    <div class="dataset-inner default">
-      <div class="ds-content">
-        <h2>Arkansas Drinking Water Advisories</h2>
-        <p class="ds-description">Publicly available drinking water advisories for water systems located in Arkansas. Provided by the Arkansas Department of Health.</p>
-        <div class="ds-callout">
-          <p class="ds-source">Data source: <a href="https://health.arkansas.gov/wa_engTraining/boilwaterorder.aspx" target="_blank" rel="noopener noreferrer">AR Department of Health</a></p>
-          <p>Last updated: <span class="date">2/3/2026</span></p>
-          <p class="ds-update-frequency">Update frequency: Quarterly</p>
-        </div>
-        <p><strong>Things you should know</strong></p>
-        <ul>
-          <li>Data represents historical advisory events, not current drinking water conditions</li>
-          <li>The official state site should be used for real-time public health information</li>
-          <li>Advisories include precautionary notices such as boil water alerts, service interruptions, and planned maintenance events, not just contamination incidents</li>
-          <li>Please note there was a gap in our data collection from May 21st, 2025 to Feb 3rd, 2026</li>
-          <li>It is assumed that a system would have maximum one advisory on a given day, and advisories that have been edited by the state are considered a distinct advisory</li>
-        </ul>
-      </div>
-    </div>
-  </div>
-
-  <%# 24. Florida Drinking Water Advisories %>
-  <div class="grid-item" data-source="Florida-Health" data-frequency="quarterly" data-date="2026-02-03">
-    <div class="dataset-inner default">
-      <div class="ds-content">
-        <h2>Florida Drinking Water Advisories</h2>
-        <p class="ds-description">Publicly available drinking water advisories for water systems located in Florida during extreme weather events. Provided by Florida Health.</p>
-        <div class="ds-callout">
-          <p class="ds-source">Data source: <a href="https://www.floridahealth.gov/environmental-health/drinking-water/boil-water-notices/index.html" target="_blank" rel="noopener noreferrer">Florida Health</a></p>
-          <p>Last updated: <span class="date">2/3/2026</span></p>
-          <p class="ds-update-frequency">Update frequency: Quarterly</p>
-        </div>
-        <p><strong>Things you should know</strong></p>
-        <ul>
-          <li>Data represents historical advisory events, not current drinking water conditions</li>
-          <li>The official state site should be used for real-time public health information</li>
-          <li>Advisories include precautionary notices such as boil water alerts, service interruptions, and planned maintenance events, not just contamination incidents</li>
-          <li>This is not a comprehensive record - Florida only lists advisories declared during a natural disaster, such as a hurricane or tropical weather event</li>
-          <li>It is assumed that a system would have maximum one advisory on a given day, and advisories that have been edited by the state are considered a distinct advisory</li>
-        </ul>
-      </div>
-    </div>
-  </div>
-
-  <%# 25. Massachusetts Drinking Water Advisories %>
-  <div class="grid-item" data-source="Massachusetts-Department-of-Environmental-Protection" data-frequency="quarterly" data-date="2025-10-30">
-    <div class="dataset-inner default">
-      <div class="ds-content">
-        <h2>Massachusetts Drinking Water Advisories</h2>
-        <p class="ds-description">Publicly available drinking water advisories for water systems located in Massachusetts. Provided by Massachusetts Department of Environmental Protection.</p>
-        <div class="ds-callout">
-          <p class="ds-source">Data source: <a href="https://eeaonline.eea.state.ma.us/DEP/Boil_Order/" target="_blank" rel="noopener noreferrer">Massachusetts Department of Environmental Protection</a></p>
-          <p>Last updated: <span class="date">10/30/2025</span></p>
-          <p class="ds-update-frequency">Update frequency: Quarterly</p>
-        </div>
-        <p><strong>Things you should know</strong></p>
-        <ul>
-          <li>Data represents historical advisory events, not current drinking water conditions</li>
-          <li>The official state site should be used for real-time public health information</li>
-          <li>Advisories include precautionary notices such as boil water alerts, service interruptions, and planned maintenance events, not just contamination incidents</li>
-          <li>It is assumed that a system would have maximum one advisory on a given day, and advisories that have been edited by the state are considered a distinct advisory</li>
-        </ul>
-      </div>
-    </div>
-  </div>
-
-  <%# 26. Louisiana Drinking Water Advisories %>
-  <div class="grid-item" data-source="Louisiana-Department-of-Health" data-frequency="static" data-date="2025-07-09">
-    <div class="dataset-inner default">
-      <div class="ds-content">
-        <h2>Louisiana Drinking Water Advisories</h2>
-        <p class="ds-description">Publicly available drinking water advisories for water systems located in Louisiana. Provided by Louisiana Department of Health. Last update was July 9th 2025.</p>
-        <div class="ds-callout">
-          <p class="ds-source">Data source: <a href="https://sdw.ldh.la.gov/" target="_blank" rel="noopener noreferrer">Louisiana Department of Health</a></p>
-          <p>Last updated: <span class="date">7/9/2025</span></p>
-          <p class="ds-update-frequency">Update frequency: Static</p>
-        </div>
-        <p><strong>Things you should know</strong></p>
-        <ul>
-          <li>Data represents historical advisory events, not current drinking water conditions</li>
-          <li>The official state site should be used for real-time public health information</li>
-          <li>Advisories include precautionary notices such as boil water alerts, service interruptions, and planned maintenance events, not just contamination incidents</li>
-          <li>Due to data download limits, this dataset includes system-issued boil water notices from 2024-2025, and state-issued boil water advisories from 2015-2025</li>
-          <li>It is assumed that a system would have maximum one advisory on a given day, and advisories that have been edited by the state are considered a distinct advisory</li>
-        </ul>
-      </div>
-    </div>
-  </div>
-
-  <%# 27. Texas Drinking Water Advisories %>
-  <div class="grid-item" data-source="TCEQ" data-frequency="static" data-date="2024-04-17">
-    <div class="dataset-inner default">
-      <div class="ds-content">
-        <h2>Texas Drinking Water Advisories</h2>
-        <p class="ds-description">FOIA&rsquo;d drinking water advisories for water systems located in Texas. Provided by the Texas Commission on Environmental Quality.</p>
-        <div class="ds-callout">
-          <p class="ds-source">Data source: <a href="https://www.tceq.texas.gov/" target="_blank" rel="noopener noreferrer">Texas Commission on Environmental Quality (TCEQ)</a></p>
-          <p>Last updated: <span class="date">4/17/2024</span></p>
-          <p class="ds-update-frequency">Update frequency: Static</p>
-        </div>
-        <p><strong>Things you should know</strong></p>
-        <ul>
-          <li>Data represents historical advisory events, not current drinking water conditions</li>
-          <li>The official state site should be used for real-time public health information</li>
-          <li>Advisories include precautionary notices such as boil water alerts, service interruptions, and planned maintenance events, not just contamination incidents</li>
-          <li>Please note this dataset only contains records from 2018 - 2024 from a FOIA request. Our team is working on updating this dataset</li>
-          <li>It is assumed that a system would have maximum one advisory on a given day, and advisories that have been edited by the state are considered a distinct advisory</li>
-        </ul>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div id="no-results" style="display:none;" data-datasets-target="noResults">
-  <p>No results for the selected filters</p>
-</div>
 </div>

@@ -1,0 +1,418 @@
+datasets:
+  - title: "Community Water System Service Area Boundaries"
+    source: "epa"
+    source_name: "U.S. Environmental Protection Agency (EPA)"
+    source_url: "https://www.epa.gov/ground-water-and-drinking-water/community-water-system-service-area-boundaries"
+    frequency: "annually"
+    date: "2026-01-27"
+    description: >
+      This dataset contains geographic service area boundaries for U.S. Community Water Systems in the
+      U.S. and select territories (Puerto Rico, Guam, Northern Mariana Islands). As of October 2025,
+      over half of the approximately 50,000 water system boundaries come from authoritative data sources.
+    caveats:
+      - "For many systems, this dataset uses modeled boundaries that approximate, not confirm, the true service area of a water system"
+      - "Modeled areas are derived from population and infrastructure inference methods"
+      - "Overlapping boundaries may occur between neighboring systems"
+      - "Some boundaries map to multiple water system IDs"
+      - "Releases generally occur annually but have come more frequently"
+
+  - title: "Safe Drinking Water Information System"
+    source: "epa"
+    source_name: "U.S. Environmental Protection Agency (EPA)"
+    source_url: "https://www.epa.gov/ground-water-and-drinking-water/safe-drinking-water-information-system-sdwis-federal-reporting"
+    frequency: "quarterly"
+    date: "2026-02-20"
+    description: >
+      Water system violation, enforcement, and system information submitted by states and utilities.
+    caveats:
+      - "Several variables in SDWIS reflect regulatory reporting structures rather than underlying infrastructure conditions"
+      - "Violations are known to be underreported and vary with enforcement practices"
+      - "In some instances, system age represents the first regulatory record rather than the construction date"
+      - "The maximum age of any system in this dataset is 45 years due to data reporting beginning in 1979"
+
+  - title: "U.S. Census"
+    source: "census"
+    source_name: "U.S. Census Bureau"
+    source_url: "https://www.census.gov/programs-surveys/acs.html"
+    frequency: "annually"
+    date: "2026-02-02"
+    description: >
+      The dataset combines 2021 American Community Survey (ACS) demographic and socioeconomic estimates
+      with EPA drinking water system service area boundaries. EPIC allocated ACS census variables to
+      system service areas using spatial crosswalk methods based on EPA boundary files. The result is a
+      set of estimated community characteristics for each drinking water system, not direct measurements
+      of the populations served.
+    caveats:
+      - "Values are statistical estimates and include uncertainty"
+      - "Population characteristics are modeled using an EPA crosswalk rather than statistics observed at the system level"
+      - "Income fields are interpolated estimates derived between known values"
+      - "Results represent characteristics of the estimated service population, not confirmed customer records"
+
+  - title: "National Pollutant Discharge Elimination System (NPDES) Permits"
+    source: "epa"
+    source_name: "U.S. Environmental Protection Agency (EPA)"
+    source_url: "https://www.epa.gov/npdes"
+    frequency: "quarterly"
+    date: "2026-02-03"
+    description: >
+      This dataset includes permitted discharge outfalls from the EPA National Pollutant Discharge
+      Elimination System (NPDES). NPDES documents point-source pollutant discharges to surface waters
+      under the Clean Water Act. EPIC links permitted discharge locations to nearby drinking water
+      systems to identify potential upstream pollution pressures. The dataset reflects regulated
+      discharge activity, not measured drinking water contamination or human exposure.
+    caveats:
+      - "This dataset indicates the presence of regulated discharges, not contamination at a drinking water intake"
+      - "Water system treatment processes may remove pollutants"
+      - "A single permitted facility may appear in multiple watersheds due to multiple outfalls"
+      - "Violation records reflect regulatory compliance status, not magnitude of pollutant transport"
+      - "EPIC is working to pinpoint specific features in violation for future tool updates"
+
+  - title: "303(d) Impaired Waterways"
+    source: "epa"
+    source_name: "U.S. Environmental Protection Agency (EPA)"
+    source_url: "https://www.epa.gov/waterdata/attains"
+    frequency: "quarterly"
+    date: "2026-02-03"
+    description: >
+      This dataset contains impaired surface waters reported by states to EPA under Clean Water Act
+      Sections 303(d) and 305(b) through the Integrated Report. States identify assessment units that
+      do not meet one or more designated water quality uses and require corrective action. EPIC links
+      impaired waters to nearby drinking water systems as a potential indicator of source water
+      characteristics, not treated drinking water quality.
+    caveats:
+      - "This dataset represents regulatory impairment status, not contaminant concentrations at drinking water intakes"
+      - "Listing criteria and assessment coverage vary significantly by state"
+      - "Drinking water treatment may remove listed pollutants"
+      - "Not all waters are assessed each cycle"
+      - "A listed water body does not imply customer exposure or Safe Drinking Water Act violations"
+
+  - title: "Oregon Drinking Water Advisories"
+    source: "opha"
+    source_name: "Oregon Public Health Authority"
+    source_url: "https://yourwater.oregon.gov/advisories.php?areasw=x&areap=x&popa=x&popv=x&open=x&lifted=x&begin=&end=&sort=start"
+    frequency: "quarterly"
+    date: "2026-02-03"
+    description: >
+      Publicly available drinking water advisories for water systems located in Oregon.
+      Provided by the Oregon Public Health Authority.
+    caveats:
+      - "Data represents historical advisory events, not current drinking water conditions"
+      - "The official state site should be used for real-time public health information"
+      - "Advisories include precautionary notices such as boil water alerts, service interruptions, and planned maintenance events, not just contamination incidents"
+      - "It is assumed that a system would have maximum one advisory on a given day, and advisories that have been edited by the state are considered a distinct advisory"
+
+  - title: "Climate and Economic Justice Screening Tool"
+    source: "Public-Environmental-Data-Partners"
+    source_name: "Public Environmental Data Partners"
+    source_url: "https://public-environmental-data-partners.github.io/j40-cejst-2/en/#3/33.47/-97.5"
+    frequency: "quarterly"
+    date: "2026-01-29"
+    description: >
+      Built for Biden's Justice40 initiative, the CEJST uses datasets that are indicators of burdens
+      in eight categories: climate change, energy, health, housing, legacy pollution, transportation,
+      water and wastewater, and workforce development.
+    caveats:
+      - "Data were interpolated using a mix of population, household, and areal interpolation. As a result, some variables for some water systems could not be calculated."
+
+  - title: "Climate Vulnerability Index"
+    source: "Environmental-Defense-Fund"
+    source_name: "Environmental Defense Fund"
+    source_url: "https://climatevulnerabilityindex.org/"
+    frequency: "quarterly"
+    date: "2026-01-29"
+    description: >
+      The U.S. Climate Vulnerability Index helps you see which communities face the greatest
+      challenges from the impacts of a changing climate.
+    caveats:
+      - "Data were interpolated using a mix of population, household, and areal interpolation. As a result, some variables for some water systems could not be calculated."
+
+  - title: "Social Vulnerability Index"
+    source: "Center-for-Disease-Control"
+    source_name: "Center for Disease Control"
+    source_url: "https://www.atsdr.cdc.gov/place-health/php/svi/index.html"
+    frequency: "quarterly"
+    date: "2026-01-29"
+    description: >
+      This SVI tool is a place-based index, database, and mapping application designed to identify
+      and quantify communities experiencing social vulnerability. It uses 16 U.S. Census variables
+      from the 5-year American Community Survey (ACS) to identify communities that may need support
+      before, during, or after disasters.
+    caveats:
+      - "Data were interpolated using a mix of population, household, and areal interpolation. As a result, some variables for some water systems could not be calculated."
+
+  - title: "Drinking Water State Revolving Funds Awards"
+    source: "epa"
+    source_name: "U.S. Environmental Protection Agency (EPA)"
+    source_url: "https://sdwis.epa.gov/ords/sfdw_pub/r/sfdw/owsrf_public/assistance-agreement-report-filters"
+    frequency: "annually"
+    date: "2026-02-20"
+    description: >
+      These data represent funding awards for drinking water investment and improvement from the
+      Drinking Water State Revolving Fund. Disseminated by states, awards are given largely in the
+      form of loans to communities based on federal allotments and state-based programs.
+    caveats:
+      - "This dataset contains downloaded data from EPA's State Revolving Fund Public Portal for federal fiscal years 2021-2025"
+      - "Principle forgiveness represents \"Additional Subsidy Amount\", which includes direct principle forgiveness, as well as negative interest rates and grants"
+
+  - title: "Water System Watersheds for Well & Intake Locations"
+    source: "epa"
+    source_name: "U.S. Environmental Protection Agency (EPA)"
+    source_url: "https://mywaterway.epa.gov/"
+    frequency: "static"
+    date: "2024-10-07"
+    description: >
+      These data show the relationship between a water system, and its source watershed. While data
+      on specific intake locations is private given security concerns, this match between a water
+      system and a watershed is shared by the EPA.
+    caveats:
+      - "This data is static and reflects a snapshot of the information contained in EPA's How's My Waterway"
+
+  - title: "Facilities with Risk Management Plans"
+    source: "epa"
+    source_name: "U.S. Environmental Protection Agency (EPA)"
+    source_url: "https://catalog.data.gov/dataset/epa-facility-registry-service-frs-rmp6"
+    frequency: "quarterly"
+    date: "2026-02-03"
+    description: >
+      These data contains location and facility identification information from EPA's Facility Registry
+      Service (FRS) for the subset of facilities that link to the Risk Management Plan (RMP) System.
+      The Risk Management Plan (RMP) database stores the risk management plans reported by companies
+      that handle, manufacture, use, or store certain flammable or toxic substances.
+    caveats:
+      - "This dataset is aimed to communicate potential hazards, rather than an actual risk to drinking water"
+
+  - title: "Underground Storage Tanks"
+    source: "epa"
+    source_name: "U.S. Environmental Protection Agency (EPA)"
+    source_url: "https://www.epa.gov/ust/ust-finder"
+    frequency: "static"
+    date: "2026-02-03"
+    description: >
+      This data provides the attributes and locations of active and closed Underground Storage Tanks
+      (USTs), UST facilities, and UST releases in states as of 2018-2019, US territories as of
+      2020-2021, and Tribal lands as of 2025.
+    caveats:
+      - "Please note this dataset is static, and only contains a snapshot of information from 2018 - 2019."
+      - "Because the exact location of underground storage tanks are not provided, it is assumed that facilities with underground storage tanks are close in proximity to the storage tanks they manage."
+      - "Both \"open\" and \"temporarily out of service\" tanks are included in this calculation to be consistent with EPA standards"
+      - "This dataset is aimed to communicate potential hazards, rather than an actual risk to drinking water"
+
+  - title: "Percent Change in U.S. Census Variables"
+    source: "census"
+    source_name: "U.S. Census Bureau"
+    source_url: "https://www.census.gov/programs-surveys/acs.html"
+    frequency: "annually"
+    date: "2026-02-03"
+    description: >
+      This dataset contains the 10-year percent change (2011 ACS vs 2021 ACS) in ~70 different census
+      variables for EPA's Service Area Boundaries. EPIC used the EPA ORD crosswalk and NHGIS crosswalk
+      files to estimate counts for 2011 data, and household-weighted interpolation for income variables.
+    caveats:
+      - "Not all census variables were available for the 2011 ACS 5-year estimate"
+      - "Water systems with duplicated boundaries could not be calculated (approximately 7 water systems)"
+      - "For the purposes of the application, percent change is capped at 200%"
+      - "Income variables were adjusted for inflation using methods identical to the BLS CPI Inflation calculator"
+      - "Calculated from 5-year ACS estimates from 2011 and 2021. See Github methods & documentation for more details"
+
+  - title: "West Virginia Drinking Water Advisories"
+    source: "WV-Department-of-Health-and-Human-Services"
+    source_name: "WV Department of Health and Human Services"
+    source_url: "https://oehsportal.wvdhhr.org/boilwater"
+    frequency: "quarterly"
+    date: "2026-02-03"
+    description: >
+      Publicly available drinking water advisories for water systems located in West Virginia.
+      Provided by the West Virginia Department of Health and Human Resources.
+    caveats:
+      - "Data represents historical advisory events, not current drinking water conditions"
+      - "The official state site should be used for real-time public health information"
+      - "Advisories include precautionary notices such as boil water alerts, service interruptions, and planned maintenance events, not just contamination incidents"
+      - "It is assumed that a system would have maximum one advisory on a given day, and advisories that have been edited by the state are considered a distinct advisory"
+
+  - title: "New Mexico Drinking Water Advisories"
+    source: "New-Mexico-Environment-Department"
+    source_name: "New Mexico Environment Department"
+    source_url: "https://www.env.nm.gov/drinking_water/boil-water-advisories/"
+    frequency: "quarterly"
+    date: "2026-02-03"
+    description: >
+      Publicly available drinking water advisories for water systems located in New Mexico.
+      Provided by the New Mexico Environment Department.
+    caveats:
+      - "Data represents historical advisory events, not current drinking water conditions"
+      - "The official state site should be used for real-time public health information"
+      - "Advisories include precautionary notices such as boil water alerts, service interruptions, and planned maintenance events, not just contamination incidents"
+      - "Please note that if an advisory listed multiple water system IDs, the record was duplicated for each water system"
+      - "It is assumed that a system would have maximum one advisory on a given day, and advisories that have been edited by the state are considered a distinct advisory"
+
+  - title: "Ohio Drinking Water Advisories"
+    source: "Ohio-Environmental-Protection-Agency"
+    source_name: "Ohio Environmental Protection Agency"
+    source_url: "https://geo.epa.ohio.gov/portal/apps/experiencebuilder/experience/?id=72cf2af9e2dd459aa5d758b54fb10c0c&page=Page-1&views=About"
+    frequency: "static"
+    date: "2025-07-30"
+    description: >
+      Publicly available drinking water advisories for water systems located in Ohio. Previously
+      provided by the Ohio Environmental Protection Agency.
+    caveats:
+      - "Data represents historical advisory events, not current drinking water conditions"
+      - "The official state site should be used for real-time public health information"
+      - "Advisories include precautionary notices such as boil water alerts, service interruptions, and planned maintenance events, not just contamination incidents"
+      - "This dataset is no longer being maintained by the state of Ohio"
+      - "It is assumed that a system would have maximum one advisory on a given day, and advisories that have been edited by the state are considered a distinct advisory"
+
+  - title: "Rhode Island Drinking Water Advisories"
+    source: "Rhode-Island-Department-of-Health"
+    source_name: "Rhode Island Department of Health"
+    source_url: "https://health.ri.gov/drinking-water-quality/information/public-water-emergency-information-consumers"
+    frequency: "static"
+    date: "2025-07-30"
+    description: >
+      Publicly available drinking water advisories for water systems located in Rhode Island.
+      Provided by the Rhode Island Department of Health.
+    caveats:
+      - "Data represents historical advisory events, not current drinking water conditions"
+      - "The official state site should be used for real-time public health information"
+      - "Advisories include precautionary notices such as boil water alerts, service interruptions, and planned maintenance events, not just contamination incidents"
+      - "The last update of this dataset occurred on July 30th, 2025. Our team is working on updating this dataset"
+      - "It is assumed that a system would have maximum one advisory on a given day, and advisories that have been edited by the state are considered a distinct advisory"
+
+  - title: "Washington Drinking Water Advisories"
+    source: "Washington-Department-of-Health"
+    source_name: "Washington Department of Health"
+    source_url: "https://doh.wa.gov/community-and-environment/drinking-water/active-alerts?county=All&combine="
+    frequency: "quarterly"
+    date: "2026-02-04"
+    description: >
+      Publicly available drinking water advisories for water systems located in Washington.
+      Provided by the Washington Department of Health.
+    caveats:
+      - "Data represents historical advisory events, not current drinking water conditions"
+      - "The official state site should be used for real-time public health information"
+      - "Advisories include precautionary notices such as boil water alerts, service interruptions, and planned maintenance events, not just contamination incidents"
+      - "It is assumed that a system would have maximum one advisory on a given day, and advisories that have been edited by the state are considered a distinct advisory"
+
+  - title: "Missouri Drinking Water Advisories"
+    source: "State-of-Missouri-Data-Portal"
+    source_name: "State of Missouri Data Portal"
+    source_url: "https://data.mo.gov/Regulatory/DNR-WPP-Boil-Order-Report/j2a5-itxh/data_preview"
+    frequency: "quarterly"
+    date: "2026-02-03"
+    description: >
+      Publicly available advisories for systems with long-term contaminant issues in Missouri.
+      Provided by the State of Missouri Data Portal.
+    caveats:
+      - "Data represents historical advisory events, not current drinking water conditions"
+      - "The official state site should be used for real-time public health information"
+      - "Advisories include precautionary notices such as boil water alerts, service interruptions, and planned maintenance events, not just contamination incidents"
+      - "This is not a comprehensive record, as this dataset only contains advisories from long-term contaminant issues"
+      - "It is assumed that a system would have maximum one advisory on a given day, and advisories that have been edited by the state are considered a distinct advisory"
+
+  - title: "Maine Drinking Water Advisories"
+    source: "Maine-Department-of-Health-and-Human-Services"
+    source_name: "Maine Department of Health and Human Services"
+    source_url: "https://www.maine.gov/dhhs/mecdc/healthy-living/health-safety/drinking-water-safety/information-for-consumers/drinking-water-safety-alerts"
+    frequency: "quarterly"
+    date: "2026-02-04"
+    description: >
+      Publicly available drinking water advisories for water systems located in Maine.
+      Provided by the Maine Department of Health and Human Services.
+    caveats:
+      - "Data represents historical advisory events, not current drinking water conditions"
+      - "The official state site should be used for real-time public health information"
+      - "Advisories include precautionary notices such as boil water alerts, service interruptions, and planned maintenance events, not just contamination incidents"
+      - "It is assumed that a system would have maximum one advisory on a given day, and advisories that have been edited by the state are considered a distinct advisory"
+
+  - title: "Alaska Drinking Water Advisories"
+    source: "AK-Department-of-Environmental-Conservation"
+    source_name: "AK Department of Environmental Conservation"
+    source_url: "https://gis.data.alaska.gov/datasets/ADEC::boil-water-and-do-not-drink-notice-open/explore?location=56.210819%2C-157.551116%2C7.85&showTable=true"
+    frequency: "quarterly"
+    date: "2026-02-04"
+    description: >
+      Publicly available drinking water advisories for water systems located in Alaska.
+      Provided by Alaska's Department of Environmental Conservation.
+    caveats:
+      - "Data represents historical advisory events, not current drinking water conditions"
+      - "The official state site should be used for real-time public health information"
+      - "Advisories include precautionary notices such as boil water alerts, service interruptions, and planned maintenance events, not just contamination incidents"
+      - "It is assumed that a system would have maximum one advisory on a given day, and advisories that have been edited by the state are considered a distinct advisory"
+
+  - title: "Arkansas Drinking Water Advisories"
+    source: "AR-Department-of-Health"
+    source_name: "AR Department of Health"
+    source_url: "https://health.arkansas.gov/wa_engTraining/boilwaterorder.aspx"
+    frequency: "quarterly"
+    date: "2026-02-03"
+    description: >
+      Publicly available drinking water advisories for water systems located in Arkansas.
+      Provided by the Arkansas Department of Health.
+    caveats:
+      - "Data represents historical advisory events, not current drinking water conditions"
+      - "The official state site should be used for real-time public health information"
+      - "Advisories include precautionary notices such as boil water alerts, service interruptions, and planned maintenance events, not just contamination incidents"
+      - "Please note there was a gap in our data collection from May 21st, 2025 to Feb 3rd, 2026"
+      - "It is assumed that a system would have maximum one advisory on a given day, and advisories that have been edited by the state are considered a distinct advisory"
+
+  - title: "Florida Drinking Water Advisories"
+    source: "Florida-Health"
+    source_name: "Florida Health"
+    source_url: "https://www.floridahealth.gov/environmental-health/drinking-water/boil-water-notices/index.html"
+    frequency: "quarterly"
+    date: "2026-02-03"
+    description: >
+      Publicly available drinking water advisories for water systems located in Florida during extreme
+      weather events. Provided by Florida Health.
+    caveats:
+      - "Data represents historical advisory events, not current drinking water conditions"
+      - "The official state site should be used for real-time public health information"
+      - "Advisories include precautionary notices such as boil water alerts, service interruptions, and planned maintenance events, not just contamination incidents"
+      - "This is not a comprehensive record - Florida only lists advisories declared during a natural disaster, such as a hurricane or tropical weather event"
+      - "It is assumed that a system would have maximum one advisory on a given day, and advisories that have been edited by the state are considered a distinct advisory"
+
+  - title: "Massachusetts Drinking Water Advisories"
+    source: "Massachusetts-Department-of-Environmental-Protection"
+    source_name: "Massachusetts Department of Environmental Protection"
+    source_url: "https://eeaonline.eea.state.ma.us/DEP/Boil_Order/"
+    frequency: "quarterly"
+    date: "2025-10-30"
+    description: >
+      Publicly available drinking water advisories for water systems located in Massachusetts.
+      Provided by Massachusetts Department of Environmental Protection.
+    caveats:
+      - "Data represents historical advisory events, not current drinking water conditions"
+      - "The official state site should be used for real-time public health information"
+      - "Advisories include precautionary notices such as boil water alerts, service interruptions, and planned maintenance events, not just contamination incidents"
+      - "It is assumed that a system would have maximum one advisory on a given day, and advisories that have been edited by the state are considered a distinct advisory"
+
+  - title: "Louisiana Drinking Water Advisories"
+    source: "Louisiana-Department-of-Health"
+    source_name: "Louisiana Department of Health"
+    source_url: "https://sdw.ldh.la.gov/"
+    frequency: "static"
+    date: "2025-07-09"
+    description: >
+      Publicly available drinking water advisories for water systems located in Louisiana.
+      Provided by Louisiana Department of Health. Last update was July 9th 2025.
+    caveats:
+      - "Data represents historical advisory events, not current drinking water conditions"
+      - "The official state site should be used for real-time public health information"
+      - "Advisories include precautionary notices such as boil water alerts, service interruptions, and planned maintenance events, not just contamination incidents"
+      - "Due to data download limits, this dataset includes system-issued boil water notices from 2024-2025, and state-issued boil water advisories from 2015-2025"
+      - "It is assumed that a system would have maximum one advisory on a given day, and advisories that have been edited by the state are considered a distinct advisory"
+
+  - title: "Texas Drinking Water Advisories"
+    source: "TCEQ"
+    source_name: "Texas Commission on Environmental Quality (TCEQ)"
+    source_url: "https://www.tceq.texas.gov/"
+    frequency: "static"
+    date: "2024-04-17"
+    description: >
+      FOIA'd drinking water advisories for water systems located in Texas. Provided by the Texas
+      Commission on Environmental Quality.
+    caveats:
+      - "Data represents historical advisory events, not current drinking water conditions"
+      - "The official state site should be used for real-time public health information"
+      - "Advisories include precautionary notices such as boil water alerts, service interruptions, and planned maintenance events, not just contamination incidents"
+      - "Please note this dataset only contains records from 2018 - 2024 from a FOIA request. Our team is working on updating this dataset"
+      - "It is assumed that a system would have maximum one advisory on a given day, and advisories that have been edited by the state are considered a distinct advisory"

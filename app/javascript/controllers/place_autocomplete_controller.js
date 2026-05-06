@@ -29,6 +29,7 @@ export default class extends Controller {
 
   select(event) {
     event.preventDefault()
+    event.stopPropagation()
     const geoid = event.currentTarget.dataset.geoid
     const name = event.currentTarget.dataset.name
 

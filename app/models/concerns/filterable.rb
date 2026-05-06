@@ -1,6 +1,24 @@
 module Filterable
   extend ActiveSupport::Concern
 
+  HEALTH_SUBCAT_5YR = %i[
+    groundwater_rule_5yr surface_water_treatment_5yr lead_and_copper_5yr
+    radionuclides_5yr inorganic_chemicals_5yr synthetic_organic_chemicals_5yr
+    volatile_organic_chemicals_5yr total_coliform_5yr
+    stage_1_disinfectants_5yr stage_2_disinfectants_5yr
+  ].freeze
+
+  HEALTH_SUBCAT_10YR = %i[
+    groundwater_rule_10yr surface_water_treatment_10yr lead_and_copper_10yr
+    radionuclides_10yr inorganic_chemicals_10yr synthetic_organic_chemicals_10yr
+    volatile_organic_chemicals_10yr total_coliform_10yr
+    stage_1_disinfectants_10yr stage_2_disinfectants_10yr
+  ].freeze
+
+  HEALTH_SUBCATS_ALL = (HEALTH_SUBCAT_5YR + HEALTH_SUBCAT_10YR).freeze
+
+  PAPERWORK_VIOLATIONS_COLS = %i[paperwork_violations_5yr paperwork_violations_10yr].freeze
+
   class_methods do
     def apply_filters(params)
       scope = all
@@ -28,31 +46,52 @@ module Filterable
       scope = scope.where(stusps: params[:state]) if params[:state].present?
 
       # --- Violations range filters (join to violations_summaries) ---
-      violations_range_filters = %i[
-        health_violations_5yr
-        groundwater_rule_5yr surface_water_treatment_5yr lead_and_copper_5yr
-        radionuclides_5yr inorganic_chemicals_5yr synthetic_organic_chemicals_5yr
-        volatile_organic_chemicals_5yr total_coliform_5yr
-        stage_1_disinfectants_5yr stage_2_disinfectants_5yr paperwork_violations_5yr
-        health_violations_10yr
-        groundwater_rule_10yr surface_water_treatment_10yr lead_and_copper_10yr
-        radionuclides_10yr inorganic_chemicals_10yr synthetic_organic_chemicals_10yr
-        volatile_organic_chemicals_10yr total_coliform_10yr
-        stage_1_disinfectants_10yr stage_2_disinfectants_10yr paperwork_violations_10yr
-      ]
+      # All groups within the Violations category are ORed (Option A — inclusive):
+      # enabling more groups broadens results. Within each health sub-category group,
+      # sub-filters are ORed. Within a single column, min/max bounds are ANDed.
+      violations_join_needed =
+        PAPERWORK_VIOLATIONS_COLS.any? { |col| params[:"#{col}_min"].present? || params[:"#{col}_max"].present? } ||
+        HEALTH_SUBCATS_ALL.any? { |col| params[:"#{col}_min"].present? || params[:"#{col}_max"].present? }
 
-      if violations_range_filters.any? { |col| params[:"#{col}_min"].present? || params[:"#{col}_max"].present? }
+      if violations_join_needed
         scope, joined = left_join_once(scope, joined, :violations_summary)
       end
 
-      violations_range_filters.each do |col|
-        if params[:"#{col}_min"].present?
-          scope = scope.where("violations_summaries.#{col} >= ?", params[:"#{col}_min"].to_i)
+      viol_table = Arel::Table.new(:violations_summaries)
+      col_range_node = ->(col, min_val, max_val) {
+        arel_col = viol_table[col]
+        if min_val.present? && max_val.present?
+          arel_col.gteq(min_val.to_i).and(arel_col.lteq(max_val.to_i))
+        elsif min_val.present?
+          arel_col.gteq(min_val.to_i)
+        else
+          arel_col.lteq(max_val.to_i)
         end
-        if params[:"#{col}_max"].present?
-          scope = scope.where("violations_summaries.#{col} <= ?", params[:"#{col}_max"].to_i)
-        end
+      }
+
+      violations_group_nodes = []
+
+      # Health sub-category groups: sub-filters within each time-window group are ORed.
+      [HEALTH_SUBCAT_5YR, HEALTH_SUBCAT_10YR].each do |col_group|
+        active = col_group.select { |col| params[:"#{col}_min"].present? || params[:"#{col}_max"].present? }
+        next if active.empty?
+
+        window_node = active.map { |col|
+          col_range_node.call(col, params[:"#{col}_min"], params[:"#{col}_max"])
+        }.inject { |m, c| m.or(c) }
+        violations_group_nodes << window_node
       end
+
+      # Paperwork (non-health) violation groups: each column is its own group.
+      PAPERWORK_VIOLATIONS_COLS.each do |col|
+        min_val = params[:"#{col}_min"]
+        max_val = params[:"#{col}_max"]
+        next unless min_val.present? || max_val.present?
+
+        violations_group_nodes << col_range_node.call(col, min_val, max_val)
+      end
+
+      scope = scope.where(violations_group_nodes.inject { |m, c| m.or(c) }) if violations_group_nodes.any?
 
       # --- Boil water notice range filter ---
       if params[:boil_water_notices_min].present? || params[:boil_water_notices_max].present?

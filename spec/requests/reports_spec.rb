@@ -42,6 +42,63 @@ RSpec.describe "Reports", type: :request do
       expect(response.body).to include("3")
     end
 
+    describe "trend arrows" do
+      it "shows ▲ for a positive percentage" do
+        pws = create(:public_water_system)
+        create(:trend_datum, pwsid: pws.pwsid, population_pct_change: 8.3)
+
+        get "/public_water_systems/#{pws.pwsid}/report"
+
+        expect(response.body).to include("▲")
+      end
+
+      it "shows ▼ for a negative percentage" do
+        pws = create(:public_water_system)
+        create(:trend_datum, pwsid: pws.pwsid, population_pct_change: -4.1)
+
+        get "/public_water_systems/#{pws.pwsid}/report"
+
+        expect(response.body).to include("▼")
+      end
+
+      it "shows no arrow when pct is nil" do
+        pws = create(:public_water_system)
+        create(:trend_datum, pwsid: pws.pwsid, population_pct_change: nil,
+          mhi_pct_change: nil, households_pct_change: nil,
+          poverty_pct_change: nil, unemployment_pct_change: nil, poc_pct_change: nil)
+
+        get "/public_water_systems/#{pws.pwsid}/report"
+
+        expect(response.body).not_to include("▲")
+        expect(response.body).not_to include("▼")
+      end
+
+      it "includes the 10-year period in the section title" do
+        pws = create(:public_water_system)
+        create(:trend_datum, pwsid: pws.pwsid)
+
+        get "/public_water_systems/#{pws.pwsid}/report"
+
+        expect(response.body).to include("10-Year Trends")
+      end
+    end
+
+    it "routes tribal systems with numeric EPA region prefix" do
+      pws = create(:public_water_system, pwsid: "084690440")
+
+      get "/public_water_systems/#{pws.pwsid}/report"
+
+      expect(response).to have_http_status(:ok)
+    end
+
+    it "routes Utah-style systems with letters in the system-number portion" do
+      pws = create(:public_water_system, pwsid: "UTAH01001")
+
+      get "/public_water_systems/#{pws.pwsid}/report"
+
+      expect(response).to have_http_status(:ok)
+    end
+
     it "returns 404 when the system does not exist" do
       get "/public_water_systems/ZZ0000000/report"
 

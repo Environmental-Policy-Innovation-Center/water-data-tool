@@ -17,10 +17,7 @@ export default class extends Controller {
 
     const isOpen = !btn.classList.contains("closed")
     if (isOpen) {
-      btn.classList.add("closed")
-      menu.style.display = "none"
-      btn.querySelector(".mm-icon-bars")?.classList.remove("hidden")
-      btn.querySelector(".mm-icon-x")?.classList.add("hidden")
+      this.#closeMobileMenu()
     } else {
       btn.classList.remove("closed")
       menu.style.display = "block"
@@ -61,5 +58,27 @@ export default class extends Controller {
     document.querySelectorAll("[data-section]").forEach(el => {
       el.classList.toggle("active", el.dataset.section === section)
     })
+
+    document.querySelectorAll("#container-sidebar a[data-section]").forEach((el) => {
+      if (el.classList.contains("active")) {
+        el.setAttribute("aria-current", "page")
+      } else {
+        el.removeAttribute("aria-current")
+      }
+    })
+
+    this.#closeMobileMenu()
+  }
+
+  #closeMobileMenu() {
+    const btn = document.getElementById("mobile-menu-toggle")
+    if (!btn || btn.classList.contains("closed")) return
+
+    const menu = document.getElementById("container-mobile-menu")
+    if (!menu) return
+    menu.style.display = "none"
+    btn.classList.add("closed")
+    btn.querySelector(".mm-icon-bars")?.classList.remove("hidden")
+    btn.querySelector(".mm-icon-x")?.classList.add("hidden")
   }
 }

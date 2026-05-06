@@ -1,7 +1,23 @@
 <turbo-frame id="report-body">
   <div class="report-content">
-    <h2 data-report-field="name"><%= @pws.pws_name %></h2>
-    <p><span data-report-field="id"><%= @pws.pwsid %></span> &mdash; <span data-report-field="state"><%= @pws.stusps %></span></p>
+
+    <%# Report header: DWE brand (left) | utility info (center) | spacer (right) %>
+    <div class="report-header grid grid-cols-3 items-center pb-4">
+      <div class="flex items-center gap-2">
+        <%= image_tag "logo-drinking-water-explorer.png", class: "logo w-8 md:w-auto" %>
+        <div class="hidden md:block text-xs font-semibold leading-tight text-gray-700" aria-hidden="true">
+          <p>Drinking</p>
+          <p>Water</p>
+          <p>Explorer</p>
+        </div>
+      </div>
+      <div class="text-center text-sm">
+        <p class="font-semibold text-gray-600 mb-2">Utility Report</p>
+        <p><strong>Utility Name:</strong> <%= @pws.pws_name %></p>
+        <p><strong>System ID:</strong> <%= @pws.pwsid %></p>
+      </div>
+      <div></div>
+    </div>
 
     <%= render "public_water_systems/sections/all", pws: @pws %>
   </div>

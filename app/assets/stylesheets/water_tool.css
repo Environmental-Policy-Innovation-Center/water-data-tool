@@ -3,6 +3,29 @@
    Image paths updated: ../img/ → ../images/
    ===================================================== */
 
+/* This file is being deprecated as we migrate to Tailwind CSS */
+/* Do not add new styles here */
+/* Refactor existing styles to Tailwind CSS, when possible, remove old styles from here */
+   
+/* Removed dead CSS (April 2026 — Tier 1):
+   - Tippy.js styles (was lines 29–52, 1894–1896): Tippy.js not loaded
+   - Slider/histogram styles (was lines 827–940): slider_controller is a stub
+   - #filter-list-container styles (was lines 1716–1751): element always display:none
+   - Choropleth legend styles (was lines 1840–1895): feature not built
+
+   Removed DataTables CSS (April 2026 — Tier 2):
+   - #results-table .dt-* styles: DataTables removed, replaced by Turbo Frame table
+   - #data-table, .first-col, .dt-scroll-body: replaced by Tailwind in _table.html.erb
+
+   Removed dataset card inner CSS (May 2026 — Tier 3, T3-C):
+   - .grid-item .dataset-inner, .ds-content, a.expand, .expanded, h2, .ds-source a,
+     .ds-callout, .ds-callout p, ul (was lines 1373–1431): migrated to UI::DatasetCardComponent (Tailwind)
+
+   Removed report section CSS (May 2026 — Tier 3, T3-B):
+   - .detail-section, .detail-table, .detail-na, .detail-flag, .detail-footnote were orphaned
+     (no CSS defined) and are now replaced by UI::DetailSectionComponent (Tailwind)
+*/
+
 /*
 Blue - 1054A8
 Green - 4EA324
@@ -26,29 +49,6 @@ body{
   height: 0;
 }
 
-/************** Tool Tip Styles ********************************/
-
-.tippy-tooltip{
-  display:inline-block;
-}
-.tippy-tooltip img{
-  width: 16px;
-  height: auto;
-  vertical-align: middle;
-}
-
-.tippy-box {
-  background-color: #dedede;
-  color: #000;
-  padding: 5px 5px;
-  border-radius: 12px;
-  box-shadow: 1px 4px 12px #3333334d;
-  max-width: 290px;
-}
-
-.tippy-box .tippy-arrow::before {
-  transform: scale(1.75);
-}
 
 #wrapper-ui{
   width:100%;
@@ -68,6 +68,11 @@ body{
 }
 
 #toggle-button{
+  appearance: none;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  font: inherit;
   background-color: #fff;
   border: 1px solid #bfbfbf;
   border-radius: 50%;
@@ -105,7 +110,7 @@ body{
 
 .container-intro{
   position:absolute;
-  top:140px;
+  top:152px;
   left:20px;
   padding-right: 10px;
 }
@@ -141,7 +146,7 @@ body{
 /* Sidebar Nav */
 .container-sidebar-nav{
   position:absolute;
-  top:250px;
+  top:264px;
   width:100%;
 }
 
@@ -261,7 +266,7 @@ body{
 /* Sidebar bottom */
 .container-sidebar-bottom{
   position: absolute;
-  top: 465px;
+  top: 482px;
   width:100%;
   text-align: center;
   color:#565656;
@@ -560,13 +565,6 @@ ul.stats-list li{
   margin: 10px 0px;
 }
 
-#container-map-ui-bottom{
-  position: absolute;
-  right: 20px;
-  bottom: 30px;
-  z-index: 999;
-}
-
 .container-map-ui ul{
   list-style:none;
   padding: 5px 0px 0px 20px;
@@ -682,261 +680,28 @@ ul.stats-list li{
   background-color:#fff;
 }
 
-#container-table .container-section-inner{
-  padding:20px;
+/* Styled scrollbars for the single table scroll container (handles both axes) */
+.table-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: #b0b0b0 #f1f1f1;
 }
-
-.table-header{
-  margin-top: 60px;
-  height: 0px;
-}
-
-.table-head-col-1,
-.table-head-col-2{
-  float:left;
-  width:50%;
-}
-.table-head-col-1 p{
-  margin:0px;
-  padding:0px;
-}
-
-.table-head-col-2{
-  text-align:right;
-}
-
-.btn-export{
-  text-decoration: none;
-  padding: 8px 12px 8px 40px;
-  margin-right: 4px;
-  color: #fff;
-  border-radius: 20px;
-  background-color: #67a25e;
-  border: 1px solid #bfbfbf;
-  font-size: .9em;
-  position:relative;
-}
-
-.btn-export img{
-  width: 18px;
-  position: absolute;
-  top: 6px;
-  left: 10px;
-}
-
-/* DataTables wrapper — sits inside .container-section-inner */
-#results-table .dt-container {
-  font-size: 14px;
-}
-
-/* Search box */
-#results-table .dt-search input {
-  border: 1px solid #bfbfbf;
-  border-radius: 20px;
-  padding: 4px 12px;
-  font-size: 14px;
-  outline: none;
-}
-
-/* Remove default DT label text ("Search:") */
-#results-table .dt-search label {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-/* Info text and pagination */
-#results-table .dt-layout-row:last-child {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 6px 0;
-  font-size: 13px;
-}
-
-/* Paging buttons */
-#results-table .dt-paging .dt-paging-button {
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  padding: 2px 8px;
-  cursor: pointer;
-  background: #fff;
-  font-size: 13px;
-}
-#results-table .dt-paging .dt-paging-button.current {
-  background: #e7ede2;
-  border-color: #4ea324;
-  color: #333;
-}
-#results-table .dt-paging .dt-paging-button:hover:not(.disabled) {
-  background: #f5f5f5;
-}
-
-/* Processing indicator */
-#results-table .dt-processing {
-  font-size: 13px;
-  color: #666;
-}
-
-/* The table element itself — DataTables scroll handles height */
-#data-table {
-  width: 100%;
-  border-collapse: collapse;
-  border: 1px solid #eee;
-}
-
-.first-col {
-  position: sticky;
-  left: 0;
-  z-index: 1;
-  background-color: #fff;
-}
-
-#data-table thead tr {
-  z-index: 999;
-  font-size: 14px;
-}
-
-#data-table th {
-  background-color: #fafafa;
-  min-width: 200px;
-  font-weight: 500;
-  font-size: 14px;
-  vertical-align: baseline;
-  text-align: left;
-  white-space: nowrap;
-}
-#data-table th:hover {
-  background-color: #f2f2f2;
-  text-decoration: underline;
-}
-
-#data-table tbody tr {
-  border: 1px solid #eee;
-}
-#data-table tbody tr.active {
-  background-color: #f5f5f5;
-}
-
-/* DataTables scroll body border */
-.dt-scroll-body {
-  border: 1px solid #eee;
-  margin-top: 8px;
-}
-
-/* HIGHCHART AREA FILTER */
-
-.container-hc{
-  height:120px;
-  margin-bottom:0px;
-  margin-left:40px;
-}
-
-#container-hc-area { height: 150px; max-width: 400px; }
-
-.slider-container {
-  position: relative;
-  margin: 0px 10px;
-  margin-top: 0px;
-  margin-left: 40px;
-}
-
-.range-slider {
-  position: relative;
-  height: 20px;
-}
-
-.range-slider input[type=range] {
-  position: absolute;
-  pointer-events: none;
-  -webkit-appearance: none;
-  width: 100%;
+.table-scroll::-webkit-scrollbar {
+  width: 8px;
   height: 8px;
-  background: none;
-  z-index:999;
-  top:-8px;
 }
-
-.range-slider input[type=range]::-webkit-slider-thumb {
-  pointer-events: auto;
-  -webkit-appearance: none;
-  height: 12px;
-  width: 12px;
-  border-radius: 50%;
-  background: #333;
-  cursor: pointer;
-  position: relative;
-  z-index: 2;
+.table-scroll::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
 }
-
-.range-slider input[type=range]::-moz-range-thumb {
-  pointer-events: auto;
-  height: 12px;
-  width: 12px;
-  border-radius: 50%;
-  background: #333;
-  cursor: pointer;
-  border: 2px solid #fff;
-  position: relative;
-  z-index: 2;
+.table-scroll::-webkit-scrollbar-thumb {
+  background: #b0b0b0;
+  border-radius: 4px;
 }
-
-.range-slider input[type=range]::-webkit-slider-thumb:active{
-  background: #1976d2;
-  background-color: #1976d2;
+.table-scroll::-webkit-scrollbar-thumb:hover {
+  background: #888;
 }
-
-.range-slider input[type=range]::-moz-range-thumb:active{
-  background: #1976d2;
-  background-color: #1976d2;
-}
-
-.slider-track {
-  position: absolute;
-  top: -5px;
-  left: 0;
-  right: 0;
-  height: 4px;
-  background: #ccc;
-  border-radius: 2px;
-  z-index: 1;
-}
-
-.slider-range {
-  position: absolute;
-  top: -5px;
-  height: 4px;
-  background: #1976d2;
-  border-radius: 2px;
-  z-index: 1;
-}
-
-.slider-values { margin-top: 8px; }
-
-.slider-minmax-label{
-  position:relative;
-  margin:0px 0px;
-  height:30px;
-}
-.slider-minmax-label .slider-label-min,
-.slider-minmax-label .slider-label-max{
-  position:absolute;
-  text-align: center;
-}
-
-.slider-minmax-label .slider-label-min{
-  left: 40px;
-}
-.slider-minmax-label .slider-label-max{
-  right:20px;
-}
-
-.slider-minmax-label,
-.slider-minmax-label .slider-label-min span,
-.slider-minmax-label .slider-label-max span{
-  font-size: .9em;
-  color: #666;
-  margin-bottom:2px;
+.table-scroll::-webkit-scrollbar-corner {
+  background: #f1f1f1;
 }
 
 .container-population-filter-grid{
@@ -1268,37 +1033,6 @@ ul.stats-list li{
   display:none;
 }
 
-#container-map-ui-bottom a{
-  background-color: #fdfefb;
-  position:relative;
-  padding: 8px 12px 8px 32px;
-}
-#container-map-ui-bottom a.active{
-  background-color:#989898;
-  color:#fff;
-}
-
-#container-map-ui-bottom ul li a img{
-  width: 17px;
-  position: absolute;
-  top: 8px;
-  left: 10px;
-}
-
-/* Default state for map/table toggle icons (no inline styles on the img tags) */
-#container-map-ui-bottom .map-dark  { display: none; }
-#container-map-ui-bottom .table-white { display: none; }
-
-/* Swap icon colors when toggle is active */
-#container-map-ui-bottom .nav-map-toggle.active .map-dark,
-#container-map-ui-bottom .nav-table.active .table-white {
-  display: inline !important;
-}
-#container-map-ui-bottom .nav-map-toggle.active .map-white,
-#container-map-ui-bottom .nav-table.active .table-dark {
-  display: none !important;
-}
-
 /* =====================================================================
    Table-mode: #container-table lives inside #container-map so the
    filter bar stays visible. Toggled via the .table-mode class on
@@ -1315,7 +1049,6 @@ ul.stats-list li{
   bottom: 0;
   background-color: #fff;
   z-index: 3; /* above map canvas, below filter bar (z-index: 5) */
-  overflow-y: auto;
 }
 
 /* table-mode: hide map canvas and map-only overlays */
@@ -1323,8 +1056,14 @@ ul.stats-list li{
 #container-map.table-mode .hide-for-table { display: none; }
 #container-map.table-mode .mapboxgl-ctrl-top-left { display: none; }
 
-/* table-mode: show the table panel */
-#container-map.table-mode #container-table { display: block; }
+/* table-mode: show the table panel as a flex column so sticky headers and pinned footer work */
+#container-map.table-mode #container-table {
+  display: flex;
+  flex-direction: column;
+}
+
+/* table-mode: hide stats bar (only relevant on the map view) */
+#container-map.table-mode turbo-frame#stats-bar { display: none; }
 
 
 /* REPORT */
@@ -1466,233 +1205,17 @@ ul.stats-list li{
 /*** Datasets ***/
 /****************/
 
-.dataset-header{
-  position: sticky;
-  top: 0px;
-  z-index: 9999999;
-  background-color: #fff;
-  margin: 0px 35px 0px 35px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid #eee;
+/* Datasets section migrated to Tailwind (May 2026):
+   _datasets.html.erb, dataset_card_component.html.erb
+   is-checked utility moved to tailwind/application.css */
+
+#container-datasets {
+  right: 0;
+  width: auto;
 }
 
-.dataset-header .col-1,
-.dataset-header .col-2{
-  width:50%;
-  float:left;
-}
-
-.dataset-header .col-2 .inner{
-  max-width:300px;
-  text-align:right;
-  float:right;
-}
-
-.dataset-header .col-2 .inner p{
-  margin:0px;
-  padding:15px 0px;
-}
-
-.dataset-header .btn-rounded{
-  padding: 10px 20px 10px 20px;
-  background-color: #fff;
-  display: inline-block;
-  text-align: left;
-  color: #181818;
-  text-decoration: none;
-  border-radius: 20px;
-  border: 1px solid #bfbfbf;
-  margin: 0px;
-  min-height: 20px;
-}
-
-.dataset-header .btn-recommend-datasets{
-  background-color: #1054A8;
-  border: 1px solid #1054A8;
-  color: #fff;
-}
-
-.dataset-header .btn-ds-ui {
-  background-color: #fff;
-  border: 1px solid #BFBFBF;
-  color: #565656;
-  padding: 10px 40px 10px 20px;
-}
-
-.dataset-header .btn-ds-ui:hover {
-  background-color: #dedede;
-}
-
-.dataset-header .btn-ds-filter{
-  background: url("icon-filter.png") 85% 11px no-repeat;
-  background-size: 16px;
-}
-.dataset-header .btn-ds-sort{
-  background: url("icon-sort.png") 82% 11px no-repeat;
-  background-size: 9px;
-  margin-left:30px;
-}
-
-#container-datasets{
-  max-width: 1200px;
-}
-
-#container-datasets .grid{
-  margin:0px 15px;
-}
-.grid-item{
-  background-color:#fff;
-  width:50%;
-  float:left;
-}
-
-@media only screen and (max-width: 1024px){
-  .grid-item{
-    width:100%;
-    float:none;
-  }
-}
-
-.grid-item .dataset-inner{
-  margin:20px;
-  border: 1px solid #c4c4c4;
-  border-radius:20px;
-  box-sizing: border-box;
-  height:496px;
-  overflow:hidden;
-  position: relative;
-}
-
-.grid-item .ds-content{
-  padding: 30px;
-}
-
-.grid-item .dataset-inner a.expand{
-  position: absolute;
-  bottom: 0px;
-  color: #333;
-  padding: 10px 10px 10px 35px;
-  width: 100%;
-  box-sizing: initial;
-  background: #FFF;
-  margin: 0px;
-}
-
-.grid-item .expanded{
-  height:auto;
-  overflow:visible;
-}
-
-.grid-item .dataset-inner h2{
-  font-size:16px;
-  margin:0px 0px 10px 0px;
-  padding:0px;
-}
-
-.grid-item .dataset-inner .ds-source a{
-  overflow: hidden;
-  max-width: 100%;
-  display: inline-block;
-  vertical-align: bottom;
-  color:#333;
-}
-
-.grid-item .dataset-inner .ds-callout{
-  border-top:1px solid #c4c4c4;
-  border-bottom:1px solid #c4c4c4;
-  padding:15px 0px;
-}
-
-.grid-item .dataset-inner .ds-callout p{
-  color:#525252;
-  margin:0px;
-  line-height:1.4;
-}
-
-.grid-item .dataset-inner ul{
-  padding: 0px 0px 0px 20px;
-}
-
-.button{
-  background-color: #fff;
-  border: 1px solid #BFBFBF;
-  color: #565656;
-  padding: 10px 20px 10px 20px;
-  border-radius: 20px;
-  margin: 6px 6px 6px 0px;
-  cursor:pointer;
-  text-decoration:none;
-}
-
-.button:hover{
-  background-color: #dedede;
-}
-
-.ds-ui .active{
-  background-color:#c6c6c69e;
-}
-
-.button-group .is-checked{
-  background-color: #1054A8;
-  color:#fff;
-}
-
-.button-group #reset-ds-sort,
-.button-group #ds-show-all{
-  color:#565656;
-  background-color:#fff;
-}
-
-.container-fs-group{
-  float:left;
-  margin-right:30px;
-}
-
-.filter-group-1 .filters-select{
-  background-color: #fff;
-  border: 1px solid #BFBFBF;
-  color: #565656;
-  padding: 10px 20px 10px 20px;
-  border-radius: 20px;
-  margin: 6px 6px 6px 0px;
-  cursor: pointer;
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  appearance: none;
-  background-image: url('icon-arrow-down-dark.png');
-  background-repeat: no-repeat;
-  background-position: right 15px center;
-  padding-right: 35px;
-  background-size: 16px;
-}
-
-.filter-group-1 .filter-is-checked,
-.filter-group-1 .filter-is-checked:hover{
-  background-color: #1054A8;
-  border:1px solid #1054A8;
-  color:#fff;
-  background-image: url('icon-arrow-down-white.png');
-}
-
-.container-show-all{
-  float:none;
-  display:inline-block;
-  text-align:right;
-  margin-right:0px;
-}
-
-.container-show-all p{
-  display:inline-block;
-}
-
-.container-show-all .btn-show-all{
-  margin-right:0px;
-  margin-left:20px;
-  display:inline-block;
-}
-
-#no-results{
-  margin: 30px 30px 30px 40px;
+.datasets-header h3 {
+  margin-bottom: 12px;
 }
 
 /* Loading mask */
@@ -1712,42 +1235,6 @@ ul.stats-list li{
   color:#fff;
 }
 
-/* Active filter list */
-#filter-list-container {
-  position: absolute;
-  bottom: 60px;
-  left: 300px;
-  background: white;
-  padding: 10px;
-  border-radius: 10px;
-  z-index: 98;
-  max-height: 200px;
-  overflow-y: auto;
-  border: 2px solid #333;
-}
-
-#filter-list-container ul {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-#filter-list-container ul li {
-  font-size: 13px;
-  color: #222;
-}
-
-#filter-list-container button {
-  background-color: #fff;
-  border: 1px solid #222;
-  color: #222;
-  border-radius: 8px;
-  font-size: 10px;
-  width: 16px;
-  height: 16px;
-  padding: 0;
-  margin: 0;
-}
 
 /* Mapbox control overrides */
 .mapboxgl-ctrl-geolocate {
@@ -1837,63 +1324,6 @@ ul.stats-list li{
   margin: 8px 0px 8px 40px;
 }
 
-/* Mapping options (color bar for continuous display) */
-.mapping-options {
-  text-align: center;
-  padding-bottom: 10px;
-}
-.mapping-options p {
-  text-align: center;
-  margin:0;
-  padding:4px;
-}
-.color-selection {
-  width: 120px;
-  height: 26px;
-  border-radius: 3px;
-}
-.color-bar-container {
-  margin-top: 4px;
-  display:none;
-}
-.key-color {
-  display: inline-block;
-  position: relative;
-  top: 2px;
-  margin: 0;
-  margin-right: -4px;
-  background-color: #fff;
-  border: solid 1px #aaa;
-  overflow: hidden;
-  width: 20px;
-  height: 15px;
-}
-.key-color-first {
-  border-top-left-radius: 3px;
-  border-bottom-left-radius: 3px;
-}
-.key-color-last {
-  border-top-right-radius: 3px;
-  border-bottom-right-radius: 3px;
-}
-.key-color-min {
-  font-size: 14px;
-  margin-right: 5px;
-  text-align: right;
-  width: 40px;
-  border: unset;
-}
-.key-color-max {
-  font-size: 14px;
-  margin-left: 5px;
-  text-align: left;
-  width: 40px;
-  border: unset;
-}
-
-.tippy-arrow {
-  color: #dedede;
-}
 
 
 /* =====================================================
@@ -1979,6 +1409,15 @@ ul.stats-list li{
     font-size:.9em;
   }
 
+  .container-main-content {
+    position: fixed;
+    top: 60px;
+    left: 0;
+    right: 0;
+    bottom: 50px;
+    overflow-y: auto;
+  }
+
   #container-map{
     position: fixed;
     top: 60px;
@@ -2039,26 +1478,6 @@ ul.stats-list li{
     padding-bottom: 100px;
   }
 
-  .grid-item,
-  .dataset-header .col-1,
-  .dataset-header .col-2 {
-    width: 100%;
-    float: none;
-  }
-
-  .dataset-header .col-2 .inner{
-    width: 100%;
-    max-width: 300px;
-    float: none;
-    text-align: center;
-    margin: 0 auto;
-  }
-
-  .dataset-header {
-    position: inherit;
-    margin: 80px 10px 20px 10px;
-  }
-
   .container-mobile-menu-inner ul li.nav-5 a {
     background: url("icon-GitHub.png") 30px 11px no-repeat;
     background-size: 18px;
@@ -2084,10 +1503,6 @@ ul.stats-list li{
   #container-mobile-menu .container-mobile-menu-inner ul li a{
     max-width:216px;
     margin-left:0px;
-  }
-
-  #data-table th{
-    min-width:120px;
   }
 
   .container-ak-hi-mobile{

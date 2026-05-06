@@ -1,1 +1,58 @@
 @import "tailwindcss";
+
+@theme {
+  /* ── Typography ──────────────────────────────────────────
+     Public Sans confirmed from water_tool.css.
+     Weights/sizes below are from existing CSS — verify exact
+     scale against Figma type styles when available.          */
+  --font-sans: 'Public Sans', Arial, Helvetica, sans-serif;
+
+  /* ── Brand colors ────────────────────────────────────────
+     Derived from water_tool.css frequency analysis.
+     Confirm exact hex values and additional palette entries
+     against Figma "Colors" page before shipping design work. */
+
+  /* Primary blue — nav active, buttons, focus rings */
+  --color-brand-primary: #1054A8;
+
+  /* Green accent — map bar indicators */
+  --color-brand-accent: #4EA324;
+
+  /* Dark navy — checkbox checked, filter controls */
+  --color-brand-dark: #13171F;
+
+  /* ── Neutrals ────────────────────────────────────────────
+     These are extracted from water_tool.css.
+     If Figma defines a named gray scale, replace these.      */
+  --color-neutral-900: #181818;
+  --color-neutral-700: #565656;
+  --color-neutral-400: #bfbfbf;
+  --color-neutral-200: #dedede;
+  --color-neutral-100: #f5f5f5;
+
+  /* ── Needs Figma confirmation ────────────────────────────
+     Add these once design tokens are exported from Figma:
+       --color-brand-secondary: ?
+       --color-brand-primary-hover: ?
+       --radius-card: ?       (currently 20px in CSS)
+       --radius-button: ?     (currently 20px in CSS)
+       --shadow-card: ?
+       --shadow-modal: ?
+     ──────────────────────────────────────────────────────── */
+}
+
+@layer utilities {
+  /* Active state for datasets filter/sort buttons — toggled by datasets_controller.js */
+  .is-checked {
+    background-color: var(--color-brand-primary);
+    color: white;
+    border-color: var(--color-brand-primary);
+  }
+}
+
+/* Truncation height for dataset cards — toggled off by dataset_card_controller.js.
+   Kept outside @layer so it is always applied regardless of cascade layer ordering. */
+.dataset-card-body {
+  max-height: 450px;
+  overflow: hidden;
+}

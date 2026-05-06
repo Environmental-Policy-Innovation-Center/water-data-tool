@@ -127,27 +127,200 @@ RSpec.describe Filterable, type: :model do
       end
     end
 
-    context "violations filters" do
-      it "filters by health_violations_5yr_min" do
-        clean = create(:public_water_system)
-        dirty = create(:public_water_system)
-        create(:violations_summary, public_water_system: clean, health_violations_5yr: 0)
-        create(:violations_summary, public_water_system: dirty, health_violations_5yr: 5)
-
-        results = PublicWaterSystem.apply_filters(health_violations_5yr_min: "3")
-        expect(results).to include(dirty)
-        expect(results).not_to include(clean)
-      end
-
-      it "filters by health_violations_5yr_max" do
+    context "Non-health violations range filters" do
+      it "filters by paperwork_violations_5yr_min" do
         few = create(:public_water_system)
         many = create(:public_water_system)
-        create(:violations_summary, public_water_system: few, health_violations_5yr: 2)
-        create(:violations_summary, public_water_system: many, health_violations_5yr: 10)
+        create(:violations_summary, public_water_system: few, paperwork_violations_5yr: 2)
+        create(:violations_summary, public_water_system: many, paperwork_violations_5yr: 10)
 
-        results = PublicWaterSystem.apply_filters(health_violations_5yr_max: "5")
+        results = PublicWaterSystem.apply_filters(paperwork_violations_5yr_min: "5")
+        expect(results).to include(many)
+        expect(results).not_to include(few)
+      end
+
+      it "filters by paperwork_violations_5yr_max" do
+        few = create(:public_water_system)
+        many = create(:public_water_system)
+        create(:violations_summary, public_water_system: few, paperwork_violations_5yr: 2)
+        create(:violations_summary, public_water_system: many, paperwork_violations_5yr: 10)
+
+        results = PublicWaterSystem.apply_filters(paperwork_violations_5yr_max: "5")
         expect(results).to include(few)
         expect(results).not_to include(many)
+      end
+
+      it "filters by paperwork_violations_5yr range (min AND max)" do
+        low = create(:public_water_system)
+        mid = create(:public_water_system)
+        high = create(:public_water_system)
+        create(:violations_summary, public_water_system: low, paperwork_violations_5yr: 1)
+        create(:violations_summary, public_water_system: mid, paperwork_violations_5yr: 5)
+        create(:violations_summary, public_water_system: high, paperwork_violations_5yr: 15)
+
+        results = PublicWaterSystem.apply_filters(paperwork_violations_5yr_min: "3", paperwork_violations_5yr_max: "10")
+        expect(results).to include(mid)
+        expect(results).not_to include(low, high)
+      end
+
+      it "filters by paperwork_violations_10yr_min" do
+        few = create(:public_water_system)
+        many = create(:public_water_system)
+        create(:violations_summary, public_water_system: few, paperwork_violations_10yr: 2)
+        create(:violations_summary, public_water_system: many, paperwork_violations_10yr: 10)
+
+        results = PublicWaterSystem.apply_filters(paperwork_violations_10yr_min: "5")
+        expect(results).to include(many)
+        expect(results).not_to include(few)
+      end
+
+      it "filters by paperwork_violations_10yr_max" do
+        few = create(:public_water_system)
+        many = create(:public_water_system)
+        create(:violations_summary, public_water_system: few, paperwork_violations_10yr: 2)
+        create(:violations_summary, public_water_system: many, paperwork_violations_10yr: 10)
+
+        results = PublicWaterSystem.apply_filters(paperwork_violations_10yr_max: "5")
+        expect(results).to include(few)
+        expect(results).not_to include(many)
+      end
+
+      it "filters by paperwork_violations_10yr range (min AND max)" do
+        low = create(:public_water_system)
+        mid = create(:public_water_system)
+        high = create(:public_water_system)
+        create(:violations_summary, public_water_system: low, paperwork_violations_10yr: 1)
+        create(:violations_summary, public_water_system: mid, paperwork_violations_10yr: 5)
+        create(:violations_summary, public_water_system: high, paperwork_violations_10yr: 15)
+
+        results = PublicWaterSystem.apply_filters(paperwork_violations_10yr_min: "3", paperwork_violations_10yr_max: "10")
+        expect(results).to include(mid)
+        expect(results).not_to include(low, high)
+      end
+    end
+
+    context "health sub-category filters" do
+      it "filters a single 5yr subcat by min only" do
+        few = create(:public_water_system)
+        many = create(:public_water_system)
+        create(:violations_summary, public_water_system: few, groundwater_rule_5yr: 2)
+        create(:violations_summary, public_water_system: many, groundwater_rule_5yr: 10)
+
+        results = PublicWaterSystem.apply_filters(groundwater_rule_5yr_min: "5")
+        expect(results).to include(many)
+        expect(results).not_to include(few)
+      end
+
+      it "filters a single 5yr subcat by max only" do
+        few = create(:public_water_system)
+        many = create(:public_water_system)
+        create(:violations_summary, public_water_system: few, groundwater_rule_5yr: 2)
+        create(:violations_summary, public_water_system: many, groundwater_rule_5yr: 10)
+
+        results = PublicWaterSystem.apply_filters(groundwater_rule_5yr_max: "5")
+        expect(results).to include(few)
+        expect(results).not_to include(many)
+      end
+
+      it "filters a single 5yr subcat by range (min AND max)" do
+        low = create(:public_water_system)
+        mid = create(:public_water_system)
+        high = create(:public_water_system)
+        create(:violations_summary, public_water_system: low, groundwater_rule_5yr: 1)
+        create(:violations_summary, public_water_system: mid, groundwater_rule_5yr: 5)
+        create(:violations_summary, public_water_system: high, groundwater_rule_5yr: 20)
+
+        results = PublicWaterSystem.apply_filters(groundwater_rule_5yr_min: "3", groundwater_rule_5yr_max: "10")
+        expect(results).to include(mid)
+        expect(results).not_to include(low, high)
+      end
+
+      it "filters a single 10yr subcat by range (min AND max)" do
+        low = create(:public_water_system)
+        mid = create(:public_water_system)
+        high = create(:public_water_system)
+        create(:violations_summary, public_water_system: low, lead_and_copper_10yr: 1)
+        create(:violations_summary, public_water_system: mid, lead_and_copper_10yr: 5)
+        create(:violations_summary, public_water_system: high, lead_and_copper_10yr: 20)
+
+        results = PublicWaterSystem.apply_filters(lead_and_copper_10yr_min: "3", lead_and_copper_10yr_max: "10")
+        expect(results).to include(mid)
+        expect(results).not_to include(low, high)
+      end
+
+      it "ignores a subcat when both min and max params are nil" do
+        any_system = create(:public_water_system)
+        create(:violations_summary, public_water_system: any_system, groundwater_rule_5yr: 5)
+
+        results = PublicWaterSystem.apply_filters(groundwater_rule_5yr_min: nil, groundwater_rule_5yr_max: nil)
+        expect(results).to include(any_system)
+      end
+
+      it "ORs multiple 5yr subcats — system matches if ANY checked subcat is in range" do
+        groundwater_only = create(:public_water_system)
+        lead_only = create(:public_water_system)
+        neither = create(:public_water_system)
+        create(:violations_summary, public_water_system: groundwater_only, groundwater_rule_5yr: 5, lead_and_copper_5yr: 0)
+        create(:violations_summary, public_water_system: lead_only, groundwater_rule_5yr: 0, lead_and_copper_5yr: 5)
+        create(:violations_summary, public_water_system: neither, groundwater_rule_5yr: 0, lead_and_copper_5yr: 0)
+
+        results = PublicWaterSystem.apply_filters(groundwater_rule_5yr_min: "1", lead_and_copper_5yr_min: "1")
+        expect(results).to include(groundwater_only, lead_only)
+        expect(results).not_to include(neither)
+      end
+
+      it "ORs multiple 10yr subcats — system matches if ANY checked subcat is in range" do
+        groundwater_only = create(:public_water_system)
+        lead_only = create(:public_water_system)
+        neither = create(:public_water_system)
+        create(:violations_summary, public_water_system: groundwater_only, groundwater_rule_10yr: 3, lead_and_copper_10yr: 0)
+        create(:violations_summary, public_water_system: lead_only, groundwater_rule_10yr: 0, lead_and_copper_10yr: 3)
+        create(:violations_summary, public_water_system: neither, groundwater_rule_10yr: 0, lead_and_copper_10yr: 0)
+
+        results = PublicWaterSystem.apply_filters(groundwater_rule_10yr_min: "1", lead_and_copper_10yr_min: "1")
+        expect(results).to include(groundwater_only, lead_only)
+        expect(results).not_to include(neither)
+      end
+
+      it "ORs across time windows — system matches if violations in EITHER window" do
+        both_windows = create(:public_water_system)
+        only_5yr = create(:public_water_system)
+        only_10yr = create(:public_water_system)
+        neither = create(:public_water_system)
+        create(:violations_summary, public_water_system: both_windows, groundwater_rule_5yr: 5, lead_and_copper_10yr: 3)
+        create(:violations_summary, public_water_system: only_5yr, groundwater_rule_5yr: 5, lead_and_copper_10yr: 0)
+        create(:violations_summary, public_water_system: only_10yr, groundwater_rule_5yr: 0, lead_and_copper_10yr: 3)
+        create(:violations_summary, public_water_system: neither, groundwater_rule_5yr: 0, lead_and_copper_10yr: 0)
+
+        results = PublicWaterSystem.apply_filters(groundwater_rule_5yr_min: "1", lead_and_copper_10yr_min: "1")
+        expect(results).to include(both_windows, only_5yr, only_10yr)
+        expect(results).not_to include(neither)
+      end
+
+      it "ORs paperwork violation windows — system matches if non-health violations in EITHER window" do
+        only_5yr = create(:public_water_system)
+        only_10yr = create(:public_water_system)
+        neither = create(:public_water_system)
+        create(:violations_summary, public_water_system: only_5yr, paperwork_violations_5yr: 8, paperwork_violations_10yr: 0)
+        create(:violations_summary, public_water_system: only_10yr, paperwork_violations_5yr: 0, paperwork_violations_10yr: 8)
+        create(:violations_summary, public_water_system: neither, paperwork_violations_5yr: 0, paperwork_violations_10yr: 0)
+
+        results = PublicWaterSystem.apply_filters(paperwork_violations_5yr_min: "5", paperwork_violations_10yr_min: "5")
+        expect(results).to include(only_5yr, only_10yr)
+        expect(results).not_to include(neither)
+      end
+
+      it "ORs health and paperwork groups within the Violations category" do
+        health_only = create(:public_water_system)
+        paperwork_only = create(:public_water_system)
+        neither = create(:public_water_system)
+        create(:violations_summary, public_water_system: health_only, groundwater_rule_5yr: 5, paperwork_violations_5yr: 0)
+        create(:violations_summary, public_water_system: paperwork_only, groundwater_rule_5yr: 0, paperwork_violations_5yr: 8)
+        create(:violations_summary, public_water_system: neither, groundwater_rule_5yr: 0, paperwork_violations_5yr: 0)
+
+        results = PublicWaterSystem.apply_filters(groundwater_rule_5yr_min: "1", paperwork_violations_5yr_min: "5")
+        expect(results).to include(health_only, paperwork_only)
+        expect(results).not_to include(neither)
       end
     end
 
@@ -309,15 +482,15 @@ RSpec.describe Filterable, type: :model do
         # Both systems have both associations — this ensures multiple LEFT JOINs are actually
         # exercised against real rows, not NULLs from absent records.
         matching = create(:public_water_system)
-        create(:violations_summary, public_water_system: matching, health_violations_5yr: 10)
+        create(:violations_summary, public_water_system: matching, groundwater_rule_5yr: 10)
         create(:demographic, public_water_system: matching, poverty_rate: 30.0)
 
         non_matching = create(:public_water_system)
-        create(:violations_summary, public_water_system: non_matching, health_violations_5yr: 10)
+        create(:violations_summary, public_water_system: non_matching, groundwater_rule_5yr: 10)
         create(:demographic, public_water_system: non_matching, poverty_rate: 5.0)
 
         results = PublicWaterSystem.apply_filters(
-          health_violations_5yr_min: "5",
+          groundwater_rule_5yr_min: "5",
           poverty_rate_min: "20"
         )
 
