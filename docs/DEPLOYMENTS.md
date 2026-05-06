@@ -8,16 +8,16 @@ For the infrastructure setup and one-time provisioning steps, see the separate A
 
 ## Environments
 
-There are three environments. Pushing to `main` does **not** trigger a deploy — `main` is the stable canonical branch kept in sync with production.
+There are three environments. Pushing to `main` does **not** trigger a deploy — `main` is the stable canonical branch.
 
 | | Production | Staging | Per-PR (ephemeral) |
 |---|---|---|---|
-| **Trigger** | Push → `production` branch | Push → `staging` branch | PR opened/updated against `main` |
+| **Trigger** | GitHub Actions → **Promote Staging to Production** | GitHub Actions → **Deploy to Staging** | PR opened/updated against `main` |
 | **Teardown** | Manual | Manual | Automatic on PR close |
 | **ECS service** | `ep_app__water_data_tool__dev_us-east-1` | `ep_app__water_data_tool_staging__dev_us-east-1` | `water_data_tool_pr_<N>` |
 | **URL** | `water-data-tool.policyinnovation.info` | `water-data-tool-staging.policyinnovation.info` | `water-data-tool-pr-<N>.policyinnovation.info` |
 | **Database** | `water_data_tool_production` | `water_data_tool_staging` | `water_data_tool_preview` (shared across all PRs) |
-| **ECR image tags** | `prod-<sha>`, `prod-latest` | `staging-<sha>`, `staging-latest` | `pr-<N>-<sha>`, `pr-<N>-latest` |
+| **ECR image tags** | `prod-promoted-<digest>`, `prod-latest` | `staging-<sha>`, `staging-latest` | `pr-<N>-<sha>`, `pr-<N>-latest` |
 | **IAM role** | `ep_gha__water_data_tool` | `ep_gha__water_data_tool` | `ep_gha__water_data_tool_pr` |
 
 All environments run on the same ECS cluster (`ep_core__dev_us-east-1`) and pull images from the same ECR repository (`ep_app_service_water_data_tool`).
@@ -26,15 +26,27 @@ All environments run on the same ECS cluster (`ep_core__dev_us-east-1`) and pull
 
 ## How deploys work
 
-The workflow lives at `.github/workflows/deploy-client-aws.yml`. It is gated on a repo variable `AWS_DEPLOY_ENABLED=true` — if that variable is absent or false, all jobs silently skip. This protects forks from accidentally trying to deploy.
+All workflows are gated on a repo variable `AWS_DEPLOY_ENABLED=true` — if that variable is absent or false, all jobs silently skip. This protects forks from accidentally trying to deploy.
 
 Authentication to AWS uses OIDC — no static IAM access keys are stored anywhere. GitHub issues a short-lived signed token per job run; AWS is configured to trust it and exchange it for temporary credentials scoped to the appropriate IAM role.
 
-### Branch deploys (production + staging)
+### Deploy to staging (`deploy-to-staging.yml`)
 
-1. Docker image is built and pushed to ECR with two tags: an immutable `<env>-<sha>` tag and a moving `<env>-latest` tag.
+Triggered manually via **Actions → Deploy to Staging → Run workflow**. Select a branch to deploy (defaults to `main`).
+
+1. Docker image is built and pushed to ECR with two tags: an immutable `staging-<sha>` tag and a moving `staging-latest` tag.
 2. `aws ecs update-service --force-new-deployment` is called — ECS cycles in containers running the new image.
 3. The workflow waits up to 15 minutes for the service to stabilize before reporting success.
+
+### Promote staging to production (`promote-to-production.yml`)
+
+Triggered manually via **Actions → Promote Staging to Production → Run workflow**. Requires typing `promote` in the confirmation field.
+
+1. The existing `staging-latest` ECR image is re-tagged as `prod-latest` and `prod-promoted-<digest>` — no rebuild.
+2. `aws ecs update-service --force-new-deployment` is called against the production service.
+3. The workflow waits up to 15 minutes for the service to stabilize.
+
+Because promotion re-tags an existing image, production always runs the exact artifact that was tested on staging.
 
 The ECS task definition references the moving tag (`prod-latest` / `staging-latest`). Terraform is not involved in normal deploys — only the image and the ECS service update cycle.
 
@@ -55,33 +67,19 @@ When the PR is closed, `service_builder` runs with `EP_ACTION=destroy` and tears
 
 ## Triggering a deploy
 
-### Deploy to production
-
-```bash
-git checkout production
-git merge main          # or cherry-pick specific commits
-git push origin production
-```
-
 ### Deploy to staging
 
-```bash
-git checkout staging
-git merge main
-git push origin staging
-```
+1. Go to **Actions → Deploy to Staging → Run workflow**
+2. Select the branch to deploy (default: `main`)
+3. Click **Run workflow**
 
-### First-time branch creation
+### Promote staging to production
 
-If the `production` or `staging` branch doesn't exist yet:
+1. Go to **Actions → Promote Staging to Production → Run workflow**
+2. Type `promote` in the confirmation field
+3. Click **Run workflow**
 
-```bash
-git checkout -b production
-git commit --allow-empty -m "chore: trigger first AWS deploy"
-git push origin production
-```
-
-Watch progress in the **Actions** tab → **Deploy to AWS ECS**.
+Watch progress in the **Actions** tab. Both workflows write a summary table (image digest, URL, who triggered it) to the job summary on completion.
 
 ---
 
@@ -201,7 +199,7 @@ aws ecs update-service \
   --no-cli-pager
 ```
 
-The simpler alternative is to revert the commit on the `production` branch and push — this triggers a normal CI deploy.
+The simpler alternative is to re-run **Promote Staging to Production** after pushing the reverted commit to staging and verifying it there first.
 
 ---
 
@@ -219,6 +217,8 @@ The workflow reads these from the repository's **Settings → Secrets and variab
 | `ECS_CLUSTER` | `ep_core__dev_us-east-1` |
 | `ECS_SERVICE_PROD` | `ep_app__water_data_tool__dev_us-east-1` |
 | `ECS_SERVICE_STAGING` | `ep_app__water_data_tool_staging__dev_us-east-1` |
+| `PROD_URL` | `https://water-data-tool.policyinnovation.info/` |
+| `STAGING_URL` | `https://water-data-tool-staging.policyinnovation.info/` |
 | `SERVICE_BUILDER_IMAGE_URI` | `516937823875.dkr.ecr.us-east-1.amazonaws.com/ep_service_builder:latest` |
 
 ### Secrets

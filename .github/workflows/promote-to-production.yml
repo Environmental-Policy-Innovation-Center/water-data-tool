@@ -1,0 +1,140 @@
+name: Promote Staging to Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type "promote" to confirm'
+        required: true
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  promote:
+    if: vars.AWS_DEPLOY_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      id-token: write
+      contents: read
+    env:
+      AWS_REGION:       ${{ vars.AWS_REGION }}
+      ECR_REPO_URI:     ${{ vars.ECR_REPO_URI }}
+      ECS_CLUSTER:      ${{ vars.ECS_CLUSTER }}
+      ECS_SERVICE_PROD: ${{ vars.ECS_SERVICE_PROD }}
+
+    steps:
+      # No checkout needed — promotes an existing ECR image without rebuilding
+
+      - name: Validate confirmation input
+        if: github.event.inputs.confirm != 'promote'
+        run: |
+          echo "::error::Confirmation input must be exactly 'promote'. Got: '${{ github.event.inputs.confirm }}'"
+          exit 1
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Fetch staging image manifest and digest
+        id: staging
+        run: |
+          ECR_REPO_NAME="${ECR_REPO_URI##*/}"
+
+          MANIFEST=$(aws ecr batch-get-image \
+            --repository-name "$ECR_REPO_NAME" \
+            --image-ids imageTag=staging-latest \
+            --query 'images[0].imageManifest' \
+            --output text)
+
+          if [ -z "$MANIFEST" ] || [ "$MANIFEST" = "None" ]; then
+            echo "::error::staging-latest image not found in ECR — has staging been deployed?"
+            exit 1
+          fi
+
+          DIGEST=$(aws ecr describe-images \
+            --repository-name "$ECR_REPO_NAME" \
+            --image-ids imageTag=staging-latest \
+            --query 'imageDetails[0].imageDigest' \
+            --output text)
+
+          # First 8 hex chars of the digest — intentional truncation for a human-readable label
+          SHORT_DIGEST="${DIGEST#sha256:}"
+          SHORT_DIGEST="${SHORT_DIGEST:0:8}"
+
+          # Random delimiter guards against manifest JSON containing a bare "EOF" line
+          DELIM=$(openssl rand -hex 8)
+
+          echo "repo_name=$ECR_REPO_NAME"                 >> "$GITHUB_OUTPUT"
+          echo "manifest<<$DELIM"                         >> "$GITHUB_OUTPUT"
+          echo "$MANIFEST"                                >> "$GITHUB_OUTPUT"
+          echo "$DELIM"                                   >> "$GITHUB_OUTPUT"
+          echo "digest=$DIGEST"                           >> "$GITHUB_OUTPUT"
+          echo "immutable_tag=prod-promoted-$SHORT_DIGEST" >> "$GITHUB_OUTPUT"
+
+      - name: Re-tag staging image as production
+        # Pass manifest via env var so the shell owns quoting — avoids Actions expression
+        # engine mangling the JSON before the shell sees it
+        env:
+          MANIFEST:      ${{ steps.staging.outputs.manifest }}
+          REPO_NAME:     ${{ steps.staging.outputs.repo_name }}
+          IMMUTABLE_TAG: ${{ steps.staging.outputs.immutable_tag }}
+        run: |
+          put_image() {
+            local tag="$1"
+            local out
+            out=$(aws ecr put-image \
+              --repository-name "$REPO_NAME" \
+              --image-tag "$tag" \
+              --image-manifest "$MANIFEST" \
+              --no-cli-pager 2>&1) || {
+                if echo "$out" | grep -q 'ImageAlreadyExistsException'; then
+                  echo "Tag '$tag' already current — skipping"
+                else
+                  echo "$out" >&2
+                  exit 1
+                fi
+              }
+          }
+
+          put_image "prod-latest"
+          put_image "$IMMUTABLE_TAG"
+
+      - name: Force ECS redeploy
+        run: |
+          aws ecs update-service \
+            --cluster "$ECS_CLUSTER" \
+            --service "$ECS_SERVICE_PROD" \
+            --force-new-deployment \
+            --no-cli-pager
+
+      - name: Wait for ECS service to stabilize
+        timeout-minutes: 15
+        run: |
+          aws ecs wait services-stable \
+            --cluster "$ECS_CLUSTER" \
+            --services "$ECS_SERVICE_PROD"
+
+      - name: Summary
+        env:
+          DIGEST:        ${{ steps.staging.outputs.digest }}
+          IMMUTABLE_TAG: ${{ steps.staging.outputs.immutable_tag }}
+        run: |
+          {
+            echo "## Promotion complete"
+            echo ""
+            echo "| | |"
+            echo "|---|---|"
+            echo "| **Image digest** | \`$DIGEST\` |"
+            echo "| **ECR tag** | \`$IMMUTABLE_TAG\` |"
+            echo "| **Production URL** | ${{ vars.PROD_URL }} |"
+            echo "| **Triggered by** | @${{ github.actor }} |"
+            echo "| **Time** | $(date -u '+%Y-%m-%d %H:%M UTC') |"
+          } >> "$GITHUB_STEP_SUMMARY"

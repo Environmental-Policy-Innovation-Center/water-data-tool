@@ -1,0 +1,108 @@
+name: Deploy to Staging
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-staging
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    if: >-
+      vars.AWS_DEPLOY_ENABLED == 'true' &&
+      (
+        (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') ||
+        github.event_name == 'workflow_dispatch'
+      )
+    runs-on: ubuntu-latest
+    environment: staging
+    permissions:
+      id-token: write
+      contents: read
+    env:
+      AWS_REGION:          ${{ vars.AWS_REGION }}
+      ECR_REPO_URI:        ${{ vars.ECR_REPO_URI }}
+      ECS_CLUSTER:         ${{ vars.ECS_CLUSTER }}
+      ECS_SERVICE_STAGING: ${{ vars.ECS_SERVICE_STAGING }}
+
+    steps:
+      - name: Resolve deploy SHA
+        id: sha
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_run" ]]; then
+            echo "value=${{ github.event.workflow_run.head_sha }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=${{ github.sha }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Verify branch is main (manual dispatch only)
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          if [[ "${GITHUB_REF}" != "refs/heads/main" ]]; then
+            echo "::error::Staging deploys are restricted to main. Got: ${GITHUB_REF}"
+            exit 1
+          fi
+
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.sha.outputs.value }}
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ${{ env.ECR_REPO_URI }}:staging-${{ steps.sha.outputs.value }}
+            ${{ env.ECR_REPO_URI }}:staging-latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Force ECS redeploy
+        run: |
+          aws ecs update-service \
+            --cluster "$ECS_CLUSTER" \
+            --service "$ECS_SERVICE_STAGING" \
+            --force-new-deployment \
+            --no-cli-pager
+
+      - name: Wait for ECS service to stabilize
+        timeout-minutes: 15
+        run: |
+          aws ecs wait services-stable \
+            --cluster "$ECS_CLUSTER" \
+            --services "$ECS_SERVICE_STAGING"
+
+      - name: Summary
+        env:
+          DEPLOY_SHA: ${{ steps.sha.outputs.value }}
+        run: |
+          {
+            echo "## Staging deploy complete"
+            echo ""
+            echo "| | |"
+            echo "|---|---|"
+            echo "| **SHA** | \`${DEPLOY_SHA:0:8}\` |"
+            echo "| **ECR tag** | \`staging-${DEPLOY_SHA}\` |"
+            echo "| **Staging URL** | ${{ vars.STAGING_URL }} |"
+            echo "| **Triggered by** | @${{ github.actor }} |"
+            echo "| **Time** | $(date -u '+%Y-%m-%d %H:%M UTC') |"
+          } >> "$GITHUB_STEP_SUMMARY"

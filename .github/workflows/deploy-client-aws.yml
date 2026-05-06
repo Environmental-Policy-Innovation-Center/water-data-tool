@@ -1,98 +1,15 @@
 name: Deploy to AWS ECS
 
 on:
-  push:
-    branches: [staging, production]
   pull_request:
     types: [opened, synchronize, reopened, closed]
     branches: [main]
 
 concurrency:
-  group: ${{ github.event_name == 'pull_request' && format('deploy-pr-{0}', github.event.number) || format('deploy-{0}', github.ref_name) }}
+  group: deploy-pr-${{ github.event.number }}
   cancel-in-progress: true
 
 jobs:
-  # ── Branch deploys (staging / production) ──────────────────────────────────
-  deploy:
-    if: >
-      vars.AWS_DEPLOY_ENABLED == 'true' &&
-      github.event_name == 'push'
-    runs-on: ubuntu-latest
-    permissions:
-      id-token: write
-      contents: read
-    env:
-      AWS_REGION:          ${{ vars.AWS_REGION }}
-      ECR_REPO_URI:        ${{ vars.ECR_REPO_URI }}
-      ECS_CLUSTER:         ${{ vars.ECS_CLUSTER }}
-      ECS_SERVICE_PROD:    ${{ vars.ECS_SERVICE_PROD }}
-      ECS_SERVICE_STAGING: ${{ vars.ECS_SERVICE_STAGING }}
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: Login to Amazon ECR
-        uses: aws-actions/amazon-ecr-login@v2
-
-      - name: Compute tags + target service
-        id: meta
-        run: |
-          if [ "${{ github.ref_name }}" = "production" ]; then
-            {
-              echo "immutable_tag=prod-${{ github.sha }}"
-              echo "moving_tag=prod-latest"
-              echo "service=$ECS_SERVICE_PROD"
-              echo "url=https://water-data-tool.policyinnovation.info/"
-            } >> "$GITHUB_OUTPUT"
-          else
-            {
-              echo "immutable_tag=staging-${{ github.sha }}"
-              echo "moving_tag=staging-latest"
-              echo "service=$ECS_SERVICE_STAGING"
-              echo "url=https://water-data-tool-staging.policyinnovation.info/"
-            } >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build and push image
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          platforms: linux/amd64
-          push: true
-          tags: |
-            ${{ env.ECR_REPO_URI }}:${{ steps.meta.outputs.immutable_tag }}
-            ${{ env.ECR_REPO_URI }}:${{ steps.meta.outputs.moving_tag }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      - name: Force ECS redeploy
-        run: |
-          aws ecs update-service \
-            --cluster "$ECS_CLUSTER" \
-            --service "${{ steps.meta.outputs.service }}" \
-            --force-new-deployment \
-            --no-cli-pager
-
-      - name: Wait for ECS service to stabilize
-        timeout-minutes: 15
-        run: |
-          aws ecs wait services-stable \
-            --cluster "$ECS_CLUSTER" \
-            --services "${{ steps.meta.outputs.service }}"
-
-      - name: Summary
-        run: |
-          echo "Deployed ${{ steps.meta.outputs.immutable_tag }} → ${{ steps.meta.outputs.service }}" >> "$GITHUB_STEP_SUMMARY"
-          echo "URL: ${{ steps.meta.outputs.url }}" >> "$GITHUB_STEP_SUMMARY"
-
   # ── PR environment deploy ───────────────────────────────────────────────────
   pr-deploy:
     if: >
