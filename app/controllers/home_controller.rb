@@ -1,4 +1,5 @@
 class HomeController < ApplicationController
+  # TODO - Consider moving into a PORO as this grows
   SORTABLE_COLUMNS = %w[
     pws_name pwsid stusps counties gw_sw_code source_water_protection_code
     owner_type primacy_type is_wholesaler is_school_or_daycare symbology_field
@@ -26,16 +27,7 @@ class HomeController < ApplicationController
   private
 
   def filter_params
-    params.permit(
-      :gw_sw_code, :has_source_protection, :is_wholesaler, :is_school_or_daycare,
-      :has_open_violations, :symbology_field, :area_min, :area_max,
-      :density_min, :density_max, :most_common_rate_tier, :state,
-      :place_geoid, :county_geoid, :bounds,
-      :health_violations_5yr_min, :health_violations_10yr_min,
-      :paperwork_violations_5yr_min, :paperwork_violations_10yr_min,
-      :boil_water_notices_min, :boil_water_notices_max,
-      owner_type: [], primacy_type: [], pop_cat_5: []
-    )
+    FilterParams.permit(params)
   end
 
   def apply_search(scope, term)
