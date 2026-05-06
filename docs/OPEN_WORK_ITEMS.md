@@ -14,8 +14,6 @@ Known issues that have been discovered, which we know we need to come back to an
     - to the 'headline' category types: Primary type, Type, Violatons, etc.
     - to the filter category types: Wholesaler
     - tooltip copy defined in tooltips.yml file
-  - Determing if 5 and 10 year health violation filters should be INCLUSIVE (OR) or EXCLUSIVE (AND) of eachother
-    - currently inclusive with timeframe, exclusive across time frames
   
 ### Historgrams
   - get confirmation on expected behavior for histogram sliders for Health Violation sub Categories
@@ -84,6 +82,10 @@ Known issues that have been discovered, which we know we need to come back to an
   - confirm defaults, branding
   - clean up/remove notes
   
+### HTML
+  - label ids and potentially classes to reflect our filtering level taxonomy verbiage as defined in TAXONOMY.md
+  - Address and fix for accessibility concners - aria tags, semantic naming, using correct elements, etc.
+  
 ### Assets
   - make sure that all icons are valid .svgs with fill=currentColor set
   - make sure we have migrated away from .pngs and are using .svgs everywhere
@@ -105,3 +107,4 @@ Known issues that have been discovered, which we know we need to come back to an
 ### Other
   - with a large set of filters, our URLs can get very long - determine a potential strategy for solving this
     - already tried, a messy mapping strategy, but could otentially try again
+    

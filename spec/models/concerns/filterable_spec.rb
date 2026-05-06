@@ -282,17 +282,45 @@ RSpec.describe Filterable, type: :model do
         expect(results).not_to include(neither)
       end
 
-      it "ANDs across time windows — system must satisfy subcats in EACH active window" do
+      it "ORs across time windows — system matches if violations in EITHER window" do
         both_windows = create(:public_water_system)
         only_5yr = create(:public_water_system)
         only_10yr = create(:public_water_system)
+        neither = create(:public_water_system)
         create(:violations_summary, public_water_system: both_windows, groundwater_rule_5yr: 5, lead_and_copper_10yr: 3)
         create(:violations_summary, public_water_system: only_5yr, groundwater_rule_5yr: 5, lead_and_copper_10yr: 0)
         create(:violations_summary, public_water_system: only_10yr, groundwater_rule_5yr: 0, lead_and_copper_10yr: 3)
+        create(:violations_summary, public_water_system: neither, groundwater_rule_5yr: 0, lead_and_copper_10yr: 0)
 
         results = PublicWaterSystem.apply_filters(groundwater_rule_5yr_min: "1", lead_and_copper_10yr_min: "1")
-        expect(results).to include(both_windows)
-        expect(results).not_to include(only_5yr, only_10yr)
+        expect(results).to include(both_windows, only_5yr, only_10yr)
+        expect(results).not_to include(neither)
+      end
+
+      it "ORs paperwork violation windows — system matches if non-health violations in EITHER window" do
+        only_5yr = create(:public_water_system)
+        only_10yr = create(:public_water_system)
+        neither = create(:public_water_system)
+        create(:violations_summary, public_water_system: only_5yr, paperwork_violations_5yr: 8, paperwork_violations_10yr: 0)
+        create(:violations_summary, public_water_system: only_10yr, paperwork_violations_5yr: 0, paperwork_violations_10yr: 8)
+        create(:violations_summary, public_water_system: neither, paperwork_violations_5yr: 0, paperwork_violations_10yr: 0)
+
+        results = PublicWaterSystem.apply_filters(paperwork_violations_5yr_min: "5", paperwork_violations_10yr_min: "5")
+        expect(results).to include(only_5yr, only_10yr)
+        expect(results).not_to include(neither)
+      end
+
+      it "ORs health and paperwork groups within the Violations category" do
+        health_only = create(:public_water_system)
+        paperwork_only = create(:public_water_system)
+        neither = create(:public_water_system)
+        create(:violations_summary, public_water_system: health_only, groundwater_rule_5yr: 5, paperwork_violations_5yr: 0)
+        create(:violations_summary, public_water_system: paperwork_only, groundwater_rule_5yr: 0, paperwork_violations_5yr: 8)
+        create(:violations_summary, public_water_system: neither, groundwater_rule_5yr: 0, paperwork_violations_5yr: 0)
+
+        results = PublicWaterSystem.apply_filters(groundwater_rule_5yr_min: "1", paperwork_violations_5yr_min: "5")
+        expect(results).to include(health_only, paperwork_only)
+        expect(results).not_to include(neither)
       end
     end
 

@@ -46,8 +46,9 @@ module Filterable
       scope = scope.where(stusps: params[:state]) if params[:state].present?
 
       # --- Violations range filters (join to violations_summaries) ---
-      # Paperwork columns use standard AND range logic.
-      # Health sub-category columns use OR logic within each time window.
+      # All groups within the Violations category are ORed (Option A — inclusive):
+      # enabling more groups broadens results. Within each health sub-category group,
+      # sub-filters are ORed. Within a single column, min/max bounds are ANDed.
       violations_join_needed =
         PAPERWORK_VIOLATIONS_COLS.any? { |col| params[:"#{col}_min"].present? || params[:"#{col}_max"].present? } ||
         HEALTH_SUBCATS_ALL.any? { |col| params[:"#{col}_min"].present? || params[:"#{col}_max"].present? }
@@ -56,36 +57,41 @@ module Filterable
         scope, joined = left_join_once(scope, joined, :violations_summary)
       end
 
-      PAPERWORK_VIOLATIONS_COLS.each do |col|
-        if params[:"#{col}_min"].present?
-          scope = scope.where("violations_summaries.#{col} >= ?", params[:"#{col}_min"].to_i)
-        end
-        if params[:"#{col}_max"].present?
-          scope = scope.where("violations_summaries.#{col} <= ?", params[:"#{col}_max"].to_i)
-        end
-      end
-
-      # Health sub-category range filters — OR within each time window, AND between windows.
-      # Arel avoids string-interpolation SQL so Brakeman can track column names as safe.
       viol_table = Arel::Table.new(:violations_summaries)
+      col_range_node = ->(col, min_val, max_val) {
+        arel_col = viol_table[col]
+        if min_val.present? && max_val.present?
+          arel_col.gteq(min_val.to_i).and(arel_col.lteq(max_val.to_i))
+        elsif min_val.present?
+          arel_col.gteq(min_val.to_i)
+        else
+          arel_col.lteq(max_val.to_i)
+        end
+      }
+
+      violations_group_nodes = []
+
+      # Health sub-category groups: sub-filters within each time-window group are ORed.
       [HEALTH_SUBCAT_5YR, HEALTH_SUBCAT_10YR].each do |col_group|
         active = col_group.select { |col| params[:"#{col}_min"].present? || params[:"#{col}_max"].present? }
         next if active.empty?
 
-        or_node = active.map do |col|
-          min_val = params[:"#{col}_min"]
-          max_val = params[:"#{col}_max"]
-          arel_col = viol_table[col]
-          if min_val.present? && max_val.present?
-            arel_col.gteq(min_val.to_i).and(arel_col.lteq(max_val.to_i))
-          elsif min_val.present?
-            arel_col.gteq(min_val.to_i)
-          else
-            arel_col.lteq(max_val.to_i)
-          end
-        end.inject { |m, c| m.or(c) }
-        scope = scope.where(or_node)
+        window_node = active.map { |col|
+          col_range_node.call(col, params[:"#{col}_min"], params[:"#{col}_max"])
+        }.inject { |m, c| m.or(c) }
+        violations_group_nodes << window_node
       end
+
+      # Paperwork (non-health) violation groups: each column is its own group.
+      PAPERWORK_VIOLATIONS_COLS.each do |col|
+        min_val = params[:"#{col}_min"]
+        max_val = params[:"#{col}_max"]
+        next unless min_val.present? || max_val.present?
+
+        violations_group_nodes << col_range_node.call(col, min_val, max_val)
+      end
+
+      scope = scope.where(violations_group_nodes.inject { |m, c| m.or(c) }) if violations_group_nodes.any?
 
       # --- Boil water notice range filter ---
       if params[:boil_water_notices_min].present? || params[:boil_water_notices_max].present?
