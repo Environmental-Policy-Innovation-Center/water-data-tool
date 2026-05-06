@@ -37,34 +37,34 @@ const FILTERS = [
   { type: "bool",    group: 4,  param: "has_open_violations", id: "compliance-open-violations", value: "true" },
 
   { type: "health_subcat", group: 4, parentId: "viols-health-5yrs",
-    panelId: "subcat-health-5yr", aggregateParam: "health_violations_5yr",
+    panelId: "subcat-health-5yr",
     subcats: [
-      { id: "viols-groundwater-5yr",           param: "groundwater_rule_5yr" },
-      { id: "viols-surface-water-5yr",         param: "surface_water_treatment_5yr" },
-      { id: "viols-lead-copper-5yr",           param: "lead_and_copper_5yr" },
-      { id: "viols-radionuclides-5yr",         param: "radionuclides_5yr" },
-      { id: "viols-inorganic-5yr",             param: "inorganic_chemicals_5yr" },
-      { id: "viols-synthetic-5yr",             param: "synthetic_organic_chemicals_5yr" },
-      { id: "viols-vocs-5yr",                  param: "volatile_organic_chemicals_5yr" },
-      { id: "viols-coliform-5yr",              param: "total_coliform_5yr" },
-      { id: "viols-stage-1-disinfectants-5yr", param: "stage_1_disinfectants_5yr" },
-      { id: "viols-stage-2-disinfectants-5yr", param: "stage_2_disinfectants_5yr" }
+      { id: "viols-groundwater-5yr",           param_min: "groundwater_rule_5yr_min",            param_max: "groundwater_rule_5yr_max",            minInputId: "min-groundwater-5yr",     maxInputId: "max-groundwater-5yr",     sliderPanelId: "slider-groundwater-5yr" },
+      { id: "viols-surface-water-5yr",         param_min: "surface_water_treatment_5yr_min",     param_max: "surface_water_treatment_5yr_max",     minInputId: "min-surface-water-5yr",   maxInputId: "max-surface-water-5yr",   sliderPanelId: "slider-surface-water-5yr" },
+      { id: "viols-lead-copper-5yr",           param_min: "lead_and_copper_5yr_min",             param_max: "lead_and_copper_5yr_max",             minInputId: "min-lead-copper-5yr",     maxInputId: "max-lead-copper-5yr",     sliderPanelId: "slider-lead-copper-5yr" },
+      { id: "viols-radionuclides-5yr",         param_min: "radionuclides_5yr_min",               param_max: "radionuclides_5yr_max",               minInputId: "min-radionuc-5yr",        maxInputId: "max-radionuc-5yr",        sliderPanelId: "slider-radionuc-5yr" },
+      { id: "viols-inorganic-5yr",             param_min: "inorganic_chemicals_5yr_min",         param_max: "inorganic_chemicals_5yr_max",         minInputId: "min-inorganic-5yr",       maxInputId: "max-inorganic-5yr",       sliderPanelId: "slider-inorganic-5yr" },
+      { id: "viols-synthetic-5yr",             param_min: "synthetic_organic_chemicals_5yr_min", param_max: "synthetic_organic_chemicals_5yr_max", minInputId: "min-soc-5yr",             maxInputId: "max-soc-5yr",             sliderPanelId: "slider-soc-5yr" },
+      { id: "viols-vocs-5yr",                  param_min: "volatile_organic_chemicals_5yr_min",  param_max: "volatile_organic_chemicals_5yr_max",  minInputId: "min-voc-5yr",             maxInputId: "max-voc-5yr",             sliderPanelId: "slider-voc-5yr" },
+      { id: "viols-coliform-5yr",              param_min: "total_coliform_5yr_min",              param_max: "total_coliform_5yr_max",              minInputId: "min-coliform-5yr",        maxInputId: "max-coliform-5yr",        sliderPanelId: "slider-coliform-5yr" },
+      { id: "viols-stage-1-disinfectants-5yr", param_min: "stage_1_disinfectants_5yr_min",       param_max: "stage_1_disinfectants_5yr_max",       minInputId: "min-stage1-dis-5yr",      maxInputId: "max-stage1-dis-5yr",      sliderPanelId: "slider-stage1-dis-5yr" },
+      { id: "viols-stage-2-disinfectants-5yr", param_min: "stage_2_disinfectants_5yr_min",       param_max: "stage_2_disinfectants_5yr_max",       minInputId: "min-stage2-dis-5yr",      maxInputId: "max-stage2-dis-5yr",      sliderPanelId: "slider-stage2-dis-5yr" }
     ]
   },
 
   { type: "health_subcat", group: 4, parentId: "viols-health",
-    panelId: "subcat-health-10yr", aggregateParam: "health_violations_10yr",
+    panelId: "subcat-health-10yr",
     subcats: [
-      { id: "viols-groundwater-10yr",           param: "groundwater_rule_10yr" },
-      { id: "viols-surface-water-10yr",         param: "surface_water_treatment_10yr" },
-      { id: "viols-lead-copper-10yr",           param: "lead_and_copper_10yr" },
-      { id: "viols-radionuclides-10yr",         param: "radionuclides_10yr" },
-      { id: "viols-inorganic-10yr",             param: "inorganic_chemicals_10yr" },
-      { id: "viols-synthetic-10yr",             param: "synthetic_organic_chemicals_10yr" },
-      { id: "viols-vocs-10yr",                  param: "volatile_organic_chemicals_10yr" },
-      { id: "viols-coliform-10yr",              param: "total_coliform_10yr" },
-      { id: "viols-stage-1-disinfectants-10yr", param: "stage_1_disinfectants_10yr" },
-      { id: "viols-stage-2-disinfectants-10yr", param: "stage_2_disinfectants_10yr" }
+      { id: "viols-groundwater-10yr",           param_min: "groundwater_rule_10yr_min",            param_max: "groundwater_rule_10yr_max",            minInputId: "min-groundwater-10yr",    maxInputId: "max-groundwater-10yr",    sliderPanelId: "slider-groundwater-10yr" },
+      { id: "viols-surface-water-10yr",         param_min: "surface_water_treatment_10yr_min",     param_max: "surface_water_treatment_10yr_max",     minInputId: "min-surface-water-10yr",  maxInputId: "max-surface-water-10yr",  sliderPanelId: "slider-surface-water-10yr" },
+      { id: "viols-lead-copper-10yr",           param_min: "lead_and_copper_10yr_min",             param_max: "lead_and_copper_10yr_max",             minInputId: "min-lead-copper-10yr",    maxInputId: "max-lead-copper-10yr",    sliderPanelId: "slider-lead-copper-10yr" },
+      { id: "viols-radionuclides-10yr",         param_min: "radionuclides_10yr_min",               param_max: "radionuclides_10yr_max",               minInputId: "min-radionuc-10yr",       maxInputId: "max-radionuc-10yr",       sliderPanelId: "slider-radionuc-10yr" },
+      { id: "viols-inorganic-10yr",             param_min: "inorganic_chemicals_10yr_min",         param_max: "inorganic_chemicals_10yr_max",         minInputId: "min-inorganic-10yr",      maxInputId: "max-inorganic-10yr",      sliderPanelId: "slider-inorganic-10yr" },
+      { id: "viols-synthetic-10yr",             param_min: "synthetic_organic_chemicals_10yr_min", param_max: "synthetic_organic_chemicals_10yr_max", minInputId: "min-soc-10yr",            maxInputId: "max-soc-10yr",            sliderPanelId: "slider-soc-10yr" },
+      { id: "viols-vocs-10yr",                  param_min: "volatile_organic_chemicals_10yr_min",  param_max: "volatile_organic_chemicals_10yr_max",  minInputId: "min-voc-10yr",            maxInputId: "max-voc-10yr",            sliderPanelId: "slider-voc-10yr" },
+      { id: "viols-coliform-10yr",              param_min: "total_coliform_10yr_min",              param_max: "total_coliform_10yr_max",              minInputId: "min-coliform-10yr",       maxInputId: "max-coliform-10yr",       sliderPanelId: "slider-coliform-10yr" },
+      { id: "viols-stage-1-disinfectants-10yr", param_min: "stage_1_disinfectants_10yr_min",       param_max: "stage_1_disinfectants_10yr_max",       minInputId: "min-stage1-dis-10yr",     maxInputId: "max-stage1-dis-10yr",     sliderPanelId: "slider-stage1-dis-10yr" },
+      { id: "viols-stage-2-disinfectants-10yr", param_min: "stage_2_disinfectants_10yr_min",       param_max: "stage_2_disinfectants_10yr_max",       minInputId: "min-stage2-dis-10yr",     maxInputId: "max-stage2-dis-10yr",     sliderPanelId: "slider-stage2-dis-10yr" }
     ]
   },
 
@@ -174,23 +174,27 @@ export default class extends Controller {
     this.apply(event)
   }
 
-  // On check: opens panel and checks all subcats.
-  // On uncheck: unchecks all subcats but leaves panel open so user can re-select.
+  // On check: opens panel and checks all subcats + shows their histogram panels.
+  // On uncheck: unchecks all subcats + hides/resets all their histogram panels.
   toggleSubcat(event) {
     const checkbox = event.currentTarget
     const panelId = checkbox.dataset.panelId
     const panel = panelId && document.getElementById(panelId)
     if (!panel) return
+    const filter = HEALTH_SUBCAT_FILTERS.find(f => f.panelId === panelId)
 
     if (checkbox.checked) {
       panel.classList.remove("hidden")
       this.#setToggleArrow(panelId, true)
       panel.querySelectorAll("input[type='checkbox']").forEach(cb => { cb.checked = true })
+      filter?.subcats.forEach(s => {
+        if (s.sliderPanelId) document.getElementById(s.sliderPanelId)?.classList.remove("hidden")
+      })
     } else {
       panel.querySelectorAll("input[type='checkbox']").forEach(cb => { cb.checked = false })
-      panel.querySelectorAll("input[type='hidden']").forEach(inp => { inp.value = "" })
-      const sliderCtrl = this.application.getControllerForElementAndIdentifier(panel, "slider")
-      sliderCtrl?.resetToFullRange()
+      filter?.subcats.forEach(s => {
+        if (s.sliderPanelId) this.#hideAndResetSlider(document.getElementById(s.sliderPanelId))
+      })
     }
   }
 
@@ -207,7 +211,7 @@ export default class extends Controller {
   }
 
   // Keeps parent checkbox in sync when subcats are individually toggled.
-  // Parent is checked if any subcat is checked; unchecked if none are.
+  // Also shows/hides the changed subcat's histogram panel.
   syncParentFromSubcat(event) {
     const panel = event.currentTarget
     const filter = HEALTH_SUBCAT_FILTERS.find(f => f.panelId === panel.id)
@@ -216,6 +220,24 @@ export default class extends Controller {
     const anyChecked = filter.subcats.some(s => document.getElementById(s.id)?.checked)
     const parentEl = document.getElementById(filter.parentId)
     if (parentEl) parentEl.checked = anyChecked
+
+    const changedSubcat = filter.subcats.find(s => s.id === event.target.id)
+    if (!changedSubcat?.sliderPanelId) return
+    const sliderPanel = document.getElementById(changedSubcat.sliderPanelId)
+    if (!sliderPanel) return
+
+    if (event.target.checked) {
+      sliderPanel.classList.remove("hidden")
+    } else {
+      this.#hideAndResetSlider(sliderPanel)
+    }
+  }
+
+  #hideAndResetSlider(sliderPanel) {
+    if (!sliderPanel) return
+    sliderPanel.classList.add("hidden")
+    sliderPanel.querySelectorAll("input[type='hidden']").forEach(inp => { inp.value = "" })
+    this.application.getControllerForElementAndIdentifier(sliderPanel, "slider")?.resetToFullRange()
   }
 
   #setToggleArrow(panelId, expanded) {
@@ -240,6 +262,12 @@ export default class extends Controller {
       panel.querySelectorAll("input[type='hidden']").forEach(inp => { inp.value = "" })
       const sliderCtrl = this.application.getControllerForElementAndIdentifier(panel, "slider")
       sliderCtrl?.resetToFullRange()
+    })
+    HEALTH_SUBCAT_FILTERS.forEach(f => {
+      if (!menu.contains(document.getElementById(f.panelId))) return
+      f.subcats.forEach(s => {
+        if (s.sliderPanelId) this.#hideAndResetSlider(document.getElementById(s.sliderPanelId))
+      })
     })
     menu.querySelectorAll("button[data-panel-id]").forEach(btn => {
       btn.setAttribute("aria-expanded", "false")
@@ -304,13 +332,12 @@ export default class extends Controller {
         case "health_subcat": {
           const parent = document.getElementById(f.parentId)
           if (!parent?.checked) break
-          const allChecked = f.subcats.every(s => document.getElementById(s.id)?.checked)
-          if (allChecked) {
-            p[f.aggregateParam] = "true"
-          } else {
-            for (const s of f.subcats) {
-              if (document.getElementById(s.id)?.checked) p[s.param] = "true"
-            }
+          for (const s of f.subcats) {
+            if (!document.getElementById(s.id)?.checked) continue
+            const minVal = document.getElementById(s.minInputId)?.value
+            const maxVal = document.getElementById(s.maxInputId)?.value
+            if (minVal) p[s.param_min] = minVal
+            if (maxVal) p[s.param_max] = maxVal
           }
           break
         }
@@ -387,9 +414,8 @@ export default class extends Controller {
           break
         }
         case "health_subcat": {
-          const aggregateSet = params[f.aggregateParam] != null
-          const anySubcatSet = f.subcats.some(s => params[s.param] != null)
-          if (!aggregateSet && !anySubcatSet) break
+          const anySubcatSet = f.subcats.some(s => params[s.param_min] != null || params[s.param_max] != null)
+          if (!anySubcatSet) break
 
           const parent = document.getElementById(f.parentId)
           if (parent) parent.checked = true
@@ -397,19 +423,24 @@ export default class extends Controller {
           if (panel) panel.classList.remove("hidden")
           this.#setToggleArrow(f.panelId, true)
 
-          if (aggregateSet) {
-            // All subcats active — check them all explicitly (they start unchecked in HTML)
-            f.subcats.forEach(s => {
-              const el = document.getElementById(s.id)
-              if (el) el.checked = true
-            })
-          } else {
-            // Partial selection — only the subcats present in params are checked
-            f.subcats.forEach(s => {
-              const el = document.getElementById(s.id)
-              if (el) el.checked = params[s.param] != null
-            })
-          }
+          f.subcats.forEach(s => {
+            const hasMin = params[s.param_min] != null
+            const hasMax = params[s.param_max] != null
+            const el = document.getElementById(s.id)
+            if (el) el.checked = hasMin || hasMax
+            if (hasMin) {
+              const minEl = document.getElementById(s.minInputId)
+              if (minEl) minEl.value = params[s.param_min]
+            }
+            if (hasMax) {
+              const maxEl = document.getElementById(s.maxInputId)
+              if (maxEl) maxEl.value = params[s.param_max]
+            }
+            if ((hasMin || hasMax) && s.sliderPanelId) {
+              const sliderPanel = document.getElementById(s.sliderPanelId)
+              if (sliderPanel) sliderPanel.classList.remove("hidden")
+            }
+          })
           break
         }
         case "range": {
@@ -427,7 +458,6 @@ export default class extends Controller {
           if (minEl && minSet) minEl.value = params[f.param_min]
           const maxEl = document.getElementById(f.maxInputId)
           if (maxEl && maxSet) maxEl.value = params[f.param_max]
-          // slider_controller reads hidden inputs on connect() to restore handle positions
           break
         }
       }
@@ -460,7 +490,7 @@ export default class extends Controller {
 
     const countHealthSubcats = (group) =>
       HEALTH_SUBCAT_FILTERS.filter(f => f.group === group).filter(f =>
-        p[f.aggregateParam] != null || f.subcats.some(s => p[s.param] != null)
+        f.subcats.some(s => p[s.param_min] != null || p[s.param_max] != null)
       ).length
 
     const countRanges = (group) =>

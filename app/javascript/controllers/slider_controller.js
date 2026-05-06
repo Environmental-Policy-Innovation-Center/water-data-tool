@@ -1,5 +1,6 @@
 import { Controller } from "@hotwired/stimulus"
 
+// Histogram data is global (not per-user or per-filter scope), so keying on field is stable.
 const CACHE = new Map()
 const SVG_W = 200
 const SVG_H = 80
@@ -19,6 +20,7 @@ export default class extends Controller {
   #curMax = 0
   #dragging = null
   #tip = null
+  #rect = null
 
   async connect() {
     const field = this.fieldValue
@@ -39,6 +41,7 @@ export default class extends Controller {
 
   disconnect() {
     this.chartTarget.removeEventListener("pointerdown", this.#onDown)
+    this.chartTarget.removeEventListener("pointermove", this.#onMove)
   }
 
   resetToFullRange() {
@@ -61,8 +64,12 @@ export default class extends Controller {
 
     const minVal = this.minInputTarget.value
     const maxVal = this.maxInputTarget.value
+    
     if (minVal) this.#curMin = parseInt(minVal, 10)
     if (maxVal) this.#curMax = parseInt(maxVal, 10)
+      
+    if (!minVal) this.minInputTarget.value = this.#curMin
+    if (!maxVal) this.maxInputTarget.value = this.#curMax
 
     this.#draw()
     this.minLabelTarget.textContent = this.#fmt(domain_min)
@@ -136,6 +143,7 @@ export default class extends Controller {
     if (!handle) return
 
     this.#dragging = handle.dataset.handle
+    this.#rect = this.chartTarget.getBoundingClientRect()
     this.chartTarget.setPointerCapture(event.pointerId)
     this.chartTarget.addEventListener("pointermove", this.#onMove)
     this.chartTarget.addEventListener("pointerup", this.#onUp, { once: true })
@@ -143,7 +151,7 @@ export default class extends Controller {
   }
 
   #onMove = (event) => {
-    const rect = this.chartTarget.getBoundingClientRect()
+    const rect = this.#rect
     const x = Math.max(0, Math.min(SVG_W, (event.clientX - rect.left) * (SVG_W / rect.width)))
     const val = this.#xToVal(x)
 
@@ -161,6 +169,7 @@ export default class extends Controller {
 
   #onUp = () => {
     this.#dragging = null
+    this.#rect = null
     this.chartTarget.removeEventListener("pointermove", this.#onMove)
     this.#hideTip()
     this.minInputTarget.value = this.#curMin

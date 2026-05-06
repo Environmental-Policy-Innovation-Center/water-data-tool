@@ -1,0 +1,7 @@
+<div id="<%= panel_id %>" class="hidden px-2 py-1" data-controller="slider" data-slider-field-value="<%= field %>" data-slider-url-value="<%= histogram_path %>">
+  <p class="text-xs text-neutral-400 mb-1">Number of violations</p>
+  <svg data-slider-target="chart" class="w-full" height="80"></svg>
+  <div class="flex justify-between text-xs mt-1"><span data-slider-target="minLabel"></span><span data-slider-target="maxLabel"></span></div>
+  <input type="hidden" data-slider-target="minInput" id="<%= min_input_id %>">
+  <input type="hidden" data-slider-target="maxInput" id="<%= max_input_id %>">
+</div>
