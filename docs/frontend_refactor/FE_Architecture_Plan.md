@@ -134,7 +134,7 @@ Do not convert `water_tool.css` to Tailwind all at once. Convert incrementally a
 
 **Dead code to delete immediately (no active references):**
 - Lines 29–56: Tippy.js styles (Tippy is not loaded)
-- Lines 827–940: Slider/histogram CSS (slider_controller is a stub)
+- Lines 827–940: Slider/histogram CSS (slider_controller now renders SVG — these legacy CSS rules do not apply to the current implementation)
 - Lines 1716–1759: `.filter-list-container` (always `display:none`, never shown)
 - Lines 1840–1895: Choropleth legend CSS (feature not built)
 
@@ -434,11 +434,13 @@ Run `bin/dev` and verify the following before marking Tier 3 closed:
 - [ ] Histogram data is cached — reopening menu does not re-fetch
 - [ ] Histogram endpoint returns 400 for unknown field names (security)
 
-#### Tier 5 — Follow-up work (not in scope, needs design input)
+#### Tier 5 — Follow-up work
 
-**Per-sub-category histograms** (Phase 3 in `HISTORGRAMS.md`): The legacy app had a histogram under each health violation sub-category. Adding these requires changing health subcat params from boolean (`groundwater_rule_5yr=true`) to range style (`groundwater_rule_5yr_min=N&max=M`), updating `filterable.rb` OR logic, `ALLOWED_FIELDS`, markup for all 20 subcat `<li>` items, and specs. Blocked on design questions — see `HISTORGRAMS.md` Phase 3 section.
+**Per-sub-category histograms** (Phase 3 in `HISTORGRAMS.md`): Done. Health subcat params switched from boolean to range style (`groundwater_rule_5yr_min=N&groundwater_rule_5yr_max=M`). `filterable.rb` OR-range Arel logic added. `ALLOWED_FIELDS` expanded to 22. All 20 subcat `<li>` items render the `_slider_panel.html.erb` partial. See `HISTORGRAMS.md` Phase 3 section for full detail.
 
 **Visual styling**: The current histogram renders correctly but uses minimal default styling. A design pass is needed before marking Tier 5 fully closed.
+
+**Manual UI testing**: The T5 test checklist above and the Phase 3 checklist in `HISTORGRAMS.md` are still pending manual browser verification.
 
 ---
 

@@ -14,11 +14,53 @@ Known issues that have been discovered, which we know we need to come back to an
     - to the 'headline' category types: Primary type, Type, Violatons, etc.
     - to the filter category types: Wholesaler
     - tooltip copy defined in tooltips.yml file
-    
+  - Determing if 5 and 10 year health violation filters should be INCLUSIVE (OR) or EXCLUSIVE (AND) of eachother
+    - currently inclusive with timeframe, exclusive across time frames
+  
 ### Historgrams
   - get confirmation on expected behavior for histogram sliders for Health Violation sub Categories
     - When do they open, when do they close, what should things look like on first load (range)
   - Implement full set of histograms
+  - Add remaining filters and histograms
+    - Population size header missing
+    - Missing Sections
+      - Change
+        - Change in people the last 10 years
+        - Change in income the last 10 years
+      - Socioeconmics
+        - Households below the poverty line
+        - Unemployment
+        - Annual median household income
+        - Higher education attainment
+        - Children under 5
+        - Elderly over 61
+      - Race/Ethnicity
+        - People of color
+        - White
+        - Black
+        - American Indian and Alaskan Native
+        - Native Hawaiian and Pacific Islanders
+        - Asian
+        - Latino/a
+        - Other
+        - Mixed race
+      - Vulnerability
+        - Disadvantaged area 
+        - Social Vultnerability Index 
+        - Climate Vulnerability Index 
+      - Annual Water and sewer bill 
+        - (currently shows as unavailble - should work like legacy app)
+        - Show systems with no available information on rates (missing checkbox option)
+      - Environmental
+        - missing 'Potential Watershed Hazards' parent category, we have the sub cats
+        - Source water connections 
+        - Pollution permits with breaches 
+        - Underground storage tanks 
+        - Risk management plan facilities 
+        - Streams with impaired or threatened surface waters
+   Almost all sub categories need historgrams
+   Almost all categories, headers, etc. need tool tip info
+   All missing pieces will need to be handled in `filterable.rb` 
     
 ### Data Table
   - Add remaining sort options
@@ -59,3 +101,7 @@ Known issues that have been discovered, which we know we need to come back to an
   - data-health check” rake task that asserts the expected data exists
     - like “CartographicCounty.count > 0 and PublicWaterSystem.where.not(counties: [nil, '']).exists?”, etc. 
     - where would this report, slack channel?
+    
+### Other
+  - with a large set of filters, our URLs can get very long - determine a potential strategy for solving this
+    - already tried, a messy mapping strategy, but could otentially try again
