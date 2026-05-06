@@ -411,14 +411,34 @@ Run `bin/dev` and verify the following before marking Tier 3 closed:
 - [x] Filter while in Table view → table reloads
 - [x] Switch views → no stale data, no double-reload
 
-### Tier 5 — Implement Histogram Slider
+### Tier 5 — Implement Histogram Slider ✅
 
-| Task | Description |
-|---|---|
-| **T5-A** | **Implement `slider_controller.js`.** Dual-handle range slider with histogram display. Uses commit-on-mouseup pattern — no server calls during drag. Fires `filters:changed` only on pointer release. |
-| **T5-B** | **Add chart library via CDN.** Highcharts (referenced in existing TODO) or Chart.js (lighter). Load via CDN `<script>` tag consistent with existing pattern. |
-| **T5-C** | **Wire slider into `FILTERS` config.** Slider entries use `type: 'range'`. `collectFilters()` reads min/max. `restoreDomState()` sets slider positions from URL params. |
-| **T5-D** | **Complete `_filter_menus.html.erb` slider markup.** Structural shells already exist. Add `data-controller`, `data-target`, `data-action` attributes to activate `slider_controller`. |
+| Task | Status | Description | Test |
+|---|---|---|---|
+| **T5-A** | ✅ Done | **`slider_controller.js` + histogram API.** Dual-handle range slider with inline SVG histogram. No chart library — bars are `<rect>` elements drawn by the controller. PostgreSQL `width_bucket` endpoint at `GET /public_water_systems/histogram?field=`. Fetch on `connect()`, cached in module-level `Map`. Commit-on-pointerup pattern — filter_controller reads hidden inputs on Apply. `PublicWaterSystems::HistogramsController` with `ALLOWED_FIELDS` allowlist. `ViolationsSummary.histogram_bins(field, num_bins: 50)` model method. | Histograms render with real data: `paperwork_violations_5yr` shows 1–1,070 range. |
+| **T5-B** | ✅ Done | **Chart library decision: none.** Mocks show a minimal bar chart achievable with inline SVG. No CDN dependency. | No Highcharts/Chart.js requests in Network tab. |
+| **T5-C** | ✅ Done | **`range` type added to `FILTERS` config.** `collectFilters()` sends `_min`/`_max` params when parent is checked and value differs from full-domain default. `restoreDomState()` sets hidden inputs; slider reads them on `connect()`. | Apply with slider range → correct `_min`/`_max` params in URL. |
+| **T5-D** | ✅ Done | **Slider markup in `_filter_menus.html.erb`.** Hidden panel `<div>` inside each paperwork `<li>`, revealed by `toggleSubcat`. Carries `data-controller="slider"` with `field` and `url` values. | Checking "Non-health violations" parent reveals histogram panel. |
+
+#### Tier 5 — Manual test checklist
+
+- [ ] Checking parent reveals histogram panel; histogram loads and renders
+- [ ] Dragging min handle grays bars to the left; value tooltip shows current value
+- [ ] Dragging max handle grays bars to the right
+- [ ] Releasing handle commits values to hidden inputs
+- [ ] Apply sends `paperwork_violations_5yr_min=N&paperwork_violations_5yr_max=M` in URL
+- [ ] Unchecking parent hides histogram, clears min/max params on Apply
+- [ ] Reset restores parent to unchecked, histogram hidden, params cleared
+- [ ] URL restore sets slider positions correctly
+- [ ] Edge case: `domain_max === 1` renders flat line
+- [ ] Histogram data is cached — reopening menu does not re-fetch
+- [ ] Histogram endpoint returns 400 for unknown field names (security)
+
+#### Tier 5 — Follow-up work (not in scope, needs design input)
+
+**Per-sub-category histograms** (Phase 3 in `HISTORGRAMS.md`): The legacy app had a histogram under each health violation sub-category. Adding these requires changing health subcat params from boolean (`groundwater_rule_5yr=true`) to range style (`groundwater_rule_5yr_min=N&max=M`), updating `filterable.rb` OR logic, `ALLOWED_FIELDS`, markup for all 20 subcat `<li>` items, and specs. Blocked on design questions — see `HISTORGRAMS.md` Phase 3 section.
+
+**Visual styling**: The current histogram renders correctly but uses minimal default styling. A design pass is needed before marking Tier 5 fully closed.
 
 ---
 

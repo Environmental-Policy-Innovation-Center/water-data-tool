@@ -3,6 +3,10 @@
    Image paths updated: ../img/ → ../images/
    ===================================================== */
 
+/* This file is being deprecated as we migrate to Tailwind CSS */
+/* Do not add new styles here */
+/* Refactor existing styles to Tailwind CSS, when possible, remove old styles from here */
+   
 /* Removed dead CSS (April 2026 — Tier 1):
    - Tippy.js styles (was lines 29–52, 1894–1896): Tippy.js not loaded
    - Slider/histogram styles (was lines 827–940): slider_controller is a stub

@@ -128,11 +128,17 @@ Handle inside `filter_controller.js` with a new `toggleSubcat(event)` action —
 
 ### Filter param semantics for sub-categories
 
-- Parent **unchecked** → send nothing (same as today)
-- Parent **checked, all sub-cats checked** → send `health_violations_5yr_min=1` (existing param)
-- Parent **checked, some sub-cats unchecked** → send `{column}_min=1` for each **checked** sub-cat only
+- Parent **unchecked** → send nothing
+- Parent **checked, all sub-cats checked** → send `health_violations_5yr=true` (aggregate boolean)
+- Parent **checked, some sub-cats unchecked** → send `{column}=true` for each **checked** sub-cat only
 
-`FILTERS` entries for the two health checkboxes change from `type: "bool"` to a new `type: "health_subcat"`. `#collectFilters()` gets a new case for this type. `#restoreDomState()` and `#resetMenu()` also need updating.
+All health violation params use `=true` (boolean presence). The backend handles them via two separate code paths:
+- Aggregate params (`health_violations_5yr`, `health_violations_10yr`) → `WHERE violations_summaries.{col} >= 1`
+- Individual subcat params → `WHERE (col_a >= 1 OR col_b >= 1 ...)` within each time window
+
+OR logic applies **within** a time window (any checked sub-category matches). AND logic applies **between** time windows (both 5yr and 10yr conditions must be satisfied if both are active).
+
+`FILTERS` entries for the two health checkboxes use `type: "health_subcat"`. `#collectFilters()`, `#restoreDomState()`, and `#resetMenu()` all handle this type.
 
 ### Histogram data source
 
@@ -185,21 +191,21 @@ Repeat for `viols-health` (10yr) with panel ID `subcat-health-10yr` and class `v
 - Add `health_subcat` type to `FILTERS` (replaces the two health `bool` entries):
   ```js
   { type: "health_subcat", group: 4, parentId: "viols-health-5yrs",
-    panelId: "subcat-health-5yr", aggregateParam: "health_violations_5yr_min",
+    panelId: "subcat-health-5yr", aggregateParam: "health_violations_5yr",
     subcats: [
-      { id: "viols-groundwater-5yr",           param: "groundwater_rule_5yr_min" },
-      { id: "viols-surface-water-5yr",          param: "surface_water_treatment_5yr_min" },
-      { id: "viols-lead-copper-5yr",            param: "lead_and_copper_5yr_min" },
-      { id: "viols-radionuclides-5yr",          param: "radionuclides_5yr_min" },
-      { id: "viols-inorganic-5yr",              param: "inorganic_chemicals_5yr_min" },
-      { id: "viols-synthetic-5yr",              param: "synthetic_organic_chemicals_5yr_min" },
-      { id: "viols-vocs-5yr",                   param: "volatile_organic_chemicals_5yr_min" },
-      { id: "viols-coliform-5yr",               param: "total_coliform_5yr_min" },
-      { id: "viols-stage-1-disinfectants-5yr",  param: "stage_1_disinfectants_5yr_min" },
-      { id: "viols-stage-2-disinfectants-5yr",  param: "stage_2_disinfectants_5yr_min" },
+      { id: "viols-groundwater-5yr",           param: "groundwater_rule_5yr" },
+      { id: "viols-surface-water-5yr",         param: "surface_water_treatment_5yr" },
+      { id: "viols-lead-copper-5yr",           param: "lead_and_copper_5yr" },
+      { id: "viols-radionuclides-5yr",         param: "radionuclides_5yr" },
+      { id: "viols-inorganic-5yr",             param: "inorganic_chemicals_5yr" },
+      { id: "viols-synthetic-5yr",             param: "synthetic_organic_chemicals_5yr" },
+      { id: "viols-vocs-5yr",                  param: "volatile_organic_chemicals_5yr" },
+      { id: "viols-coliform-5yr",              param: "total_coliform_5yr" },
+      { id: "viols-stage-1-disinfectants-5yr", param: "stage_1_disinfectants_5yr" },
+      { id: "viols-stage-2-disinfectants-5yr", param: "stage_2_disinfectants_5yr" },
     ]
   },
-  // (identical entry for 10yr)
+  // (identical entry for 10yr, aggregateParam: "health_violations_10yr")
   ```
 - Add `health_subcat` case to `#collectFilters()`, `#restoreDomState()`, `#resetMenu()`
 
@@ -331,12 +337,13 @@ Repeat for `viols-paperwork` (10yr). The `toggleSubcat` action on the parent che
 | Phase 2 (T5-A): Histogram API endpoint + model method | Done |
 | Phase 2 (T5-C): FILTERS config — `range` type | Done |
 | Phase 2 (T5-D): Slider markup in `_filter_menus.html.erb` | Done |
+| Phase 2 (T5): Manual UI testing — T5 checklist | Pending |
+| Phase 2: Visual styling polish | Pending — needs design input |
+| Phase 3: Per-sub-category histograms under health violations | Blocked — needs design input + param changes (see below) |
 
 ---
 
 ## Known Limitations / Follow-up Items
-
-- **Subcat filter logic is AND, not OR**: When multiple subcategory checkboxes are checked, `filterable.rb` emits `AND WHERE col >= 1` for each one. A PWS must have violations in *all* checked categories to appear. The intended behavior is OR (any checked category matches). Fix requires a new code path in `filterable.rb` that groups subcat `_min` params per time window and emits a single `WHERE (col_a >= 1 OR col_b >= 1 OR ...)` clause. Needs TDD — separate backend session.
 
 - **Slider fetch on page load**: `slider_controller.js` fires its histogram fetch on `connect()`, which runs on page load even when the panel is hidden. Two JSON requests are made on every page load regardless of whether the user opens the Compliance menu. The module-level `CACHE` map means this only ever fires twice per browser session. Acceptable for now; could be deferred to first-reveal with an IntersectionObserver if needed.
 
@@ -352,7 +359,9 @@ Repeat for `viols-paperwork` (10yr). The `toggleSubcat` action on the parent che
 |---|---|---|
 | 2026-05-05 | Research session | Analyzed legacy `deprecated/inc-map.php`, `filter_controller.js`, `filterable.rb`, and all 3 design mocks. Wrote this plan. Backend already supports all needed params — no backend work for Phase 1. Phase 2 no longer blocked by design. Start with Phase 1. |
 | 2026-05-05 | Implementation session | Implemented all Phase 1 and Phase 2 items. All 487 specs pass, rubocop clean. See below for detail. |
-| 2026-05-05 | Refactor session | Moved histogram action out of `public_water_systems_controller.rb` into `app/controllers/public_water_systems/histograms_controller.rb` (matching `stats`/`exports` pattern). Changed route from `get :histogram` to `resource :histogram, only: :show, module: :public_water_systems`. Fixed invalid HTML: all four subcat/histogram `<div>` panels were siblings of `<li>` inside `<ul>` (invalid); moved inside their parent `<li>`. 487 specs still pass. **Next: manual UI testing per test checklists above.** |
+| 2026-05-05 | Refactor session | Moved histogram action out of `public_water_systems_controller.rb` into `app/controllers/public_water_systems/histograms_controller.rb` (matching `stats`/`exports` pattern). Changed route from `get :histogram` to `resource :histogram, only: :show, module: :public_water_systems`. Fixed invalid HTML: all four subcat/histogram `<div>` panels were siblings of `<li>` inside `<ul>` (invalid); moved inside their parent `<li>`. 487 specs still pass. |
+| 2026-05-05 | Cleanup + logic session | (1) Created `app/assets/images/icons/arrow-down.svg`; replaced all 4 inline SVG chevrons in `_filter_menus.html.erb` with `icon()` helper. (2) Fixed subcat filter logic from AND to OR: multiple checked subcats in the same time window now match any (not all) — via a new OR `WHERE` clause in `filterable.rb`. (3) Renamed all health violation params to boolean style: individual subcats `groundwater_rule_5yr_min=1` → `groundwater_rule_5yr=true`; aggregate `health_violations_5yr_min=1` → `health_violations_5yr=true`. Added `HEALTH_SUBCAT_5YR`, `HEALTH_SUBCAT_10YR`, `HEALTH_SUBCATS_ALL` constants. Specs updated and expanded (OR logic, cross-window AND, aggregate cases). 491 specs pass. **Next: manual UI testing per test checklists above.** |
+| 2026-05-05 | Verification + docs session | Confirmed histograms render with real production data: `paperwork_violations_5yr` range is 1–1,070 (24,235 systems with ≥1 violation). `histogram_bins` uses `MAX(field)` as `domain_max` — 1,070 is the actual outlier, not a synthetic cap. Added 6 missing `filterable_spec.rb` specs covering `paperwork_violations_5yr/10yr` min/max and range — 497 specs pass. T5 manual UI testing still pending. Phase 3 (per-sub-category histograms) blocked on design input and param strategy — see Phase 3 section above. |
 
 ### Implementation detail (2026-05-05)
 
@@ -375,8 +384,32 @@ Repeat for `viols-paperwork` (10yr). The `toggleSubcat` action on the parent che
 
 ---
 
+## Phase 3 — Per-sub-category histograms (blocked, needs design + param changes)
+
+The legacy app showed a histogram range slider under each health violation sub-category checkbox (e.g. "Ground water rule" had its own 1–N slider). This is deferred until design input is received and a param strategy decision is made.
+
+### Why this requires reverting param names
+
+The current health sub-category params use **boolean presence** (`groundwater_rule_5yr=true`). This was intentional: the sub-category checkboxes are on/off only — no numeric range is exposed to the user.
+
+To add a histogram under each sub-category, the param style must change to **min/max range** (`groundwater_rule_5yr_min=N&groundwater_rule_5yr_max=M`). That would require:
+
+1. **`filter_controller.js`** — change `health_subcat` filter entries from boolean to `range` type (or a new `health_subcat_range` type). `collectFilters()`, `restoreDomState()`, and `resetMenu()` all need updating.
+2. **`filterable.rb`** — the current OR logic for individual subcats uses `WHERE (col >= 1 OR col >= 1 ...)`. With range params it would need `WHERE (col >= N AND col <= M OR ...)` which is more complex — a "range OR" across subcats within a window.
+3. **`filterable_spec.rb`** — the 6 newly added paperwork range specs are the right pattern; equivalent specs for all 20 health subcat columns would be needed.
+4. **`histograms_controller.rb`** — `ALLOWED_FIELDS` would expand from 2 fields to 22.
+5. **`_filter_menus.html.erb`** — slider markup added inside each of the 20 sub-category `<li>` items.
+
+### Design questions to resolve before starting Phase 3
+
+- Should the slider replace the checkbox, or sit beneath it (checkbox toggles the slider panel)?
+- If the slider min = 0 (or 1), does that mean "include systems with zero violations in this category"? The current boolean means "at least one." A min-0 slider would be a semantic change.
+- Visual: does the histogram appear immediately (health violation subcat panel is already indented one level), or does it add another level of nesting?
+- Do 5yr and 10yr subcats share one slider, or each get their own?
+
+---
+
 ## Out of Scope (for now)
 
-- Per-sub-category histograms under each health violation sub-filter (legacy had these; deferred)
 - Boil water notices histogram (parent checkbox is disabled)
 - EJScreen drinking water non-compliance indicator (commented out in legacy)

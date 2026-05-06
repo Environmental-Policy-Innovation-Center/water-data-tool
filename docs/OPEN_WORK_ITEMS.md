@@ -1,20 +1,27 @@
 # Open Work Items
 Known issues that have been discovered, which we know we need to come back to and address.
 
+---
 
 ### Map
   - State Zoom upon state click
   - determine why states render 'blocky' instead of the whole state instantly on hover
 
 ### Filters
-  - add remaining filters to the filter options:
-    A checkbox selection on any of these should open up a nested option of sub filters
-    - Health violations in the last 5 years
-    - Health violations in the last 10 years
-    - Non-health violations in the last 5 years
-    - Non-health violations in the last 10 years
   - Filter Counter badges
     - currently showing, need to be configured to match design expectations
+  - Add missing info tool tips _(to match legacy app)_
+    - to the 'headline' category types: Primary type, Type, Violatons, etc.
+    - to the filter category types: Wholesaler
+    - tooltip copy defined in tooltips.yml file
+    
+### Historgrams
+  - get confirmation on expected behavior for histogram sliders for Health Violation sub Categories
+    - When do they open, when do they close, what should things look like on first load (range)
+  - Implement full set of histograms
+    
+### Data Table
+  - Add remaining sort options
     
 ### Datasets
   - Basic mobile layout improved (Tier 4): non-sticky header, tighter padding, data source select overflow fixed
@@ -32,19 +39,19 @@ Known issues that have been discovered, which we know we need to come back to an
   - [ ] Print button on report overlay still renders (still uses `icon-print.png` PNG — confirm no broken image)
 
 ### application.css
-  - confirm defaults
+  - confirm defaults, branding
   - clean up/remove notes
   
-### Images
+### Assets
   - make sure that all icons are valid .svgs with fill=currentColor set
   - make sure we have migrated away from .pngs and are using .svgs everywhere
     - Cleanup: remove all old images
+  - Install and use the 
   
 ### LookBook
   - determine best spot in docs to document LookBook
-  - what it is
-  - how to use
-  - https://github.com/lookbook-hq/lookbook
+  - what it is, and how to use
+  - link docs: https://github.com/lookbook-hq/lookbook
   - If LookBook is fully related to Components we can use a COMPONENTS.md or a VIEWCOMPONENTS.md - whichever makes most sense.
   
 ### Data
