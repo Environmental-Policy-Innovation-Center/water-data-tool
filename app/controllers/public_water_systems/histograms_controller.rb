@@ -1,8 +1,9 @@
 module PublicWaterSystems
   class HistogramsController < ApplicationController
-    ALLOWED_FIELDS = %w[
-      paperwork_violations_5yr paperwork_violations_10yr
-    ].freeze
+    ALLOWED_FIELDS = (
+      Filterable::PAPERWORK_VIOLATIONS_COLS.map(&:to_s) +
+      Filterable::HEALTH_SUBCATS_ALL.map(&:to_s)
+    ).freeze
 
     def show
       field = params[:field]

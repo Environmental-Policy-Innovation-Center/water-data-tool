@@ -17,6 +17,8 @@ module Filterable
 
   HEALTH_SUBCATS_ALL = (HEALTH_SUBCAT_5YR + HEALTH_SUBCAT_10YR).freeze
 
+  PAPERWORK_VIOLATIONS_COLS = %i[paperwork_violations_5yr paperwork_violations_10yr].freeze
+
   class_methods do
     def apply_filters(params)
       scope = all
@@ -44,21 +46,17 @@ module Filterable
       scope = scope.where(stusps: params[:state]) if params[:state].present?
 
       # --- Violations range filters (join to violations_summaries) ---
-      # Aggregate and non-health columns use standard AND range logic.
-      # Individual health sub-category columns are handled separately below with OR logic.
-      violations_range_filters = %i[paperwork_violations_5yr paperwork_violations_10yr]
-
-      health_aggregate_params = %i[health_violations_5yr health_violations_10yr]
+      # Paperwork columns use standard AND range logic.
+      # Health sub-category columns use OR logic within each time window.
       violations_join_needed =
-        violations_range_filters.any? { |col| params[:"#{col}_min"].present? || params[:"#{col}_max"].present? } ||
-        health_aggregate_params.any? { |col| params[col] == "true" } ||
-        HEALTH_SUBCATS_ALL.any? { |col| params[col] == "true" }
+        PAPERWORK_VIOLATIONS_COLS.any? { |col| params[:"#{col}_min"].present? || params[:"#{col}_max"].present? } ||
+        HEALTH_SUBCATS_ALL.any? { |col| params[:"#{col}_min"].present? || params[:"#{col}_max"].present? }
 
       if violations_join_needed
         scope, joined = left_join_once(scope, joined, :violations_summary)
       end
 
-      violations_range_filters.each do |col|
+      PAPERWORK_VIOLATIONS_COLS.each do |col|
         if params[:"#{col}_min"].present?
           scope = scope.where("violations_summaries.#{col} >= ?", params[:"#{col}_min"].to_i)
         end
@@ -67,17 +65,26 @@ module Filterable
         end
       end
 
-      # Health aggregate filters — parent checkbox checked with all subcats selected.
-      health_aggregate_params.each do |col|
-        scope = scope.where("violations_summaries.#{col} >= 1") if params[col] == "true"
-      end
-
-      # Health sub-category filters — OR within each time window.
-      # A system matches if it has >= 1 violation in ANY of the selected sub-categories.
-      [HEALTH_SUBCAT_5YR, HEALTH_SUBCAT_10YR].each do |group|
-        active = group.select { |col| params[col] == "true" }
+      # Health sub-category range filters — OR within each time window, AND between windows.
+      # Arel avoids string-interpolation SQL so Brakeman can track column names as safe.
+      viol_table = Arel::Table.new(:violations_summaries)
+      [HEALTH_SUBCAT_5YR, HEALTH_SUBCAT_10YR].each do |col_group|
+        active = col_group.select { |col| params[:"#{col}_min"].present? || params[:"#{col}_max"].present? }
         next if active.empty?
-        scope = scope.where(active.map { |col| "violations_summaries.#{col} >= 1" }.join(" OR "))
+
+        or_node = active.map do |col|
+          min_val = params[:"#{col}_min"]
+          max_val = params[:"#{col}_max"]
+          arel_col = viol_table[col]
+          if min_val.present? && max_val.present?
+            arel_col.gteq(min_val.to_i).and(arel_col.lteq(max_val.to_i))
+          elsif min_val.present?
+            arel_col.gteq(min_val.to_i)
+          else
+            arel_col.lteq(max_val.to_i)
+          end
+        end.inject { |m, c| m.or(c) }
+        scope = scope.where(or_node)
       end
 
       # --- Boil water notice range filter ---
