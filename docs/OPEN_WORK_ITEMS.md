@@ -88,9 +88,9 @@ Known issues that have been discovered, which we know we need to come back to an
   
 ### Assets
   - make sure that all icons are valid .svgs with fill=currentColor set
-  - make sure we have migrated away from .pngs and are using .svgs everywhere
+  - make sure we have migrated away from .pngs and are using .svgs everywhere (except for logos)
     - Cleanup: remove all old images
-  - Install and use the 
+  - deprecate and delete water_tool.css - as referenced in TAILWIND_MIGRATION.md
   
 ### LookBook
   - determine best spot in docs to document LookBook
