@@ -1,72 +1,90 @@
 # SVG Icon Status
 
-_Last updated: May 2026_
+_Last updated: May 2026 — PNG migration complete_
 
 All SVG files live in `app/assets/images/icons/`. The `icon()` helper in `ApplicationHelper` inlines them.
-All current SVGs have been updated to use `fill="currentColor"` — color is controlled via Tailwind `text-*` classes.
+All current SVGs use `fill="currentColor"` — color is controlled via Tailwind `text-*` classes.
 
 ---
 
-## SVGs Still Needed (blockers for full PNG deprecation)
+## How Icons Are Used
 
-These icons are currently rendered via PNG (CSS `background-image` or `image_tag`). SVG versions are needed to complete the migration.
+There is now one canonical pattern:
 
-| File needed | Replaces | Used in |
+| Pattern | Example | Status |
 |---|---|---|
-| `print.svg` | `icon-print.png` | `index.html.erb` via `image_tag` |
-| `nav-arrow-down.svg` | `icon-nav-arrow-down.png` | `water_tool.css` — sidebar nav dropdown |
-| `nav-arrow-up.svg` | `icon-nav-arrow-up.png` | `water_tool.css` — sidebar nav dropdown |
-| `sort.svg` | `icon-sort.png` | `water_tool.css` — datasets sort button |
-| `arrow-down.svg` | `icon-arrow-down-dark.png`, `icon-arrow-down-white.png` | `water_tool.css` — mobile sort indicators |
-| `close-white.svg` | `icon-close-white.png` | `water_tool.css` — mobile overlay close (covered by `close.svg` + `currentColor` once CSS is migrated) |
-| `map-filters.svg` | `icon-map-filters.png` | `water_tool.css` — Mapbox popup filter button |
+| `icon()` helper (inline SVG) | `<%= icon("arrow-down", classes: "h-3 w-3") %>` | **Only pattern — use for all new work** |
 
-> Note: with `currentColor`, `close.svg` covers all close variants — `close-white.svg` is only needed if the CSS `background-image` reference is kept as-is rather than converted to an inline SVG via the `icon()` helper.
+Legacy `image_tag` SVG and PNG patterns have been fully removed.
 
 ---
 
-## Ideal End State — Full `currentColor` SVG Set (~28 files)
+## Current Icon Inventory
 
-Once all icons are sourced as `currentColor` SVGs, dark/white PNG pairs collapse to a single file. This is the target file list:
+All files in `app/assets/images/icons/` as of last audit:
 
-| File | Replaces |
-|---|---|
-| `arrow-down.svg` | `icon-arrow-down-dark.png`, `icon-arrow-down-white.png` |
-| `close.svg` ✅ | `icon-close.png`, `icon-close-dark.png`, `icon-close-white.png` |
-| `collapse.svg` ✅ | `icon-collapse.png` |
-| `data.svg` | `icon-data-dark.png`, `icon-data-white.png` |
-| `documentation.svg` | `icon-documentation-dark.png`, `icon-documentation-white.png` |
-| `downloads.svg` | `icon-downloads-dark.png`, `icon-downloads-white.png` |
-| `email.svg` ✅ | `icon-email.png` |
-| `expand.svg` ✅ | `icon-expand.png` |
-| `explore.svg` | `icon-explore-dark.png`, `icon-explore-white.png` |
-| `external-link.svg` ✅ | `icon-ext-link.png` |
-| `feedback.svg` ✅ | `icon-feedback.png` |
-| `filter.svg` ✅ | `icon-filter.png` |
-| `github.svg` ✅ | `icon-GitHub.png` |
-| `info.svg` ✅ | `icon-info.png` |
-| `locate.svg` ✅ | `icon-find-location.png`, `icon-zoom-to-location.png` |
-| `map.svg` | `icon-map-toggle-dark.png`, `icon-map-toggle-white.png` |
-| `map-filters.svg` | `icon-map-filters.png` |
-| `mobile-menu.svg` ✅ | `icon-mobile-menu.png` |
-| `nav-arrow-down.svg` | `icon-nav-arrow-down.png` |
-| `nav-arrow-up.svg` | `icon-nav-arrow-up.png` |
-| `print.svg` | `icon-print.png` |
-| `search.svg` ✅ | — |
-| `sort.svg` | `icon-sort.png` |
-| `table.svg` | `icon-table-dark.png`, `icon-table-white.png` |
-| `tooltip.svg` | `icon-tooltip-dark.png`, `icon-tooltip-white.png` |
-| `x.svg` | `icon-mobile-menu-x.png` |
-| `zoom-in.svg` ✅ | — |
-| `zoom-out.svg` ✅ | — |
+| File | Active references | Notes |
+|---|---|---|
+| `alaska.svg` | none (future map inset use) | "AK" label for map insets |
+| `arrow-down.svg` ✅ | `_filter_menus.html.erb` ×4 via `icon()` | Small chevron (Heroicons style) |
+| `arrow-downward.svg` | none yet | Full arrow with shaft pointing down |
+| `arrow-upward.svg` | none yet | Full arrow with shaft pointing up |
+| `close.svg` ✅ | `index.html.erb` (report close) via `icon()` | |
+| `collapse.svg` ✅ | `_sidebar.html.erb` toggle button via `icon()` | Fullscreen collapse (inward arrows) |
+| `data.svg` ✅ | `_sidebar.html.erb`, `index.html.erb` mobile menu via `icon()` | |
+| `documentation.svg` ✅ | `_sidebar.html.erb`, `index.html.erb` mobile menu via `icon()` | |
+| `downloads.svg` ✅ | `_sidebar.html.erb`, `index.html.erb` mobile menu via `icon()` | Also used in table view export button |
+| `email.svg` ✅ | `_sidebar.html.erb` (×2), `index.html.erb` mobile menu via `icon()` | |
+| `expand.svg` ✅ | `_sidebar.html.erb` toggle button via `icon()` | Fullscreen expand (outward arrows) |
+| `explore.svg` ✅ | `_sidebar.html.erb`, `index.html.erb` mobile menu via `icon()` | |
+| `external-link.svg` ✅ | `_sidebar.html.erb` (×3) via `icon()` | |
+| `feedback.svg` ✅ | `index.html.erb` mobile menu via `icon()` | |
+| `filter.svg` ✅ | `_datasets.html.erb` via `icon()` | Three horizontal lines |
+| `github.svg` ✅ | `index.html.erb` mobile menu via `icon()` | |
+| `hawaii.svg` | none (future map inset use) | "HI" label for map insets |
+| `info.svg` | none yet | |
+| `locate.svg` | none yet | |
+| `map-filters.svg` | none yet | Funnel shape |
+| `map.svg` ✅ | `index.html.erb` map/table toggle via `icon()` | |
+| `mobile-menu.svg` ✅ | `index.html.erb` mobile header via `icon()` | Hamburger menu |
+| `nav-arrow-down.svg` ✅ | `index.html.erb` filter tabs (×6) via `icon()` | Rotates 180° when active |
+| `nav-arrow-up.svg` | none (rotation approach used instead) | |
+| `navigation-hover.svg` | none yet | Navigation pill shape (hover state) |
+| `navigation-on.svg` | none yet | Navigation pill shape (active state) |
+| `print.svg` ✅ | `index.html.erb` report print button via `icon()` | |
+| `search.svg` | none yet | |
+| `sort.svg` | none yet | |
+| `table.svg` ✅ | `index.html.erb` map/table toggle via `icon()` | |
+| `tooltip-down.svg` | none yet | |
+| `tooltip-up.svg` | none yet | |
+| `zoom-in.svg` | none yet | |
+| `zoom-out.svg` | none yet | |
 
-✅ = file already exists in `app/assets/images/icons/` with `currentColor`
+---
 
-### Files to consolidate once end state is reached
+## PNG Deprecation Status — COMPLETE ✅
 
-When the above single files are in place, these current dark/white pairs in `app/assets/images/icons/` can be deleted:
+All `icon-*.png` files have been deleted from `app/assets/images/`. Only logo PNGs remain:
+- `EPIC-logo.png`
+- `logo-drinking-water-explorer.png`
+- `logo-drinking-water-explorer-placeholder.png`
 
-- `navigation-hover.svg` + `navigation-on.svg` → replaced by `nav-arrow-down.svg` / `nav-arrow-up.svg`
-- `tooltip-down.svg` + `tooltip-up.svg` → replaced by `tooltip.svg`
+No `water_tool.css` rules reference PNG background-images any longer.
 
-> **Note:** Consolidating pairs requires updating all call sites in views and CSS at the same time. Do not delete a pair file until the code referencing it has been updated to use the single replacement file with a Tailwind `text-*` color class.
+---
+
+## Sidebar Nav Icon Pattern
+
+Nav links use `[&.active]:bg-brand-primary [&.active]:text-white` Tailwind classes. Since SVGs use `fill="currentColor"`, the icon automatically inherits the link text color — dark in default state, white when active. No separate dark/white SVG variants needed.
+
+Filter tab arrows use a single `nav-arrow-down` icon with `[.active_&]:rotate-180` to flip direction when the dropdown is open.
+
+---
+
+## Open Items
+
+- `navigation-hover.svg` / `navigation-on.svg` — not yet wired to any HTML element
+- `locate.svg` — no view reference yet (was `icon-find-location.png`, `icon-zoom-to-location.png`)
+- `map-filters.svg`, `info.svg` — available but the mobile UI elements they were for no longer exist
+- Sidebar collapse/expand toggle button (`#toggle-button`) has no JavaScript handler — the `collapse`/`expand` icon toggle is CSS-ready (`[.close_&]:` variants) but will need a Stimulus action when the feature is implemented
+- Territory icon approach (`PR`, `GU`, `MP` text buttons on map) — determine if SVG icons are needed or if text labels are sufficient; `alaska.svg` and `hawaii.svg` exist as reference

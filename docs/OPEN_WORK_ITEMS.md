@@ -107,4 +107,5 @@ Known issues that have been discovered, which we know we need to come back to an
 ### Other
   - with a large set of filters, our URLs can get very long - determine a potential strategy for solving this
     - already tried, a messy mapping strategy, but could otentially try again
-    
+  - Ensure Mapbox access token currently exposed in request/response data visible in browser devtools for all ENVS
+    - hide this in staging, pr, and prod!

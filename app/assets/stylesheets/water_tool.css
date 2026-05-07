@@ -78,7 +78,9 @@ body{
   border-radius: 50%;
   width: 32px;
   height: 32px;
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   position:absolute;
   top:10px;
   right:10px;
@@ -88,15 +90,6 @@ body{
   background-color: #f5f5f5;
 }
 
-.open{
-  background: url(icon-collapse.png) 8px 7px no-repeat;
-  background-size: 18px;
-}
-
-.close{
-  background: url(icon-expand.png) 8px 7px no-repeat;
-  background-size: 18px;
-}
 
 .hide-this,
 .hide-for-desktop{
@@ -162,106 +155,6 @@ body{
   padding: 0px;
 }
 
-.container-sidebar-nav ul.sidebar-nav li a,
-#container-mobile-menu ul li a{
-  padding:10px 4px 10px 60px;
-  background-color:#fff;
-  display:block;
-  text-align:left;
-  color:#181818;
-  text-decoration:none;
-  border-radius: 20px;
-  border: 1px solid #bfbfbf;
-  margin: 8px 20px;
-  min-height:20px;
-}
-
-.container-sidebar-nav ul.sidebar-nav li a img,
-#container-mobile-menu ul li a img{
-  width:22px;
-  height:auto;
-  margin-bottom: -5px;
-  margin-right:12px;
-}
-
-.container-sidebar-nav ul.sidebar-nav li.nav-1 a,
-#container-mobile-menu ul li.nav-1 a{
-  background: url("icon-explore-dark.png") 30px 11px no-repeat;
-  background-size: 18px;
-}
-
-.container-sidebar-nav ul.sidebar-nav li.nav-2 a,
-#container-mobile-menu ul li.nav-2 a{
-  background: url("icon-data-dark.png") 30px 11px no-repeat;
-  background-size: 18px;
-}
-
-.container-sidebar-nav ul.sidebar-nav li.nav-3 a,
-#container-mobile-menu ul li.nav-3 a{
-  background: url("icon-documentation-dark.png") 30px 11px no-repeat;
-  background-size: 18px;
-}
-
-.container-sidebar-nav ul.sidebar-nav li.nav-4 a,
-#container-mobile-menu ul li.nav-4 a{
-  background: url("icon-downloads-dark.png") 30px 11px no-repeat;
-  background-size: 18px;
-}
-
-.container-sidebar-nav ul.sidebar-nav li a:hover,
-#container-mobile-menu ul li a:hover{
-  background-color:#dedede;
-  color:#000;
-}
-
-.container-sidebar-nav ul.sidebar-nav li.nav-1 a.active,
-#container-mobile-menu ul li.nav-1 a.active{
-  background: url("icon-explore-white.png") 30px 11px no-repeat;
-  background-size: 18px;
-  background-color:#1054A8;
-  border: 1px solid #1054A8;
-  color:#fff;
-}
-.container-sidebar-nav ul.sidebar-nav li.nav-2 a.active,
-#container-mobile-menu ul li.nav-2 a.active{
-  background: url("icon-data-white.png") 30px 11px no-repeat;
-  background-size: 18px;
-  background-color:#1054A8;
-  border: 1px solid #1054A8;
-  color:#fff;
-}
-.container-sidebar-nav ul.sidebar-nav li.nav-3 a.active,
-#container-mobile-menu ul li.nav-3 a.active{
-  background: url("icon-documentation-white.png") 30px 11px no-repeat;
-  background-size: 18px;
-  background-color:#1054A8;
-  border: 1px solid #1054A8;
-  color:#fff;
-}
-.container-sidebar-nav ul.sidebar-nav li.nav-4 a.active,
-#container-mobile-menu ul li.nav-4 a.active{
-  background: url("icon-downloads-white.png") 30px 11px no-repeat;
-  background-size: 18px;
-  background-color:#1054A8;
-  border: 1px solid #1054A8;
-  color:#fff;
-}
-
-/* rule exceptions for Documentation display */
-.container-sidebar-nav ul.sidebar-nav li.nav-3 a{
-  padding-right:0px;
-}
-
-.container-sidebar-nav ul.sidebar-nav li.nav-3 a img.inline{
-  display: inline-block;
-  width: 14px;
-  margin-left: 5px;
-  margin-bottom: -2px;
-}
-
-.sidebar-minified .container-sidebar-nav ul.sidebar-nav li.nav-3 a img.inline{
-  margin-left: -6px;
-}
 
 /* Sidebar bottom */
 .container-sidebar-bottom{
@@ -479,25 +372,6 @@ body{
   margin-right: auto;
 }
 
-#container-map-ui-top ul li a{
-  background: url(icon-nav-arrow-down.png) 85% 14px no-repeat;
-  background-size: 14px;
-  background-color:#fff;
-}
-
-#container-map-ui-top ul li a:hover{
-  background-color: #f5f5f5;
-}
-#container-map-ui-top ul li a.active{
-  background: url(icon-nav-arrow-up.png) 85% 14px no-repeat;
-  background-size: 14px;
-  background-color: #f5f5f5;
-}
-
-#container-map-ui-top ul li a.has-filter{
-  background-color: #e7ede2;
-  border: 1px solid #4ea324;
-}
 
 .bwn-content-wrapper {
   position: absolute;
@@ -576,20 +450,6 @@ ul.stats-list li{
   vertical-align: middle;
 }
 
-.container-map-ui ul li a{
-  text-decoration:none;
-  padding: 10px 50px 10px 20px;
-  margin-right: 6px;
-  color:#565656;
-  border-radius:20px;
-  background-color:#fff;
-  border:1px solid #bfbfbf;
-  font-weight: 400;
-  font-style: normal;
-  font-size: 16px;
-  line-height: 100%;
-  letter-spacing: 0%;
-}
 
 .container-map-ui ul li.hidden{
   display:none;
@@ -1470,40 +1330,13 @@ ul.stats-list li{
   }
 
   .container-mobile-menu-inner{
-    padding: 60px 10px 100px 40px;
-    max-width: 340px;
+    padding: 60px 20px 60px 20px;
   }
 
   .container-section-inner {
     padding-bottom: 100px;
   }
 
-  .container-mobile-menu-inner ul li.nav-5 a {
-    background: url("icon-GitHub.png") 30px 11px no-repeat;
-    background-size: 18px;
-  }
-
-  .container-mobile-menu-inner ul li.nav-6 a {
-    background: url("icon-feedback.png") 30px 11px no-repeat;
-    background-size: 18px;
-  }
-
-  .container-mobile-menu-inner ul li.nav-7 a {
-    background: url("icon-email.png") 30px 11px no-repeat;
-    background-size: 18px;
-  }
-
-  #container-mobile-menu .container-mobile-menu-inner ul li a.nav-item img{
-    display: inline-block;
-    width: 16px;
-    margin-left: 5px;
-    margin-bottom: -2px;
-  }
-
-  #container-mobile-menu .container-mobile-menu-inner ul li a{
-    max-width:216px;
-    margin-left:0px;
-  }
 
   .container-ak-hi-mobile{
     top: 135px;
@@ -1538,15 +1371,6 @@ ul.stats-list li{
     background-color:#1054A8;
   }
 
-  .mobile-header-map-filters .btn-close-map-filters{
-    background: url("icon-close-white.png") 0px 0px no-repeat;
-    position: absolute;
-    top: 22px;
-    right: 20px;
-    background-size: 18px;
-    width: 22px;
-    height: 22px;
-  }
 
   .filter-menu-footer{
     position: fixed;
@@ -1598,37 +1422,8 @@ ul.stats-list li{
     height: 20px;
   }
 
-  .map-content-intro .btn-close-map-info{
-    background: url("icon-close-dark.png") 0px 0px no-repeat;
-    background-size: 14px;
-  }
-  .map-content-stats .btn-close-map-info{
-    background: url("icon-close-white.png") 0px 0px no-repeat;
-    background-size: 14px;
-  }
 
-  #mobile-btn-info a{
-    background: url("icon-info.png") 14px 14px no-repeat;
-    background-size: 22px;
-    border-radius: 50px;
-    background-color: #fff;
-    border: 1px solid #bfbfbf;
-    z-index: 6;
-    width: 50px;
-    height: 50px;
-    display: block;
-  }
 
-  #mobile-btn-filters a{
-    background: url("icon-map-filters.png") 15px 18px no-repeat;
-    background-size: 20px;
-    border-radius: 50px;
-    background-color: #fff;
-    border: 1px solid #bfbfbf;
-    width: 50px;
-    height: 50px;
-    display: block;
-  }
 
   #container-downloads .container-section-inner {
     padding:60px 0px 100px 0px;
