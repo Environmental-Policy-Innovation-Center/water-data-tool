@@ -28,6 +28,11 @@ module WaterDataTool
     # Common ones are `templates`, `generators`, or `middleware`, for example.
     config.autoload_lib(ignore: %w[assets tasks])
 
+    # Lookbook preview files inherit from Lookbook::Preview, a development-only gem.
+    # Zeitwerk must ignore this directory in all environments; Lookbook discovers
+    # previews by scanning the filesystem itself, not through the autoloader.
+    Rails.autoloaders.main.ignore(Rails.root.join("app/components/previews"))
+
     # Configuration for the application, engines, and railties goes here.
     #
     # These settings can be overridden in specific environments using the files
