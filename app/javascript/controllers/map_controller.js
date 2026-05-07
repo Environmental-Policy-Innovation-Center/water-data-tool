@@ -396,8 +396,6 @@ export default class extends Controller {
   zoom48() {
     const input = document.querySelector(".mapboxgl-ctrl-geocoder--input")
     if (input) input.value = ""
-    const closeBtn = document.querySelector(".mapboxgl-ctrl-geocoder--icon-close")
-    if (closeBtn) closeBtn.click()
     this.map.fitBounds([[-125.5, 23.5], [-65.5, 49.5]], { padding: 20 })
   }
 

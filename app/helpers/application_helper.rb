@@ -2,7 +2,7 @@ module ApplicationHelper
   # Color is baked into each SVG; pass classes: for Tailwind sizing (e.g. 'w-5 h-5').
   ICON_CACHE = Hash.new do |h, k|
     h[k] = begin
-      File.read(Rails.root.join("app/assets/images/icons/#{k}.svg"))
+      File.read(Rails.root.join("app/assets/svgs/#{k}.svg"))
     rescue Errno::ENOENT
       ""
     end

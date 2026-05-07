@@ -10,33 +10,37 @@ This document tracks the migration away from legacy image assets and `water_tool
 
 ### What was done
 
-All image assets were consolidated into `app/assets/images/icons/` as the single source of truth. All other image directories were deleted.
+Assets are split into two locations by type:
 
-- Deleted the entire `app/assets/dwet_design_system_svgs/` directory — unused design system exports, including one fake SVG that embedded a PNG via base64.
-- Deleted all legacy root-level images (`logo-drinking-water-explorer.png`, `EPIC-logo.png`, `icon-map.jpg`, etc.).
-- Deleted territory/state SVGs (`alaska.svg`, `hawaii.svg`, `pr.svg`, `gu.svg`, `mp.svg`) — territory map buttons use plain text in `<a>` links, which is simpler and sufficient.
-- All `image_tag` calls in views updated to use `icons/` paths. No legacy image paths remain.
+- **`app/assets/svgs/`** — all SVG icons, read by the `icon()` helper via `File.read`
+- **`app/assets/images/`** — PNG logos only, served by the asset pipeline via `image_tag`
+
+Other directories were deleted:
+- `app/assets/dwet_design_system_svgs/` — unused design system exports, including one fake SVG that embedded a PNG via base64.
+- `app/assets/images/icons/` — the intermediate consolidation directory, replaced by the split above.
+- All legacy root-level images (`logo-drinking-water-explorer.png`, `EPIC-logo.png`, `icon-map.jpg`, etc.).
+- Territory/state SVGs (`alaska.svg`, `hawaii.svg`, `pr.svg`, `gu.svg`, `mp.svg`) — territory buttons use plain text, no SVGs needed.
 
 ### How icons are used
 
 | Pattern | Example | When to use |
 |---|---|---|
 | `icon()` helper | `<%= icon("arrow-down", classes: "h-4 w-4") %>` | All SVG icons — inlines SVG, supports `text-*` color via `fill="currentColor"` |
-| `image_tag "icons/..."` | `<%= image_tag "icons/water-logo.png" %>` | PNG logos only — no color theming needed |
+| `image_tag` | `<%= image_tag "water-logo.png" %>` | PNG logos only — no color theming needed |
 
 ### Current PNG files in use
 
-These three logo PNGs are intentionally kept as raster files for now:
+These three logo PNGs are intentionally kept as raster files for now (`app/assets/images/`):
 
 | File | Used in |
 |---|---|
-| `icons/water-logo.png` | `_sidebar.html.erb`, `reports/show.html.erb` |
-| `icons/mobile-water-logo.png` | `index.html.erb` mobile header |
-| `icons/epic-logo-small.png` | `_sidebar.html.erb`, `index.html.erb` mobile footer |
+| `water-logo.png` | `_sidebar.html.erb`, `reports/show.html.erb` |
+| `mobile-water-logo.png` | `index.html.erb` mobile header |
+| `epic-logo-small.png` | `_sidebar.html.erb`, `index.html.erb` mobile footer |
 
 > **Future:** These could be replaced with true vector SVGs if the design team provides properly exported source files (not PNG-embedded fakes). When that happens, switch to `icon()` helper and remove the PNGs. Not a priority until the files are available.
 
-### Current SVG inventory (`app/assets/images/icons/`)
+### Current SVG inventory (`app/assets/svgs/`)
 
 **Active (used via `icon()` helper):**
 
