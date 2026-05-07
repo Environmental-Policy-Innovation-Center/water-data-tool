@@ -1,6 +1,6 @@
 <%# Mobile header (hidden on desktop via CSS) %>
 <div class="mobile-header hide-for-desktop">
-  <div class="m-header-left"><%= image_tag "logo-drinking-water-explorer.png", class: "logo" %></div>
+  <div class="m-header-left"><%= image_tag "icons/mobile-water-logo.png", class: "logo" %></div>
   <h1>Drinking Water Explorer</h1>
   <div class="m-header-right">
     <a href="javascript:void(0)" id="mobile-menu-toggle" class="mobile-btn closed" data-action="click->nav#toggleMobile">
@@ -235,7 +235,7 @@
 
 <%# Mobile footer (hidden on desktop) %>
 <div class="mobile-footer hide-for-desktop">
-  <%= image_tag "EPIC-logo.png" %>
+  <%= image_tag "icons/epic-logo-small.png" %>
   <% if @last_updated %>
     <p>Last updated on <%= @last_updated.in_time_zone("Eastern Time (US & Canada)").strftime("%m/%d/%Y at %I:%M %p %Z") %></p>
   <% end %>
