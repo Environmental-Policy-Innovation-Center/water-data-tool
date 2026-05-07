@@ -4,13 +4,26 @@ module Etl
   module PostImportSteps
     module_function
 
-    def call
+    def call(imported_files:)
+      # imported_files is an array of file_keys (e.g. ["epa_sabs", "epa_sabs_geoms"])
+      # If no files were imported, skip all steps to avoid unnecessary DB work and
+      return if imported_files.empty?
+
+      # If any files were imported, bust the tile cache to ensure all tiles are regenerated with fresh data.
+      # This is a broad hammer but ensures no stale tiles are served after any import.
+      bust_tile_cache
+      TileCacheWarmJob.perform_later
+
+      # The following steps are only necessary if the geometry file was imported.
+      return unless imported_files.include?('epa_sabs_geoms')
+
       fix_invalid_geometries
       generate_centroids
       assign_state_codes
       build_county_associations
       rebuild_spatial_indexes
       build_place_crosswalks
+
     end
 
     # Repair invalid geometries using ST_Buffer trick. Runs until none remain
