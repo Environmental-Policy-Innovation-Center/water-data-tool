@@ -1,6 +1,6 @@
 <%# Mobile header (hidden on desktop via CSS) %>
 <div class="mobile-header hide-for-desktop">
-  <div class="m-header-left"><%= image_tag "mobile-water-logo.png", class: "logo" %></div>
+  <div class="m-header-left"><%= icon "water", classes: "w-9 h-auto inline-block" %></div>
   <h1>Drinking Water Explorer</h1>
   <div class="m-header-right">
     <a href="javascript:void(0)" id="mobile-menu-toggle" class="mobile-btn closed" data-action="click->nav#toggleMobile">
@@ -29,7 +29,7 @@
 <%# =====================================================
     Map view (default section)
     ===================================================== %>
-<div id="container-map" class="container-main-content"
+<div id="container-map" class="container-main-content w-full absolute left-0"
      data-controller="map filter filter-menu filter-layout"
      data-map-tile-url-value="/tiles/{z}/{x}/{y}">
 
@@ -84,7 +84,7 @@
   <div id="map"></div>
 
   <%# Region shortcut buttons (below +/− zoom controls) %>
-  <div id="container-ak-hi" class="container-ak-hi-desktop hide-for-table">
+  <div id="container-region-nav" class="container-region-nav-desktop hide-for-table">
     <a href="javascript:void(0);" title="Zoom to 48 states"
        data-action="click->map#zoom48">48</a>
     <a href="javascript:void(0);" title="Zoom to Alaska"
@@ -193,7 +193,7 @@
 <%# =====================================================
     Datasets section (hidden until user navigates)
     ===================================================== %>
-<div id="container-datasets" class="container-main-content hidden">
+<div id="container-datasets" class="container-main-content w-full absolute left-0 hidden">
   <div class="container-section-inner">
     <%= render "datasets" %>
   </div>
@@ -202,7 +202,7 @@
 <%# =====================================================
     Documentation section
     ===================================================== %>
-<div id="container-documentation" class="container-main-content hidden">
+<div id="container-documentation" class="container-main-content w-full absolute left-0 hidden">
   <div class="container-section-inner">
     <h3 class="placeholder">Documentation</h3>
   </div>
@@ -211,7 +211,7 @@
 <%# =====================================================
     Downloads section (hidden until user navigates)
     ===================================================== %>
-<div id="container-downloads" class="container-main-content hidden">
+<div id="container-downloads" class="container-main-content w-full absolute left-0 hidden">
   <div class="container-section-inner">
     <%= render "downloads" %>
   </div>
@@ -235,7 +235,7 @@
 
 <%# Mobile footer (hidden on desktop) %>
 <div class="mobile-footer hide-for-desktop">
-  <%= image_tag "epic-logo-small.png" %>
+  <%= icon "epic", classes: "w-9 h-auto" %>
   <% if @last_updated %>
     <p>Last updated on <%= @last_updated.in_time_zone("Eastern Time (US & Canada)").strftime("%m/%d/%Y at %I:%M %p %Z") %></p>
   <% end %>

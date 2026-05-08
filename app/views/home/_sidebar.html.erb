@@ -1,79 +1,77 @@
 <aside id="container-sidebar"
-       class="container-nav-panel hide-for-mobile"
+       class="group fixed top-2 left-4 bottom-8 bg-white rounded-xl shadow-md overflow-y-auto overflow-x-hidden z-[1000] max-md:hidden md:flex md:flex-col w-[250px]"
+       data-controller="sidebar"
+       data-action="resize@window->sidebar#handleResize"
        aria-label="Drinking Water Explorer navigation">
-  <div>
-    <button type="button"
-            id="toggle-button"
-            class="btn-toggle-panel open"
-            aria-label="Toggle sidebar width">
-      <%= icon "collapse", classes: "h-4 w-4 [.close_&]:hidden" %>
-      <%= icon "expand", classes: "hidden h-4 w-4 [.close_&]:inline-block" %>
-    </button>
+  <button type="button"
+          id="sidebar-toggle-button"
+          class="absolute top-2.5 right-2.5 p-0 m-0 cursor-pointer bg-white border border-neutral-300 rounded-full w-8 h-8 flex items-center justify-center hover:bg-neutral-100"
+          data-action="click->sidebar#toggle"
+          aria-label="Toggle sidebar width">
+    <%= icon "collapse", classes: "h-4 w-4 group-data-[sidebar-collapsed]:hidden" %>
+    <%= icon "expand", classes: "h-4 w-4 group-[&:not([data-sidebar-collapsed])]:hidden" %>
+  </button>
+
+  <div class="mt-10 flex justify-center px-3 group-data-[sidebar-collapsed]:invisible">
+    <%= icon "water", classes: "mx-auto block w-[85px] h-auto" %>
+  </div>
+  <div class="pl-5 pr-2.5 mt-6 min-w-[250px] group-data-[sidebar-collapsed]:invisible">
+    <h2 id="sidebar-intro-title" class="text-base font-bold leading-none text-[#565656] m-0 p-0">Drinking Water Explorer</h2>
+    <p class="text-base leading-snug text-[#102033] mt-2.5 mb-0">Use this tool to view and compare public water systems across the country.</p>
   </div>
 
-  <div class="container-logo flex justify-center px-3">
-    <%= image_tag "water-logo.png",
-          alt: "Drinking Water Explorer",
-          class: "mx-auto block h-auto max-w-full" %>
-  </div>
-  <div class="container-intro hide-when-collapsed-fade">
-    <h2 id="sidebar-intro-title">Drinking Water Explorer</h2>
-    <p>Use this tool to view and compare public water systems across the country.</p>
-  </div>
-  <nav class="container-sidebar-nav" aria-label="Main sections">
-    <ul class="sidebar-nav">
-      <li class="nav-1">
+  <nav id="sidebar-nav" class="mt-4 w-full" aria-label="Main sections">
+    <ul class="list-none m-0 p-0">
+      <li class="nav-1 group-data-[sidebar-collapsed]:flex group-data-[sidebar-collapsed]:justify-center">
         <a href="javascript:void(0);"
            data-section="map"
            data-action="click->nav#show"
-           class="nav-item nav-1 nav-map active flex items-center gap-3 px-4 py-2.5 bg-white text-[#181818] no-underline rounded-full border border-neutral-400 my-2 mx-5 hover:bg-neutral-200 hover:text-black [&.active]:bg-brand-primary [&.active]:border-brand-primary [&.active]:text-white"
+           class="nav-item nav-1 nav-map active flex items-center gap-3 px-4 py-2.5 bg-white text-[#181818] no-underline rounded-full border border-neutral-400 my-2 mx-5 hover:bg-neutral-200 hover:text-black [&.active]:bg-brand-primary [&.active]:border-brand-primary [&.active]:text-white group-data-[sidebar-collapsed]:mx-1 group-data-[sidebar-collapsed]:w-10 group-data-[sidebar-collapsed]:px-0 group-data-[sidebar-collapsed]:justify-center group-data-[sidebar-collapsed]:border-0 group-data-[sidebar-collapsed]:rounded-lg"
            aria-current="page">
           <%= icon "explore", classes: "h-[18px] w-[18px] shrink-0" %>
-          <span class="hide-when-collapsed">Explore the Map</span>
+          <span class="group-data-[sidebar-collapsed]:hidden">Explore the Map</span>
         </a>
       </li>
-      <li class="nav-2">
+      <li class="nav-2 group-data-[sidebar-collapsed]:flex group-data-[sidebar-collapsed]:justify-center">
         <a href="javascript:void(0);"
            data-section="datasets"
            data-action="click->nav#show"
-           class="nav-item nav-2 nav-datasets flex items-center gap-3 px-4 py-2.5 bg-white text-[#181818] no-underline rounded-full border border-neutral-400 my-2 mx-5 hover:bg-neutral-200 hover:text-black [&.active]:bg-brand-primary [&.active]:border-brand-primary [&.active]:text-white">
+           class="nav-item nav-2 nav-datasets flex items-center gap-3 px-4 py-2.5 bg-white text-[#181818] no-underline rounded-full border border-neutral-400 my-2 mx-5 hover:bg-neutral-200 hover:text-black [&.active]:bg-brand-primary [&.active]:border-brand-primary [&.active]:text-white group-data-[sidebar-collapsed]:mx-1 group-data-[sidebar-collapsed]:w-10 group-data-[sidebar-collapsed]:px-0 group-data-[sidebar-collapsed]:justify-center group-data-[sidebar-collapsed]:border-0 group-data-[sidebar-collapsed]:rounded-lg">
           <%= icon "data", classes: "h-[18px] w-[18px] shrink-0" %>
-          <span class="hide-when-collapsed">Datasets</span>
+          <span class="group-data-[sidebar-collapsed]:hidden">Datasets</span>
         </a>
       </li>
-      <li class="nav-3">
+      <li class="nav-3 group-data-[sidebar-collapsed]:flex group-data-[sidebar-collapsed]:justify-center">
         <a href="https://tech-team-data.s3.us-east-1.amazonaws.com/national-dw-tool/public-data-downloads/EPIC's+Drinking+Water+Explorer+Tool+-+Methodology.pdf"
            target="_blank"
            rel="noopener noreferrer"
            title="Opens in new tab"
-           class="nav-item nav-3 nav-documentation flex items-center gap-3 px-4 py-2.5 bg-white text-[#181818] no-underline rounded-full border border-neutral-400 my-2 mx-5 hover:bg-neutral-200 hover:text-black [&.active]:bg-brand-primary [&.active]:border-brand-primary [&.active]:text-white">
+           class="nav-item nav-3 nav-documentation flex items-center gap-3 px-4 py-2.5 bg-white text-[#181818] no-underline rounded-full border border-neutral-400 my-2 mx-5 hover:bg-neutral-200 hover:text-black [&.active]:bg-brand-primary [&.active]:border-brand-primary [&.active]:text-white group-data-[sidebar-collapsed]:mx-1 group-data-[sidebar-collapsed]:w-10 group-data-[sidebar-collapsed]:px-0 group-data-[sidebar-collapsed]:justify-center group-data-[sidebar-collapsed]:border-0 group-data-[sidebar-collapsed]:rounded-lg">
           <%= icon "documentation", classes: "h-[18px] w-[18px] shrink-0" %>
-          <span class="hide-when-collapsed">Documentation</span><%= icon "external-link", classes: "inline ml-1" %><span class="sr-only">(opens in new tab)</span>
+          <span class="group-data-[sidebar-collapsed]:hidden">Documentation</span><%= icon "external-link", classes: "inline ml-1 group-data-[sidebar-collapsed]:hidden" %><span class="sr-only">(opens in new tab)</span>
         </a>
       </li>
-      <li class="nav-4">
+      <li class="nav-4 group-data-[sidebar-collapsed]:flex group-data-[sidebar-collapsed]:justify-center">
         <a href="javascript:void(0);"
            data-section="downloads"
            data-action="click->nav#show"
-           class="nav-item nav-4 nav-downloads flex items-center gap-3 px-4 py-2.5 bg-white text-[#181818] no-underline rounded-full border border-neutral-400 my-2 mx-5 hover:bg-neutral-200 hover:text-black [&.active]:bg-brand-primary [&.active]:border-brand-primary [&.active]:text-white">
+           class="nav-item nav-4 nav-downloads flex items-center gap-3 px-4 py-2.5 bg-white text-[#181818] no-underline rounded-full border border-neutral-400 my-2 mx-5 hover:bg-neutral-200 hover:text-black [&.active]:bg-brand-primary [&.active]:border-brand-primary [&.active]:text-white group-data-[sidebar-collapsed]:mx-1 group-data-[sidebar-collapsed]:w-10 group-data-[sidebar-collapsed]:px-0 group-data-[sidebar-collapsed]:justify-center group-data-[sidebar-collapsed]:border-0 group-data-[sidebar-collapsed]:rounded-lg">
           <%= icon "downloads", classes: "h-[18px] w-[18px] shrink-0" %>
-          <span class="hide-when-collapsed">Downloads</span>
+          <span class="group-data-[sidebar-collapsed]:hidden">Downloads</span>
         </a>
       </li>
     </ul>
   </nav>
 
-  <div class="container-sidebar-bottom">
-    <div class="container-epic-logo flex justify-center px-3 py-3">
-      <%= image_tag "epic-logo-small.png",
-            alt: "Environmental Policy Innovation Center",
-            class: "mx-auto block h-auto max-w-full" %>
+  <div class="mt-auto pt-4 min-w-[250px] text-center text-[#565656] [&_a]:text-[#565656] group-data-[sidebar-collapsed]:invisible">
+    <div class="flex justify-center px-3 py-3">
+      <%= icon "epic", classes: "mx-auto block w-9 h-auto" %>
     </div>
     <p class="mt-2">
       (<a href="https://creativecommons.org/share-your-work/cclicenses/"
           target="_blank"
           rel="noopener noreferrer">cc</a>)
-      <span class="hide-when-collapsed">Environmental Policy<br>Center </span>(EPIC)
+      <span>Environmental Policy<br>Center </span>(EPIC)
     </p>
     <div class="my-6 space-y-2">
       <p>
@@ -88,11 +86,8 @@
            rel="noopener noreferrer"
            title="Opens in new tab">Feedback<%= icon "external-link", classes: "inline ml-0.5" %><span class="sr-only">(opens in new tab)</span></a>
       </p>
-      <p class="hide-when-collapsed">
+      <p>
         <a href="mailto:watertool@policyinnovation.org">Contact EPIC</a><%= icon "email", classes: "inline" %>
-      </p>
-      <p class="show-when-collapsed hide-when-expanded" style="display:none;">
-        <a href="mailto:watertool@policyinnovation.org">Contact</a><%= icon "email", classes: "inline w-3" %>
       </p>
     </div>
     <% if @last_updated %>

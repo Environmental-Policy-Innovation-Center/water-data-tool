@@ -1,6 +1,6 @@
 # Asset and CSS Deprecation Guide
 
-_Last updated: May 2026_
+_Last updated: May 2026 (session 2)_
 
 This document tracks the migration away from legacy image assets and `water_tool.css` toward a clean, Tailwind-only frontend. It serves as both a record of decisions made and a step-by-step implementation guide for future work sessions.
 
@@ -28,17 +28,19 @@ Other directories were deleted:
 | `icon()` helper | `<%= icon("arrow-down", classes: "h-4 w-4") %>` | All SVG icons — inlines SVG, supports `text-*` color via `fill="currentColor"` |
 | `image_tag` | `<%= image_tag "water-logo.png" %>` | PNG logos only — no color theming needed |
 
-### Current PNG files in use
+### Logo SVGs (replaced PNGs) ✅ COMPLETE
 
-These three logo PNGs are intentionally kept as raster files for now (`app/assets/images/`):
+All three logo PNGs have been replaced with SVGs via the `icon()` helper (`app/assets/svgs/`):
 
-| File | Used in |
-|---|---|
-| `water-logo.png` | `_sidebar.html.erb`, `reports/show.html.erb` |
-| `mobile-water-logo.png` | `index.html.erb` mobile header |
-| `epic-logo-small.png` | `_sidebar.html.erb`, `index.html.erb` mobile footer |
+| SVG file | Replaces | Used in |
+|---|---|---|
+| `water.svg` | `water-logo.png`, `mobile-water-logo.png` | `_sidebar.html.erb`, `index.html.erb` mobile header, `reports/show.html.erb` |
+| `epic.svg` | `epic-logo-small.png` | `_sidebar.html.erb`, `index.html.erb` mobile footer |
 
-> **Future:** These could be replaced with true vector SVGs if the design team provides properly exported source files (not PNG-embedded fakes). When that happens, switch to `icon()` helper and remove the PNGs. Not a priority until the files are available.
+**Notes:**
+- SVGs must use inline `fill` attributes (not embedded `<style>` blocks) to avoid CSS class collisions when multiple SVGs are inlined on the same page.
+- The `icon()` helper strips uppercase from filenames — `epic.svg` not `EPIC.svg`.
+- The PNG files (`water-logo.png`, `mobile-water-logo.png`, `epic-logo-small.png`) remain in `app/assets/images/` but are no longer referenced and can be deleted.
 
 ### Current SVG inventory (`app/assets/svgs/`)
 
@@ -125,19 +127,26 @@ The file is already partially migrated — several blocks were removed in earlie
 ---
 
 #### Chunk C: Sidebar layout
-**Status:** ⬜ Not started
+**Status:** ✅ Complete
 
-**CSS classes to remove:**
-`.container-nav-panel`, `#toggle-button`, `.container-logo`, `.container-intro`, `.container-intro h2/p`, `.container-sidebar-nav`, `.container-sidebar-bottom`, `.container-sidebar-bottom a/img`
+**CSS classes removed:**
+`.container-nav-panel`, `#toggle-button`, `#toggle-button:hover`, `.container-logo`, `.container-intro`, `.container-intro h2/p`, `.container-sidebar-nav`, `.container-sidebar-bottom`, `.container-sidebar-bottom a/img`, `.container-main-content` (layout rule), `#container-ak-hi` and variants (renamed)
 
-**Migration:**
-- Sidebar is `position: fixed; width: 250px; height: 100%` — replace with Tailwind `fixed w-[250px] h-full overflow-y-auto` on the `<aside>` in `_sidebar.html.erb`.
-- `#toggle-button` is a circular 32px button with absolute positioning — replace with Tailwind on the actual `<button>` element.
-- `.container-intro` uses `position: absolute; top: 152px` — this pixel-locked value is fragile. When migrating, consider switching the sidebar interior to a flex column layout instead of absolute positioning.
+**What was done:**
+- Full `_sidebar.html.erb` rewrite: legacy CSS class names → Tailwind utilities on every element.
+- Sidebar is a floating card: `fixed top-2 left-4 bottom-8 rounded-xl shadow-md overflow-y-auto overflow-x-hidden` — visible map gap on all sides.
+- Interior layout is `flex flex-col` (replaces pixel-locked `position: absolute` for logo, intro, nav, and bottom sections).
+- New **`sidebar_controller.js`** (Stimulus): handles expand/collapse toggle, viewport-based auto-collapse below 1280px, localStorage persistence, and shifts `#container-map-ui-top`, `.mapboxgl-ctrl-top-left`, and `#container-region-nav` horizontally when width changes.
+- Toggle button shows `collapse.svg` when open and `expand.svg` when closed, using `group-data-[sidebar-collapsed]:hidden` and `group-[&:not([data-sidebar-collapsed])]:hidden` (avoids Tailwind v4 `hidden` cascade conflict).
+- Logo and intro containers stay in the DOM when collapsed (using `invisible` + `overflow-x-hidden` + `min-w-[250px]` on text containers to prevent layout shift from text reflow at narrow width).
+- `.container-main-content` `left: 250px` → `left: 0` (sidebar now overlays the map, not pushing it).
+- `#container-ak-hi` renamed to `#container-region-nav` (covers 48 states + territories).
 
-**Files to update:** `_sidebar.html.erb`
+**Files updated:** `_sidebar.html.erb`, `sidebar_controller.js` (new), `water_tool.css`, `index.html.erb`
 
-**Test:** Sidebar renders at correct width. Logo, intro text, nav links, and bottom section all display correctly. Toggle button visible and functional. Sidebar scrolls when content overflows.
+**Tailwind v4 cascade gotchas encountered:**
+- `hidden md:flex` conflict: fix with `max-md:hidden md:flex` (scope each to non-overlapping media queries).
+- `hidden group-data-[...]:block` conflict: fix with `group-[&:not([...])]:hidden` (negation variant avoids the collision entirely).
 
 ---
 
@@ -162,18 +171,18 @@ The file is already partially migrated — several blocks were removed in earlie
 ---
 
 #### Chunk E: Core app layout (map + main content containers)
-**Status:** ⬜ Not started
+**Status:** 🔶 Partially complete
 
 **CSS to remove:**
 `.container-main-content`, `#container-map`, `#map`
 
 **Migration:**
-- `.container-main-content` is `position: absolute; left: 250px` — offset by sidebar width. Replace with Tailwind `absolute left-[250px]` or use a flex layout on the page wrapper.
-- `#container-map` is `position: absolute; inset: 0` — replace with Tailwind `absolute inset-0`.
-- `#map` is `width: 100%; height: 100%` → Tailwind `w-full h-full`.
-- **Do this chunk after Chunk C and Chunk D** — mobile and sidebar pixel values inform these dimensions.
+- `.container-main-content` `left: 250px` removed — sidebar now overlays the map (Chunk C). All four `.container-main-content` divs in `index.html.erb` now have Tailwind `w-full absolute left-0`; the CSS rule has been deleted. ✅
+- `#container-map` is `position: absolute; inset: 0` — replace with Tailwind `absolute inset-0`. ⬜
+- `#map` is `width: 100%; height: 100%` → Tailwind `w-full h-full`. ⬜
+- **Do remaining items after Chunk D** — mobile pixel values inform these dimensions.
 
-**Files to update:** `index.html.erb`, `_sidebar.html.erb` (structural wrappers)
+**Files to update:** `index.html.erb`
 
 **Test:** Map fills available space at all viewport sizes. No white gaps, no overflow. Sidebar and map don't overlap. Switching between map and table view works.
 
