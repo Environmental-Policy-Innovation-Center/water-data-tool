@@ -17,8 +17,13 @@ module Etl
       # The following steps are only necessary if the geometry file was imported.
       return unless imported_files.include?('epa_sabs_geoms')
 
+      # Tee up initial geoms repair and enrichment steps before refreshing
       fix_invalid_geometries
       generate_centroids
+      Rake::Task['cartographic:load'].invoke # Refresh before the spacial joins
+
+      # Assign state codes and county associations based on the new geometries,
+      # then rebuild spatial indexes and place crosswalks that depend on those joins.
       assign_state_codes
       build_county_associations
       rebuild_spatial_indexes
