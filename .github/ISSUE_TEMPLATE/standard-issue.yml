@@ -1,0 +1,194 @@
+name: Standard Issue
+description: Default template for features, bugs, and tasks
+title: "[Issue Type]: <Short Task Name>"
+labels: []
+assignees: []
+ 
+body:
+ 
+  - type: markdown
+    attributes:
+      value: |
+        ## ================================
+        ## ISSUE DETAILS
+        ## ================================
+ 
+  - type: dropdown
+    id: issue-type
+    attributes:
+      label: Issue Type
+      description: Select the type of issue.
+      options:
+        - Feature
+        - Bug
+        - Task
+    validations:
+      required: true
+ 
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      description: Select the priority level.
+      options:
+        - P1 - High
+        - P2 - Medium
+        - P3 - Low
+    validations:
+      required: true
+ 
+  - type: dropdown
+    id: level-of-effort
+    attributes:
+      label: Level of Effort
+      description: Select the estimated effort level.
+      options:
+        - "T-Shirt Size Small- (smaller effort issues)"
+        - "T-Shirt Size Medium- (mid-range effort issues)"
+        - "T-Shirt Size Large- (larger, longer effort issues)"
+        - "T-Shirt Size XLarge (very high effort — a spike issue should be created to assess the path forward)"
+    validations:
+      required: true
+ 
+  - type: input
+    id: assignee
+    attributes:
+      label: Owner / Assignee
+      description: "@mention the assignee or leave blank for triage."
+      placeholder: "@username"
+    validations:
+      required: true
+ 
+  - type: dropdown
+    id: team-area
+    attributes:
+      label: Team / Area
+      description: Select the team or area this issue belongs to.
+      options:
+        - Frontend
+        - Backend
+        - Data
+        - DevOps
+        - Design
+    validations:
+      required: true
+ 
+  - type: input
+    id: requested-by
+    attributes:
+      label: Requested By
+      description: Name or team requesting this work.
+      placeholder: "Name or Team"
+    validations:
+      required: true
+ 
+  - type: markdown
+    attributes:
+      value: |
+        ## ================================
+        ## OVERVIEW
+        ## ================================
+ 
+  - type: textarea
+    id: overview
+    attributes:
+      label: Overview
+      description: Describe the task, issue, or request.
+      placeholder: "Provide a clear and concise description..."
+    validations:
+      required: true
+ 
+  - type: markdown
+    attributes:
+      value: |
+        ## ================================
+        ## CONTEXT
+        ## ================================
+ 
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: |
+        Answer the following:
+        - Why is this needed?
+        - What problem does this solve?
+        - What happens if we do not address it?
+      placeholder: "Provide background and context..."
+    validations:
+      required: false
+ 
+  - type: markdown
+    attributes:
+      value: |
+        ## ================================
+        ## SUCCESS CRITERIA
+        ## ================================
+ 
+  - type: textarea
+    id: success-criteria
+    attributes:
+      label: Success Criteria
+      description: List the specific, testable conditions that define "done."
+      placeholder: |
+        - [ ] Requirement 1
+        - [ ] Requirement 2
+        - [ ] Requirement 3
+    validations:
+      required: false
+ 
+  - type: markdown
+    attributes:
+      value: |
+        ## ================================
+        ## DEPENDENCIES / BLOCKERS
+        ## ================================
+ 
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Dependencies / Blockers
+      description: List related tickets, blockers, approvals, or dependencies.
+      placeholder: |
+        - Depends on: #
+        - Blocks: #
+        - Waiting on approval from: 
+    validations:
+      required: false
+ 
+  - type: markdown
+    attributes:
+      value: |
+        ## ================================
+        ## LINKS / REFERENCES
+        ## ================================
+        > ⚠️ **Note for UI-related bugs:**If this is a UI bug, please treat this section as required and include screenshots to support reproduction and review.
+ 
+  - type: textarea
+    id: links-references
+    attributes:
+      label: Links / References
+      description: Add relevant documents, Figma links, screenshots, PRs, or supporting materials.
+      placeholder: |
+        - Figma: 
+        - Screenshot: 
+        - Related PR: #
+        - Supporting doc: 
+    validations:
+      required: false
+ 
+  - type: markdown
+    attributes:
+      value: |
+        ## ================================
+        ## NOTES
+        ## ================================
+ 
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
+      description: Additional implementation details, risks, or context.
+      placeholder: "Anything else the team should know..."
+    validations:
+      required: false
