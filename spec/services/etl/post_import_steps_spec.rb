@@ -107,20 +107,24 @@ RSpec.describe Etl::PostImportSteps do
   end
 
   describe ".call" do
-    before { insert_state("VT", VERMONT_STATE_WKT) }
+    before do
+      insert_state("VT", VERMONT_STATE_WKT)
+      allow(CartographicBoundaries).to receive(:load)
+      allow(TileCacheWarmJob).to receive(:perform_later)
+    end
 
     it "runs all steps in sequence without error" do
-      expect { described_class.call }.not_to raise_error
+      expect { described_class.call(imported_files: ["epa_sabs_geoms"]) }.not_to raise_error
     end
 
     it "populates centroids as part of the full run" do
-      described_class.call
+      described_class.call(imported_files: ["epa_sabs_geoms"])
       sag = ServiceAreaGeometry.find_by(pwsid: "VT0000001")
       expect(sag.centroid).not_to be_nil
     end
 
     it "assigns state codes as part of the full run" do
-      described_class.call
+      described_class.call(imported_files: ["epa_sabs_geoms"])
       expect(PublicWaterSystem.find_by(pwsid: "VT0000001").stusps).to eq("VT")
     end
   end

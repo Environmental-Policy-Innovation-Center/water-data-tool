@@ -46,7 +46,7 @@ module Etl
 
     def call
       entries = build_file_entries
-      new_imports = entries.select { |entry| @force || entry['last_updated'] > Etl::ImportLog.last_import_time(entry['file_key']) }
+      imported_files = []
       errors = []
 
       entries.each do |entry|
@@ -56,15 +56,15 @@ module Etl
         klass = FILE_IMPORTERS[file_key]
 
         begin
-          klass.new(file_url: entry["http_path"], last_updated: entry["last_updated"], force: @force).call
-       rescue => e # StandardError only — intentional fault isolation per importer
-         errors << { file_key: file_key, error: e }
-         Rails.logger.error("[ETL] #{file_key} failed: #{e.class} — #{e.message}")
+          result = klass.new(file_url: entry["http_path"], last_updated: entry["last_updated"], force: @force).call
+          imported_files << file_key if result == :imported
+        rescue => e
+          errors << { file_key: file_key, error: e }
+          Rails.logger.error("[ETL] #{file_key} failed: #{e.class} — #{e.message}")
         end
       end
 
-      # Run post-import steps with passed files to allow conditional logic
-      Etl::PostImportSteps.call(new_imports)
+      Etl::PostImportSteps.call(imported_files: imported_files)
 
       errors
     end

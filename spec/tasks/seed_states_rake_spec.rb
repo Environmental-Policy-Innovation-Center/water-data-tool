@@ -20,7 +20,7 @@ RSpec.describe "db:seed:states rake task" do
     allow(SeedImport).to receive(:download_data_files).and_return(tmp_dir)
 
     # Skip the two side-effect steps at the end of the task.
-    allow(Rake::Task["cartographic:load"]).to receive(:invoke)
+    allow(CartographicBoundaries).to receive(:load)
     allow(Etl::PostImportSteps).to receive(:call)
 
     write_fixture_files

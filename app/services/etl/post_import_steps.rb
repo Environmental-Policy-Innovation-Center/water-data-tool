@@ -5,8 +5,7 @@ module Etl
     module_function
 
     def call(imported_files:)
-      # imported_files is an array of file_keys (e.g. ["epa_sabs", "epa_sabs_geoms"])
-      # If no files were imported, skip all steps to avoid unnecessary DB work and
+      # imported_files is an array of successfully-imported file keys, e.g. ["epa_sabs", "epa_sabs_geoms"]
       return if imported_files.empty?
 
       # If any files were imported, bust the tile cache to ensure all tiles are regenerated with fresh data.
@@ -20,7 +19,7 @@ module Etl
       # Tee up initial geoms repair and enrichment steps before refreshing
       fix_invalid_geometries
       generate_centroids
-      Rake::Task['cartographic:load'].invoke # Refresh before the spacial joins
+      CartographicBoundaries.load
 
       # Assign state codes and county associations based on the new geometries,
       # then rebuild spatial indexes and place crosswalks that depend on those joins.
@@ -28,7 +27,6 @@ module Etl
       build_county_associations
       rebuild_spatial_indexes
       build_place_crosswalks
-
     end
 
     # Repair invalid geometries using ST_Buffer trick. Runs until none remain

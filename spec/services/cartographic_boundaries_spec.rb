@@ -1,37 +1,38 @@
 require "rails_helper"
-require "rake"
 
-RSpec.describe "cartographic rake tasks" do
-  before(:all) do
-    Rails.application.load_tasks unless Rake::Task.task_defined?("cartographic:load")
-  end
+RSpec.describe CartographicBoundaries do
+  let(:tmp_dir) { Rails.root.join("tmp/cartographic") }
+  let(:instance) { described_class.new }
 
   before do
-    Rake::Task["cartographic:load"].reenable
     allow($stdout).to receive(:puts)
     allow($stdout).to receive(:write)
     allow($stderr).to receive(:write)
   end
 
-  describe "cartographic:load" do
-    let(:tmp_dir) { Rails.root.join("tmp/cartographic") }
+  after do
+    FileUtils.rm_rf(tmp_dir)
+  end
 
-    after do
-      FileUtils.rm_rf(tmp_dir)
+  describe ".load" do
+    it "delegates to a new instance" do
+      expect_any_instance_of(described_class).to receive(:load)
+      described_class.load
     end
+  end
 
-    it "aborts if ogr2ogr is not available" do
-      allow_any_instance_of(Object).to receive(:system).with("which ogr2ogr > /dev/null 2>&1").and_return(false)
+  describe "#load" do
+    it "raises if ogr2ogr is not available" do
+      allow(instance).to receive(:system).with("which ogr2ogr > /dev/null 2>&1").and_return(false)
 
-      expect { Rake::Task["cartographic:load"].invoke }.to raise_error(SystemExit)
+      expect { instance.load }.to raise_error(RuntimeError, /ogr2ogr not found/)
     end
 
     context "with ogr2ogr available" do
       let(:ogr2ogr_calls) { [] }
 
       before do
-        # Track system calls; ogr2ogr uses array form, unzip uses array form
-        allow_any_instance_of(Object).to receive(:system) do |_obj, *args|
+        allow(instance).to receive(:system) do |*args|
           if args.first == "ogr2ogr"
             ogr2ogr_calls << args
           elsif args.first == "unzip"
@@ -39,14 +40,16 @@ RSpec.describe "cartographic rake tasks" do
             %w[cb_2022_us_state_500k cb_2022_us_county_500k cb_2022_us_place_500k].each do |name|
               FileUtils.touch(tmp_dir.join("#{name}.shp"))
             end
+          elsif args == ["which ogr2ogr > /dev/null 2>&1"]
+            # no-op: shouldn't be hit since ogr2ogr check uses the string form
           end
           true
         end
 
-        # Stub HTTP downloads
+        allow(instance).to receive(:system).with("which ogr2ogr > /dev/null 2>&1").and_return(true)
+
         allow(Net::HTTP).to receive(:start).and_yield(stub_http_client)
 
-        # Stub SQL operations for staging table workflow
         conn = ApplicationRecord.connection
         allow(conn).to receive(:execute).and_call_original
         allow(conn).to receive(:execute).with(/TRUNCATE|INSERT INTO "?cartographic|DROP TABLE IF EXISTS/).and_return(nil)
@@ -55,7 +58,7 @@ RSpec.describe "cartographic rake tasks" do
       end
 
       it "calls ogr2ogr for each of the three shapefile layers" do
-        Rake::Task["cartographic:load"].invoke
+        instance.load
 
         expect(ogr2ogr_calls.size).to eq(3)
         expect(ogr2ogr_calls[0]).to include("cartographic_states_staging")
@@ -64,7 +67,7 @@ RSpec.describe "cartographic rake tasks" do
       end
 
       it "uses PROMOTE_TO_MULTI and EPSG:4326 for correct geometry handling" do
-        Rake::Task["cartographic:load"].invoke
+        instance.load
 
         ogr2ogr_calls.each do |args|
           expect(args).to include("PROMOTE_TO_MULTI")
