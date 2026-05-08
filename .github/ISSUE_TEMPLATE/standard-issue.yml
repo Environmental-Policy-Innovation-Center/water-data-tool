@@ -8,11 +8,9 @@ body:
  
   - type: markdown
     attributes:
-      value: |
-        ## ================================
+      value: | 
         ## ISSUE DETAILS
-        ## ================================
- 
+        
   - type: dropdown
     id: issue-type
     attributes:
@@ -43,9 +41,9 @@ body:
       label: Level of Effort
       description: Select the estimated effort level.
       options:
-        - "T-Shirt Size Small- (smaller effort issues)"
-        - "T-Shirt Size Medium- (mid-range effort issues)"
-        - "T-Shirt Size Large- (larger, longer effort issues)"
+        - "T-Shirt Size Small (smaller effort issues)"
+        - "T-Shirt Size Medium (mid-range effort issues)"
+        - "T-Shirt Size Large (larger, longer effort issues)"
         - "T-Shirt Size XLarge (very high effort — a spike issue should be created to assess the path forward)"
     validations:
       required: true
@@ -82,13 +80,6 @@ body:
     validations:
       required: true
  
-  - type: markdown
-    attributes:
-      value: |
-        ## ================================
-        ## OVERVIEW
-        ## ================================
- 
   - type: textarea
     id: overview
     attributes:
@@ -97,13 +88,6 @@ body:
       placeholder: "Provide a clear and concise description..."
     validations:
       required: true
- 
-  - type: markdown
-    attributes:
-      value: |
-        ## ================================
-        ## CONTEXT
-        ## ================================
  
   - type: textarea
     id: context
@@ -118,13 +102,6 @@ body:
     validations:
       required: false
  
-  - type: markdown
-    attributes:
-      value: |
-        ## ================================
-        ## SUCCESS CRITERIA
-        ## ================================
- 
   - type: textarea
     id: success-criteria
     attributes:
@@ -136,13 +113,6 @@ body:
         - [ ] Requirement 3
     validations:
       required: false
- 
-  - type: markdown
-    attributes:
-      value: |
-        ## ================================
-        ## DEPENDENCIES / BLOCKERS
-        ## ================================
  
   - type: textarea
     id: dependencies
@@ -156,19 +126,13 @@ body:
     validations:
       required: false
  
-  - type: markdown
-    attributes:
-      value: |
-        ## ================================
-        ## LINKS / REFERENCES
-        ## ================================
-        > ⚠️ **Note for UI-related bugs:**If this is a UI bug, please treat this section as required and include screenshots to support reproduction and review.
- 
   - type: textarea
     id: links-references
     attributes:
       label: Links / References
-      description: Add relevant documents, Figma links, screenshots, PRs, or supporting materials.
+      description: |
+         Add relevant documents, Figma links, screenshots, PRs, or supporting materials.
+         ⚠️ **Note for UI-related bugs:**If this is a UI bug, please treat this section as required and include screenshots to support reproduction and review.
       placeholder: |
         - Figma: 
         - Screenshot: 
@@ -176,13 +140,6 @@ body:
         - Supporting doc: 
     validations:
       required: false
- 
-  - type: markdown
-    attributes:
-      value: |
-        ## ================================
-        ## NOTES
-        ## ================================
  
   - type: textarea
     id: notes
