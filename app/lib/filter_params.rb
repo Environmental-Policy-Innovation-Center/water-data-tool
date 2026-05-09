@@ -11,7 +11,7 @@ class FilterParams
     :area_min, :area_max,
 
     # Range filters — demographics
-    :density_min, :density_max, :most_common_rate_tier,
+    :density_min, :density_max, :no_rate_info,
     :total_population_min, :total_population_max,
     :poverty_rate_min, :poverty_rate_max,
     :population_in_poverty_rate_min, :population_in_poverty_rate_max,
@@ -60,7 +60,7 @@ class FilterParams
     *Filterable::PAPERWORK_VIOLATIONS_COLS.flat_map { |col| [:"#{col}_min", :"#{col}_max"] },
 
     # Array params
-    {owner_type: [], primacy_type: [], pop_cat_5: []}
+    {owner_type: [], primacy_type: [], pop_cat_5: [], most_common_rate_tier: []}
   ].freeze
 
   def self.permit(params)

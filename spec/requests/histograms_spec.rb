@@ -23,6 +23,28 @@ RSpec.describe "Histograms", type: :request do
           expect(response).to have_http_status(:ok), "Expected 200 for field=#{field}"
         end
       end
+
+      it "routes demographic fields to Demographic model" do
+        pws = create(:public_water_system)
+        create(:demographic, public_water_system: pws, pwsid: pws.pwsid, poverty_rate: 25.0)
+
+        get histogram_path, params: {field: "poverty_rate"}
+
+        expect(response).to have_http_status(:ok)
+        json = response.parsed_body
+        expect(json["domain_min"].to_f).to be_within(0.01).of(25.0)
+      end
+
+      it "routes trend fields to TrendDatum model with min_threshold nil (includes negatives)" do
+        pws = create(:public_water_system)
+        create(:trend_datum, public_water_system: pws, pwsid: pws.pwsid, population_pct_change_capped: -3.5)
+
+        get histogram_path, params: {field: "population_pct_change_capped"}
+
+        expect(response).to have_http_status(:ok)
+        json = response.parsed_body
+        expect(json["domain_min"].to_f).to be <= -3.5
+      end
     end
 
     context "with an invalid field" do

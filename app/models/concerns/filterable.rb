@@ -112,7 +112,8 @@ module Filterable
 
       demographic_cols_active = demographic_range_filters.any? { |col| params[:"#{col}_min"].present? || params[:"#{col}_max"].present? }
       demographic_cols_active ||= params[:density_min].present? || params[:density_max].present?
-      demographic_cols_active ||= params[:most_common_rate_tier].present?
+      demographic_cols_active ||= Array(params[:most_common_rate_tier]).any?(&:present?)
+      demographic_cols_active ||= params[:no_rate_info] == "true"
 
       if demographic_cols_active
         scope, joined = left_join_once(scope, joined, :demographic)
@@ -129,7 +130,15 @@ module Filterable
 
       scope = scope.where("demographics.population_density >= ?", params[:density_min].to_d) if params[:density_min].present?
       scope = scope.where("demographics.population_density <= ?", params[:density_max].to_d) if params[:density_max].present?
-      scope = scope.where("demographics.most_common_rate_tier = ?", params[:most_common_rate_tier]) if params[:most_common_rate_tier].present?
+      tiers = Array(params[:most_common_rate_tier]).select(&:present?)
+      no_info = params[:no_rate_info] == "true"
+      if tiers.any? || no_info
+        demog_t = Arel::Table.new(:demographics)
+        tier_node = tiers.any? ? demog_t[:most_common_rate_tier].in(tiers) : nil
+        nil_node = no_info ? demog_t[:most_common_rate_tier].eq(nil).or(demog_t[:most_common_rate_tier].eq("")) : nil
+        rate_node = [tier_node, nil_node].compact.inject { |m, c| m.or(c) }
+        scope = scope.where(rate_node)
+      end
 
       # --- Environmental justice range filters ---
       ej_range_filters = %i[cejst_disadvantaged_pct svi_overall_pctl cvi_overall_score]
@@ -154,14 +163,24 @@ module Filterable
         scope, joined = left_join_once(scope, joined, :funding_summary)
       end
 
-      funding_range_filters.each do |col|
-        if params[:"#{col}_min"].present?
-          scope = scope.where("funding_summaries.#{col} >= ?", params[:"#{col}_min"].to_d)
+      funding_table = Arel::Table.new(:funding_summaries)
+      funding_col_range = ->(col, min_val, max_val) {
+        arel_col = funding_table[col]
+        if min_val.present? && max_val.present?
+          arel_col.gteq(min_val.to_d).and(arel_col.lteq(max_val.to_d))
+        elsif min_val.present?
+          arel_col.gteq(min_val.to_d)
+        else
+          arel_col.lteq(max_val.to_d)
         end
-        if params[:"#{col}_max"].present?
-          scope = scope.where("funding_summaries.#{col} <= ?", params[:"#{col}_max"].to_d)
-        end
+      }
+      funding_nodes = funding_range_filters.filter_map do |col|
+        min_val = params[:"#{col}_min"]
+        max_val = params[:"#{col}_max"]
+        next unless min_val.present? || max_val.present?
+        funding_col_range.call(col, min_val, max_val)
       end
+      scope = scope.where(funding_nodes.inject { |m, c| m.or(c) }) if funding_nodes.any?
 
       # --- Watershed hazard range filters ---
       hazard_range_filters = %i[
@@ -173,17 +192,27 @@ module Filterable
         scope, joined = left_join_once(scope, joined, :watershed_hazard)
       end
 
-      hazard_range_filters.each do |col|
-        if params[:"#{col}_min"].present?
-          scope = scope.where("watershed_hazards.#{col} >= ?", params[:"#{col}_min"].to_i)
+      hazard_table = Arel::Table.new(:watershed_hazards)
+      hazard_col_range = ->(col, min_val, max_val) {
+        arel_col = hazard_table[col]
+        if min_val.present? && max_val.present?
+          arel_col.gteq(min_val.to_i).and(arel_col.lteq(max_val.to_i))
+        elsif min_val.present?
+          arel_col.gteq(min_val.to_i)
+        else
+          arel_col.lteq(max_val.to_i)
         end
-        if params[:"#{col}_max"].present?
-          scope = scope.where("watershed_hazards.#{col} <= ?", params[:"#{col}_max"].to_i)
-        end
+      }
+      hazard_nodes = hazard_range_filters.filter_map do |col|
+        min_val = params[:"#{col}_min"]
+        max_val = params[:"#{col}_max"]
+        next unless min_val.present? || max_val.present?
+        hazard_col_range.call(col, min_val, max_val)
       end
+      scope = scope.where(hazard_nodes.inject { |m, c| m.or(c) }) if hazard_nodes.any?
 
       # --- Trend range filters ---
-      trend_range_filters = %i[population_pct_change mhi_pct_change]
+      trend_range_filters = %i[population_pct_change_capped mhi_pct_change_capped]
 
       if trend_range_filters.any? { |col| params[:"#{col}_min"].present? || params[:"#{col}_max"].present? }
         scope, joined = left_join_once(scope, joined, :trend_datum)
