@@ -41,6 +41,8 @@
 #  index_demographics_on_pwsid  (pwsid) UNIQUE
 #
 class Demographic < ApplicationRecord
+  include Histogrammable
+
   belongs_to :public_water_system, foreign_key: "pwsid", primary_key: "pwsid", inverse_of: :demographic
 
   validates :pwsid, presence: true

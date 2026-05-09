@@ -18,6 +18,8 @@
 #  index_watershed_hazards_on_pwsid  (pwsid) UNIQUE
 #
 class WatershedHazard < ApplicationRecord
+  include Histogrammable
+
   belongs_to :public_water_system, foreign_key: "pwsid", primary_key: "pwsid", inverse_of: :watershed_hazard
 
   validates :pwsid, presence: true
