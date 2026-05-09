@@ -22,6 +22,8 @@
 #  index_environmental_justices_on_pwsid  (pwsid) UNIQUE
 #
 class EnvironmentalJustice < ApplicationRecord
+  include Histogrammable
+
   belongs_to :public_water_system, foreign_key: "pwsid", primary_key: "pwsid", inverse_of: :environmental_justice
 
   validates :pwsid, presence: true
