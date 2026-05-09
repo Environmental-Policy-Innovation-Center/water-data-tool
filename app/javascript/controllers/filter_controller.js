@@ -83,15 +83,110 @@ const FILTERS = [
   { type: "select",  group: 5,  param: "density_min", id: "density-min", sentinel: "0" },
   { type: "select",  group: 5,  param: "density_max", id: "density-max", sentinel: "999999" },
 
+  // ── Change ───────────────────────────────────────────────────────────────
+  { type: "range", group: 5, param_min: "population_pct_change_capped_min", param_max: "population_pct_change_capped_max",
+    parentId: "trend-pop-change",    panelId: "subcat-pop-change",
+    minInputId: "min-pop-change",    maxInputId: "max-pop-change" },
+  { type: "range", group: 5, param_min: "mhi_pct_change_capped_min", param_max: "mhi_pct_change_capped_max",
+    parentId: "trend-mhi-change",    panelId: "subcat-mhi-change",
+    minInputId: "min-mhi-change",    maxInputId: "max-mhi-change" },
+
+  // ── Socioeconomics ───────────────────────────────────────────────────────
+  { type: "range", group: 5, param_min: "poverty_rate_min",            param_max: "poverty_rate_max",
+    parentId: "more-poverty-rate",   panelId: "subcat-poverty-rate",
+    minInputId: "min-poverty-rate",  maxInputId: "max-poverty-rate" },
+  { type: "range", group: 5, param_min: "unemployment_rate_min",       param_max: "unemployment_rate_max",
+    parentId: "more-unemployment-rate", panelId: "subcat-unemployment-rate",
+    minInputId: "min-unemployment-rate", maxInputId: "max-unemployment-rate" },
+  { type: "range", group: 5, param_min: "median_household_income_min", param_max: "median_household_income_max",
+    parentId: "more-median-income",  panelId: "subcat-median-income",
+    minInputId: "min-median-income", maxInputId: "max-median-income" },
+  { type: "range", group: 5, param_min: "bachelors_degree_rate_min",   param_max: "bachelors_degree_rate_max",
+    parentId: "more-bachelors-rate", panelId: "subcat-bachelors-rate",
+    minInputId: "min-bachelors-rate", maxInputId: "max-bachelors-rate" },
+  { type: "range", group: 5, param_min: "age_under_5_rate_min",        param_max: "age_under_5_rate_max",
+    parentId: "more-age-under-5",    panelId: "subcat-age-under-5",
+    minInputId: "min-age-under-5",   maxInputId: "max-age-under-5" },
+  { type: "range", group: 5, param_min: "age_over_61_rate_min",        param_max: "age_over_61_rate_max",
+    parentId: "more-age-over-61",    panelId: "subcat-age-over-61",
+    minInputId: "min-age-over-61",   maxInputId: "max-age-over-61" },
+
+  // ── Race/Ethnicity ───────────────────────────────────────────────────────
+  { type: "range", group: 5, param_min: "poc_rate_min",          param_max: "poc_rate_max",
+    parentId: "more-poc-rate",       panelId: "subcat-poc-rate",
+    minInputId: "min-poc-rate",      maxInputId: "max-poc-rate" },
+  { type: "range", group: 5, param_min: "white_rate_min",        param_max: "white_rate_max",
+    parentId: "more-white-rate",     panelId: "subcat-white-rate",
+    minInputId: "min-white-rate",    maxInputId: "max-white-rate" },
+  { type: "range", group: 5, param_min: "black_rate_min",        param_max: "black_rate_max",
+    parentId: "more-black-rate",     panelId: "subcat-black-rate",
+    minInputId: "min-black-rate",    maxInputId: "max-black-rate" },
+  { type: "range", group: 5, param_min: "aian_rate_min",         param_max: "aian_rate_max",
+    parentId: "more-aian-rate",      panelId: "subcat-aian-rate",
+    minInputId: "min-aian-rate",     maxInputId: "max-aian-rate" },
+  { type: "range", group: 5, param_min: "napi_rate_min",         param_max: "napi_rate_max",
+    parentId: "more-napi-rate",      panelId: "subcat-napi-rate",
+    minInputId: "min-napi-rate",     maxInputId: "max-napi-rate" },
+  { type: "range", group: 5, param_min: "asian_rate_min",        param_max: "asian_rate_max",
+    parentId: "more-asian-rate",     panelId: "subcat-asian-rate",
+    minInputId: "min-asian-rate",    maxInputId: "max-asian-rate" },
+  { type: "range", group: 5, param_min: "hispanic_rate_min",     param_max: "hispanic_rate_max",
+    parentId: "more-hispanic-rate",  panelId: "subcat-hispanic-rate",
+    minInputId: "min-hispanic-rate", maxInputId: "max-hispanic-rate" },
+  { type: "range", group: 5, param_min: "other_race_rate_min",   param_max: "other_race_rate_max",
+    parentId: "more-other-race-rate", panelId: "subcat-other-race-rate",
+    minInputId: "min-other-race-rate", maxInputId: "max-other-race-rate" },
+  { type: "range", group: 5, param_min: "mixed_race_rate_min",   param_max: "mixed_race_rate_max",
+    parentId: "more-mixed-race-rate", panelId: "subcat-mixed-race-rate",
+    minInputId: "min-mixed-race-rate", maxInputId: "max-mixed-race-rate" },
+
+  // ── Vulnerability ────────────────────────────────────────────────────────
+  { type: "range", group: 5, param_min: "cejst_disadvantaged_pct_min", param_max: "cejst_disadvantaged_pct_max",
+    parentId: "more-cejst", panelId: "subcat-cejst",
+    minInputId: "min-cejst", maxInputId: "max-cejst" },
+  { type: "range", group: 5, param_min: "svi_overall_pctl_min",        param_max: "svi_overall_pctl_max",
+    parentId: "more-svi",   panelId: "subcat-svi",
+    minInputId: "min-svi",   maxInputId: "max-svi" },
+  { type: "range", group: 5, param_min: "cvi_overall_score_min",       param_max: "cvi_overall_score_max",
+    parentId: "more-cvi",   panelId: "subcat-cvi",
+    minInputId: "min-cvi",   maxInputId: "max-cvi" },
+
   // ── More (menu 10) ───────────────────────────────────────────────────────
-  { type: "bool",    group: 10, param: "times_funded_min",                    id: "more-has-srf-financing",          value: "1" },
-  { type: "bool",    group: 10, param: "total_srf_assistance_min",            id: "more-has-srf-assistance",         value: "1" },
-  { type: "bool",    group: 10, param: "total_principal_forgiveness_min",     id: "more-has-principal-forgiveness",  value: "1" },
-  { type: "bool",    group: 10, param: "num_facilities_min",                  id: "more-num-facilities",             value: "1" },
-  { type: "bool",    group: 10, param: "permit_effluent_violations_min",      id: "more-permit-effluent-violations", value: "1" },
-  { type: "bool",    group: 10, param: "open_underground_storage_tanks_min",  id: "more-open-usts",                  value: "1" },
-  { type: "bool",    group: 10, param: "risk_management_plan_facilities_min", id: "more-rmps",                       value: "1" },
-  { type: "bool",    group: 10, param: "impaired_streams_303d_min",           id: "more-impaired-streams",           value: "1" },
+  // ── Financial ─────────────────────────────────────────────────────────────
+  { type: "group", group: 10, param: "most_common_rate_tier",
+    valueMap: {
+      "rate-tier-lt125":   "<$125",
+      "rate-tier-125-249": "$125-249",
+      "rate-tier-250-499": "$250-499",
+      "rate-tier-500-749": "$500-749",
+      "rate-tier-750-999": "$750-999",
+      "rate-tier-gt1000":  ">$1000",
+    }
+  },
+  { type: "bool", group: 10, param: "no_rate_info", id: "rate-tier-no-info", value: "true" },
+
+  // ── Funding ───────────────────────────────────────────────────────────────
+  { type: "range", group: 10, param_min: "times_funded_min",                  param_max: "times_funded_max",
+    parentId: "more-has-srf-financing",       panelId: "subcat-srf-financing",
+    minInputId: "min-srf-financing",          maxInputId: "max-srf-financing" },
+  { type: "range", group: 10, param_min: "total_srf_assistance_min",          param_max: "total_srf_assistance_max",
+    parentId: "more-has-srf-assistance",      panelId: "subcat-srf-assistance",
+    minInputId: "min-srf-assistance",         maxInputId: "max-srf-assistance" },
+  { type: "range", group: 10, param_min: "total_principal_forgiveness_min",   param_max: "total_principal_forgiveness_max",
+    parentId: "more-has-principal-forgiveness", panelId: "subcat-srf-forgiveness",
+    minInputId: "min-srf-forgiveness",        maxInputId: "max-srf-forgiveness" },
+
+  // ── Environmental — Watershed Hazards (health_subcat pattern) ─────────────
+  { type: "health_subcat", group: 10, parentId: "more-watershed-hazards",
+    panelId: "subcat-watershed-hazards",
+    subcats: [
+      { id: "more-num-facilities",             param_min: "num_facilities_min",                  param_max: "num_facilities_max",                  minInputId: "min-num-facilities",    maxInputId: "max-num-facilities",    sliderPanelId: "slider-num-facilities" },
+      { id: "more-permit-effluent-violations", param_min: "permit_effluent_violations_min",      param_max: "permit_effluent_violations_max",      minInputId: "min-permit-violations", maxInputId: "max-permit-violations", sliderPanelId: "slider-permit-violations" },
+      { id: "more-open-usts",                  param_min: "open_underground_storage_tanks_min",  param_max: "open_underground_storage_tanks_max",  minInputId: "min-open-usts",         maxInputId: "max-open-usts",         sliderPanelId: "slider-open-usts" },
+      { id: "more-rmps",                       param_min: "risk_management_plan_facilities_min", param_max: "risk_management_plan_facilities_max", minInputId: "min-rmps",              maxInputId: "max-rmps",              sliderPanelId: "slider-rmps" },
+      { id: "more-impaired-streams",           param_min: "impaired_streams_303d_min",           param_max: "impaired_streams_303d_max",           minInputId: "min-impaired-streams",  maxInputId: "max-impaired-streams",  sliderPanelId: "slider-impaired-streams" },
+    ]
+  },
 ]
 
 // Filters with .param contribute a single URL key counted directly.
@@ -493,25 +588,31 @@ export default class extends Controller {
 
     const countKeys = (keys) => keys.filter(k => p[k] != null && p[k] !== "").length
 
-    const countHealthSubcats = (group) =>
-      HEALTH_SUBCAT_FILTERS.filter(f => f.group === group).filter(f =>
-        f.subcats.some(s => p[s.param_min] != null || p[s.param_max] != null)
-      ).length
+    // Count range-type filters by DOM checkbox state: each checked parentId = +1
+    const countRangeCheckboxes = (group) =>
+      RANGE_FILTERS.filter(f => f.group === group)
+        .reduce((sum, f) => sum + (document.getElementById(f.parentId)?.checked ? 1 : 0), 0)
 
-    const countRanges = (group) =>
-      RANGE_FILTERS.filter(f => f.group === group).filter(f =>
-        p[f.param_min] != null || p[f.param_max] != null
-      ).length
+    // Count health_subcat-type filters: 1 for parent + 1 per checked subcat checkbox
+    const countHealthSubcatCheckboxes = (group) =>
+      HEALTH_SUBCAT_FILTERS.filter(f => f.group === group)
+        .reduce((sum, f) => {
+          const parentChecked = document.getElementById(f.parentId)?.checked ? 1 : 0
+          const subcatCount = f.subcats.filter(s => document.getElementById(s.id)?.checked).length
+          return sum + parentChecked + subcatCount
+        }, 0)
 
     // Groups 1–5: if collapsed into More, add their count to More's badge instead
     let moreCount = countKeys(GROUP_KEYS[10] || [])
+      + countRangeCheckboxes(10)
+      + countHealthSubcatCheckboxes(10)
 
     for (const [groupStr, keys] of Object.entries(GROUP_KEYS)) {
       const group = Number(groupStr)
       if (group === 10) continue
 
       const li = document.querySelector(`.filter-${group}`)
-      const count = countKeys(keys) + countHealthSubcats(group) + countRanges(group)
+      const count = countKeys(keys) + countRangeCheckboxes(group) + countHealthSubcatCheckboxes(group)
 
       if (li?.classList.contains("hidden")) {
         moreCount += count

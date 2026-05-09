@@ -124,96 +124,46 @@
         <div id="subcat-health-5yr" class="hidden pl-4 pb-1" data-subcat-panel
              data-action="change->filter#syncParentFromSubcat">
         <ul class="space-y-1 mt-1">
-          <li>
-            <div class="flex items-center justify-between">
-              <div><input type="checkbox" class="toggle" id="viols-groundwater-5yr">
-              <label for="viols-groundwater-5yr">Ground water rule</label>
-              <span class="relative ml-1 inline-block cursor-default text-neutral-800" data-controller="tooltip" data-tooltip-text-value="<%= filter_tooltips['groundwater_rule'] %>" data-action="mouseenter->tooltip#show mouseleave->tooltip#hide"><%= icon "info", classes: "h-3.5 w-3.5 inline align-middle" %></span></div>
-              <button type="button" class="ml-1 text-neutral-400 hover:text-neutral-600" data-action="click->filter#toggleSubcatPanel" data-panel-id="slider-groundwater-5yr" aria-expanded="false" aria-controls="slider-groundwater-5yr"><%= icon "arrow-down", classes: "h-3.5 w-3.5 transition-transform duration-150" %></button>
-            </div>
-            <%= render "slider_panel", panel_id: "slider-groundwater-5yr", field: "groundwater_rule_5yr", min_input_id: "min-groundwater-5yr", max_input_id: "max-groundwater-5yr" %>
-          </li>
-          <li>
-            <div class="flex items-center justify-between">
-              <div><input type="checkbox" class="toggle" id="viols-surface-water-5yr">
-              <label for="viols-surface-water-5yr">Surface water treatment rules</label>
-              <span class="relative ml-1 inline-block cursor-default text-neutral-800" data-controller="tooltip" data-tooltip-text-value="<%= filter_tooltips['surface_water_treatment'] %>" data-action="mouseenter->tooltip#show mouseleave->tooltip#hide"><%= icon "info", classes: "h-3.5 w-3.5 inline align-middle" %></span></div>
-              <button type="button" class="ml-1 text-neutral-400 hover:text-neutral-600" data-action="click->filter#toggleSubcatPanel" data-panel-id="slider-surface-water-5yr" aria-expanded="false" aria-controls="slider-surface-water-5yr"><%= icon "arrow-down", classes: "h-3.5 w-3.5 transition-transform duration-150" %></button>
-            </div>
-            <%= render "slider_panel", panel_id: "slider-surface-water-5yr", field: "surface_water_treatment_5yr", min_input_id: "min-surface-water-5yr", max_input_id: "max-surface-water-5yr" %>
-          </li>
-          <li>
-            <div class="flex items-center justify-between">
-              <div><input type="checkbox" class="toggle" id="viols-lead-copper-5yr">
-              <label for="viols-lead-copper-5yr">Lead &amp; copper</label>
-              <span class="relative ml-1 inline-block cursor-default text-neutral-800" data-controller="tooltip" data-tooltip-text-value="<%= filter_tooltips['lead_and_copper'] %>" data-action="mouseenter->tooltip#show mouseleave->tooltip#hide"><%= icon "info", classes: "h-3.5 w-3.5 inline align-middle" %></span></div>
-              <button type="button" class="ml-1 text-neutral-400 hover:text-neutral-600" data-action="click->filter#toggleSubcatPanel" data-panel-id="slider-lead-copper-5yr" aria-expanded="false" aria-controls="slider-lead-copper-5yr"><%= icon "arrow-down", classes: "h-3.5 w-3.5 transition-transform duration-150" %></button>
-            </div>
-            <%= render "slider_panel", panel_id: "slider-lead-copper-5yr", field: "lead_and_copper_5yr", min_input_id: "min-lead-copper-5yr", max_input_id: "max-lead-copper-5yr" %>
-          </li>
-          <li>
-            <div class="flex items-center justify-between">
-              <div><input type="checkbox" class="toggle" id="viols-radionuclides-5yr">
-              <label for="viols-radionuclides-5yr">Radionuclides</label>
-              <span class="relative ml-1 inline-block cursor-default text-neutral-800" data-controller="tooltip" data-tooltip-text-value="<%= filter_tooltips['radionuclides'] %>" data-action="mouseenter->tooltip#show mouseleave->tooltip#hide"><%= icon "info", classes: "h-3.5 w-3.5 inline align-middle" %></span></div>
-              <button type="button" class="ml-1 text-neutral-400 hover:text-neutral-600" data-action="click->filter#toggleSubcatPanel" data-panel-id="slider-radionuc-5yr" aria-expanded="false" aria-controls="slider-radionuc-5yr"><%= icon "arrow-down", classes: "h-3.5 w-3.5 transition-transform duration-150" %></button>
-            </div>
-            <%= render "slider_panel", panel_id: "slider-radionuc-5yr", field: "radionuclides_5yr", min_input_id: "min-radionuc-5yr", max_input_id: "max-radionuc-5yr" %>
-          </li>
-          <li>
-            <div class="flex items-center justify-between">
-              <div><input type="checkbox" class="toggle" id="viols-inorganic-5yr">
-              <label for="viols-inorganic-5yr">Inorganic chemicals</label>
-              <span class="relative ml-1 inline-block cursor-default text-neutral-800" data-controller="tooltip" data-tooltip-text-value="<%= filter_tooltips['inorganic_chemicals'] %>" data-action="mouseenter->tooltip#show mouseleave->tooltip#hide"><%= icon "info", classes: "h-3.5 w-3.5 inline align-middle" %></span></div>
-              <button type="button" class="ml-1 text-neutral-400 hover:text-neutral-600" data-action="click->filter#toggleSubcatPanel" data-panel-id="slider-inorganic-5yr" aria-expanded="false" aria-controls="slider-inorganic-5yr"><%= icon "arrow-down", classes: "h-3.5 w-3.5 transition-transform duration-150" %></button>
-            </div>
-            <%= render "slider_panel", panel_id: "slider-inorganic-5yr", field: "inorganic_chemicals_5yr", min_input_id: "min-inorganic-5yr", max_input_id: "max-inorganic-5yr" %>
-          </li>
-          <li>
-            <div class="flex items-center justify-between">
-              <div><input type="checkbox" class="toggle" id="viols-synthetic-5yr">
-              <label for="viols-synthetic-5yr">Synthetic organic chemicals</label>
-              <span class="relative ml-1 inline-block cursor-default text-neutral-800" data-controller="tooltip" data-tooltip-text-value="<%= filter_tooltips['synthetic_organic_chemicals'] %>" data-action="mouseenter->tooltip#show mouseleave->tooltip#hide"><%= icon "info", classes: "h-3.5 w-3.5 inline align-middle" %></span></div>
-              <button type="button" class="ml-1 text-neutral-400 hover:text-neutral-600" data-action="click->filter#toggleSubcatPanel" data-panel-id="slider-soc-5yr" aria-expanded="false" aria-controls="slider-soc-5yr"><%= icon "arrow-down", classes: "h-3.5 w-3.5 transition-transform duration-150" %></button>
-            </div>
-            <%= render "slider_panel", panel_id: "slider-soc-5yr", field: "synthetic_organic_chemicals_5yr", min_input_id: "min-soc-5yr", max_input_id: "max-soc-5yr" %>
-          </li>
-          <li>
-            <div class="flex items-center justify-between">
-              <div><input type="checkbox" class="toggle" id="viols-vocs-5yr">
-              <label for="viols-vocs-5yr">Volatile organic chemicals</label>
-              <span class="relative ml-1 inline-block cursor-default text-neutral-800" data-controller="tooltip" data-tooltip-text-value="<%= filter_tooltips['volatile_organic_chemicals'] %>" data-action="mouseenter->tooltip#show mouseleave->tooltip#hide"><%= icon "info", classes: "h-3.5 w-3.5 inline align-middle" %></span></div>
-              <button type="button" class="ml-1 text-neutral-400 hover:text-neutral-600" data-action="click->filter#toggleSubcatPanel" data-panel-id="slider-voc-5yr" aria-expanded="false" aria-controls="slider-voc-5yr"><%= icon "arrow-down", classes: "h-3.5 w-3.5 transition-transform duration-150" %></button>
-            </div>
-            <%= render "slider_panel", panel_id: "slider-voc-5yr", field: "volatile_organic_chemicals_5yr", min_input_id: "min-voc-5yr", max_input_id: "max-voc-5yr" %>
-          </li>
-          <li>
-            <div class="flex items-center justify-between">
-              <div><input type="checkbox" class="toggle" id="viols-coliform-5yr">
-              <label for="viols-coliform-5yr">Coliform</label>
-              <span class="relative ml-1 inline-block cursor-default text-neutral-800" data-controller="tooltip" data-tooltip-text-value="<%= filter_tooltips['total_coliform'] %>" data-action="mouseenter->tooltip#show mouseleave->tooltip#hide"><%= icon "info", classes: "h-3.5 w-3.5 inline align-middle" %></span></div>
-              <button type="button" class="ml-1 text-neutral-400 hover:text-neutral-600" data-action="click->filter#toggleSubcatPanel" data-panel-id="slider-coliform-5yr" aria-expanded="false" aria-controls="slider-coliform-5yr"><%= icon "arrow-down", classes: "h-3.5 w-3.5 transition-transform duration-150" %></button>
-            </div>
-            <%= render "slider_panel", panel_id: "slider-coliform-5yr", field: "total_coliform_5yr", min_input_id: "min-coliform-5yr", max_input_id: "max-coliform-5yr" %>
-          </li>
-          <li>
-            <div class="flex items-center justify-between">
-              <div><input type="checkbox" class="toggle" id="viols-stage-1-disinfectants-5yr">
-              <label for="viols-stage-1-disinfectants-5yr">Stage 1 disinfectants</label>
-              <span class="relative ml-1 inline-block cursor-default text-neutral-800" data-controller="tooltip" data-tooltip-text-value="<%= filter_tooltips['stage_1_disinfectants'] %>" data-action="mouseenter->tooltip#show mouseleave->tooltip#hide"><%= icon "info", classes: "h-3.5 w-3.5 inline align-middle" %></span></div>
-              <button type="button" class="ml-1 text-neutral-400 hover:text-neutral-600" data-action="click->filter#toggleSubcatPanel" data-panel-id="slider-stage1-dis-5yr" aria-expanded="false" aria-controls="slider-stage1-dis-5yr"><%= icon "arrow-down", classes: "h-3.5 w-3.5 transition-transform duration-150" %></button>
-            </div>
-            <%= render "slider_panel", panel_id: "slider-stage1-dis-5yr", field: "stage_1_disinfectants_5yr", min_input_id: "min-stage1-dis-5yr", max_input_id: "max-stage1-dis-5yr" %>
-          </li>
-          <li>
-            <div class="flex items-center justify-between">
-              <div><input type="checkbox" class="toggle" id="viols-stage-2-disinfectants-5yr">
-              <label for="viols-stage-2-disinfectants-5yr">Stage 2 disinfectants</label>
-              <span class="relative ml-1 inline-block cursor-default text-neutral-800" data-controller="tooltip" data-tooltip-text-value="<%= filter_tooltips['stage_2_disinfectants'] %>" data-action="mouseenter->tooltip#show mouseleave->tooltip#hide"><%= icon "info", classes: "h-3.5 w-3.5 inline align-middle" %></span></div>
-              <button type="button" class="ml-1 text-neutral-400 hover:text-neutral-600" data-action="click->filter#toggleSubcatPanel" data-panel-id="slider-stage2-dis-5yr" aria-expanded="false" aria-controls="slider-stage2-dis-5yr"><%= icon "arrow-down", classes: "h-3.5 w-3.5 transition-transform duration-150" %></button>
-            </div>
-            <%= render "slider_panel", panel_id: "slider-stage2-dis-5yr", field: "stage_2_disinfectants_5yr", min_input_id: "min-stage2-dis-5yr", max_input_id: "max-stage2-dis-5yr" %>
-          </li>
+          <%= render Filters::RangeFilterItemComponent.new(
+                checkbox_id: "viols-groundwater-5yr", panel_id: "slider-groundwater-5yr",
+                label: "Ground water rule", tooltip_text: filter_tooltips["groundwater_rule"],
+                field: "groundwater_rule_5yr", min_input_id: "min-groundwater-5yr", max_input_id: "max-groundwater-5yr", nested: true) %>
+          <%= render Filters::RangeFilterItemComponent.new(
+                checkbox_id: "viols-surface-water-5yr", panel_id: "slider-surface-water-5yr",
+                label: "Surface water treatment rules", tooltip_text: filter_tooltips["surface_water_treatment"],
+                field: "surface_water_treatment_5yr", min_input_id: "min-surface-water-5yr", max_input_id: "max-surface-water-5yr", nested: true) %>
+          <%= render Filters::RangeFilterItemComponent.new(
+                checkbox_id: "viols-lead-copper-5yr", panel_id: "slider-lead-copper-5yr",
+                label: "Lead &amp; copper", tooltip_text: filter_tooltips["lead_and_copper"],
+                field: "lead_and_copper_5yr", min_input_id: "min-lead-copper-5yr", max_input_id: "max-lead-copper-5yr", nested: true) %>
+          <%= render Filters::RangeFilterItemComponent.new(
+                checkbox_id: "viols-radionuclides-5yr", panel_id: "slider-radionuc-5yr",
+                label: "Radionuclides", tooltip_text: filter_tooltips["radionuclides"],
+                field: "radionuclides_5yr", min_input_id: "min-radionuc-5yr", max_input_id: "max-radionuc-5yr", nested: true) %>
+          <%= render Filters::RangeFilterItemComponent.new(
+                checkbox_id: "viols-inorganic-5yr", panel_id: "slider-inorganic-5yr",
+                label: "Inorganic chemicals", tooltip_text: filter_tooltips["inorganic_chemicals"],
+                field: "inorganic_chemicals_5yr", min_input_id: "min-inorganic-5yr", max_input_id: "max-inorganic-5yr", nested: true) %>
+          <%= render Filters::RangeFilterItemComponent.new(
+                checkbox_id: "viols-synthetic-5yr", panel_id: "slider-soc-5yr",
+                label: "Synthetic organic chemicals", tooltip_text: filter_tooltips["synthetic_organic_chemicals"],
+                field: "synthetic_organic_chemicals_5yr", min_input_id: "min-soc-5yr", max_input_id: "max-soc-5yr", nested: true) %>
+          <%= render Filters::RangeFilterItemComponent.new(
+                checkbox_id: "viols-vocs-5yr", panel_id: "slider-voc-5yr",
+                label: "Volatile organic chemicals", tooltip_text: filter_tooltips["volatile_organic_chemicals"],
+                field: "volatile_organic_chemicals_5yr", min_input_id: "min-voc-5yr", max_input_id: "max-voc-5yr", nested: true) %>
+          <%= render Filters::RangeFilterItemComponent.new(
+                checkbox_id: "viols-coliform-5yr", panel_id: "slider-coliform-5yr",
+                label: "Coliform", tooltip_text: filter_tooltips["total_coliform"],
+                field: "total_coliform_5yr", min_input_id: "min-coliform-5yr", max_input_id: "max-coliform-5yr", nested: true) %>
+          <%= render Filters::RangeFilterItemComponent.new(
+                checkbox_id: "viols-stage-1-disinfectants-5yr", panel_id: "slider-stage1-dis-5yr",
+                label: "Stage 1 disinfectants", tooltip_text: filter_tooltips["stage_1_disinfectants"],
+                field: "stage_1_disinfectants_5yr", min_input_id: "min-stage1-dis-5yr", max_input_id: "max-stage1-dis-5yr", nested: true) %>
+          <%= render Filters::RangeFilterItemComponent.new(
+                checkbox_id: "viols-stage-2-disinfectants-5yr", panel_id: "slider-stage2-dis-5yr",
+                label: "Stage 2 disinfectants", tooltip_text: filter_tooltips["stage_2_disinfectants"],
+                field: "stage_2_disinfectants_5yr", min_input_id: "min-stage2-dis-5yr", max_input_id: "max-stage2-dis-5yr", nested: true) %>
         </ul>
         </div>
       </li>
@@ -232,96 +182,46 @@
         <div id="subcat-health-10yr" class="hidden pl-4 pb-1" data-subcat-panel
              data-action="change->filter#syncParentFromSubcat">
         <ul class="space-y-1 mt-1">
-          <li>
-            <div class="flex items-center justify-between">
-              <div><input type="checkbox" class="toggle" id="viols-groundwater-10yr">
-              <label for="viols-groundwater-10yr">Ground water rule</label>
-              <span class="relative ml-1 inline-block cursor-default text-neutral-800" data-controller="tooltip" data-tooltip-text-value="<%= filter_tooltips['groundwater_rule'] %>" data-action="mouseenter->tooltip#show mouseleave->tooltip#hide"><%= icon "info", classes: "h-3.5 w-3.5 inline align-middle" %></span></div>
-              <button type="button" class="ml-1 text-neutral-400 hover:text-neutral-600" data-action="click->filter#toggleSubcatPanel" data-panel-id="slider-groundwater-10yr" aria-expanded="false" aria-controls="slider-groundwater-10yr"><%= icon "arrow-down", classes: "h-3.5 w-3.5 transition-transform duration-150" %></button>
-            </div>
-            <%= render "slider_panel", panel_id: "slider-groundwater-10yr", field: "groundwater_rule_10yr", min_input_id: "min-groundwater-10yr", max_input_id: "max-groundwater-10yr" %>
-          </li>
-          <li>
-            <div class="flex items-center justify-between">
-              <div><input type="checkbox" class="toggle" id="viols-surface-water-10yr">
-              <label for="viols-surface-water-10yr">Surface water treatment rules</label>
-              <span class="relative ml-1 inline-block cursor-default text-neutral-800" data-controller="tooltip" data-tooltip-text-value="<%= filter_tooltips['surface_water_treatment'] %>" data-action="mouseenter->tooltip#show mouseleave->tooltip#hide"><%= icon "info", classes: "h-3.5 w-3.5 inline align-middle" %></span></div>
-              <button type="button" class="ml-1 text-neutral-400 hover:text-neutral-600" data-action="click->filter#toggleSubcatPanel" data-panel-id="slider-surface-water-10yr" aria-expanded="false" aria-controls="slider-surface-water-10yr"><%= icon "arrow-down", classes: "h-3.5 w-3.5 transition-transform duration-150" %></button>
-            </div>
-            <%= render "slider_panel", panel_id: "slider-surface-water-10yr", field: "surface_water_treatment_10yr", min_input_id: "min-surface-water-10yr", max_input_id: "max-surface-water-10yr" %>
-          </li>
-          <li>
-            <div class="flex items-center justify-between">
-              <div><input type="checkbox" class="toggle" id="viols-lead-copper-10yr">
-              <label for="viols-lead-copper-10yr">Lead &amp; copper</label>
-              <span class="relative ml-1 inline-block cursor-default text-neutral-800" data-controller="tooltip" data-tooltip-text-value="<%= filter_tooltips['lead_and_copper'] %>" data-action="mouseenter->tooltip#show mouseleave->tooltip#hide"><%= icon "info", classes: "h-3.5 w-3.5 inline align-middle" %></span></div>
-              <button type="button" class="ml-1 text-neutral-400 hover:text-neutral-600" data-action="click->filter#toggleSubcatPanel" data-panel-id="slider-lead-copper-10yr" aria-expanded="false" aria-controls="slider-lead-copper-10yr"><%= icon "arrow-down", classes: "h-3.5 w-3.5 transition-transform duration-150" %></button>
-            </div>
-            <%= render "slider_panel", panel_id: "slider-lead-copper-10yr", field: "lead_and_copper_10yr", min_input_id: "min-lead-copper-10yr", max_input_id: "max-lead-copper-10yr" %>
-          </li>
-          <li>
-            <div class="flex items-center justify-between">
-              <div><input type="checkbox" class="toggle" id="viols-radionuclides-10yr">
-              <label for="viols-radionuclides-10yr">Radionuclides</label>
-              <span class="relative ml-1 inline-block cursor-default text-neutral-800" data-controller="tooltip" data-tooltip-text-value="<%= filter_tooltips['radionuclides'] %>" data-action="mouseenter->tooltip#show mouseleave->tooltip#hide"><%= icon "info", classes: "h-3.5 w-3.5 inline align-middle" %></span></div>
-              <button type="button" class="ml-1 text-neutral-400 hover:text-neutral-600" data-action="click->filter#toggleSubcatPanel" data-panel-id="slider-radionuc-10yr" aria-expanded="false" aria-controls="slider-radionuc-10yr"><%= icon "arrow-down", classes: "h-3.5 w-3.5 transition-transform duration-150" %></button>
-            </div>
-            <%= render "slider_panel", panel_id: "slider-radionuc-10yr", field: "radionuclides_10yr", min_input_id: "min-radionuc-10yr", max_input_id: "max-radionuc-10yr" %>
-          </li>
-          <li>
-            <div class="flex items-center justify-between">
-              <div><input type="checkbox" class="toggle" id="viols-inorganic-10yr">
-              <label for="viols-inorganic-10yr">Inorganic chemicals</label>
-              <span class="relative ml-1 inline-block cursor-default text-neutral-800" data-controller="tooltip" data-tooltip-text-value="<%= filter_tooltips['inorganic_chemicals'] %>" data-action="mouseenter->tooltip#show mouseleave->tooltip#hide"><%= icon "info", classes: "h-3.5 w-3.5 inline align-middle" %></span></div>
-              <button type="button" class="ml-1 text-neutral-400 hover:text-neutral-600" data-action="click->filter#toggleSubcatPanel" data-panel-id="slider-inorganic-10yr" aria-expanded="false" aria-controls="slider-inorganic-10yr"><%= icon "arrow-down", classes: "h-3.5 w-3.5 transition-transform duration-150" %></button>
-            </div>
-            <%= render "slider_panel", panel_id: "slider-inorganic-10yr", field: "inorganic_chemicals_10yr", min_input_id: "min-inorganic-10yr", max_input_id: "max-inorganic-10yr" %>
-          </li>
-          <li>
-            <div class="flex items-center justify-between">
-              <div><input type="checkbox" class="toggle" id="viols-synthetic-10yr">
-              <label for="viols-synthetic-10yr">Synthetic organic chemicals</label>
-              <span class="relative ml-1 inline-block cursor-default text-neutral-800" data-controller="tooltip" data-tooltip-text-value="<%= filter_tooltips['synthetic_organic_chemicals'] %>" data-action="mouseenter->tooltip#show mouseleave->tooltip#hide"><%= icon "info", classes: "h-3.5 w-3.5 inline align-middle" %></span></div>
-              <button type="button" class="ml-1 text-neutral-400 hover:text-neutral-600" data-action="click->filter#toggleSubcatPanel" data-panel-id="slider-soc-10yr" aria-expanded="false" aria-controls="slider-soc-10yr"><%= icon "arrow-down", classes: "h-3.5 w-3.5 transition-transform duration-150" %></button>
-            </div>
-            <%= render "slider_panel", panel_id: "slider-soc-10yr", field: "synthetic_organic_chemicals_10yr", min_input_id: "min-soc-10yr", max_input_id: "max-soc-10yr" %>
-          </li>
-          <li>
-            <div class="flex items-center justify-between">
-              <div><input type="checkbox" class="toggle" id="viols-vocs-10yr">
-              <label for="viols-vocs-10yr">Volatile organic chemicals</label>
-              <span class="relative ml-1 inline-block cursor-default text-neutral-800" data-controller="tooltip" data-tooltip-text-value="<%= filter_tooltips['volatile_organic_chemicals'] %>" data-action="mouseenter->tooltip#show mouseleave->tooltip#hide"><%= icon "info", classes: "h-3.5 w-3.5 inline align-middle" %></span></div>
-              <button type="button" class="ml-1 text-neutral-400 hover:text-neutral-600" data-action="click->filter#toggleSubcatPanel" data-panel-id="slider-voc-10yr" aria-expanded="false" aria-controls="slider-voc-10yr"><%= icon "arrow-down", classes: "h-3.5 w-3.5 transition-transform duration-150" %></button>
-            </div>
-            <%= render "slider_panel", panel_id: "slider-voc-10yr", field: "volatile_organic_chemicals_10yr", min_input_id: "min-voc-10yr", max_input_id: "max-voc-10yr" %>
-          </li>
-          <li>
-            <div class="flex items-center justify-between">
-              <div><input type="checkbox" class="toggle" id="viols-coliform-10yr">
-              <label for="viols-coliform-10yr">Coliform</label>
-              <span class="relative ml-1 inline-block cursor-default text-neutral-800" data-controller="tooltip" data-tooltip-text-value="<%= filter_tooltips['total_coliform'] %>" data-action="mouseenter->tooltip#show mouseleave->tooltip#hide"><%= icon "info", classes: "h-3.5 w-3.5 inline align-middle" %></span></div>
-              <button type="button" class="ml-1 text-neutral-400 hover:text-neutral-600" data-action="click->filter#toggleSubcatPanel" data-panel-id="slider-coliform-10yr" aria-expanded="false" aria-controls="slider-coliform-10yr"><%= icon "arrow-down", classes: "h-3.5 w-3.5 transition-transform duration-150" %></button>
-            </div>
-            <%= render "slider_panel", panel_id: "slider-coliform-10yr", field: "total_coliform_10yr", min_input_id: "min-coliform-10yr", max_input_id: "max-coliform-10yr" %>
-          </li>
-          <li>
-            <div class="flex items-center justify-between">
-              <div><input type="checkbox" class="toggle" id="viols-stage-1-disinfectants-10yr">
-              <label for="viols-stage-1-disinfectants-10yr">Stage 1 disinfectants</label>
-              <span class="relative ml-1 inline-block cursor-default text-neutral-800" data-controller="tooltip" data-tooltip-text-value="<%= filter_tooltips['stage_1_disinfectants'] %>" data-action="mouseenter->tooltip#show mouseleave->tooltip#hide"><%= icon "info", classes: "h-3.5 w-3.5 inline align-middle" %></span></div>
-              <button type="button" class="ml-1 text-neutral-400 hover:text-neutral-600" data-action="click->filter#toggleSubcatPanel" data-panel-id="slider-stage1-dis-10yr" aria-expanded="false" aria-controls="slider-stage1-dis-10yr"><%= icon "arrow-down", classes: "h-3.5 w-3.5 transition-transform duration-150" %></button>
-            </div>
-            <%= render "slider_panel", panel_id: "slider-stage1-dis-10yr", field: "stage_1_disinfectants_10yr", min_input_id: "min-stage1-dis-10yr", max_input_id: "max-stage1-dis-10yr" %>
-          </li>
-          <li>
-            <div class="flex items-center justify-between">
-              <div><input type="checkbox" class="toggle" id="viols-stage-2-disinfectants-10yr">
-              <label for="viols-stage-2-disinfectants-10yr">Stage 2 disinfectants</label>
-              <span class="relative ml-1 inline-block cursor-default text-neutral-800" data-controller="tooltip" data-tooltip-text-value="<%= filter_tooltips['stage_2_disinfectants'] %>" data-action="mouseenter->tooltip#show mouseleave->tooltip#hide"><%= icon "info", classes: "h-3.5 w-3.5 inline align-middle" %></span></div>
-              <button type="button" class="ml-1 text-neutral-400 hover:text-neutral-600" data-action="click->filter#toggleSubcatPanel" data-panel-id="slider-stage2-dis-10yr" aria-expanded="false" aria-controls="slider-stage2-dis-10yr"><%= icon "arrow-down", classes: "h-3.5 w-3.5 transition-transform duration-150" %></button>
-            </div>
-            <%= render "slider_panel", panel_id: "slider-stage2-dis-10yr", field: "stage_2_disinfectants_10yr", min_input_id: "min-stage2-dis-10yr", max_input_id: "max-stage2-dis-10yr" %>
-          </li>
+          <%= render Filters::RangeFilterItemComponent.new(
+                checkbox_id: "viols-groundwater-10yr", panel_id: "slider-groundwater-10yr",
+                label: "Ground water rule", tooltip_text: filter_tooltips["groundwater_rule"],
+                field: "groundwater_rule_10yr", min_input_id: "min-groundwater-10yr", max_input_id: "max-groundwater-10yr", nested: true) %>
+          <%= render Filters::RangeFilterItemComponent.new(
+                checkbox_id: "viols-surface-water-10yr", panel_id: "slider-surface-water-10yr",
+                label: "Surface water treatment rules", tooltip_text: filter_tooltips["surface_water_treatment"],
+                field: "surface_water_treatment_10yr", min_input_id: "min-surface-water-10yr", max_input_id: "max-surface-water-10yr", nested: true) %>
+          <%= render Filters::RangeFilterItemComponent.new(
+                checkbox_id: "viols-lead-copper-10yr", panel_id: "slider-lead-copper-10yr",
+                label: "Lead &amp; copper", tooltip_text: filter_tooltips["lead_and_copper"],
+                field: "lead_and_copper_10yr", min_input_id: "min-lead-copper-10yr", max_input_id: "max-lead-copper-10yr", nested: true) %>
+          <%= render Filters::RangeFilterItemComponent.new(
+                checkbox_id: "viols-radionuclides-10yr", panel_id: "slider-radionuc-10yr",
+                label: "Radionuclides", tooltip_text: filter_tooltips["radionuclides"],
+                field: "radionuclides_10yr", min_input_id: "min-radionuc-10yr", max_input_id: "max-radionuc-10yr", nested: true) %>
+          <%= render Filters::RangeFilterItemComponent.new(
+                checkbox_id: "viols-inorganic-10yr", panel_id: "slider-inorganic-10yr",
+                label: "Inorganic chemicals", tooltip_text: filter_tooltips["inorganic_chemicals"],
+                field: "inorganic_chemicals_10yr", min_input_id: "min-inorganic-10yr", max_input_id: "max-inorganic-10yr", nested: true) %>
+          <%= render Filters::RangeFilterItemComponent.new(
+                checkbox_id: "viols-synthetic-10yr", panel_id: "slider-soc-10yr",
+                label: "Synthetic organic chemicals", tooltip_text: filter_tooltips["synthetic_organic_chemicals"],
+                field: "synthetic_organic_chemicals_10yr", min_input_id: "min-soc-10yr", max_input_id: "max-soc-10yr", nested: true) %>
+          <%= render Filters::RangeFilterItemComponent.new(
+                checkbox_id: "viols-vocs-10yr", panel_id: "slider-voc-10yr",
+                label: "Volatile organic chemicals", tooltip_text: filter_tooltips["volatile_organic_chemicals"],
+                field: "volatile_organic_chemicals_10yr", min_input_id: "min-voc-10yr", max_input_id: "max-voc-10yr", nested: true) %>
+          <%= render Filters::RangeFilterItemComponent.new(
+                checkbox_id: "viols-coliform-10yr", panel_id: "slider-coliform-10yr",
+                label: "Coliform", tooltip_text: filter_tooltips["total_coliform"],
+                field: "total_coliform_10yr", min_input_id: "min-coliform-10yr", max_input_id: "max-coliform-10yr", nested: true) %>
+          <%= render Filters::RangeFilterItemComponent.new(
+                checkbox_id: "viols-stage-1-disinfectants-10yr", panel_id: "slider-stage1-dis-10yr",
+                label: "Stage 1 disinfectants", tooltip_text: filter_tooltips["stage_1_disinfectants"],
+                field: "stage_1_disinfectants_10yr", min_input_id: "min-stage1-dis-10yr", max_input_id: "max-stage1-dis-10yr", nested: true) %>
+          <%= render Filters::RangeFilterItemComponent.new(
+                checkbox_id: "viols-stage-2-disinfectants-10yr", panel_id: "slider-stage2-dis-10yr",
+                label: "Stage 2 disinfectants", tooltip_text: filter_tooltips["stage_2_disinfectants"],
+                field: "stage_2_disinfectants_10yr", min_input_id: "min-stage2-dis-10yr", max_input_id: "max-stage2-dis-10yr", nested: true) %>
         </ul>
         </div>
       </li>
@@ -402,23 +302,111 @@
     <h3>Financial</h3>
     <ul>
       <li>
-        <input type="checkbox" class="toggle" id="more-rate-tier" disabled="disabled">
-        <label for="more-rate-tier" class="filter-coming-soon">Annual water and sewer bill <em>(TBD)</em></label>
+        <input type="checkbox" class="toggle" id="more-rate-tier"
+               data-action="change->filter#toggleSubcat"
+               data-panel-id="subcat-rate-tier">
+        <label for="more-rate-tier">Annual water and sewer bill</label>
+        <span class="relative ml-1 inline-block cursor-default text-neutral-800"
+              data-controller="tooltip"
+              data-tooltip-text-value="<%= filter_tooltips['annual_water_sewer_bill'] %>"
+              data-action="mouseenter->tooltip#show mouseleave->tooltip#hide">
+          <%= icon "info", classes: "h-3.5 w-3.5 inline align-middle" %>
+        </span>
+        <button type="button" class="ml-1 text-neutral-400 hover:text-neutral-600"
+                data-action="click->filter#toggleSubcatPanel"
+                data-panel-id="subcat-rate-tier"
+                aria-expanded="false" aria-controls="subcat-rate-tier">
+          <%= icon("arrow-down", classes: "h-3 w-3 transition-transform duration-150") %>
+        </button>
+        <div id="subcat-rate-tier" class="hidden pl-4 pb-2" data-subcat-panel>
+          <ul class="space-y-0.5 mt-1">
+            <li><input type="checkbox" class="toggle default-checked" checked id="rate-tier-lt125">
+                <label for="rate-tier-lt125">Under $125</label></li>
+            <li><input type="checkbox" class="toggle default-checked" checked id="rate-tier-125-249">
+                <label for="rate-tier-125-249">$125&#8211;249</label></li>
+            <li><input type="checkbox" class="toggle default-checked" checked id="rate-tier-250-499">
+                <label for="rate-tier-250-499">$250&#8211;499</label></li>
+            <li><input type="checkbox" class="toggle default-checked" checked id="rate-tier-500-749">
+                <label for="rate-tier-500-749">$500&#8211;749</label></li>
+            <li><input type="checkbox" class="toggle default-checked" checked id="rate-tier-750-999">
+                <label for="rate-tier-750-999">$750&#8211;999</label></li>
+            <li><input type="checkbox" class="toggle default-checked" checked id="rate-tier-gt1000">
+                <label for="rate-tier-gt1000">Over $1,000</label></li>
+            <li class="mt-1 border-t pt-1">
+                <input type="checkbox" class="toggle" id="rate-tier-no-info">
+                <label for="rate-tier-no-info">No rate info available</label></li>
+          </ul>
+        </div>
       </li>
     </ul>
-    <h3>Funding (2021–2025)</h3>
+    <h3>Funding (2021&#8211;2025)</h3>
     <ul>
-      <li><input type="checkbox" class="toggle" id="more-has-srf-financing"><label for="more-has-srf-financing">State revolving fund financing</label></li>
-      <li><input type="checkbox" class="toggle" id="more-has-srf-assistance"><label for="more-has-srf-assistance">State revolving fund assistance</label></li>
-      <li><input type="checkbox" class="toggle" id="more-has-principal-forgiveness"><label for="more-has-principal-forgiveness">State revolving fund principal forgiveness</label></li>
+      <%= render Filters::RangeFilterItemComponent.new(
+            checkbox_id: "more-has-srf-financing", panel_id: "subcat-srf-financing",
+            label: "State revolving fund financing", tooltip_text: filter_tooltips["srf_financing"],
+            field: "times_funded", min_input_id: "min-srf-financing", max_input_id: "max-srf-financing",
+            slider_label: "Times received") %>
+      <%= render Filters::RangeFilterItemComponent.new(
+            checkbox_id: "more-has-srf-assistance", panel_id: "subcat-srf-assistance",
+            label: "State revolving fund assistance", tooltip_text: filter_tooltips["srf_assistance"],
+            field: "total_srf_assistance", min_input_id: "min-srf-assistance", max_input_id: "max-srf-assistance",
+            slider_label: "Amount ($)") %>
+      <%= render Filters::RangeFilterItemComponent.new(
+            checkbox_id: "more-has-principal-forgiveness", panel_id: "subcat-srf-forgiveness",
+            label: "State revolving fund principal forgiveness", tooltip_text: filter_tooltips["principal_forgiveness"],
+            field: "total_principal_forgiveness", min_input_id: "min-srf-forgiveness", max_input_id: "max-srf-forgiveness",
+            slider_label: "Amount ($)") %>
     </ul>
     <h3>Environmental</h3>
     <ul>
-      <li><input type="checkbox" class="toggle" id="more-num-facilities"><label for="more-num-facilities">Source water connections</label></li>
-      <li><input type="checkbox" class="toggle" id="more-permit-effluent-violations"><label for="more-permit-effluent-violations">Pollution permits with breaches</label></li>
-      <li><input type="checkbox" class="toggle" id="more-open-usts"><label for="more-open-usts">Underground storage tanks</label></li>
-      <li><input type="checkbox" class="toggle" id="more-rmps"><label for="more-rmps">Risk management plan facilities</label></li>
-      <li><input type="checkbox" class="toggle" id="more-impaired-streams"><label for="more-impaired-streams">Streams with impaired or threatened surface waters</label></li>
+      <li>
+        <input type="checkbox" class="toggle" id="more-watershed-hazards"
+               data-action="change->filter#toggleSubcat"
+               data-panel-id="subcat-watershed-hazards">
+        <label for="more-watershed-hazards">Potential watershed hazards</label>
+        <span class="relative ml-1 inline-block cursor-default text-neutral-800"
+              data-controller="tooltip"
+              data-tooltip-text-value="<%= filter_tooltips['watershed_hazards'] %>"
+              data-action="mouseenter->tooltip#show mouseleave->tooltip#hide">
+          <%= icon "info", classes: "h-3.5 w-3.5 inline align-middle" %>
+        </span>
+        <button type="button" class="ml-1 text-neutral-400 hover:text-neutral-600"
+                data-action="click->filter#toggleSubcatPanel"
+                data-panel-id="subcat-watershed-hazards"
+                aria-expanded="false" aria-controls="subcat-watershed-hazards">
+          <%= icon("arrow-down", classes: "h-3 w-3 transition-transform duration-150") %>
+        </button>
+        <div id="subcat-watershed-hazards" class="hidden pl-4 pb-1" data-subcat-panel
+             data-action="change->filter#syncParentFromSubcat">
+          <ul class="space-y-1 mt-1">
+            <%= render Filters::RangeFilterItemComponent.new(
+                  checkbox_id: "more-num-facilities", panel_id: "slider-num-facilities",
+                  label: "Source water connections", tooltip_text: filter_tooltips["source_water_connections"],
+                  field: "num_facilities", min_input_id: "min-num-facilities", max_input_id: "max-num-facilities",
+                  slider_label: "Number of connections", nested: true) %>
+            <%= render Filters::RangeFilterItemComponent.new(
+                  checkbox_id: "more-permit-effluent-violations", panel_id: "slider-permit-violations",
+                  label: "Pollution permits with breaches", tooltip_text: filter_tooltips["pollution_permits"],
+                  field: "permit_effluent_violations", min_input_id: "min-permit-violations", max_input_id: "max-permit-violations",
+                  slider_label: "Number of breaches", nested: true) %>
+            <%= render Filters::RangeFilterItemComponent.new(
+                  checkbox_id: "more-open-usts", panel_id: "slider-open-usts",
+                  label: "Underground storage tanks", tooltip_text: filter_tooltips["underground_storage_tanks"],
+                  field: "open_underground_storage_tanks", min_input_id: "min-open-usts", max_input_id: "max-open-usts",
+                  slider_label: "Number of tanks", nested: true) %>
+            <%= render Filters::RangeFilterItemComponent.new(
+                  checkbox_id: "more-rmps", panel_id: "slider-rmps",
+                  label: "Risk management plan facilities", tooltip_text: filter_tooltips["risk_management_facilities"],
+                  field: "risk_management_plan_facilities", min_input_id: "min-rmps", max_input_id: "max-rmps",
+                  slider_label: "Number of facilities", nested: true) %>
+            <%= render Filters::RangeFilterItemComponent.new(
+                  checkbox_id: "more-impaired-streams", panel_id: "slider-impaired-streams",
+                  label: "Streams with impaired or threatened surface waters", tooltip_text: filter_tooltips["impaired_streams"],
+                  field: "impaired_streams_303d", min_input_id: "min-impaired-streams", max_input_id: "max-impaired-streams",
+                  slider_label: "Number of streams", nested: true) %>
+          </ul>
+        </div>
+      </li>
     </ul>
   </div>
   <div class="filter-menu-footer">
@@ -454,6 +442,118 @@
         <option value="999999" selected>No maximum</option>
       </select>
     </div>
+    <h3>Change</h3>
+    <ul>
+      <%= render Filters::RangeFilterItemComponent.new(
+            checkbox_id: "trend-pop-change", panel_id: "subcat-pop-change",
+            label: "Population change (10 years)", tooltip_text: filter_tooltips["population_change"],
+            field: "population_pct_change_capped", min_input_id: "min-pop-change", max_input_id: "max-pop-change",
+            slider_label: "Percentage change", format: "percent_change") %>
+      <%= render Filters::RangeFilterItemComponent.new(
+            checkbox_id: "trend-mhi-change", panel_id: "subcat-mhi-change",
+            label: "Median household income change (10 years)", tooltip_text: filter_tooltips["income_change"],
+            field: "mhi_pct_change_capped", min_input_id: "min-mhi-change", max_input_id: "max-mhi-change",
+            slider_label: "Percentage change", format: "percent_change") %>
+    </ul>
+    <h3>Socioeconomics</h3>
+    <ul>
+      <%= render Filters::RangeFilterItemComponent.new(
+            checkbox_id: "more-poverty-rate", panel_id: "subcat-poverty-rate",
+            label: "Poverty rate", tooltip_text: filter_tooltips["poverty_rate"],
+            field: "poverty_rate", min_input_id: "min-poverty-rate", max_input_id: "max-poverty-rate",
+            slider_label: "Percentage of households", format: "percent") %>
+      <%= render Filters::RangeFilterItemComponent.new(
+            checkbox_id: "more-unemployment-rate", panel_id: "subcat-unemployment-rate",
+            label: "Unemployment rate", tooltip_text: filter_tooltips["unemployment_rate"],
+            field: "unemployment_rate", min_input_id: "min-unemployment-rate", max_input_id: "max-unemployment-rate",
+            slider_label: "Percentage of labor force", format: "percent") %>
+      <%= render Filters::RangeFilterItemComponent.new(
+            checkbox_id: "more-median-income", panel_id: "subcat-median-income",
+            label: "Median household income", tooltip_text: filter_tooltips["median_household_income"],
+            field: "median_household_income", min_input_id: "min-median-income", max_input_id: "max-median-income",
+            slider_label: "Annual income ($)", format: "currency") %>
+      <%= render Filters::RangeFilterItemComponent.new(
+            checkbox_id: "more-bachelors-rate", panel_id: "subcat-bachelors-rate",
+            label: "Higher education rate", tooltip_text: filter_tooltips["higher_education"],
+            field: "bachelors_degree_rate", min_input_id: "min-bachelors-rate", max_input_id: "max-bachelors-rate",
+            slider_label: "Percentage of residents 25+", format: "percent") %>
+      <%= render Filters::RangeFilterItemComponent.new(
+            checkbox_id: "more-age-under-5", panel_id: "subcat-age-under-5",
+            label: "Children under 5", tooltip_text: filter_tooltips["children_under_5"],
+            field: "age_under_5_rate", min_input_id: "min-age-under-5", max_input_id: "max-age-under-5",
+            slider_label: "Percentage of population", format: "percent") %>
+      <%= render Filters::RangeFilterItemComponent.new(
+            checkbox_id: "more-age-over-61", panel_id: "subcat-age-over-61",
+            label: "Elderly (61+)", tooltip_text: filter_tooltips["elderly_over_61"],
+            field: "age_over_61_rate", min_input_id: "min-age-over-61", max_input_id: "max-age-over-61",
+            slider_label: "Percentage of population", format: "percent") %>
+    </ul>
+    <h3>Race/Ethnicity</h3>
+    <ul>
+      <%= render Filters::RangeFilterItemComponent.new(
+            checkbox_id: "more-poc-rate", panel_id: "subcat-poc-rate",
+            label: "People of color", tooltip_text: filter_tooltips["people_of_color"],
+            field: "poc_rate", min_input_id: "min-poc-rate", max_input_id: "max-poc-rate",
+            slider_label: "Percentage of population", format: "percent") %>
+      <%= render Filters::RangeFilterItemComponent.new(
+            checkbox_id: "more-white-rate", panel_id: "subcat-white-rate",
+            label: "White", tooltip_text: filter_tooltips["white"],
+            field: "white_rate", min_input_id: "min-white-rate", max_input_id: "max-white-rate",
+            slider_label: "Percentage of population", format: "percent") %>
+      <%= render Filters::RangeFilterItemComponent.new(
+            checkbox_id: "more-black-rate", panel_id: "subcat-black-rate",
+            label: "Black", tooltip_text: filter_tooltips["black"],
+            field: "black_rate", min_input_id: "min-black-rate", max_input_id: "max-black-rate",
+            slider_label: "Percentage of population", format: "percent") %>
+      <%= render Filters::RangeFilterItemComponent.new(
+            checkbox_id: "more-aian-rate", panel_id: "subcat-aian-rate",
+            label: "American Indian / Alaska Native", tooltip_text: filter_tooltips["aian"],
+            field: "aian_rate", min_input_id: "min-aian-rate", max_input_id: "max-aian-rate",
+            slider_label: "Percentage of population", format: "percent") %>
+      <%= render Filters::RangeFilterItemComponent.new(
+            checkbox_id: "more-napi-rate", panel_id: "subcat-napi-rate",
+            label: "Native Hawaiian / Pacific Islander", tooltip_text: filter_tooltips["napi"],
+            field: "napi_rate", min_input_id: "min-napi-rate", max_input_id: "max-napi-rate",
+            slider_label: "Percentage of population", format: "percent") %>
+      <%= render Filters::RangeFilterItemComponent.new(
+            checkbox_id: "more-asian-rate", panel_id: "subcat-asian-rate",
+            label: "Asian", tooltip_text: filter_tooltips["asian"],
+            field: "asian_rate", min_input_id: "min-asian-rate", max_input_id: "max-asian-rate",
+            slider_label: "Percentage of population", format: "percent") %>
+      <%= render Filters::RangeFilterItemComponent.new(
+            checkbox_id: "more-hispanic-rate", panel_id: "subcat-hispanic-rate",
+            label: "Hispanic / Latino", tooltip_text: filter_tooltips["latino"],
+            field: "hispanic_rate", min_input_id: "min-hispanic-rate", max_input_id: "max-hispanic-rate",
+            slider_label: "Percentage of population", format: "percent") %>
+      <%= render Filters::RangeFilterItemComponent.new(
+            checkbox_id: "more-other-race-rate", panel_id: "subcat-other-race-rate",
+            label: "Other race", tooltip_text: filter_tooltips["other_race"],
+            field: "other_race_rate", min_input_id: "min-other-race-rate", max_input_id: "max-other-race-rate",
+            slider_label: "Percentage of population", format: "percent") %>
+      <%= render Filters::RangeFilterItemComponent.new(
+            checkbox_id: "more-mixed-race-rate", panel_id: "subcat-mixed-race-rate",
+            label: "Mixed race", tooltip_text: filter_tooltips["mixed_race"],
+            field: "mixed_race_rate", min_input_id: "min-mixed-race-rate", max_input_id: "max-mixed-race-rate",
+            slider_label: "Percentage of population", format: "percent") %>
+    </ul>
+    <h3>Vulnerability</h3>
+    <ul>
+      <%= render Filters::RangeFilterItemComponent.new(
+            checkbox_id: "more-cejst", panel_id: "subcat-cejst",
+            label: "Disadvantaged area", tooltip_text: filter_tooltips["cejst_disadvantaged"],
+            field: "cejst_disadvantaged_pct", min_input_id: "min-cejst", max_input_id: "max-cejst",
+            slider_label: "Percentage of the area", format: "percent") %>
+      <%= render Filters::RangeFilterItemComponent.new(
+            checkbox_id: "more-svi", panel_id: "subcat-svi",
+            label: "Social Vulnerability Index (SVI)", tooltip_text: filter_tooltips["svi"],
+            field: "svi_overall_pctl", min_input_id: "min-svi", max_input_id: "max-svi",
+            slider_label: "Percentile of the population", format: "percent") %>
+      <%= render Filters::RangeFilterItemComponent.new(
+            checkbox_id: "more-cvi", panel_id: "subcat-cvi",
+            label: "Climate Vulnerability Index (CVI)", tooltip_text: filter_tooltips["cvi"],
+            field: "cvi_overall_score", min_input_id: "min-cvi", max_input_id: "max-cvi",
+            slider_label: "Percentile of vulnerability", format: "percent") %>
+    </ul>
   </div>
   <div class="filter-menu-footer">
     <a href="javascript:void(0);" class="btn-filters" data-action="click->filter#reset">Reset</a>
