@@ -39,6 +39,8 @@ module Filterable
     end
 
     def apply_area_filters(scope, joined, params)
+      # joined is unused here — area filters operate on public_water_systems directly.
+      # Kept for interface consistency with other apply_* methods.
       scope = scope.where("area_sq_miles >= ?", params[:area_min].to_d) if params[:area_min].present?
       scope = scope.where("area_sq_miles <= ?", params[:area_max].to_d) if params[:area_max].present?
       [scope, joined]
@@ -58,17 +60,6 @@ module Filterable
       end
 
       viol_table = Arel::Table.new(:violations_summaries)
-      range_where_clause = lambda do |col, min_val, max_val|
-        arel_col = viol_table[col]
-        if min_val.present? && max_val.present?
-          arel_col.gteq(min_val.to_i).and(arel_col.lteq(max_val.to_i))
-        elsif min_val.present?
-          arel_col.gteq(min_val.to_i)
-        else
-          arel_col.lteq(max_val.to_i)
-        end
-      end
-
       violation_group_where_clauses = []
 
       [subcat_5yr, subcat_10yr].each do |col_group|
@@ -76,7 +67,7 @@ module Filterable
         next if active.empty?
 
         window_where_clause = active
-          .map { |col| range_where_clause.call(col, params[:"#{col}_min"], params[:"#{col}_max"]) }
+          .map { |col| build_range_predicate(viol_table, col, params[:"#{col}_min"], params[:"#{col}_max"], coerce: :to_i) }
           .inject { |m, c| m.or(c) }
         violation_group_where_clauses << window_where_clause
       end
@@ -86,7 +77,7 @@ module Filterable
         max_val = params[:"#{col}_max"]
         next unless min_val.present? || max_val.present?
 
-        violation_group_where_clauses << range_where_clause.call(col, min_val, max_val)
+        violation_group_where_clauses << build_range_predicate(viol_table, col, min_val, max_val, coerce: :to_i)
       end
 
       scope = scope.where(violation_group_where_clauses.inject { |m, c| m.or(c) }) if violation_group_where_clauses.any?
@@ -115,6 +106,8 @@ module Filterable
       end
 
       dem_t = Arel::Table.new(:demographics)
+      # AND semantics: every active demographic constraint must be satisfied together.
+      # Contrast with funding/hazard filters which OR across their columns.
       cols.each do |col|
         if params[:"#{col}_min"].present?
           scope = scope.where(dem_t[col].gteq(params[:"#{col}_min"].to_d))
@@ -167,23 +160,12 @@ module Filterable
       end
 
       funding_table = Arel::Table.new(:funding_summaries)
-      range_where_clause = lambda do |col, min_val, max_val|
-        arel_col = funding_table[col]
-        if min_val.present? && max_val.present?
-          arel_col.gteq(min_val.to_d).and(arel_col.lteq(max_val.to_d))
-        elsif min_val.present?
-          arel_col.gteq(min_val.to_d)
-        else
-          arel_col.lteq(max_val.to_d)
-        end
-      end
-
       funding_where_clauses = cols.filter_map do |col|
         min_val = params[:"#{col}_min"]
         max_val = params[:"#{col}_max"]
         next unless min_val.present? || max_val.present?
 
-        range_where_clause.call(col, min_val, max_val)
+        build_range_predicate(funding_table, col, min_val, max_val)
       end
       scope = scope.where(funding_where_clauses.inject { |m, c| m.or(c) }) if funding_where_clauses.any?
 
@@ -198,23 +180,12 @@ module Filterable
       end
 
       hazard_table = Arel::Table.new(:watershed_hazards)
-      range_where_clause = lambda do |col, min_val, max_val|
-        arel_col = hazard_table[col]
-        if min_val.present? && max_val.present?
-          arel_col.gteq(min_val.to_i).and(arel_col.lteq(max_val.to_i))
-        elsif min_val.present?
-          arel_col.gteq(min_val.to_i)
-        else
-          arel_col.lteq(max_val.to_i)
-        end
-      end
-
       hazard_where_clauses = cols.filter_map do |col|
         min_val = params[:"#{col}_min"]
         max_val = params[:"#{col}_max"]
         next unless min_val.present? || max_val.present?
 
-        range_where_clause.call(col, min_val, max_val)
+        build_range_predicate(hazard_table, col, min_val, max_val, coerce: :to_i)
       end
       scope = scope.where(hazard_where_clauses.inject { |m, c| m.or(c) }) if hazard_where_clauses.any?
 
@@ -268,6 +239,17 @@ module Filterable
       end
 
       scope
+    end
+
+    def build_range_predicate(arel_table, col, min_val, max_val, coerce: :to_d)
+      arel_col = arel_table[col]
+      if min_val.present? && max_val.present?
+        arel_col.gteq(min_val.public_send(coerce)).and(arel_col.lteq(max_val.public_send(coerce)))
+      elsif min_val.present?
+        arel_col.gteq(min_val.public_send(coerce))
+      else
+        arel_col.lteq(max_val.public_send(coerce))
+      end
     end
 
     def left_join_once(scope, joined, assoc)

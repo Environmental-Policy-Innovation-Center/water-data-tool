@@ -41,7 +41,7 @@ const FILTERS = [
 
   // ── Attributes (menu 2) ──────────────────────────────────────────────────
   { type: "group", group: 2, param: "owner_type",        selector: ".checkbox-type",    valueMap: OWNER_TYPE_MAP },
-  { type: "group", group: 2, param: "primacy_type",      selector: ".checkbox-type",    valueMap: PRIMACY_TYPE_MAP },
+  { type: "group", group: 2, param: "primacy_type",                                     valueMap: PRIMACY_TYPE_MAP },
   { type: "bool",  group: 2, id: "is-wholesaler",        param: "is_wholesaler",        value: "true" },
   { type: "bool",  group: 2, id: "is-school-or-daycare", param: "is_school_or_daycare", value: "true" },
 
