@@ -6,197 +6,144 @@ const POP_CLASS_MAP = Object.fromEntries(Object.entries(POP_CAT_MAP).map(([k, v]
 
 const OWNER_TYPE_MAP = {
   "type-federal-government": "Federal",
-  "type-state-government":   "State",
-  "type-local-government":   "Local",
-  "type-native-american":    "Native American",
-  "type-private":            "Private",
-  "type-public-private":     "Public/Private"
+  "type-local-government": "Local",
+  "type-native-american": "Native American",
+  "type-private": "Private",
+  "type-public-private": "Public/Private",
+  "type-state-government": "State",
 }
 
-// Single source of truth for every filter ↔ DOM mapping.
-// Adding a new filter = one entry below; no other code changes needed.
-// Types: 'radio' | 'bool' | 'group' | 'select' | 'pop_cat' | 'place' | 'health_subcat' | 'range'
+const PRIMACY_TYPE_MAP = {
+  "primacy-type-state": "State",
+  "primacy-type-territory": "Territory",
+  "primacy-type-tribal": "Tribal",
+}
+
+const RATE_TIER_VALUE_MAP = {
+  "rate-tier-125-249": "$125-249",
+  "rate-tier-250-499": "$250-499",
+  "rate-tier-500-749": "$500-749",
+  "rate-tier-750-999": "$750-999",
+  "rate-tier-gt1000": ">$1000",
+  "rate-tier-lt125": "<$125",
+}
+
+// Filter ↔ DOM wiring (IDs, value maps). Canonical param/column keys: config/filters.yml → FilterRegistry,
+// embedded as #filter-registry-config JSON — extend FilterRegistry when adding backend-facing keys.
+// Per-entry key order: type → group → id (if any) → param | parentId → panelId → param_min → param_max → …rest.
+// subcat rows: id → param_min → param_max → minInputId → maxInputId → sliderPanelId (column-aligned within each subcats: [] block).
+// Types: 'radio' | 'bool' | 'group' | 'select' | 'pop_cat' | 'place' | 'subcat_panel' | 'range'
 const FILTERS = [
   // ── Source (menu 1) ──────────────────────────────────────────────────────
-  { type: "radio",   group: 1,  param: "gw_sw_code",              ids: { "ws-ground": "Groundwater", "ws-surface": "Surface Water" } },
-  { type: "bool",    group: 1,  param: "has_source_protection",   id: "has-source-water-protection", value: "true" },
-  { type: "place",   group: 1,  param: "place_geoid",             id: "place-geoid", nameSelector: ".js-place-search", nameParam: "place_name" },
+  { type: "radio", group: 1, param: "gw_sw_code", ids: { "ws-ground": "Groundwater", "ws-surface": "Surface Water" } },
+  { type: "bool",  group: 1, id: "has-source-water-protection", param: "has_source_protection", value: "true" },
+  { type: "place", group: 1, id: "place-geoid", param: "place_geoid", nameSelector: ".js-place-search", nameParam: "place_name" },
 
   // ── Attributes (menu 2) ──────────────────────────────────────────────────
-  { type: "group",   group: 2,  param: "owner_type",    selector: ".checkbox-type", valueMap: OWNER_TYPE_MAP },
-  { type: "group",   group: 2,  param: "primacy_type",  valueMap: { "primacy-type-state": "State", "primacy-type-tribal": "Tribal", "primacy-type-territory": "Territory" } },
-  { type: "bool",    group: 2,  param: "is_wholesaler",         id: "is-wholesaler",        value: "true" },
-  { type: "bool",    group: 2,  param: "is_school_or_daycare",  id: "is-school-or-daycare", value: "true" },
+  { type: "group", group: 2, param: "owner_type",        selector: ".checkbox-type",    valueMap: OWNER_TYPE_MAP },
+  { type: "group", group: 2, param: "primacy_type",      selector: ".checkbox-type",    valueMap: PRIMACY_TYPE_MAP },
+  { type: "bool",  group: 2, id: "is-wholesaler",        param: "is_wholesaler",        value: "true" },
+  { type: "bool",  group: 2, id: "is-school-or-daycare", param: "is_school_or_daycare", value: "true" },
 
   // ── Boundaries (menu 3) ──────────────────────────────────────────────────
-  { type: "radio",   group: 3,  param: "symbology_field", ids: { "bt-modeled": "Modeled", "bt-system": "System Sourced" } },
-  { type: "select",  group: 3,  param: "area_min",        id: "area-min", sentinel: "0" },
-  { type: "select",  group: 3,  param: "area_max",        id: "area-max", sentinel: "999999" },
+  { type: "radio",  group: 3, param: "symbology_field", ids: { "bt-modeled": "Modeled", "bt-system": "System Sourced" } },
+  { type: "select", group: 3, id: "area-min", param: "area_min",     sentinel: "0" },
+  { type: "select", group: 3, id: "area-max", param: "area_max",     sentinel: "999999" },
 
   // ── Compliance (menu 4) ──────────────────────────────────────────────────
-  { type: "bool",    group: 4,  param: "has_open_violations", id: "compliance-open-violations", value: "true" },
+  { type: "bool",  group: 4, id: "compliance-open-violations", param: "has_open_violations", value: "true" },
 
-  { type: "health_subcat", group: 4, parentId: "viols-health-5yrs",
-    panelId: "subcat-health-5yr",
-    subcats: [
-      { id: "viols-groundwater-5yr",           param_min: "groundwater_rule_5yr_min",            param_max: "groundwater_rule_5yr_max",            minInputId: "min-groundwater-5yr",     maxInputId: "max-groundwater-5yr",     sliderPanelId: "slider-groundwater-5yr" },
-      { id: "viols-surface-water-5yr",         param_min: "surface_water_treatment_5yr_min",     param_max: "surface_water_treatment_5yr_max",     minInputId: "min-surface-water-5yr",   maxInputId: "max-surface-water-5yr",   sliderPanelId: "slider-surface-water-5yr" },
-      { id: "viols-lead-copper-5yr",           param_min: "lead_and_copper_5yr_min",             param_max: "lead_and_copper_5yr_max",             minInputId: "min-lead-copper-5yr",     maxInputId: "max-lead-copper-5yr",     sliderPanelId: "slider-lead-copper-5yr" },
-      { id: "viols-radionuclides-5yr",         param_min: "radionuclides_5yr_min",               param_max: "radionuclides_5yr_max",               minInputId: "min-radionuc-5yr",        maxInputId: "max-radionuc-5yr",        sliderPanelId: "slider-radionuc-5yr" },
-      { id: "viols-inorganic-5yr",             param_min: "inorganic_chemicals_5yr_min",         param_max: "inorganic_chemicals_5yr_max",         minInputId: "min-inorganic-5yr",       maxInputId: "max-inorganic-5yr",       sliderPanelId: "slider-inorganic-5yr" },
-      { id: "viols-synthetic-5yr",             param_min: "synthetic_organic_chemicals_5yr_min", param_max: "synthetic_organic_chemicals_5yr_max", minInputId: "min-soc-5yr",             maxInputId: "max-soc-5yr",             sliderPanelId: "slider-soc-5yr" },
-      { id: "viols-vocs-5yr",                  param_min: "volatile_organic_chemicals_5yr_min",  param_max: "volatile_organic_chemicals_5yr_max",  minInputId: "min-voc-5yr",             maxInputId: "max-voc-5yr",             sliderPanelId: "slider-voc-5yr" },
-      { id: "viols-coliform-5yr",              param_min: "total_coliform_5yr_min",              param_max: "total_coliform_5yr_max",              minInputId: "min-coliform-5yr",        maxInputId: "max-coliform-5yr",        sliderPanelId: "slider-coliform-5yr" },
-      { id: "viols-stage-1-disinfectants-5yr", param_min: "stage_1_disinfectants_5yr_min",       param_max: "stage_1_disinfectants_5yr_max",       minInputId: "min-stage1-dis-5yr",      maxInputId: "max-stage1-dis-5yr",      sliderPanelId: "slider-stage1-dis-5yr" },
-      { id: "viols-stage-2-disinfectants-5yr", param_min: "stage_2_disinfectants_5yr_min",       param_max: "stage_2_disinfectants_5yr_max",       minInputId: "min-stage2-dis-5yr",      maxInputId: "max-stage2-dis-5yr",      sliderPanelId: "slider-stage2-dis-5yr" }
-    ]
-  },
+  { type: "subcat_panel", group: 4, parentId: "viols-health-5yrs", panelId: "subcat-health-5yr", subcats: [
+    { id: "viols-groundwater-5yr",           param_min: "groundwater_rule_5yr_min",            param_max: "groundwater_rule_5yr_max",            minInputId: "min-groundwater-5yr",   maxInputId: "max-groundwater-5yr",   sliderPanelId: "slider-groundwater-5yr" },
+    { id: "viols-surface-water-5yr",         param_min: "surface_water_treatment_5yr_min",     param_max: "surface_water_treatment_5yr_max",     minInputId: "min-surface-water-5yr", maxInputId: "max-surface-water-5yr", sliderPanelId: "slider-surface-water-5yr" },
+    { id: "viols-lead-copper-5yr",           param_min: "lead_and_copper_5yr_min",             param_max: "lead_and_copper_5yr_max",             minInputId: "min-lead-copper-5yr",   maxInputId: "max-lead-copper-5yr",   sliderPanelId: "slider-lead-copper-5yr" },
+    { id: "viols-radionuclides-5yr",         param_min: "radionuclides_5yr_min",               param_max: "radionuclides_5yr_max",               minInputId: "min-radionuc-5yr",      maxInputId: "max-radionuc-5yr",      sliderPanelId: "slider-radionuc-5yr" },
+    { id: "viols-inorganic-5yr",             param_min: "inorganic_chemicals_5yr_min",         param_max: "inorganic_chemicals_5yr_max",         minInputId: "min-inorganic-5yr",     maxInputId: "max-inorganic-5yr",     sliderPanelId: "slider-inorganic-5yr" },
+    { id: "viols-synthetic-5yr",             param_min: "synthetic_organic_chemicals_5yr_min", param_max: "synthetic_organic_chemicals_5yr_max", minInputId: "min-soc-5yr",           maxInputId: "max-soc-5yr",           sliderPanelId: "slider-soc-5yr" },
+    { id: "viols-vocs-5yr",                  param_min: "volatile_organic_chemicals_5yr_min",  param_max: "volatile_organic_chemicals_5yr_max",  minInputId: "min-voc-5yr",           maxInputId: "max-voc-5yr",           sliderPanelId: "slider-voc-5yr" },
+    { id: "viols-coliform-5yr",              param_min: "total_coliform_5yr_min",              param_max: "total_coliform_5yr_max",              minInputId: "min-coliform-5yr",      maxInputId: "max-coliform-5yr",      sliderPanelId: "slider-coliform-5yr" },
+    { id: "viols-stage-1-disinfectants-5yr", param_min: "stage_1_disinfectants_5yr_min",       param_max: "stage_1_disinfectants_5yr_max",       minInputId: "min-stage1-dis-5yr",    maxInputId: "max-stage1-dis-5yr",    sliderPanelId: "slider-stage1-dis-5yr" },
+    { id: "viols-stage-2-disinfectants-5yr", param_min: "stage_2_disinfectants_5yr_min",       param_max: "stage_2_disinfectants_5yr_max",       minInputId: "min-stage2-dis-5yr",    maxInputId: "max-stage2-dis-5yr",    sliderPanelId: "slider-stage2-dis-5yr" },
+  ] },
 
-  { type: "health_subcat", group: 4, parentId: "viols-health",
-    panelId: "subcat-health-10yr",
-    subcats: [
-      { id: "viols-groundwater-10yr",           param_min: "groundwater_rule_10yr_min",            param_max: "groundwater_rule_10yr_max",            minInputId: "min-groundwater-10yr",    maxInputId: "max-groundwater-10yr",    sliderPanelId: "slider-groundwater-10yr" },
-      { id: "viols-surface-water-10yr",         param_min: "surface_water_treatment_10yr_min",     param_max: "surface_water_treatment_10yr_max",     minInputId: "min-surface-water-10yr",  maxInputId: "max-surface-water-10yr",  sliderPanelId: "slider-surface-water-10yr" },
-      { id: "viols-lead-copper-10yr",           param_min: "lead_and_copper_10yr_min",             param_max: "lead_and_copper_10yr_max",             minInputId: "min-lead-copper-10yr",    maxInputId: "max-lead-copper-10yr",    sliderPanelId: "slider-lead-copper-10yr" },
-      { id: "viols-radionuclides-10yr",         param_min: "radionuclides_10yr_min",               param_max: "radionuclides_10yr_max",               minInputId: "min-radionuc-10yr",       maxInputId: "max-radionuc-10yr",       sliderPanelId: "slider-radionuc-10yr" },
-      { id: "viols-inorganic-10yr",             param_min: "inorganic_chemicals_10yr_min",         param_max: "inorganic_chemicals_10yr_max",         minInputId: "min-inorganic-10yr",      maxInputId: "max-inorganic-10yr",      sliderPanelId: "slider-inorganic-10yr" },
-      { id: "viols-synthetic-10yr",             param_min: "synthetic_organic_chemicals_10yr_min", param_max: "synthetic_organic_chemicals_10yr_max", minInputId: "min-soc-10yr",            maxInputId: "max-soc-10yr",            sliderPanelId: "slider-soc-10yr" },
-      { id: "viols-vocs-10yr",                  param_min: "volatile_organic_chemicals_10yr_min",  param_max: "volatile_organic_chemicals_10yr_max",  minInputId: "min-voc-10yr",            maxInputId: "max-voc-10yr",            sliderPanelId: "slider-voc-10yr" },
-      { id: "viols-coliform-10yr",              param_min: "total_coliform_10yr_min",              param_max: "total_coliform_10yr_max",              minInputId: "min-coliform-10yr",       maxInputId: "max-coliform-10yr",       sliderPanelId: "slider-coliform-10yr" },
-      { id: "viols-stage-1-disinfectants-10yr", param_min: "stage_1_disinfectants_10yr_min",       param_max: "stage_1_disinfectants_10yr_max",       minInputId: "min-stage1-dis-10yr",     maxInputId: "max-stage1-dis-10yr",     sliderPanelId: "slider-stage1-dis-10yr" },
-      { id: "viols-stage-2-disinfectants-10yr", param_min: "stage_2_disinfectants_10yr_min",       param_max: "stage_2_disinfectants_10yr_max",       minInputId: "min-stage2-dis-10yr",     maxInputId: "max-stage2-dis-10yr",     sliderPanelId: "slider-stage2-dis-10yr" }
-    ]
-  },
+  { type: "subcat_panel", group: 4, parentId: "viols-health", panelId: "subcat-health-10yr", subcats: [
+    { id: "viols-groundwater-10yr",           param_min: "groundwater_rule_10yr_min",            param_max: "groundwater_rule_10yr_max",            minInputId: "min-groundwater-10yr",   maxInputId: "max-groundwater-10yr",   sliderPanelId: "slider-groundwater-10yr" },
+    { id: "viols-surface-water-10yr",         param_min: "surface_water_treatment_10yr_min",     param_max: "surface_water_treatment_10yr_max",     minInputId: "min-surface-water-10yr", maxInputId: "max-surface-water-10yr", sliderPanelId: "slider-surface-water-10yr" },
+    { id: "viols-lead-copper-10yr",           param_min: "lead_and_copper_10yr_min",             param_max: "lead_and_copper_10yr_max",             minInputId: "min-lead-copper-10yr",   maxInputId: "max-lead-copper-10yr",   sliderPanelId: "slider-lead-copper-10yr" },
+    { id: "viols-radionuclides-10yr",         param_min: "radionuclides_10yr_min",               param_max: "radionuclides_10yr_max",               minInputId: "min-radionuc-10yr",      maxInputId: "max-radionuc-10yr",      sliderPanelId: "slider-radionuc-10yr" },
+    { id: "viols-inorganic-10yr",             param_min: "inorganic_chemicals_10yr_min",         param_max: "inorganic_chemicals_10yr_max",         minInputId: "min-inorganic-10yr",     maxInputId: "max-inorganic-10yr",     sliderPanelId: "slider-inorganic-10yr" },
+    { id: "viols-synthetic-10yr",             param_min: "synthetic_organic_chemicals_10yr_min", param_max: "synthetic_organic_chemicals_10yr_max", minInputId: "min-soc-10yr",           maxInputId: "max-soc-10yr",           sliderPanelId: "slider-soc-10yr" },
+    { id: "viols-vocs-10yr",                  param_min: "volatile_organic_chemicals_10yr_min",  param_max: "volatile_organic_chemicals_10yr_max",  minInputId: "min-voc-10yr",           maxInputId: "max-voc-10yr",           sliderPanelId: "slider-voc-10yr" },
+    { id: "viols-coliform-10yr",              param_min: "total_coliform_10yr_min",              param_max: "total_coliform_10yr_max",              minInputId: "min-coliform-10yr",      maxInputId: "max-coliform-10yr",      sliderPanelId: "slider-coliform-10yr" },
+    { id: "viols-stage-1-disinfectants-10yr", param_min: "stage_1_disinfectants_10yr_min",       param_max: "stage_1_disinfectants_10yr_max",       minInputId: "min-stage1-dis-10yr",    maxInputId: "max-stage1-dis-10yr",    sliderPanelId: "slider-stage1-dis-10yr" },
+    { id: "viols-stage-2-disinfectants-10yr", param_min: "stage_2_disinfectants_10yr_min",       param_max: "stage_2_disinfectants_10yr_max",       minInputId: "min-stage2-dis-10yr",    maxInputId: "max-stage2-dis-10yr",    sliderPanelId: "slider-stage2-dis-10yr" },
+  ] },
 
-  { type: "range", group: 4,
-    param_min: "paperwork_violations_5yr_min", param_max: "paperwork_violations_5yr_max",
-    parentId: "viols-paperwork-5yrs", panelId: "subcat-paperwork-5yr",
-    minInputId: "min-paperwork-5yr", maxInputId: "max-paperwork-5yr" },
-
-  { type: "range", group: 4,
-    param_min: "paperwork_violations_10yr_min", param_max: "paperwork_violations_10yr_max",
-    parentId: "viols-paperwork", panelId: "subcat-paperwork-10yr",
-    minInputId: "min-paperwork", maxInputId: "max-paperwork" },
+  { type: "range", group: 4, parentId: "viols-paperwork-5yrs",  panelId: "subcat-paperwork-5yr",   param_min: "paperwork_violations_5yr_min",   param_max: "paperwork_violations_5yr_max",   minInputId: "min-paperwork-5yr",  maxInputId: "max-paperwork-5yr" },
+  { type: "range", group: 4, parentId: "viols-paperwork",       panelId: "subcat-paperwork-10yr",  param_min: "paperwork_violations_10yr_min",  param_max: "paperwork_violations_10yr_max",  minInputId: "min-paperwork",      maxInputId: "max-paperwork" },
 
   // ── Population (menu 5) ──────────────────────────────────────────────────
-  { type: "pop_cat", group: 5,  param: "pop_cat_5" },
-  { type: "select",  group: 5,  param: "density_min", id: "density-min", sentinel: "0" },
-  { type: "select",  group: 5,  param: "density_max", id: "density-max", sentinel: "999999" },
+  { type: "pop_cat", group: 5, param: "pop_cat_5" },
+  { type: "select",  group: 5, id: "density-min", param: "density_min",   sentinel: "0" },
+  { type: "select",  group: 5, id: "density-max", param: "density_max",   sentinel: "999999" },
 
-  // ── Change ───────────────────────────────────────────────────────────────
-  { type: "range", group: 5, param_min: "population_pct_change_capped_min", param_max: "population_pct_change_capped_max",
-    parentId: "trend-pop-change",    panelId: "subcat-pop-change",
-    minInputId: "min-pop-change",    maxInputId: "max-pop-change" },
-  { type: "range", group: 5, param_min: "mhi_pct_change_capped_min", param_max: "mhi_pct_change_capped_max",
-    parentId: "trend-mhi-change",    panelId: "subcat-mhi-change",
-    minInputId: "min-mhi-change",    maxInputId: "max-mhi-change" },
+  // ── Change (alphabetical by param_min) ───────────────────────────────────
+  { type: "range", group: 5, parentId: "trend-mhi-change",  panelId: "subcat-mhi-change",  param_min: "mhi_pct_change_capped_min",         param_max: "mhi_pct_change_capped_max",         minInputId: "min-mhi-change",  maxInputId: "max-mhi-change" },
+  { type: "range", group: 5, parentId: "trend-pop-change",  panelId: "subcat-pop-change",  param_min: "population_pct_change_capped_min",  param_max: "population_pct_change_capped_max",  minInputId: "min-pop-change",  maxInputId: "max-pop-change" },
 
-  // ── Socioeconomics ───────────────────────────────────────────────────────
-  { type: "range", group: 5, param_min: "poverty_rate_min",            param_max: "poverty_rate_max",
-    parentId: "more-poverty-rate",   panelId: "subcat-poverty-rate",
-    minInputId: "min-poverty-rate",  maxInputId: "max-poverty-rate" },
-  { type: "range", group: 5, param_min: "unemployment_rate_min",       param_max: "unemployment_rate_max",
-    parentId: "more-unemployment-rate", panelId: "subcat-unemployment-rate",
-    minInputId: "min-unemployment-rate", maxInputId: "max-unemployment-rate" },
-  { type: "range", group: 5, param_min: "median_household_income_min", param_max: "median_household_income_max",
-    parentId: "more-median-income",  panelId: "subcat-median-income",
-    minInputId: "min-median-income", maxInputId: "max-median-income" },
-  { type: "range", group: 5, param_min: "bachelors_degree_rate_min",   param_max: "bachelors_degree_rate_max",
-    parentId: "more-bachelors-rate", panelId: "subcat-bachelors-rate",
-    minInputId: "min-bachelors-rate", maxInputId: "max-bachelors-rate" },
-  { type: "range", group: 5, param_min: "age_under_5_rate_min",        param_max: "age_under_5_rate_max",
-    parentId: "more-age-under-5",    panelId: "subcat-age-under-5",
-    minInputId: "min-age-under-5",   maxInputId: "max-age-under-5" },
-  { type: "range", group: 5, param_min: "age_over_61_rate_min",        param_max: "age_over_61_rate_max",
-    parentId: "more-age-over-61",    panelId: "subcat-age-over-61",
-    minInputId: "min-age-over-61",   maxInputId: "max-age-over-61" },
+  // ── Socioeconomics (alphabetical by param_min) ───────────────────────────
+  { type: "range", group: 5, parentId: "more-age-over-61",        panelId: "subcat-age-over-61",        param_min: "age_over_61_rate_min",         param_max: "age_over_61_rate_max",         minInputId: "min-age-over-61",        maxInputId: "max-age-over-61" },
+  { type: "range", group: 5, parentId: "more-age-under-5",        panelId: "subcat-age-under-5",        param_min: "age_under_5_rate_min",         param_max: "age_under_5_rate_max",         minInputId: "min-age-under-5",        maxInputId: "max-age-under-5" },
+  { type: "range", group: 5, parentId: "more-bachelors-rate",     panelId: "subcat-bachelors-rate",     param_min: "bachelors_degree_rate_min",    param_max: "bachelors_degree_rate_max",    minInputId: "min-bachelors-rate",     maxInputId: "max-bachelors-rate" },
+  { type: "range", group: 5, parentId: "more-median-income",      panelId: "subcat-median-income",      param_min: "median_household_income_min",  param_max: "median_household_income_max",  minInputId: "min-median-income",      maxInputId: "max-median-income" },
+  { type: "range", group: 5, parentId: "more-poverty-rate",       panelId: "subcat-poverty-rate",       param_min: "poverty_rate_min",             param_max: "poverty_rate_max",             minInputId: "min-poverty-rate",       maxInputId: "max-poverty-rate" },
+  { type: "range", group: 5, parentId: "more-unemployment-rate",  panelId: "subcat-unemployment-rate",  param_min: "unemployment_rate_min",        param_max: "unemployment_rate_max",        minInputId: "min-unemployment-rate",  maxInputId: "max-unemployment-rate" },
 
-  // ── Race/Ethnicity ───────────────────────────────────────────────────────
-  { type: "range", group: 5, param_min: "poc_rate_min",          param_max: "poc_rate_max",
-    parentId: "more-poc-rate",       panelId: "subcat-poc-rate",
-    minInputId: "min-poc-rate",      maxInputId: "max-poc-rate" },
-  { type: "range", group: 5, param_min: "white_rate_min",        param_max: "white_rate_max",
-    parentId: "more-white-rate",     panelId: "subcat-white-rate",
-    minInputId: "min-white-rate",    maxInputId: "max-white-rate" },
-  { type: "range", group: 5, param_min: "black_rate_min",        param_max: "black_rate_max",
-    parentId: "more-black-rate",     panelId: "subcat-black-rate",
-    minInputId: "min-black-rate",    maxInputId: "max-black-rate" },
-  { type: "range", group: 5, param_min: "aian_rate_min",         param_max: "aian_rate_max",
-    parentId: "more-aian-rate",      panelId: "subcat-aian-rate",
-    minInputId: "min-aian-rate",     maxInputId: "max-aian-rate" },
-  { type: "range", group: 5, param_min: "napi_rate_min",         param_max: "napi_rate_max",
-    parentId: "more-napi-rate",      panelId: "subcat-napi-rate",
-    minInputId: "min-napi-rate",     maxInputId: "max-napi-rate" },
-  { type: "range", group: 5, param_min: "asian_rate_min",        param_max: "asian_rate_max",
-    parentId: "more-asian-rate",     panelId: "subcat-asian-rate",
-    minInputId: "min-asian-rate",    maxInputId: "max-asian-rate" },
-  { type: "range", group: 5, param_min: "hispanic_rate_min",     param_max: "hispanic_rate_max",
-    parentId: "more-hispanic-rate",  panelId: "subcat-hispanic-rate",
-    minInputId: "min-hispanic-rate", maxInputId: "max-hispanic-rate" },
-  { type: "range", group: 5, param_min: "other_race_rate_min",   param_max: "other_race_rate_max",
-    parentId: "more-other-race-rate", panelId: "subcat-other-race-rate",
-    minInputId: "min-other-race-rate", maxInputId: "max-other-race-rate" },
-  { type: "range", group: 5, param_min: "mixed_race_rate_min",   param_max: "mixed_race_rate_max",
-    parentId: "more-mixed-race-rate", panelId: "subcat-mixed-race-rate",
-    minInputId: "min-mixed-race-rate", maxInputId: "max-mixed-race-rate" },
+  // ── Race/Ethnicity (alphabetical by param_min) ────────────────────────────
+  { type: "range", group: 5, parentId: "more-aian-rate",        panelId: "subcat-aian-rate",        param_min: "aian_rate_min",        param_max: "aian_rate_max",        minInputId: "min-aian-rate",        maxInputId: "max-aian-rate" },
+  { type: "range", group: 5, parentId: "more-asian-rate",       panelId: "subcat-asian-rate",       param_min: "asian_rate_min",       param_max: "asian_rate_max",       minInputId: "min-asian-rate",       maxInputId: "max-asian-rate" },
+  { type: "range", group: 5, parentId: "more-black-rate",       panelId: "subcat-black-rate",       param_min: "black_rate_min",       param_max: "black_rate_max",       minInputId: "min-black-rate",       maxInputId: "max-black-rate" },
+  { type: "range", group: 5, parentId: "more-hispanic-rate",    panelId: "subcat-hispanic-rate",    param_min: "hispanic_rate_min",    param_max: "hispanic_rate_max",    minInputId: "min-hispanic-rate",    maxInputId: "max-hispanic-rate" },
+  { type: "range", group: 5, parentId: "more-mixed-race-rate",  panelId: "subcat-mixed-race-rate",  param_min: "mixed_race_rate_min",  param_max: "mixed_race_rate_max",  minInputId: "min-mixed-race-rate",  maxInputId: "max-mixed-race-rate" },
+  { type: "range", group: 5, parentId: "more-napi-rate",        panelId: "subcat-napi-rate",        param_min: "napi_rate_min",        param_max: "napi_rate_max",        minInputId: "min-napi-rate",        maxInputId: "max-napi-rate" },
+  { type: "range", group: 5, parentId: "more-other-race-rate",  panelId: "subcat-other-race-rate",  param_min: "other_race_rate_min",  param_max: "other_race_rate_max",  minInputId: "min-other-race-rate",  maxInputId: "max-other-race-rate" },
+  { type: "range", group: 5, parentId: "more-poc-rate",         panelId: "subcat-poc-rate",         param_min: "poc_rate_min",         param_max: "poc_rate_max",         minInputId: "min-poc-rate",         maxInputId: "max-poc-rate" },
+  { type: "range", group: 5, parentId: "more-white-rate",       panelId: "subcat-white-rate",       param_min: "white_rate_min",       param_max: "white_rate_max",       minInputId: "min-white-rate",       maxInputId: "max-white-rate" },
 
-  // ── Vulnerability ────────────────────────────────────────────────────────
-  { type: "range", group: 5, param_min: "cejst_disadvantaged_pct_min", param_max: "cejst_disadvantaged_pct_max",
-    parentId: "more-cejst", panelId: "subcat-cejst",
-    minInputId: "min-cejst", maxInputId: "max-cejst" },
-  { type: "range", group: 5, param_min: "svi_overall_pctl_min",        param_max: "svi_overall_pctl_max",
-    parentId: "more-svi",   panelId: "subcat-svi",
-    minInputId: "min-svi",   maxInputId: "max-svi" },
-  { type: "range", group: 5, param_min: "cvi_overall_score_min",       param_max: "cvi_overall_score_max",
-    parentId: "more-cvi",   panelId: "subcat-cvi",
-    minInputId: "min-cvi",   maxInputId: "max-cvi" },
+  // ── Vulnerability (alphabetical by param_min) ─────────────────────────────
+  { type: "range", group: 5, parentId: "more-cejst", panelId: "subcat-cejst", param_min: "cejst_disadvantaged_pct_min", param_max: "cejst_disadvantaged_pct_max", minInputId: "min-cejst", maxInputId: "max-cejst" },
+  { type: "range", group: 5, parentId: "more-cvi",   panelId: "subcat-cvi",   param_min: "cvi_overall_score_min",       param_max: "cvi_overall_score_max",       minInputId: "min-cvi",   maxInputId: "max-cvi" },
+  { type: "range", group: 5, parentId: "more-svi",   panelId: "subcat-svi",   param_min: "svi_overall_pctl_min",        param_max: "svi_overall_pctl_max",        minInputId: "min-svi",   maxInputId: "max-svi" },
 
   // ── More (menu 10) ───────────────────────────────────────────────────────
   // ── Financial ─────────────────────────────────────────────────────────────
-  { type: "group", group: 10, param: "most_common_rate_tier",
-    valueMap: {
-      "rate-tier-lt125":   "<$125",
-      "rate-tier-125-249": "$125-249",
-      "rate-tier-250-499": "$250-499",
-      "rate-tier-500-749": "$500-749",
-      "rate-tier-750-999": "$750-999",
-      "rate-tier-gt1000":  ">$1000",
-    }
-  },
-  { type: "bool", group: 10, param: "no_rate_info", id: "rate-tier-no-info", value: "true" },
+  { type: "group", group: 10, param: "most_common_rate_tier", valueMap: RATE_TIER_VALUE_MAP },
+  { type: "bool",  group: 10, id: "rate-tier-no-info", param: "no_rate_info", value: "true" },
 
-  // ── Funding ───────────────────────────────────────────────────────────────
-  { type: "range", group: 10, param_min: "times_funded_min",                  param_max: "times_funded_max",
-    parentId: "more-has-srf-financing",       panelId: "subcat-srf-financing",
-    minInputId: "min-srf-financing",          maxInputId: "max-srf-financing" },
-  { type: "range", group: 10, param_min: "total_srf_assistance_min",          param_max: "total_srf_assistance_max",
-    parentId: "more-has-srf-assistance",      panelId: "subcat-srf-assistance",
-    minInputId: "min-srf-assistance",         maxInputId: "max-srf-assistance" },
-  { type: "range", group: 10, param_min: "total_principal_forgiveness_min",   param_max: "total_principal_forgiveness_max",
-    parentId: "more-has-principal-forgiveness", panelId: "subcat-srf-forgiveness",
-    minInputId: "min-srf-forgiveness",        maxInputId: "max-srf-forgiveness" },
+  // ── Funding (alphabetical by param_min) ───────────────────────────────────
+  { type: "range", group: 10, parentId: "more-has-srf-financing",          panelId: "subcat-srf-financing",    param_min: "times_funded_min",                 param_max: "times_funded_max",                 minInputId: "min-srf-financing",    maxInputId: "max-srf-financing" },
+  { type: "range", group: 10, parentId: "more-has-principal-forgiveness",  panelId: "subcat-srf-forgiveness",  param_min: "total_principal_forgiveness_min",  param_max: "total_principal_forgiveness_max",  minInputId: "min-srf-forgiveness",  maxInputId: "max-srf-forgiveness" },
+  { type: "range", group: 10, parentId: "more-has-srf-assistance",         panelId: "subcat-srf-assistance",   param_min: "total_srf_assistance_min",         param_max: "total_srf_assistance_max",         minInputId: "min-srf-assistance",   maxInputId: "max-srf-assistance" },
 
-  // ── Environmental — Watershed Hazards (health_subcat pattern) ─────────────
-  { type: "health_subcat", group: 10, parentId: "more-watershed-hazards",
-    panelId: "subcat-watershed-hazards",
-    subcats: [
-      { id: "more-num-facilities",             param_min: "num_facilities_min",                  param_max: "num_facilities_max",                  minInputId: "min-num-facilities",    maxInputId: "max-num-facilities",    sliderPanelId: "slider-num-facilities" },
-      { id: "more-permit-effluent-violations", param_min: "permit_effluent_violations_min",      param_max: "permit_effluent_violations_max",      minInputId: "min-permit-violations", maxInputId: "max-permit-violations", sliderPanelId: "slider-permit-violations" },
-      { id: "more-open-usts",                  param_min: "open_underground_storage_tanks_min",  param_max: "open_underground_storage_tanks_max",  minInputId: "min-open-usts",         maxInputId: "max-open-usts",         sliderPanelId: "slider-open-usts" },
-      { id: "more-rmps",                       param_min: "risk_management_plan_facilities_min", param_max: "risk_management_plan_facilities_max", minInputId: "min-rmps",              maxInputId: "max-rmps",              sliderPanelId: "slider-rmps" },
-      { id: "more-impaired-streams",           param_min: "impaired_streams_303d_min",           param_max: "impaired_streams_303d_max",           minInputId: "min-impaired-streams",  maxInputId: "max-impaired-streams",  sliderPanelId: "slider-impaired-streams" },
-    ]
-  },
+  // ── Environmental — Watershed Hazards (nested subcat_panel, same UX as Compliance health) ─
+  { type: "subcat_panel", group: 10, parentId: "more-watershed-hazards", panelId: "subcat-watershed-hazards", subcats: [
+    { id: "more-num-facilities",             param_min: "num_facilities_min",                  param_max: "num_facilities_max",                  minInputId: "min-num-facilities",    maxInputId: "max-num-facilities",    sliderPanelId: "slider-num-facilities" },
+    { id: "more-permit-effluent-violations", param_min: "permit_effluent_violations_min",      param_max: "permit_effluent_violations_max",      minInputId: "min-permit-violations", maxInputId: "max-permit-violations", sliderPanelId: "slider-permit-violations" },
+    { id: "more-open-usts",                  param_min: "open_underground_storage_tanks_min",  param_max: "open_underground_storage_tanks_max",  minInputId: "min-open-usts",         maxInputId: "max-open-usts",         sliderPanelId: "slider-open-usts" },
+    { id: "more-rmps",                       param_min: "risk_management_plan_facilities_min", param_max: "risk_management_plan_facilities_max", minInputId: "min-rmps",              maxInputId: "max-rmps",              sliderPanelId: "slider-rmps" },
+    { id: "more-impaired-streams",           param_min: "impaired_streams_303d_min",           param_max: "impaired_streams_303d_max",           minInputId: "min-impaired-streams",  maxInputId: "max-impaired-streams",  sliderPanelId: "slider-impaired-streams" },
+  ] },
 ]
 
 // Filters with .param contribute a single URL key counted directly.
-// health_subcat and range omit .param and are counted separately below.
+// subcat_panel and range omit .param and are counted separately below.
 const GROUP_KEYS = FILTERS.reduce((acc, f) => {
   if (f.param) (acc[f.group] ||= []).push(f.param)
   return acc
 }, {})
 
-const HEALTH_SUBCAT_FILTERS = FILTERS.filter(f => f.type === "health_subcat")
+// Nested panels: parent checkbox, sub-checkboxes, per-subrow range sliders (violations health + watershed hazards).
+const SUBCAT_PANEL_FILTERS = FILTERS.filter(f => f.type === "subcat_panel")
 const RANGE_FILTERS = FILTERS.filter(f => f.type === "range")
 
 // Collects filter state → writes to FilterState → dispatches filters:changed.
@@ -276,7 +223,7 @@ export default class extends Controller {
     const panelId = checkbox.dataset.panelId
     const panel = panelId && document.getElementById(panelId)
     if (!panel) return
-    const filter = HEALTH_SUBCAT_FILTERS.find(f => f.panelId === panelId)
+    const filter = SUBCAT_PANEL_FILTERS.find(f => f.panelId === panelId)
 
     if (checkbox.checked) {
       panel.classList.remove("hidden")
@@ -313,7 +260,7 @@ export default class extends Controller {
   // Also shows/hides the changed subcat's histogram panel.
   syncParentFromSubcat(event) {
     const panel = event.currentTarget
-    const filter = HEALTH_SUBCAT_FILTERS.find(f => f.panelId === panel.id)
+    const filter = SUBCAT_PANEL_FILTERS.find(f => f.panelId === panel.id)
     if (!filter) return
 
     const anyChecked = filter.subcats.some(s => document.getElementById(s.id)?.checked)
@@ -363,7 +310,7 @@ export default class extends Controller {
       const sliderCtrl = this.application.getControllerForElementAndIdentifier(panel, "slider")
       sliderCtrl?.resetToFullRange()
     })
-    HEALTH_SUBCAT_FILTERS.forEach(f => {
+    SUBCAT_PANEL_FILTERS.forEach(f => {
       if (!menu.contains(document.getElementById(f.panelId))) return
       f.subcats.forEach(s => {
         if (s.sliderPanelId) this.#hideAndResetSlider(document.getElementById(s.sliderPanelId))
@@ -429,7 +376,7 @@ export default class extends Controller {
           }
           break
         }
-        case "health_subcat": {
+        case "subcat_panel": {
           const parent = document.getElementById(f.parentId)
           if (!parent?.checked) break
           for (const s of f.subcats) {
@@ -513,7 +460,7 @@ export default class extends Controller {
           if (nameEl) nameEl.value = params[f.nameParam] || params[f.param]
           break
         }
-        case "health_subcat": {
+        case "subcat_panel": {
           const anySubcatSet = f.subcats.some(s => params[s.param_min] != null || params[s.param_max] != null)
           if (!anySubcatSet) break
 
@@ -593,9 +540,9 @@ export default class extends Controller {
       RANGE_FILTERS.filter(f => f.group === group)
         .reduce((sum, f) => sum + (document.getElementById(f.parentId)?.checked ? 1 : 0), 0)
 
-    // Count health_subcat-type filters: 1 for parent + 1 per checked subcat checkbox
-    const countHealthSubcatCheckboxes = (group) =>
-      HEALTH_SUBCAT_FILTERS.filter(f => f.group === group)
+    // Count subcat_panel filters: 1 for parent + 1 per checked subcat checkbox
+    const countSubcatPanelCheckboxes = (group) =>
+      SUBCAT_PANEL_FILTERS.filter(f => f.group === group)
         .reduce((sum, f) => {
           const parentChecked = document.getElementById(f.parentId)?.checked ? 1 : 0
           const subcatCount = f.subcats.filter(s => document.getElementById(s.id)?.checked).length
@@ -605,14 +552,14 @@ export default class extends Controller {
     // Groups 1–5: if collapsed into More, add their count to More's badge instead
     let moreCount = countKeys(GROUP_KEYS[10] || [])
       + countRangeCheckboxes(10)
-      + countHealthSubcatCheckboxes(10)
+      + countSubcatPanelCheckboxes(10)
 
     for (const [groupStr, keys] of Object.entries(GROUP_KEYS)) {
       const group = Number(groupStr)
       if (group === 10) continue
 
       const li = document.querySelector(`.filter-${group}`)
-      const count = countKeys(keys) + countRangeCheckboxes(group) + countHealthSubcatCheckboxes(group)
+      const count = countKeys(keys) + countRangeCheckboxes(group) + countSubcatPanelCheckboxes(group)
 
       if (li?.classList.contains("hidden")) {
         moreCount += count
