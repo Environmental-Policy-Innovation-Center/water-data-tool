@@ -1,64 +1,64 @@
+# frozen_string_literal: true
+
 module Filterable
   extend ActiveSupport::Concern
-
-  HEALTH_SUBCAT_5YR = %i[
-    groundwater_rule_5yr surface_water_treatment_5yr lead_and_copper_5yr
-    radionuclides_5yr inorganic_chemicals_5yr synthetic_organic_chemicals_5yr
-    volatile_organic_chemicals_5yr total_coliform_5yr
-    stage_1_disinfectants_5yr stage_2_disinfectants_5yr
-  ].freeze
-
-  HEALTH_SUBCAT_10YR = %i[
-    groundwater_rule_10yr surface_water_treatment_10yr lead_and_copper_10yr
-    radionuclides_10yr inorganic_chemicals_10yr synthetic_organic_chemicals_10yr
-    volatile_organic_chemicals_10yr total_coliform_10yr
-    stage_1_disinfectants_10yr stage_2_disinfectants_10yr
-  ].freeze
-
-  HEALTH_SUBCATS_ALL = (HEALTH_SUBCAT_5YR + HEALTH_SUBCAT_10YR).freeze
-
-  PAPERWORK_VIOLATIONS_COLS = %i[paperwork_violations_5yr paperwork_violations_10yr].freeze
 
   class_methods do
     def apply_filters(params)
       scope = all
-      # Tracks which associations have been left-joined to prevent duplicates.
       joined = Set.new
 
-      # --- Direct categorical filters (on public_water_systems) ---
+      scope = apply_direct_filters(scope, params)
+      scope, joined = apply_area_filters(scope, joined, params)
+      scope, joined = apply_violations_range_filters(scope, joined, params)
+      scope, joined = apply_boil_water_filters(scope, joined, params)
+      scope, joined = apply_demographic_filters(scope, joined, params)
+      scope, joined = apply_environmental_justice_filters(scope, joined, params)
+      scope, joined = apply_funding_filters(scope, joined, params)
+      scope, joined = apply_watershed_hazard_filters(scope, joined, params)
+      scope, joined = apply_trend_filters(scope, joined, params)
+      apply_geographic_filters(scope, joined, params)
+    end
+
+    private
+
+    def apply_direct_filters(scope, params)
       scope = scope.where(gw_sw_code: params[:gw_sw_code]) if params[:gw_sw_code].present?
       scope = scope.where(owner_type: params[:owner_type]) if params[:owner_type].present?
       scope = scope.where(primacy_type: params[:primacy_type]) if params[:primacy_type].present?
       scope = scope.where(pop_cat_5: params[:pop_cat_5]) if params[:pop_cat_5].present?
       scope = scope.where(symbology_field: params[:symbology_field]) if params[:symbology_field].present?
 
-      # --- Boolean filters ---
       scope = scope.where(is_wholesaler: true) if params[:is_wholesaler] == "true"
       scope = scope.where(is_school_or_daycare: true) if params[:is_school_or_daycare] == "true"
       scope = scope.where(source_water_protection_code: "Yes") if params[:has_source_protection] == "true"
       scope = scope.where(open_health_viol: "Yes") if params[:has_open_violations] == "true"
 
-      # --- Direct range filters (coerce to Decimal to guard against non-numeric input) ---
+      scope = scope.where(stusps: params[:state]) if params[:state].present?
+      scope
+    end
+
+    def apply_area_filters(scope, joined, params)
       scope = scope.where("area_sq_miles >= ?", params[:area_min].to_d) if params[:area_min].present?
       scope = scope.where("area_sq_miles <= ?", params[:area_max].to_d) if params[:area_max].present?
+      [scope, joined]
+    end
 
-      # --- State filter ---
-      scope = scope.where(stusps: params[:state]) if params[:state].present?
+    def apply_violations_range_filters(scope, joined, params)
+      paperwork_cols = FilterRegistry.paperwork_violation_columns
+      subcat_5yr = FilterRegistry.health_subcat_5yr
+      subcat_10yr = FilterRegistry.health_subcat_10yr
 
-      # --- Violations range filters (join to violations_summaries) ---
-      # All groups within the Violations category are ORed (Option A — inclusive):
-      # enabling more groups broadens results. Within each health sub-category group,
-      # sub-filters are ORed. Within a single column, min/max bounds are ANDed.
       violations_join_needed =
-        PAPERWORK_VIOLATIONS_COLS.any? { |col| params[:"#{col}_min"].present? || params[:"#{col}_max"].present? } ||
-        HEALTH_SUBCATS_ALL.any? { |col| params[:"#{col}_min"].present? || params[:"#{col}_max"].present? }
+        paperwork_cols.any? { |col| params[:"#{col}_min"].present? || params[:"#{col}_max"].present? } ||
+        (subcat_5yr + subcat_10yr).any? { |col| params[:"#{col}_min"].present? || params[:"#{col}_max"].present? }
 
       if violations_join_needed
         scope, joined = left_join_once(scope, joined, :violations_summary)
       end
 
       viol_table = Arel::Table.new(:violations_summaries)
-      col_range_node = ->(col, min_val, max_val) {
+      range_where_clause = lambda do |col, min_val, max_val|
         arel_col = viol_table[col]
         if min_val.present? && max_val.present?
           arel_col.gteq(min_val.to_i).and(arel_col.lteq(max_val.to_i))
@@ -67,50 +67,45 @@ module Filterable
         else
           arel_col.lteq(max_val.to_i)
         end
-      }
+      end
 
-      violations_group_nodes = []
+      violation_group_where_clauses = []
 
-      # Health sub-category groups: sub-filters within each time-window group are ORed.
-      [HEALTH_SUBCAT_5YR, HEALTH_SUBCAT_10YR].each do |col_group|
+      [subcat_5yr, subcat_10yr].each do |col_group|
         active = col_group.select { |col| params[:"#{col}_min"].present? || params[:"#{col}_max"].present? }
         next if active.empty?
 
-        window_node = active.map { |col|
-          col_range_node.call(col, params[:"#{col}_min"], params[:"#{col}_max"])
-        }.inject { |m, c| m.or(c) }
-        violations_group_nodes << window_node
+        window_where_clause = active
+          .map { |col| range_where_clause.call(col, params[:"#{col}_min"], params[:"#{col}_max"]) }
+          .inject { |m, c| m.or(c) }
+        violation_group_where_clauses << window_where_clause
       end
 
-      # Paperwork (non-health) violation groups: each column is its own group.
-      PAPERWORK_VIOLATIONS_COLS.each do |col|
+      paperwork_cols.each do |col|
         min_val = params[:"#{col}_min"]
         max_val = params[:"#{col}_max"]
         next unless min_val.present? || max_val.present?
 
-        violations_group_nodes << col_range_node.call(col, min_val, max_val)
+        violation_group_where_clauses << range_where_clause.call(col, min_val, max_val)
       end
 
-      scope = scope.where(violations_group_nodes.inject { |m, c| m.or(c) }) if violations_group_nodes.any?
+      scope = scope.where(violation_group_where_clauses.inject { |m, c| m.or(c) }) if violation_group_where_clauses.any?
+      [scope, joined]
+    end
 
-      # --- Boil water notice range filter ---
+    def apply_boil_water_filters(scope, joined, params)
       if params[:boil_water_notices_min].present? || params[:boil_water_notices_max].present?
         scope, joined = left_join_once(scope, joined, :boil_water_summary)
         scope = scope.where("boil_water_summaries.total_notices >= ?", params[:boil_water_notices_min].to_i) if params[:boil_water_notices_min].present?
         scope = scope.where("boil_water_summaries.total_notices <= ?", params[:boil_water_notices_max].to_i) if params[:boil_water_notices_max].present?
       end
+      [scope, joined]
+    end
 
-      # --- Demographic range filters ---
-      demographic_range_filters = %i[
-        total_population poverty_rate population_in_poverty_rate unemployment_rate
-        median_household_income bachelors_degree_rate no_health_insurance_rate
-        age_under_5_rate age_over_61_rate poc_rate
-        white_rate black_rate asian_rate aian_rate napi_rate hispanic_rate
-        other_race_rate mixed_race_rate
-        renter_rate owner_rate
-      ]
+    def apply_demographic_filters(scope, joined, params)
+      cols = FilterRegistry.demographic_range_columns
 
-      demographic_cols_active = demographic_range_filters.any? { |col| params[:"#{col}_min"].present? || params[:"#{col}_max"].present? }
+      demographic_cols_active = cols.any? { |col| params[:"#{col}_min"].present? || params[:"#{col}_max"].present? }
       demographic_cols_active ||= params[:density_min].present? || params[:density_max].present?
       demographic_cols_active ||= Array(params[:most_common_rate_tier]).any?(&:present?)
       demographic_cols_active ||= params[:no_rate_info] == "true"
@@ -119,52 +114,60 @@ module Filterable
         scope, joined = left_join_once(scope, joined, :demographic)
       end
 
-      demographic_range_filters.each do |col|
+      dem_t = Arel::Table.new(:demographics)
+      cols.each do |col|
         if params[:"#{col}_min"].present?
-          scope = scope.where("demographics.#{col} >= ?", params[:"#{col}_min"].to_d)
+          scope = scope.where(dem_t[col].gteq(params[:"#{col}_min"].to_d))
         end
         if params[:"#{col}_max"].present?
-          scope = scope.where("demographics.#{col} <= ?", params[:"#{col}_max"].to_d)
+          scope = scope.where(dem_t[col].lteq(params[:"#{col}_max"].to_d))
         end
       end
 
-      scope = scope.where("demographics.population_density >= ?", params[:density_min].to_d) if params[:density_min].present?
-      scope = scope.where("demographics.population_density <= ?", params[:density_max].to_d) if params[:density_max].present?
+      scope = scope.where(dem_t[:population_density].gteq(params[:density_min].to_d)) if params[:density_min].present?
+      scope = scope.where(dem_t[:population_density].lteq(params[:density_max].to_d)) if params[:density_max].present?
+
       tiers = Array(params[:most_common_rate_tier]).select(&:present?)
       no_info = params[:no_rate_info] == "true"
       if tiers.any? || no_info
-        demog_t = Arel::Table.new(:demographics)
-        tier_node = tiers.any? ? demog_t[:most_common_rate_tier].in(tiers) : nil
-        nil_node = no_info ? demog_t[:most_common_rate_tier].eq(nil).or(demog_t[:most_common_rate_tier].eq("")) : nil
-        rate_node = [tier_node, nil_node].compact.inject { |m, c| m.or(c) }
-        scope = scope.where(rate_node)
+        tier_predicate = tiers.any? ? dem_t[:most_common_rate_tier].in(tiers) : nil
+        empty_value_predicate = no_info ? dem_t[:most_common_rate_tier].eq(nil).or(dem_t[:most_common_rate_tier].eq("")) : nil
+        rate_tier_predicate = [tier_predicate, empty_value_predicate].compact.inject { |m, c| m.or(c) }
+        scope = scope.where(rate_tier_predicate)
       end
 
-      # --- Environmental justice range filters ---
-      ej_range_filters = %i[cejst_disadvantaged_pct svi_overall_pctl cvi_overall_score]
+      [scope, joined]
+    end
 
-      if ej_range_filters.any? { |col| params[:"#{col}_min"].present? || params[:"#{col}_max"].present? }
+    def apply_environmental_justice_filters(scope, joined, params)
+      cols = FilterRegistry.environmental_justice_range_columns
+
+      if cols.any? { |col| params[:"#{col}_min"].present? || params[:"#{col}_max"].present? }
         scope, joined = left_join_once(scope, joined, :environmental_justice)
       end
 
-      ej_range_filters.each do |col|
+      ej_t = Arel::Table.new(:environmental_justices)
+      cols.each do |col|
         if params[:"#{col}_min"].present?
-          scope = scope.where("environmental_justices.#{col} >= ?", params[:"#{col}_min"].to_d)
+          scope = scope.where(ej_t[col].gteq(params[:"#{col}_min"].to_d))
         end
         if params[:"#{col}_max"].present?
-          scope = scope.where("environmental_justices.#{col} <= ?", params[:"#{col}_max"].to_d)
+          scope = scope.where(ej_t[col].lteq(params[:"#{col}_max"].to_d))
         end
       end
 
-      # --- Funding range filters ---
-      funding_range_filters = %i[times_funded total_srf_assistance total_principal_forgiveness]
+      [scope, joined]
+    end
 
-      if funding_range_filters.any? { |col| params[:"#{col}_min"].present? || params[:"#{col}_max"].present? }
+    def apply_funding_filters(scope, joined, params)
+      cols = FilterRegistry.funding_range_columns
+
+      if cols.any? { |col| params[:"#{col}_min"].present? || params[:"#{col}_max"].present? }
         scope, joined = left_join_once(scope, joined, :funding_summary)
       end
 
       funding_table = Arel::Table.new(:funding_summaries)
-      funding_col_range = ->(col, min_val, max_val) {
+      range_where_clause = lambda do |col, min_val, max_val|
         arel_col = funding_table[col]
         if min_val.present? && max_val.present?
           arel_col.gteq(min_val.to_d).and(arel_col.lteq(max_val.to_d))
@@ -173,27 +176,29 @@ module Filterable
         else
           arel_col.lteq(max_val.to_d)
         end
-      }
-      funding_nodes = funding_range_filters.filter_map do |col|
+      end
+
+      funding_where_clauses = cols.filter_map do |col|
         min_val = params[:"#{col}_min"]
         max_val = params[:"#{col}_max"]
         next unless min_val.present? || max_val.present?
-        funding_col_range.call(col, min_val, max_val)
+
+        range_where_clause.call(col, min_val, max_val)
       end
-      scope = scope.where(funding_nodes.inject { |m, c| m.or(c) }) if funding_nodes.any?
+      scope = scope.where(funding_where_clauses.inject { |m, c| m.or(c) }) if funding_where_clauses.any?
 
-      # --- Watershed hazard range filters ---
-      hazard_range_filters = %i[
-        num_facilities permit_effluent_violations open_underground_storage_tanks
-        risk_management_plan_facilities impaired_streams_303d
-      ]
+      [scope, joined]
+    end
 
-      if hazard_range_filters.any? { |col| params[:"#{col}_min"].present? || params[:"#{col}_max"].present? }
+    def apply_watershed_hazard_filters(scope, joined, params)
+      cols = FilterRegistry.watershed_hazard_range_columns
+
+      if cols.any? { |col| params[:"#{col}_min"].present? || params[:"#{col}_max"].present? }
         scope, joined = left_join_once(scope, joined, :watershed_hazard)
       end
 
       hazard_table = Arel::Table.new(:watershed_hazards)
-      hazard_col_range = ->(col, min_val, max_val) {
+      range_where_clause = lambda do |col, min_val, max_val|
         arel_col = hazard_table[col]
         if min_val.present? && max_val.present?
           arel_col.gteq(min_val.to_i).and(arel_col.lteq(max_val.to_i))
@@ -202,38 +207,46 @@ module Filterable
         else
           arel_col.lteq(max_val.to_i)
         end
-      }
-      hazard_nodes = hazard_range_filters.filter_map do |col|
+      end
+
+      hazard_where_clauses = cols.filter_map do |col|
         min_val = params[:"#{col}_min"]
         max_val = params[:"#{col}_max"]
         next unless min_val.present? || max_val.present?
-        hazard_col_range.call(col, min_val, max_val)
+
+        range_where_clause.call(col, min_val, max_val)
       end
-      scope = scope.where(hazard_nodes.inject { |m, c| m.or(c) }) if hazard_nodes.any?
+      scope = scope.where(hazard_where_clauses.inject { |m, c| m.or(c) }) if hazard_where_clauses.any?
 
-      # --- Trend range filters ---
-      trend_range_filters = %i[population_pct_change_capped mhi_pct_change_capped]
+      [scope, joined]
+    end
 
-      if trend_range_filters.any? { |col| params[:"#{col}_min"].present? || params[:"#{col}_max"].present? }
+    def apply_trend_filters(scope, joined, params)
+      cols = FilterRegistry.trend_range_columns
+
+      if cols.any? { |col| params[:"#{col}_min"].present? || params[:"#{col}_max"].present? }
         scope, joined = left_join_once(scope, joined, :trend_datum)
       end
 
-      trend_range_filters.each do |col|
+      trend_t = Arel::Table.new(:trend_data)
+      cols.each do |col|
         if params[:"#{col}_min"].present?
-          scope = scope.where("trend_data.#{col} >= ?", params[:"#{col}_min"].to_d)
+          scope = scope.where(trend_t[col].gteq(params[:"#{col}_min"].to_d))
         end
         if params[:"#{col}_max"].present?
-          scope = scope.where("trend_data.#{col} <= ?", params[:"#{col}_max"].to_d)
+          scope = scope.where(trend_t[col].lteq(params[:"#{col}_max"].to_d))
         end
       end
 
-      # --- Place geographic filter (via place_system_crosswalks) ---
+      [scope, joined]
+    end
+
+    def apply_geographic_filters(scope, joined, params)
       if params[:place_geoid].present?
         pwsids = PlaceSystemCrosswalk.where(geoid: params[:place_geoid]).select(:pwsid)
         scope = scope.where(pwsid: pwsids)
       end
 
-      # --- County geographic filter (spatial subquery via centroid) ---
       if params[:county_geoid].present?
         scope = scope.where(<<~SQL.squish, params[:county_geoid])
           public_water_systems.pwsid IN (
@@ -245,10 +258,9 @@ module Filterable
         SQL
       end
 
-      # --- Bounding box geographic filter ---
       if params[:bounds].present?
         west, south, east, north = params[:bounds].split(",").map(&:to_f)
-        scope, _ = left_join_once(scope, joined, :service_area_geometry)
+        scope, _joined = left_join_once(scope, joined, :service_area_geometry)
         scope = scope.where(
           "ST_Intersects(service_area_geometries.geom, ST_MakeEnvelope(?, ?, ?, ?, 4326))",
           west, south, east, north
@@ -258,10 +270,6 @@ module Filterable
       scope
     end
 
-    private
-
-    # Adds a left outer join for the given association at most once per query,
-    # preventing duplicate joins when multiple filters reference the same table.
     def left_join_once(scope, joined, assoc)
       return [scope, joined] if joined.include?(assoc)
 
