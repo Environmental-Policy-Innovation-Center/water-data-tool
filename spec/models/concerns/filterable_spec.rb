@@ -462,6 +462,42 @@ RSpec.describe Filterable, type: :model do
         expect(results).to include(growing)
         expect(results).not_to include(declining)
       end
+
+      it "filters on population_pct_change_capped, not the raw uncapped value" do
+        # Both records have raw=5000% (an artifact of a tiny baseline population, cap is +200%).
+        # If filtering used the raw column, neither would pass a 20..200 range.
+        # Only the one with capped=150 is in range; the one with capped=10 is not.
+        in_range = create(:public_water_system)
+        out_of_range = create(:public_water_system)
+        create(:trend_datum, public_water_system: in_range,
+          population_pct_change: 5000.0, population_pct_change_capped: 150.0)
+        create(:trend_datum, public_water_system: out_of_range,
+          population_pct_change: 5000.0, population_pct_change_capped: 10.0)
+
+        results = PublicWaterSystem.apply_filters(
+          population_pct_change_capped_min: "20",
+          population_pct_change_capped_max: "200"
+        )
+        expect(results).to include(in_range)
+        expect(results).not_to include(out_of_range)
+      end
+
+      it "filters on mhi_pct_change_capped, not the raw uncapped value" do
+        # Same cap logic as population — raw income-change artifacts are capped at +200%.
+        in_range = create(:public_water_system)
+        out_of_range = create(:public_water_system)
+        create(:trend_datum, public_water_system: in_range,
+          mhi_pct_change: 9999.0, mhi_pct_change_capped: 120.0)
+        create(:trend_datum, public_water_system: out_of_range,
+          mhi_pct_change: 9999.0, mhi_pct_change_capped: 10.0)
+
+        results = PublicWaterSystem.apply_filters(
+          mhi_pct_change_capped_min: "20",
+          mhi_pct_change_capped_max: "200"
+        )
+        expect(results).to include(in_range)
+        expect(results).not_to include(out_of_range)
+      end
     end
 
     context "place geographic filter" do

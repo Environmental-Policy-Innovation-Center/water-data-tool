@@ -50,9 +50,9 @@ RSpec.describe Histogrammable, type: :model do
 
     it "includes negative values when min_threshold is nil" do
       pws_f = create(:public_water_system)
-      create(:trend_datum, public_water_system: pws_f, pwsid: pws_f.pwsid, population_pct_change: -5)
+      create(:trend_datum, public_water_system: pws_f, pwsid: pws_f.pwsid, population_pct_change_capped: -5)
 
-      result = TrendDatum.histogram_bins(:population_pct_change, min_threshold: nil)
+      result = TrendDatum.histogram_bins(:population_pct_change_capped, min_threshold: nil)
       expect(result[:domain_min]).to be <= -5
     end
   end

@@ -4,6 +4,7 @@ module Histogrammable
   class_methods do
     # Returns histogram bucket data for a numeric column.
     # min_threshold: rows where column <= this value are excluded. Pass nil to include all non-null rows.
+    # Callers must validate `field` against an allowlist — see ALLOWED_FIELDS in PublicWaterSystems::HistogramsController.
     def histogram_bins(field, num_bins: 50, min_threshold: 0)
       quoted = connection.quote_column_name(field)
       scope = where.not(field => nil)

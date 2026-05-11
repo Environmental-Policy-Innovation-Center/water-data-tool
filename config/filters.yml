@@ -14,6 +14,7 @@ direct_params:
   - is_wholesaler
   - no_rate_info
   - place_geoid
+  - place_name
   - state
   - symbology_field
 
@@ -174,7 +175,7 @@ histogram_field_groups:
       - mhi_pct_change_capped
       - population_pct_change_capped
     extras:
-      min_threshold: ~
+      min_threshold: null
   violations:
     model_key: violations_summary
     columns:
