@@ -1,6 +1,31 @@
 # Filtering
 
-The map page exposes a multi-level filter system that narrows the set of public water systems shown on the map and in the data table. All filters are collected by `filter_controller.js` on Apply, written to `FilterState`, and dispatched as a `filters:changed` event. `map_controller.js` and the Turbo Frame table both listen for that event and re-fetch with the current params. Backend filtering is handled entirely by the `Filterable` concern (`app/models/concerns/filterable.rb`).
+The map page exposes a multi-level filter system that narrows the set of public water systems shown on the map and in the data table. Filters are collected by `filter_controller.js` on Apply, written to `FilterState`, and dispatched as a `filters:changed` event. `map_controller.js` and the Turbo Frame table listen for that event and re-fetch with the current params. Backend filtering is implemented in the `Filterable` concern on `PublicWaterSystem` (`app/models/concerns/filterable.rb`).
+
+---
+
+## Source of truth (implementation)
+
+**Canonical contract:** `config/filters.yml`, loaded at runtime by `FilterRegistry` (`app/filters/filter_registry.rb`).
+
+| Piece | Role |
+|--------|------|
+| `config/filters.yml` | Declares `direct_params`, `array_params`, `special_range_param_keys` (e.g. boil-water notice bounds), `area_range` / `density_range` key names, `violations` column lists (health 5yr/10yr subcats, paperwork columns), `range_column_groups` (demographics, EJ, funding, trends, watershed hazards: association, table, coercion, columns), and `histogram_field_groups` for the histogram API. |
+| `FilterRegistry` | Parses YAML (memoized), exposes `permit_arguments`, column helpers (`demographic_range_columns`, …), `paperwork_violation_columns`, health subcat lists, `histogram_field_config`, and `client_payload` / `client_payload_json` for the browser. |
+| `FilterParams` | `params.permit(*FilterRegistry.permit_arguments)` — no duplicated permit lists outside YAML. |
+| `Filterable` | Composed `apply_*` methods; range column sets and violation columns come from `FilterRegistry`; violations/funding/hazard ranges use Arel where those clauses are combined with OR. |
+| `PublicWaterSystems::HistogramsController` | Allowed histogram fields and model mapping come from `FilterRegistry.histogram_field_config` (from `histogram_field_groups` + `HISTOGRAM_MODELS`). |
+
+**Map page embed:** `app/views/home/_filter_registry_config.html.erb` renders `<script type="application/json" id="filter-registry-config">` with `FilterRegistry.client_payload_json`. That JSON is the **browser-visible copy of the server permit/column contract** (param keys, range groups, violations structure). Stimulus does **not** consume it yet for building requests.
+
+**What is outside the YAML single source (by design):** The map UI still has a **manual client layer** that must stay in sync with the contract whenever you add or rename a backend-facing filter:
+
+1. **`FILTERS`** in `app/javascript/controllers/filter_controller.js` — param names, `param_min` / `param_max`, Stimulus `type`, menu `group`, value maps, and pointers to DOM ids.
+2. **Markup** in `app/views/home/_filter_menus.html.erb` (and related partials) — element `id`s, panels, and checkboxes must match what `FILTERS` references (`getElementById`, etc.).
+
+**Checklist when adding a filter:** Update `config/filters.yml` (and any new `Filterable` / join logic if it is not a plain range on an existing group) → extend `FILTERS` → add or adjust ERB ids → if it is histogram-driven, ensure the field exists under `histogram_field_groups` and slider `data-*` matches → add or extend specs. The embed is there so you can **compare** or **JSON.parse** in dev tools; optional automation is described under [TODO](#todo) (same doc: client consumption of the `#filter-registry-config` embed).
+
+Design rationale and a phased checklist for the registry work live in [REFACTOR_FILTER_FIELDS.md](./REFACTOR_FILTER_FIELDS.md) (working document; may be removed once the team no longer needs it).
 
 ---
 
@@ -22,6 +47,8 @@ Five levels describe every filter option in the system. Use these terms consiste
 - A **Sub-filter** is a more specific option nested under a group.
 - A **Range** is a histogram slider attached to a group or sub-filter. Intermediate levels are optional — a Group can attach a Range directly with no Sub-filter in between.
 
+In `filter_controller.js`, nested **group → sub-filters → ranges** UIs (Compliance health 5yr/10yr and **More → Watershed hazards**) share the Stimulus filter `type` **`subcat_panel`** and the `SUBCAT_PANEL_FILTERS` list. That naming is domain-neutral; backend params still map to `violations_summaries` columns vs `watershed_hazards` via `Filterable` / `config/filters.yml`.
+
 ---
 
 ## Filter Logic
@@ -41,12 +68,29 @@ Enabling more groups within a category **broadens** results (OR). Enabling filte
 
 ---
 
+## Trend metrics: which column we filter on (`*_capped`)
+
+**Population change** and **Median household income change** on the map are range filters. The user’s lower and upper bounds are sent as URL params ending in `_min` and `_max` (those suffixes are **not** database columns—they are only the request keys for the two numbers).
+
+**What we query in SQL:** `Filterable` compares the user’s bounds only to `trend_data.population_pct_change_capped` and `trend_data.mhi_pct_change_capped`. We do **not** filter on the raw columns.
+
+**Why cap:** Raw percent changes can explode when the 2011 baseline is tiny (e.g. a military installation going from a handful of connections to thousands). That produces meaningless percentages for mapping and makes histograms collapse into a single bin. ETL stores **capped** values (typically clipped to a band such as ±200%) so filters, sliders, and histograms stay on a human scale. See [frontend_refactor/HISTOGRAMS.md](./frontend_refactor/HISTOGRAMS.md).
+
+**Why we still store raw:** `population_pct_change` and `mhi_pct_change` keep the **true** calculated change for exports, API payloads, and completeness. They are not used for map filtering.
+
+**Example (large raw vs capped):** `PublicWaterSystem` **Ft Wainwright - Main Post** (`pwsid` **AK2310918**) — `population_pct_change` **+555,500%** (artifact of a small baseline), `population_pct_change_capped` **+200%** (capped for display and filtering). Map logic uses **+200%** when deciding if the system passes a population-change range filter.
+
+**URL shape:** Params mirror the filtered column name, e.g. `population_pct_change_capped_min` / `population_pct_change_capped_max` (bounds applied to `population_pct_change_capped`).
+
+---
+
 ## Filter Tree
 
 **Legend:**
+
 - *(no marker)* — implemented
 - `⚠️` — partially implemented; issue noted inline
-- `🚫` — disabled (data unavailable)
+- `🚫` — disabled in UI (may still be permitted/filterable on the server)
 - `~ range` — has a histogram range slider attached
 
 > All groups and sub-filters have a `ⓘ` tooltip. Tooltip copy lives in `config/tooltips.yml`, sourced from the legacy app's `deprecated/assets/js/tooltips.js` where applicable.
@@ -105,7 +149,7 @@ Enabling more groups within a category **broadens** results (OR). Enabling filte
   - Non-health violations in the last 5 years *(Group)* ~ range
   - Non-health violations in the last 10 years *(Group)* ~ range
 - **Notices** *(Category)*
-  - Boil water notices 🚫 *(Group — data unavailable)*
+  - Boil water notices 🚫 *(Map UI is a disabled placeholder only—no `FILTERS` row / collect path, so Apply does not send params. The server already permits and applies `boil_water_notices_min` / `max` via `boil_water_summaries` (`config/filters.yml`, `Filterable`). The legacy app enabled this filter only for selected geographies because BWN coverage was treated as incomplete; that Stimulus behavior is not re‑implemented yet.)*
 
 ---
 
@@ -171,9 +215,13 @@ Enabling more groups within a category **broadens** results (OR). Enabling filte
 
 URL params use full DB column names (e.g. `groundwater_rule_5yr_min=3`). A short-alias approach was explored and reverted — aliases added complexity with no clear long-term URL strategy, and full names are self-documenting in the URL.
 
-### Range params always send both min and max
+### Range params: min and max
 
-When a range Group is active, both `{field}_min` and `{field}_max` are always sent. Sliders always have domain values from the histogram fetch, so there is never a case where only one bound is present. This simplifies backend filtering — `filterable.rb` always has both values to work with.
+**Intended behavior:** An applied histogram range is a **closed interval**: both `{field}_min` and `{field}_max` should appear in the request so SQL matches what the slider shows.
+
+**How the UI gets there:** Each histogram uses `slider_controller.js`. After the histogram JSON loads, `#init` writes **both** hidden inputs—if they were empty, to **domain_min** and **domain_max** (see `if (!minVal)` / `if (!maxVal)` in `#init`). When a violations sub-row’s panel is opened, `filter_controller.js` calls `populateDefaultsIfEmpty()` on that slider so checked subcats carry the full domain on both inputs once bins exist (comment in `slider_controller.js`: *“Apply always sends params for checked subcats”*). After a drag, `#onUp` writes **both** values from the current handles. So in normal use—histogram fetched, panel visible, user Apply—**both keys are sent** for each active range row.
+
+**Collection:** `filter_controller.js` still does `if (minVal)` / `if (maxVal)` when building params, so an input that is literally empty omits that key. That matters only in edge cases: e.g. Apply before the histogram request has finished (inputs not yet filled), a bookmark/URL that restored only one bound, or right after `resetToFullRange()` which clears inputs to `""` until defaults run again. **`Filterable`** applies each present bound separately; there is no server-side guard that both must exist together.
 
 ### Badge counting rule
 
@@ -191,20 +239,18 @@ The "No rate info available" toggle within the Financial section is treated as a
 
 Active groups within the Funding category OR together — a system qualifies if it has received *any* form of SRF assistance, not all three. Active watershed hazard sub-filters also OR — a system with any matching hazard qualifies. Both were previously AND (incorrect); fixed in `filterable.rb` using Arel.
 
-### Health violation sub-categories
+### Health violation sub-categories and violation ranges
 
-Within a time window (5yr or 10yr), active sub-categories OR: a system with qualifying violations in any checked category matches. Between time windows, AND: a system must satisfy both the 5yr and 10yr conditions if both parent groups are checked.
+- **Within one time window (5yr or 10yr):** checked sub-filters OR together — a system matches if any selected sub-category’s range condition is satisfied (combined into one disjunct per window).
+- **Across windows (5yr vs 10yr) and paperwork columns:** each window or paperwork column with an active range contributes a separate disjunct; `Filterable` ORs those disjuncts. So a system can match because of 5yr health, 10yr health, 5yr paperwork, and/or 10yr paperwork, depending on which params are set.
 
 ---
 
 ## TODO
 
 - **Filter Counter badges** — badge counts are wired and increment per the rule above (each checked box = 1), but the visual presentation and exact design expectations need confirmation against final design mockups.
-
 - **Missing tooltips** — `ⓘ` tooltips are missing on several headline category labels: Primary type, Type, Violations, and the Wholesaler filter. Keys need to be added to `config/tooltips.yml` and tooltip spans added to the corresponding ERB.
-
 - **Annual water/sewer bill "no rate info" behavior** — the checkbox is implemented, but expected behavior needs product confirmation: does checking "No rate info" show *only* systems with no rate data, or does it show all currently-filtered systems *plus* those with no rate data? Currently implemented as the latter (expands).
-
-- **Filterable refactoring** — `filterable.rb` has grown significantly. Several patterns (range filter blocks, Arel OR construction, join management) repeat across demographic, EJ, trend, funding, and hazard sections and could be consolidated into shared helpers.
-
+- **Client consumption of `#filter-registry-config`** — optional next step: parse the embed in `filter_controller.js` to validate or derive param keys, reducing the risk of drift with **`FILTERS`**.
 - **URL length** — with many active filters, URLs can become very long. A param compression or alias strategy may be needed. A mapping approach was tried previously and reverted due to complexity; revisit when URLs become a practical problem.
+

@@ -20,6 +20,7 @@ Known issues that have been discovered, which we know we need to come back to an
     - Show systems with no available information on rates (MISSING CHECKBOX OPTION)
     - this needs to be pulled out of where it currently is (part of the scale choices) and be its own check box
       - confirm behavior on that first
+  - Add Boil Water Summary filtering functionality
   
 ### Historgrams
   - get confirmation on expected behavior for histogram sliders for Health Violation sub Categories
