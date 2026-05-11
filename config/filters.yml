@@ -1,0 +1,210 @@
+# Canonical filter contract: URL param keys, range column bases, and violations lists.
+# Loaded by FilterRegistry (app/filters/) — FilterParams and Filterable consume this single source.
+# See docs/FILTERING.md (behavior + stack). docs/REFACTOR_FILTER_FIELDS.md is a design checklist (may be removed later).
+
+version: 1
+
+direct_params:
+  - bounds
+  - county_geoid
+  - gw_sw_code
+  - has_open_violations
+  - has_source_protection
+  - is_school_or_daycare
+  - is_wholesaler
+  - no_rate_info
+  - place_geoid
+  - state
+  - symbology_field
+
+array_params:
+  most_common_rate_tier: []
+  owner_type: []
+  pop_cat_5: []
+  primacy_type: []
+
+# Strong-params keys for boil-water notice counts (join logic lives in Filterable).
+special_range_param_keys:
+  - boil_water_notices_min
+  - boil_water_notices_max
+
+# Params area_min / area_max filter public_water_systems.area_sq_miles (not area_* columns).
+area_range:
+  min_key: area_min
+  max_key: area_max
+
+# Params density_* filter demographics.population_density.
+density_range:
+  min_key: density_min
+  max_key: density_max
+
+violations:
+  health_subcat_5yr:
+    - groundwater_rule_5yr
+    - inorganic_chemicals_5yr
+    - lead_and_copper_5yr
+    - radionuclides_5yr
+    - stage_1_disinfectants_5yr
+    - stage_2_disinfectants_5yr
+    - surface_water_treatment_5yr
+    - synthetic_organic_chemicals_5yr
+    - total_coliform_5yr
+    - volatile_organic_chemicals_5yr
+  health_subcat_10yr:
+    - groundwater_rule_10yr
+    - inorganic_chemicals_10yr
+    - lead_and_copper_10yr
+    - radionuclides_10yr
+    - stage_1_disinfectants_10yr
+    - stage_2_disinfectants_10yr
+    - surface_water_treatment_10yr
+    - synthetic_organic_chemicals_10yr
+    - total_coliform_10yr
+    - volatile_organic_chemicals_10yr
+  paperwork:
+    - paperwork_violations_5yr
+    - paperwork_violations_10yr
+
+# Range filters: param keys are "#{column}_min" / "#{column}_max"; SQL uses table.columns.
+range_column_groups:
+  demographics:
+    association: demographic
+    table: demographics
+    coercion: decimal
+    columns:
+      - age_over_61_rate
+      - age_under_5_rate
+      - aian_rate
+      - asian_rate
+      - bachelors_degree_rate
+      - black_rate
+      - hispanic_rate
+      - median_household_income
+      - mixed_race_rate
+      - napi_rate
+      - no_health_insurance_rate
+      - other_race_rate
+      - owner_rate
+      - poc_rate
+      - population_in_poverty_rate
+      - poverty_rate
+      - renter_rate
+      - total_population
+      - unemployment_rate
+      - white_rate
+
+  environmental_justice:
+    association: environmental_justice
+    table: environmental_justices
+    coercion: decimal
+    columns:
+      - cejst_disadvantaged_pct
+      - cvi_overall_score
+      - svi_overall_pctl
+
+  funding_summary:
+    association: funding_summary
+    table: funding_summaries
+    coercion: decimal
+    columns:
+      - times_funded
+      - total_principal_forgiveness
+      - total_srf_assistance
+
+  trend_datum:
+    association: trend_datum
+    table: trend_data
+    coercion: decimal
+    columns:
+      - mhi_pct_change_capped
+      - population_pct_change_capped
+
+  watershed_hazard:
+    association: watershed_hazard
+    table: watershed_hazards
+    coercion: integer
+    columns:
+      - impaired_streams_303d
+      - num_facilities
+      - open_underground_storage_tanks
+      - permit_effluent_violations
+      - risk_management_plan_facilities
+
+# Histogram field contract used by PublicWaterSystems::HistogramsController.
+# This keeps every histogram-capable field in one uniform config shape.
+histogram_field_groups:
+  demographics:
+    model_key: demographics
+    columns:
+      - age_over_61_rate
+      - age_under_5_rate
+      - aian_rate
+      - asian_rate
+      - bachelors_degree_rate
+      - black_rate
+      - hispanic_rate
+      - median_household_income
+      - mixed_race_rate
+      - napi_rate
+      - no_health_insurance_rate
+      - other_race_rate
+      - owner_rate
+      - poc_rate
+      - population_in_poverty_rate
+      - poverty_rate
+      - renter_rate
+      - total_population
+      - unemployment_rate
+      - white_rate
+  environmental_justice:
+    model_key: environmental_justice
+    columns:
+      - cejst_disadvantaged_pct
+      - cvi_overall_score
+      - svi_overall_pctl
+  funding_summary:
+    model_key: funding_summary
+    columns:
+      - times_funded
+      - total_principal_forgiveness
+      - total_srf_assistance
+  trend_datum:
+    model_key: trend_datum
+    columns:
+      - mhi_pct_change_capped
+      - population_pct_change_capped
+    extras:
+      min_threshold: ~
+  violations:
+    model_key: violations_summary
+    columns:
+      - groundwater_rule_10yr
+      - groundwater_rule_5yr
+      - inorganic_chemicals_10yr
+      - inorganic_chemicals_5yr
+      - lead_and_copper_10yr
+      - lead_and_copper_5yr
+      - paperwork_violations_10yr
+      - paperwork_violations_5yr
+      - radionuclides_10yr
+      - radionuclides_5yr
+      - stage_1_disinfectants_10yr
+      - stage_1_disinfectants_5yr
+      - stage_2_disinfectants_10yr
+      - stage_2_disinfectants_5yr
+      - surface_water_treatment_10yr
+      - surface_water_treatment_5yr
+      - synthetic_organic_chemicals_10yr
+      - synthetic_organic_chemicals_5yr
+      - total_coliform_10yr
+      - total_coliform_5yr
+      - volatile_organic_chemicals_10yr
+      - volatile_organic_chemicals_5yr
+  watershed_hazard:
+    model_key: watershed_hazard
+    columns:
+      - impaired_streams_303d
+      - num_facilities
+      - open_underground_storage_tanks
+      - permit_effluent_violations
+      - risk_management_plan_facilities

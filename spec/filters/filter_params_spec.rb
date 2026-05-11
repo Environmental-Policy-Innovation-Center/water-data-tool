@@ -60,10 +60,10 @@ RSpec.describe FilterParams do
     expect(result[:impaired_streams_303d_max]).to eq("10")
   end
 
-  it "permits trend range params" do
-    result = permitted(population_pct_change_min: "-5", mhi_pct_change_max: "20")
-    expect(result[:population_pct_change_min]).to eq("-5")
-    expect(result[:mhi_pct_change_max]).to eq("20")
+  it "permits trend range params (capped columns)" do
+    result = permitted(population_pct_change_capped_min: "-5", mhi_pct_change_capped_max: "20")
+    expect(result[:population_pct_change_capped_min]).to eq("-5")
+    expect(result[:mhi_pct_change_capped_max]).to eq("20")
   end
 
   it "permits geographic params" do
