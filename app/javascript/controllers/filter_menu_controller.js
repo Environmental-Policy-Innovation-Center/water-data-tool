@@ -37,6 +37,7 @@ export default class extends Controller {
       menu.style.left = "0"
       menu.style.display = "block"
       btn.classList.add("active")
+      btn.setAttribute("aria-expanded", "true")
 
       const leftPos = btnRect.left - mapRect.left
       const maxLeft = mapRect.width - menu.offsetWidth - 10
@@ -46,6 +47,9 @@ export default class extends Controller {
 
   #closeAll() {
     document.querySelectorAll(".container-menu").forEach(m => { m.style.display = "none" })
-    document.querySelectorAll(".filter-menu-btn").forEach(b => b.classList.remove("active"))
+    document.querySelectorAll(".filter-menu-btn").forEach(b => {
+      b.classList.remove("active")
+      b.setAttribute("aria-expanded", "false")
+    })
   }
 }
