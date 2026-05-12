@@ -7,10 +7,10 @@
        role="group"
        aria-label="Filter actions">
     <button type="button"
-            class="inline-block cursor-pointer rounded-full border border-neutral-400 bg-white px-7 py-2 text-sm text-neutral-800 no-underline mx-2 my-1.5 min-h-11 hover:bg-neutral-200 hover:text-black focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 motion-reduce:transition-none"
+            class="<%= RESET_BUTTON_CLASSES %>"
             data-action="<%= @reset_data_action %>"><%= @reset_label %></button>
     <button type="button"
-            class="inline-block cursor-pointer rounded-full border border-brand-primary bg-brand-primary px-7 py-2 text-sm text-white no-underline mx-2 my-1.5 min-h-11 hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 motion-reduce:transition-none"
+            class="<%= APPLY_BUTTON_CLASSES %>"
             data-action="click->filter#apply">Apply</button>
   </div>
 </div>

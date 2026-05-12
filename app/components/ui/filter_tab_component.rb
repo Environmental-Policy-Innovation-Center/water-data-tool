@@ -5,8 +5,7 @@ class UI::FilterTabComponent < ViewComponent::Base
     "bg-white text-neutral-900 rounded-full border border-neutral-400 " \
     "hover:bg-neutral-200 " \
     "[&.active]:bg-brand-primary [&.active]:border-brand-primary [&.active]:text-white " \
-    "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 " \
-    "focus-visible:outline-blue-600 motion-reduce:transition-none"
+    "#{FOCUS_RING_CLASSES}"
 
   def initialize(menu_id:, label:, li_id:)
     @menu_id = menu_id
