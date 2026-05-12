@@ -178,13 +178,13 @@ export default class extends Controller {
 
   resetAll(event) {
     event.preventDefault()
-    document.querySelectorAll(".container-menu").forEach(menu => this.#resetMenu(menu))
+    document.querySelectorAll(".filter-dropdown").forEach(menu => this.#resetMenu(menu))
     this.apply(event)
   }
 
   toggleSelectAll(event) {
     const master = event.currentTarget
-    const menu = master.closest(".container-menu")
+    const menu = master.closest(".filter-dropdown")
     if (!menu) return
 
     const boxes = menu.querySelectorAll(".checkbox-type")
@@ -210,7 +210,7 @@ export default class extends Controller {
 
   reset(event) {
     event.preventDefault()
-    const menu = event.currentTarget.closest(".container-menu")
+    const menu = event.currentTarget.closest(".filter-dropdown")
     if (!menu) return
     this.#resetMenu(menu)
     this.apply(event)

@@ -8,15 +8,23 @@ class UI::FilterMenuComponent < ViewComponent::Base
 
   def container_classes
     parts = [
-      "container-menu",
+      "filter-dropdown",
       "filter-menu-scroll",
+      "[position:inherit]",
+      "top-[72px]",
+      "z-[1001]",
+      "bg-white",
+      "border-t-0",
+      "min-w-[350px]",
+      "rounded-[15px]",
+      "shadow-[1px_4px_12px_rgba(51,51,51,0.3)]",
       "max-h-[calc(100vh-350px)]",
       "[scrollbar-width:thin]",
       "[scrollbar-color:#b0b0b0_#f1f1f1]",
       "overflow-y-auto",
       "hidden"
     ]
-    parts << "container-menu-more" if @more_menu
+    parts << "filter-dropdown-more" if @more_menu
     parts.join(" ")
   end
 end
