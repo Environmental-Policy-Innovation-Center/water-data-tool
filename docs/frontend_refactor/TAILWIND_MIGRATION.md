@@ -1,6 +1,6 @@
 # Asset and CSS Deprecation Guide
 
-_Last updated: May 2026 (session 2)_
+_Last updated: 2026-05-12 — filter menu Tailwind pass + doc sync_
 
 This document tracks the migration away from legacy image assets and `water_tool.css` toward a clean, Tailwind-only frontend. It serves as both a record of decisions made and a step-by-step implementation guide for future work sessions.
 
@@ -44,7 +44,7 @@ All three logo PNGs have been replaced with SVGs via the `icon()` helper (`app/a
 
 | File | Where used |
 |---|---|
-| `arrow-down.svg` | `_filter_menus.html.erb` ×4 |
+| `arrow-down.svg` | `_filter_menus.html.erb` (expandable rows), `filters/range_filter_item_component.html.erb` |
 | `close.svg` | `index.html.erb` report close button |
 | `collapse.svg` | `_sidebar.html.erb` toggle |
 | `data.svg` | `_sidebar.html.erb`, `index.html.erb` mobile menu |
@@ -57,6 +57,7 @@ All three logo PNGs have been replaced with SVGs via the `icon()` helper (`app/a
 | `feedback.svg` | `index.html.erb` mobile menu |
 | `filter.svg` | `_datasets.html.erb` |
 | `github.svg` | `index.html.erb` mobile menu |
+| `info.svg` | `_filter_menus.html.erb`, `filters/range_filter_item_component.html.erb` (tooltips) |
 | `map.svg` | `index.html.erb` map/table toggle |
 | `mobile-menu.svg` | `index.html.erb` mobile header |
 | `nav-arrow-down.svg` | `index.html.erb` filter tabs ×6 |
@@ -65,7 +66,7 @@ All three logo PNGs have been replaced with SVGs via the `icon()` helper (`app/a
 
 **Present but unreferenced** (keep for future use, delete if never wired up):
 
-`arrow-downward.svg`, `arrow-upward.svg`, `info.svg`, `locate.svg`, `map-filters.svg`, `nav-arrow-up.svg`, `navigation-hover.svg`, `navigation-on.svg`, `search.svg`, `sort.svg`, `tooltip-down.svg`, `tooltip-up.svg`, `zoom-in.svg`, `zoom-out.svg`
+`arrow-downward.svg`, `arrow-upward.svg`, `locate.svg`, `map-filters.svg`, `nav-arrow-up.svg`, `navigation-hover.svg`, `navigation-on.svg`, `search.svg`, `sort.svg`, `tooltip-down.svg`, `tooltip-up.svg`, `zoom-in.svg`, `zoom-out.svg`
 
 ---
 
@@ -84,6 +85,8 @@ The file is already partially migrated — several blocks were removed in earlie
 - **After each chunk:** run `bin/ci`, then do a manual visual pass on affected views at both desktop and mobile widths.
 - **Mapbox overrides are a special case (Chunk G)** — these target vendor-injected DOM and cannot be replaced with Tailwind. Extract them to a dedicated `mapbox_overrides.css` rather than deleting.
 - When a CSS class is removed from `water_tool.css`, also remove or replace every occurrence of it in views/partials.
+
+**NOTE:** There also appears to be a `mobile.css` file which needs to be deprecated as well. We DO NOT want to have a seperate CSS config for mobile in our app, rather we want to write things in a 'mobile friendly' way. See `A11Y_AND_MOBILE_GUIDE.md` for any guidance here if needed.
 
 ---
 
@@ -185,26 +188,45 @@ The file is already partially migrated — several blocks were removed in earlie
 ---
 
 #### Chunk F: Filter bar and filter menus
-**Status:** ⬜ Not started
+**Status:** 🔶 Partially complete
 
-**CSS classes to remove:**
-`#container-map-ui-top`, `.container-map-ui ul/li`, `.geocoder-li`, `.filters-desktop-display`, `.container-menu`, `.container-menu h2/h3/p/ul/li`, `.container-filter-count`, `.container-menu-inner`, `.filter-menu-footer`, `.btn-filters`, `.btn-reset-filters`, `.btn-apply-filters`, `.visible-in-more`, `.container-category-header`, `.container-menu-more`, `.filter-cat-indent`, `.filter-coming-soon`, `.container-menu-more ul li a`, `.container-menu input` (number spinner suppression), `.container-menu-more #container-menu-5-items`, `.container-filter`, `.pop-size-box`, `.wsb-box`, `.container-population-filter-grid`, `.container-water-sewer-bill-filter-grid`, `.dropdown-selectors`, `.rounded-checkbox`, `.slider-subhead`
+**Done (2026-05 — dropdown shell + inner menu chrome):**
+- **`UI::FilterMenuComponent`** / **`UI::FilterTabComponent`** — outer panels use Tailwind (including `.filter-dropdown` / `.filter-dropdown-more`). Legacy **class names** `.container-menu` / `.container-menu-more` are no longer used for presentation; **element IDs** stay `container-menu-*` for `filter_menu_controller.js` and `filter_layout_controller.js`. Per-tab **filter count badges** use Tailwind on `FilterTabComponent`; JS keeps the `container-filter-count-menu-{id}` class hook for updates.
+- **`_filter_menus.html.erb`** — section headings, lists, and row `<li>` elements carry Tailwind utilities inline (no Ruby helper for class strings).
+- **`Filters::RangeFilterItemComponent`** — root `<li>` uses the same utility bundle as simple filter rows.
+- **Population vs “Size” heading** when `#container-menu-5-items` is reparented into the More menu — implemented with Tailwind arbitrary parent variants (`[.filter-dropdown-more_&]:…`) on the two `<h3>`s; no `.visible-in-more` / `.visible-in-main` rules in `application.css`.
+- **Scrollbars** — Firefox: arbitrary `scrollbar-width` / `scrollbar-color` on the component; WebKit: `.filter-menu-scroll::-webkit-scrollbar*` in `app/assets/tailwind/application.css` (pseudo-elements cannot be utilities).
+- **`water_tool.css` cleanup for this slice** — removed dead `.filter-cat-indent`; removed `.container-menu h2.map-filter-mobile-header` (More menu `<h2>` uses Tailwind on the element).
 
-**Migration:**
-- Filter tab buttons (`filter-menu-btn`) are already fully Tailwind — skip those.
-- `.container-filter-count` (green active-filter badge) and `.btn-filters` / `.btn-apply-filters` (Reset/Apply) are the highest-priority visible elements.
-- Population and WSB filter boxes use a segmented button pattern — replaceable with Tailwind border/rounded utilities.
-- Number spinner suppression (`-webkit-appearance: none`) — move to a Tailwind `[&::-webkit-outer-spin-button]:appearance-none` variant or a small utility block in `application.css`.
-- `.rounded-checkbox` — grep for usage first; if still active, migrate to Tailwind or a small ViewComponent.
+**Still open (same chunk — grep `water_tool.css` before migrating):**
+- Filter chrome still in legacy CSS: `.container-population-filter-grid`, `.container-water-sewer-bill-filter-grid`, `.pop-size-box`, `.wsb-box`, `.dropdown-selectors`, `.rounded-checkbox`, `.filter-coming-soon`, `.container-filter`, `.btn-filters`, `.btn-reset-filters`, `.btn-apply-filters`, `.btn-filter-options img`, `.filter-menu-footer`, `.filters-desktop-display`, mobile filter rules (`#mobile-btn-filters`, `.filter-menu-mobile`, etc.), `.slider-subhead` if still present.
+- **Historical list** (many already gone or renamed): `#container-map-ui-top` is positioned via Tailwind in `index.html.erb`; `.container-menu*` **presentation** migrated as above; `.filter-cat-indent` deleted; `.visible-in-*` handled via utilities on headings.
 
-**Files to update:** `_filter_menus.html.erb`, `index.html.erb`
+**Migration (remaining work):**
+- Population / WSB segmented controls and `.dropdown-selectors` → Tailwind on the underlying `<button>` / `<select>` nodes (or small components if the markup stabilizes).
+- `.rounded-checkbox` — still styled in `water_tool.css`; migrate appearance to utilities or keep a minimal `@layer` hook if browser defaults fight the design.
+- Number spinner suppression — only if/when visible `type="number"` inputs return to filter UI; prefer Tailwind arbitrary variants or a scoped rule.
 
-**Test:** All 6 filter tabs open/close correctly. Active tab shows blue/white styling. Filter count badge appears when filters are active. Apply/Reset buttons function. Population size boxes selectable. Mobile filter sheet opens/closes. Number inputs don't show browser spinners.
+**Files:** `_filter_menus.html.erb`, `index.html.erb`, `app/components/ui/filter_menu_component.*`, `app/components/filters/range_filter_item_component.*`, `app/javascript/controllers/filter*.js`, `water_tool.css`, `app/assets/tailwind/application.css`
+
+**Test:** All six filter tabs + More menu open/close; responsive reparenting into More; Apply/Reset; population size tiles; tooltips on range rows; no scrollbar regression in WebKit/Firefox.
+
+---
+
+##### TODO (refactor): ViewComponent candidates for `_filter_menus.html.erb`
+
+_Not required to finish Chunk F, but high ROI once menu markup churn slows down. Prefer components for **repeated structure + Stimulus wiring**, not for hiding Tailwind strings (utilities stay in the component template)._
+
+1. **Expandable subcategory parent row** — `<li>` + checkbox with `change->filter#toggleSubcat` + label + optional info tooltip + chevron `click->filter#toggleSubcatPanel` + `hidden` `data-subcat-panel` wrapper + nested `<ul>`. Copy-pasted across Compliance and More menus; easy to mis-wire `data-panel-id` / `aria-*`.
+2. **`UI::FilterMenuSectionHeadingComponent`** (name TBD) — `h2` / `h3` with `variant: :main | :more` and optional `extra_classes:` for one-offs (Population dual headings, mobile “More filters” bar).
+3. **`UI::FilterMenuListComponent`** — optional thin wrapper for the repeated `<ul class="my-[6px] …">` if the partial stays hard to scan.
+
+Ship **Lookbook previews + specs** for any new public UI component per project norms.
 
 ---
 
 #### Chunk G: Mapbox GL overrides ⚠️ Extract, do not delete
-**Status:** ⬜ Not started
+**Status:** ⬜ Not started (note: base **geocoder** chrome already duplicated in `app/assets/tailwind/application.css` as `.mapboxgl-ctrl-geocoder.mapboxgl-ctrl` — reconcile when extracting so rules are not split across three places forever)
 
 **CSS to move to `app/assets/stylesheets/mapbox_overrides.css`:**
 All `.mapboxgl-*` rules, `.place-autocomplete-results`, `.mapboxgl-ctrl-geocoder`, `.mapboxgl-ctrl-group`, `.mapboxgl-ctrl-top-left`, `.infoBub`, `.green-bar`, `.bwn-content-wrapper`, `.map-content-wrapper-desktop`, `.map-content-intro`, `.map-content-stats`, `turbo-frame#stats-bar:empty`, `#container-map-content-bottom`, `#container-map.table-mode` rules, `.map-content-wrapper-mobile`, `#mobile-btn-info`, `#mobile-btn-filters`
