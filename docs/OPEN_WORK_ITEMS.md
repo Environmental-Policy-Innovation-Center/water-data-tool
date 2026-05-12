@@ -81,3 +81,11 @@ Known issues that have been discovered, which we know we need to come back to an
     - hide this in staging, pr, and prod!
   - PR teardowns - ensure that they are getting torn down!
     - auto close PRs after 2 weeks
+    
+    
+### Documentation
+  - EVENTUALLY - remove temporary docs
+  - update docs that will persist, ensuring accuracy
+  - document..
+    - what it means to be 'mobile friendly'
+    - what it meands to follow a11y best practices and standards
