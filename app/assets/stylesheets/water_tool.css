@@ -428,27 +428,8 @@ ul.stats-list li{
 }
 
 
-/* MAP MENUS */
-
-.container-menu{
-  position: inherit;
-  top: 72px;
-  z-index: 1001;
-  background-color: #fff;
-  border-top:none;
-  display:none;
-  min-width:350px;
-  overflow:auto;
-  border-radius: 15px;
-  -moz-box-shadow: 1px 4px 12px #3333334d;
-  -webkit-box-shadow: 1px 4px 12px #3333334d;
-  box-shadow: 1px 4px 12px #3333334d;
-}
-
-
-.container-menu-inner{
-  position:relative;
-}
+/* MAP MENUS — filter dropdown shell lives in Tailwind (`UI::FilterMenuComponent` / `.filter-dropdown`);
+   content rules migrated to application.css. */
 
 .filter-menu-footer{
   position: sticky;
@@ -489,67 +470,6 @@ ul.stats-list li{
   background-color: #1054A8;
 }
 
-.container-menu h2,
-.container-menu h3{
-  padding: 20px 15px;
-  margin: 0px;
-  font-size: 1em;
-  font-weight: 500;
-  color: #fff;
-  background-color: #989898;
-}
-
-.visible-in-more{
-  display:none;
-}
-
-.container-menu-more .visible-in-more{
-  display:inline-block;
-}
-
-.container-menu-more .visible-in-main{
-  display:none;
-}
-
-.container-menu-more h3{
-  color: #000;
-  background-color: #fff;
-  font-weight: bold;
-}
-
-.container-menu p{
-  padding: 6px 15px;
-  margin: 10px 0px;
-  font-size: .9em;
-}
-
-.container-menu p strong{
-  font-weight:500;
-}
-.container-menu ul{
-  padding: 0px 4px 0px 4px;
-  list-style: none;
-  margin:6px 0px 10px 0px;
-}
-
-.container-menu ul li{
-  padding: 6px 15px;
-}
-
-.container-menu ul li:hover{
-  background-color: #fafafa;
-}
-
-.container-menu ul li input,
-.container-menu ul li label{
-  vertical-align: middle;
-}
-.container-menu ul li input{
-  margin:0px 8px 0px 0px;
-  width: 16px;
-  height: 16px;
-}
-
 .rounded-checkbox {
   width:35px;
   height: 35px;
@@ -568,61 +488,11 @@ ul.stats-list li{
   accent-color: #13171F;
 }
 
-.container-menu ul li:hover .btn-filter-options img{
-  display:block;
-}
 .filter-coming-soon {
   color: #888;
 }
 
-.container-menu-more li.filter-clear{
-  border-top: 1px solid #b9b9b9;
-  padding-top: 5px;
-  margin-top: 5px;
-}
-
-.filter-cat-indent{
-  padding-left:20px;
-}
-
-.container-menu-more ul li a{
-  text-decoration: none;
-  color: #333;
-  padding: 3px 0px;
-  display: inline;
-  background:none;
-  width:100%;
-}
-
-.container-menu-more ul li a:hover{
-  background:none;
-}
-
-/* Remove arrow increments from numeric input for Chrome, Safari, Edge, Opera */
-.container-menu input::-webkit-outer-spin-button,
-.container-menu input::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
-
-/* Remove arrow increments from numeric input for Firefox */
-.container-menu input[type=number], .input-number {
-  -moz-appearance: textfield;
-  border: 1px solid #c2c2c2;
-  padding: 6px 10px;
-  border-radius: 10px;
-  width: 72px;
-}
-
 .hidden{
-  display:none;
-}
-
-.container-menu-more #container-menu-5-items{
-  min-width:450px;
-}
-
-.container-menu .hidden{
   display:none;
 }
 
@@ -1114,12 +984,6 @@ ul.stats-list li{
     top: 60px;
     z-index: 9999999;
   }
-
-  .container-menu h2.map-filter-mobile-header{
-    text-align:center;
-    background-color:#1054A8;
-  }
-
 
   .filter-menu-footer{
     position: fixed;
