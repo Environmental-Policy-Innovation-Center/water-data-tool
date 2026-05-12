@@ -27,7 +27,7 @@ export default class extends Controller {
     const menu = document.getElementById(`container-menu-${menuId}`)
     if (!menu) return
 
-    const isOpen = menu.style.display === "block"
+    const isOpen = !menu.classList.contains("hidden")
     this.#closeAll()
     if (!isOpen) {
       const mapRect = document.getElementById("container-map").getBoundingClientRect()
@@ -35,7 +35,8 @@ export default class extends Controller {
 
       // Show first so offsetWidth is accurate, then clamp to avoid right-edge overflow
       menu.style.left = "0"
-      menu.style.display = "block"
+      menu.classList.remove("hidden")
+      menu.classList.add("!block")
       btn.classList.add("active")
       btn.setAttribute("aria-expanded", "true")
 
@@ -46,7 +47,10 @@ export default class extends Controller {
   }
 
   #closeAll() {
-    document.querySelectorAll(".container-menu").forEach(m => { m.style.display = "none" })
+    document.querySelectorAll(".container-menu").forEach(m => {
+      m.classList.add("hidden")
+      m.classList.remove("!block")
+    })
     document.querySelectorAll(".filter-menu-btn").forEach(b => {
       b.classList.remove("active")
       b.setAttribute("aria-expanded", "false")

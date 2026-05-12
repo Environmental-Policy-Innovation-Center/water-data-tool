@@ -2,8 +2,7 @@
 <%# Full filter wiring happens in M6 (depends on M3 PWS API). These are structural shells. %>
 
 <!-- 1. SOURCE -->
-<div id="container-menu-1" class="container-menu" style="display:none;">
-  <div id="main-filter-grp-1"></div>
+<%= render UI::FilterMenuComponent.new(menu_id: 1) do %>
   <div id="container-menu-1-items">
     <h3>Primary type</h3>
     <ul>
@@ -26,15 +25,10 @@
       <li><input type="checkbox" class="toggle" id="has-source-water-protection"><label for="has-source-water-protection">Has source protection</label></li>
     </ul>
   </div>
-  <div class="filter-menu-footer">
-    <button type="button" class="btn-filters cursor-pointer" data-action="click->filter#reset">Reset</button>
-    <button type="button" class="btn-filters btn-apply-filters cursor-pointer" data-action="click->filter#apply">Apply</button>
-  </div>
-</div>
+<% end %>
 
 <!-- 2. ATTRIBUTES -->
-<div id="container-menu-2" class="container-menu" style="display:none;">
-  <div id="main-filter-grp-2"></div>
+<%= render UI::FilterMenuComponent.new(menu_id: 2) do %>
   <div id="container-menu-2-items">
     <h3>Ownership</h3>
     <ul>
@@ -61,15 +55,10 @@
       <li><input type="checkbox" class="toggle" id="is-school-or-daycare"><label for="is-school-or-daycare">School or daycare</label></li>
     </ul>
   </div>
-  <div class="filter-menu-footer">
-    <button type="button" class="btn-filters cursor-pointer" data-action="click->filter#reset">Reset</button>
-    <button type="button" class="btn-filters btn-apply-filters cursor-pointer" data-action="click->filter#apply">Apply</button>
-  </div>
-</div>
+<% end %>
 
 <!-- 3. BOUNDARIES -->
-<div id="container-menu-3" class="container-menu" style="display:none;">
-  <div id="main-filter-grp-3"></div>
+<%= render UI::FilterMenuComponent.new(menu_id: 3) do %>
   <div id="container-menu-3-items">
     <h3>Type</h3>
     <ul>
@@ -96,15 +85,10 @@
       </select>
     </div>
   </div>
-  <div class="filter-menu-footer">
-    <button type="button" class="btn-filters cursor-pointer" data-action="click->filter#reset">Reset</button>
-    <button type="button" class="btn-filters btn-apply-filters cursor-pointer" data-action="click->filter#apply">Apply</button>
-  </div>
-</div>
+<% end %>
 
 <!-- 4. COMPLIANCE -->
-<div id="container-menu-4" class="container-menu" style="display:none;">
-  <div id="main-filter-grp-4"></div>
+<%= render UI::FilterMenuComponent.new(menu_id: 4) do %>
   <div id="container-menu-4-items">
     <h3>Violations</h3>
     <ul>
@@ -283,14 +267,15 @@
       <li><input type="checkbox" class="toggle" disabled="disabled" id="boil-water-notices"><label class="filter-coming-soon" for="boil-water-notices">Boil water notices <span class="bwn-disabled-txt">(data unavailable <span class="geo-filter"></span>)</span></label></li>
     </ul>
   </div>
-  <div class="filter-menu-footer">
-    <button type="button" class="btn-filters cursor-pointer" data-action="click->filter#reset">Reset</button>
-    <button type="button" class="btn-filters btn-apply-filters cursor-pointer" data-action="click->filter#apply">Apply</button>
-  </div>
-</div>
+<% end %>
 
 <!-- 10. MORE -->
-<div id="container-menu-10" class="container-menu container-menu-more" style="display:none;">
+<%= render UI::FilterMenuComponent.new(
+      menu_id: 10,
+      more_menu: true,
+      reset_data_action: "click->filter#resetAll",
+      reset_label: "Reset All"
+    ) do %>
   <h2 class="hide-for-mobile">More filters</h2>
   <%# Placeholders — filter content moves here when its nav button collapses %>
   <div id="more-filter-grp-1"></div>
@@ -409,15 +394,10 @@
       </li>
     </ul>
   </div>
-  <div class="filter-menu-footer">
-    <button type="button" class="btn-filters cursor-pointer" data-action="click->filter#resetAll">Reset All</button>
-    <button type="button" class="btn-filters btn-apply-filters cursor-pointer" data-action="click->filter#apply">Apply</button>
-  </div>
-</div>
+<% end %>
 
 <!-- 5. POPULATION -->
-<div id="container-menu-5" class="container-menu" style="display:none;">
-  <div id="main-filter-grp-5"></div>
+<%= render UI::FilterMenuComponent.new(menu_id: 5) do %>
   <div id="container-menu-5-items">
     <h3 class="visible-in-main">Size</h3>
     <div class="container-population-filter-grid">
@@ -555,8 +535,4 @@
             slider_label: "Percentile of vulnerability", format: "percent") %>
     </ul>
   </div>
-  <div class="filter-menu-footer">
-    <button type="button" class="btn-filters cursor-pointer" data-action="click->filter#reset">Reset</button>
-    <button type="button" class="btn-filters btn-apply-filters cursor-pointer" data-action="click->filter#apply">Apply</button>
-  </div>
-</div>
+<% end %>
