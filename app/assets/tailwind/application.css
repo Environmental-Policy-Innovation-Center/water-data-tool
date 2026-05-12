@@ -79,3 +79,23 @@
   max-height: 450px;
   overflow: hidden;
 }
+
+/* Filter dropdown scroll areas (UI::FilterMenuComponent + matching class on scroll containers).
+   Firefox: scrollbar-width / scrollbar-color via Tailwind arbitrary classes on the element.
+   Chromium / Safari: ::-webkit-scrollbar* cannot be expressed as Tailwind utilities — keep
+   this small block in the compiled stylesheet (textbook asset pipeline), not inline <style>. */
+.filter-menu-scroll::-webkit-scrollbar {
+  width: 8px;
+}
+.filter-menu-scroll::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+.filter-menu-scroll::-webkit-scrollbar-thumb {
+  background: #b0b0b0;
+  border-radius: 4px;
+}
+.filter-menu-scroll::-webkit-scrollbar-thumb:hover {
+  background: #888;
+}
+

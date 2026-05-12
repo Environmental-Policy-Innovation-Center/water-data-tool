@@ -41,42 +41,12 @@
   <div id="container-map-ui-top" class="max-[640px]:hidden min-[640px]:absolute min-[640px]:top-0 min-[640px]:left-0 min-[640px]:right-0 min-[640px]:z-[5]"
        data-controller="filter-layout">
     <ul id="filter-tabs" role="group" aria-label="Water System Filters" class="m-0 flex list-none flex-nowrap items-center justify-end gap-1.5 pt-3 pl-5 pr-5">
-      <li id="source-filter-button" class="relative filter-1">
-        <div class="container-filter-count-menu-1 absolute -top-2 right-0.5 hidden bg-brand-accent text-white text-[0.7em] rounded-full text-center py-px px-1.5 border border-white" aria-hidden="true">
-          <span class="filter-count-group-1">0</span>
-        </div>
-        <button type="button" aria-expanded="false" aria-haspopup="true" data-menu="1" class="filter-menu-btn flex items-center gap-2 px-4 py-2 w-[122px] cursor-pointer bg-white text-neutral-900 rounded-full border border-neutral-400 hover:bg-neutral-200 [&.active]:bg-brand-primary [&.active]:border-brand-primary [&.active]:text-white" id="container-menu-btn-1" data-action="click->filter-menu#toggleMenu"><span class="flex-1">Source</span><%= icon "nav-arrow-down", classes: "h-5 w-5 shrink-0 transition-transform [.active_&]:rotate-180" %></button>
-      </li>
-      <li id="attributes-filter-button" class="relative filter-2">
-        <div class="container-filter-count-menu-2 absolute -top-2 right-0.5 hidden bg-brand-accent text-white text-[0.7em] rounded-full text-center py-px px-1.5 border border-white" aria-hidden="true">
-          <span class="filter-count-group-2">0</span>
-        </div>
-        <button type="button" aria-expanded="false" aria-haspopup="true" data-menu="2" class="filter-menu-btn flex items-center gap-2 px-4 py-2 w-[148px] cursor-pointer bg-white text-neutral-900 rounded-full border border-neutral-400 hover:bg-neutral-200 [&.active]:bg-brand-primary [&.active]:border-brand-primary [&.active]:text-white" id="container-menu-btn-2" data-action="click->filter-menu#toggleMenu"><span class="flex-1">Attributes</span><%= icon "nav-arrow-down", classes: "h-5 w-5 shrink-0 transition-transform [.active_&]:rotate-180" %></button>
-      </li>
-      <li id="boundaries-filter-button" class="relative filter-3">
-        <div class="container-filter-count-menu-3 absolute -top-2 right-0.5 hidden bg-brand-accent text-white text-[0.7em] rounded-full text-center py-px px-1.5 border border-white" aria-hidden="true">
-          <span class="filter-count-group-3">0</span>
-        </div>
-        <button type="button" aria-expanded="false" aria-haspopup="true" data-menu="3" class="filter-menu-btn flex items-center gap-2 px-4 py-2 w-[154px] cursor-pointer bg-white text-neutral-900 rounded-full border border-neutral-400 hover:bg-neutral-200 [&.active]:bg-brand-primary [&.active]:border-brand-primary [&.active]:text-white" id="container-menu-btn-3" data-action="click->filter-menu#toggleMenu"><span class="flex-1">Boundaries</span><%= icon "nav-arrow-down", classes: "h-5 w-5 shrink-0 transition-transform [.active_&]:rotate-180" %></button>
-      </li>
-      <li id="compliance-filter-button" class="relative filter-4">
-        <div class="container-filter-count-menu-4 absolute -top-2 right-0.5 hidden bg-brand-accent text-white text-[0.7em] rounded-full text-center py-px px-1.5 border border-white" aria-hidden="true">
-          <span class="filter-count-group-4">0</span>
-        </div>
-        <button type="button" aria-expanded="false" aria-haspopup="true" data-menu="4" class="filter-menu-btn flex items-center gap-2 px-4 py-2 w-[154px] cursor-pointer bg-white text-neutral-900 rounded-full border border-neutral-400 hover:bg-neutral-200 [&.active]:bg-brand-primary [&.active]:border-brand-primary [&.active]:text-white" id="container-menu-btn-4" data-action="click->filter-menu#toggleMenu"><span class="flex-1">Compliance</span><%= icon "nav-arrow-down", classes: "h-5 w-5 shrink-0 transition-transform [.active_&]:rotate-180" %></button>
-      </li>
-      <li id="population-filter-button" class="relative filter-5">
-        <div class="container-filter-count-menu-5 absolute -top-2 right-0.5 hidden bg-brand-accent text-white text-[0.7em] rounded-full text-center py-px px-1.5 border border-white" aria-hidden="true">
-          <span class="filter-count-group-5">0</span>
-        </div>
-        <button type="button" aria-expanded="false" aria-haspopup="true" data-menu="5" class="filter-menu-btn flex items-center gap-2 px-4 py-2 w-[154px] cursor-pointer bg-white text-neutral-900 rounded-full border border-neutral-400 hover:bg-neutral-200 [&.active]:bg-brand-primary [&.active]:border-brand-primary [&.active]:text-white" id="container-menu-btn-5" data-action="click->filter-menu#toggleMenu"><span class="flex-1">Population</span><%= icon "nav-arrow-down", classes: "h-5 w-5 shrink-0 transition-transform [.active_&]:rotate-180" %></button>
-      </li>
-      <li id="more-filter-button" class="relative filter-10">
-        <div class="container-filter-count-menu-10 absolute -top-2 right-0.5 hidden bg-brand-accent text-white text-[0.7em] rounded-full text-center py-px px-1.5 border border-white" aria-hidden="true">
-          <span class="filter-count-group-10">0</span>
-        </div>
-        <button type="button" aria-expanded="false" aria-haspopup="true" data-menu="10" class="filter-menu-btn flex items-center gap-2 px-4 py-2 w-[108px] cursor-pointer bg-white text-neutral-900 rounded-full border border-neutral-400 hover:bg-neutral-200 [&.active]:bg-brand-primary [&.active]:border-brand-primary [&.active]:text-white" id="container-menu-btn-10" data-action="click->filter-menu#toggleMenu"><span class="flex-1">More</span><%= icon "nav-arrow-down", classes: "h-5 w-5 shrink-0 transition-transform [.active_&]:rotate-180" %></button>
-      </li>
+      <%= render UI::FilterTabComponent.new(menu_id: 1, label: "Source", li_id: "source-filter-button") %>
+      <%= render UI::FilterTabComponent.new(menu_id: 2, label: "Attributes", li_id: "attributes-filter-button") %>
+      <%= render UI::FilterTabComponent.new(menu_id: 3, label: "Boundaries", li_id: "boundaries-filter-button") %>
+      <%= render UI::FilterTabComponent.new(menu_id: 4, label: "Compliance", li_id: "compliance-filter-button") %>
+      <%= render UI::FilterTabComponent.new(menu_id: 5, label: "Population", li_id: "population-filter-button") %>
+      <%= render UI::FilterTabComponent.new(menu_id: 10, label: "More", li_id: "more-filter-button") %>
     </ul>
   </div>
 
