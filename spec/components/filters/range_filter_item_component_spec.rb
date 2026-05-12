@@ -19,6 +19,11 @@ RSpec.describe Filters::RangeFilterItemComponent, type: :component do
       expect(html.css("li")).to be_present
     end
 
+    it "applies filter menu row utilities on the list item" do
+      li = html.css("li").first
+      expect(li["class"]).to include("hover:bg-neutral-50")
+    end
+
     it "renders the label" do
       label = html.css("label").first
       expect(label["for"]).to eq("more-poverty-rate")

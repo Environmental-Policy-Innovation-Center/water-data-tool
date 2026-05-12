@@ -4,13 +4,13 @@
 <!-- 1. SOURCE -->
 <%= render UI::FilterMenuComponent.new(menu_id: 1) do %>
   <div id="container-menu-1-items">
-    <h3>Primary type</h3>
-    <ul>
-      <li><input type="radio" name="water-source" id="ws-both" checked="checked" data-default /><label for="ws-both">Both ground and surface</label></li>
-      <li><input type="radio" name="water-source" id="ws-ground" /><label for="ws-ground">Ground only</label></li>
-      <li><input type="radio" name="water-source" id="ws-surface" /><label for="ws-surface">Surface only</label></li>
+    <h3 class="m-0 px-[15px] py-5 text-base font-medium text-white bg-[#989898]">Primary type</h3>
+    <ul class="my-[6px] mb-[10px] mx-0 list-none px-1">
+      <li class="px-[15px] py-1.5 hover:bg-neutral-50 [&_label]:align-middle [&_input]:mr-2 [&_input]:inline-block [&_input]:align-middle [&_input.rounded-checkbox]:h-[35px] [&_input.rounded-checkbox]:w-[35px] [&_input:not(.rounded-checkbox)]:size-4"><input type="radio" name="water-source" id="ws-both" checked="checked" data-default /><label for="ws-both">Both ground and surface</label></li>
+      <li class="px-[15px] py-1.5 hover:bg-neutral-50 [&_label]:align-middle [&_input]:mr-2 [&_input]:inline-block [&_input]:align-middle [&_input.rounded-checkbox]:h-[35px] [&_input.rounded-checkbox]:w-[35px] [&_input:not(.rounded-checkbox)]:size-4"><input type="radio" name="water-source" id="ws-ground" /><label for="ws-ground">Ground only</label></li>
+      <li class="px-[15px] py-1.5 hover:bg-neutral-50 [&_label]:align-middle [&_input]:mr-2 [&_input]:inline-block [&_input]:align-middle [&_input.rounded-checkbox]:h-[35px] [&_input.rounded-checkbox]:w-[35px] [&_input:not(.rounded-checkbox)]:size-4"><input type="radio" name="water-source" id="ws-surface" /><label for="ws-surface">Surface only</label></li>
     </ul>
-    <h3>Place</h3>
+    <h3 class="m-0 px-[15px] py-5 text-base font-medium text-white bg-[#989898]">Place</h3>
     <div data-controller="place-autocomplete" style="position:relative; margin-bottom:10px;">
       <input type="text" class="js-place-search" placeholder="Search for a city or town..."
              data-place-autocomplete-target="input"
@@ -20,9 +20,9 @@
       <input type="hidden" id="place-geoid" data-place-autocomplete-target="geoid">
       <ul data-place-autocomplete-target="results" class="place-autocomplete-results" style="display:none;"></ul>
     </div>
-    <h3>Protection</h3>
-    <ul>
-      <li><input type="checkbox" class="toggle" id="has-source-water-protection"><label for="has-source-water-protection">Has source protection</label></li>
+    <h3 class="m-0 px-[15px] py-5 text-base font-medium text-white bg-[#989898]">Protection</h3>
+    <ul class="my-[6px] mb-[10px] mx-0 list-none px-1">
+      <li class="px-[15px] py-1.5 hover:bg-neutral-50 [&_label]:align-middle [&_input]:mr-2 [&_input]:inline-block [&_input]:align-middle [&_input.rounded-checkbox]:h-[35px] [&_input.rounded-checkbox]:w-[35px] [&_input:not(.rounded-checkbox)]:size-4"><input type="checkbox" class="toggle" id="has-source-water-protection"><label for="has-source-water-protection">Has source protection</label></li>
     </ul>
   </div>
 <% end %>
@@ -30,29 +30,29 @@
 <!-- 2. ATTRIBUTES -->
 <%= render UI::FilterMenuComponent.new(menu_id: 2) do %>
   <div id="container-menu-2-items">
-    <h3>Ownership</h3>
-    <ul>
-      <li><input type="checkbox" class="toggle select-all default-checked rounded-checkbox" id="type-deselect-all" checked="checked" data-action="change->filter#toggleSelectAll"><label for="type-deselect-all" id="type-deselect-all-txt">Deselect all</label></li>
-      <li><input type="checkbox" class="toggle default-checked checkbox-type" checked="checked" id="type-federal-government"><label for="type-federal-government">Federal</label></li>
-      <li><input type="checkbox" class="toggle default-checked checkbox-type" checked="checked" id="type-state-government"><label for="type-state-government">State</label></li>
-      <li><input type="checkbox" class="toggle default-checked checkbox-type" checked="checked" id="type-local-government"><label for="type-local-government">Local</label></li>
-      <li><input type="checkbox" class="toggle default-checked checkbox-type" checked="checked" id="type-native-american"><label for="type-native-american">Tribal</label></li>
-      <li><input type="checkbox" class="toggle default-checked checkbox-type" checked="checked" id="type-private"><label for="type-private">Private</label></li>
-      <li><input type="checkbox" class="toggle default-checked checkbox-type" checked="checked" id="type-public-private"><label for="type-public-private">Public/Private partnership</label></li>
+    <h3 class="m-0 px-[15px] py-5 text-base font-medium text-white bg-[#989898]">Ownership</h3>
+    <ul class="my-[6px] mb-[10px] mx-0 list-none px-1">
+      <li class="px-[15px] py-1.5 hover:bg-neutral-50 [&_label]:align-middle [&_input]:mr-2 [&_input]:inline-block [&_input]:align-middle [&_input.rounded-checkbox]:h-[35px] [&_input.rounded-checkbox]:w-[35px] [&_input:not(.rounded-checkbox)]:size-4"><input type="checkbox" class="toggle select-all default-checked rounded-checkbox" id="type-deselect-all" checked="checked" data-action="change->filter#toggleSelectAll"><label for="type-deselect-all" id="type-deselect-all-txt">Deselect all</label></li>
+      <li class="px-[15px] py-1.5 hover:bg-neutral-50 [&_label]:align-middle [&_input]:mr-2 [&_input]:inline-block [&_input]:align-middle [&_input.rounded-checkbox]:h-[35px] [&_input.rounded-checkbox]:w-[35px] [&_input:not(.rounded-checkbox)]:size-4"><input type="checkbox" class="toggle default-checked checkbox-type" checked="checked" id="type-federal-government"><label for="type-federal-government">Federal</label></li>
+      <li class="px-[15px] py-1.5 hover:bg-neutral-50 [&_label]:align-middle [&_input]:mr-2 [&_input]:inline-block [&_input]:align-middle [&_input.rounded-checkbox]:h-[35px] [&_input.rounded-checkbox]:w-[35px] [&_input:not(.rounded-checkbox)]:size-4"><input type="checkbox" class="toggle default-checked checkbox-type" checked="checked" id="type-state-government"><label for="type-state-government">State</label></li>
+      <li class="px-[15px] py-1.5 hover:bg-neutral-50 [&_label]:align-middle [&_input]:mr-2 [&_input]:inline-block [&_input]:align-middle [&_input.rounded-checkbox]:h-[35px] [&_input.rounded-checkbox]:w-[35px] [&_input:not(.rounded-checkbox)]:size-4"><input type="checkbox" class="toggle default-checked checkbox-type" checked="checked" id="type-local-government"><label for="type-local-government">Local</label></li>
+      <li class="px-[15px] py-1.5 hover:bg-neutral-50 [&_label]:align-middle [&_input]:mr-2 [&_input]:inline-block [&_input]:align-middle [&_input.rounded-checkbox]:h-[35px] [&_input.rounded-checkbox]:w-[35px] [&_input:not(.rounded-checkbox)]:size-4"><input type="checkbox" class="toggle default-checked checkbox-type" checked="checked" id="type-native-american"><label for="type-native-american">Tribal</label></li>
+      <li class="px-[15px] py-1.5 hover:bg-neutral-50 [&_label]:align-middle [&_input]:mr-2 [&_input]:inline-block [&_input]:align-middle [&_input.rounded-checkbox]:h-[35px] [&_input.rounded-checkbox]:w-[35px] [&_input:not(.rounded-checkbox)]:size-4"><input type="checkbox" class="toggle default-checked checkbox-type" checked="checked" id="type-private"><label for="type-private">Private</label></li>
+      <li class="px-[15px] py-1.5 hover:bg-neutral-50 [&_label]:align-middle [&_input]:mr-2 [&_input]:inline-block [&_input]:align-middle [&_input.rounded-checkbox]:h-[35px] [&_input.rounded-checkbox]:w-[35px] [&_input:not(.rounded-checkbox)]:size-4"><input type="checkbox" class="toggle default-checked checkbox-type" checked="checked" id="type-public-private"><label for="type-public-private">Public/Private partnership</label></li>
     </ul>
-    <h3>Authority</h3>
-    <ul>
-      <li><input type="checkbox" class="toggle default-checked" checked="checked" id="primacy-type-state"><label for="primacy-type-state">State</label></li>
-      <li><input type="checkbox" class="toggle default-checked" checked="checked" id="primacy-type-tribal"><label for="primacy-type-tribal">Tribal</label></li>
-      <li><input type="checkbox" class="toggle default-checked" checked="checked" id="primacy-type-territory"><label for="primacy-type-territory">Territory</label></li>
+    <h3 class="m-0 px-[15px] py-5 text-base font-medium text-white bg-[#989898]">Authority</h3>
+    <ul class="my-[6px] mb-[10px] mx-0 list-none px-1">
+      <li class="px-[15px] py-1.5 hover:bg-neutral-50 [&_label]:align-middle [&_input]:mr-2 [&_input]:inline-block [&_input]:align-middle [&_input.rounded-checkbox]:h-[35px] [&_input.rounded-checkbox]:w-[35px] [&_input:not(.rounded-checkbox)]:size-4"><input type="checkbox" class="toggle default-checked" checked="checked" id="primacy-type-state"><label for="primacy-type-state">State</label></li>
+      <li class="px-[15px] py-1.5 hover:bg-neutral-50 [&_label]:align-middle [&_input]:mr-2 [&_input]:inline-block [&_input]:align-middle [&_input.rounded-checkbox]:h-[35px] [&_input.rounded-checkbox]:w-[35px] [&_input:not(.rounded-checkbox)]:size-4"><input type="checkbox" class="toggle default-checked" checked="checked" id="primacy-type-tribal"><label for="primacy-type-tribal">Tribal</label></li>
+      <li class="px-[15px] py-1.5 hover:bg-neutral-50 [&_label]:align-middle [&_input]:mr-2 [&_input]:inline-block [&_input]:align-middle [&_input.rounded-checkbox]:h-[35px] [&_input.rounded-checkbox]:w-[35px] [&_input:not(.rounded-checkbox)]:size-4"><input type="checkbox" class="toggle default-checked" checked="checked" id="primacy-type-territory"><label for="primacy-type-territory">Territory</label></li>
     </ul>
-    <h3>Distribution</h3>
-    <ul>
-      <li><input type="checkbox" class="toggle" id="is-wholesaler"><label for="is-wholesaler">Wholesaler</label></li>
+    <h3 class="m-0 px-[15px] py-5 text-base font-medium text-white bg-[#989898]">Distribution</h3>
+    <ul class="my-[6px] mb-[10px] mx-0 list-none px-1">
+      <li class="px-[15px] py-1.5 hover:bg-neutral-50 [&_label]:align-middle [&_input]:mr-2 [&_input]:inline-block [&_input]:align-middle [&_input.rounded-checkbox]:h-[35px] [&_input.rounded-checkbox]:w-[35px] [&_input:not(.rounded-checkbox)]:size-4"><input type="checkbox" class="toggle" id="is-wholesaler"><label for="is-wholesaler">Wholesaler</label></li>
     </ul>
-    <h3>Facility type</h3>
-    <ul>
-      <li><input type="checkbox" class="toggle" id="is-school-or-daycare"><label for="is-school-or-daycare">School or daycare</label></li>
+    <h3 class="m-0 px-[15px] py-5 text-base font-medium text-white bg-[#989898]">Facility type</h3>
+    <ul class="my-[6px] mb-[10px] mx-0 list-none px-1">
+      <li class="px-[15px] py-1.5 hover:bg-neutral-50 [&_label]:align-middle [&_input]:mr-2 [&_input]:inline-block [&_input]:align-middle [&_input.rounded-checkbox]:h-[35px] [&_input.rounded-checkbox]:w-[35px] [&_input:not(.rounded-checkbox)]:size-4"><input type="checkbox" class="toggle" id="is-school-or-daycare"><label for="is-school-or-daycare">School or daycare</label></li>
     </ul>
   </div>
 <% end %>
@@ -60,14 +60,14 @@
 <!-- 3. BOUNDARIES -->
 <%= render UI::FilterMenuComponent.new(menu_id: 3) do %>
   <div id="container-menu-3-items">
-    <h3>Type</h3>
-    <ul>
-      <li><input type="radio" name="boundary-type" id="bt-both" checked="checked" data-default /><label for="bt-both">Both modeled and system sourced</label></li>
-      <li><input type="radio" name="boundary-type" id="bt-modeled" /><label for="bt-modeled">Modeled only</label></li>
-      <li><input type="radio" name="boundary-type" id="bt-system" /><label for="bt-system">System sourced only</label></li>
+    <h3 class="m-0 px-[15px] py-5 text-base font-medium text-white bg-[#989898]">Type</h3>
+    <ul class="my-[6px] mb-[10px] mx-0 list-none px-1">
+      <li class="px-[15px] py-1.5 hover:bg-neutral-50 [&_label]:align-middle [&_input]:mr-2 [&_input]:inline-block [&_input]:align-middle [&_input.rounded-checkbox]:h-[35px] [&_input.rounded-checkbox]:w-[35px] [&_input:not(.rounded-checkbox)]:size-4"><input type="radio" name="boundary-type" id="bt-both" checked="checked" data-default /><label for="bt-both">Both modeled and system sourced</label></li>
+      <li class="px-[15px] py-1.5 hover:bg-neutral-50 [&_label]:align-middle [&_input]:mr-2 [&_input]:inline-block [&_input]:align-middle [&_input.rounded-checkbox]:h-[35px] [&_input.rounded-checkbox]:w-[35px] [&_input:not(.rounded-checkbox)]:size-4"><input type="radio" name="boundary-type" id="bt-modeled" /><label for="bt-modeled">Modeled only</label></li>
+      <li class="px-[15px] py-1.5 hover:bg-neutral-50 [&_label]:align-middle [&_input]:mr-2 [&_input]:inline-block [&_input]:align-middle [&_input.rounded-checkbox]:h-[35px] [&_input.rounded-checkbox]:w-[35px] [&_input:not(.rounded-checkbox)]:size-4"><input type="radio" name="boundary-type" id="bt-system" /><label for="bt-system">System sourced only</label></li>
     </ul>
-    <h3>Size</h3>
-    <p><strong>Area in square miles</strong></p>
+    <h3 class="m-0 px-[15px] py-5 text-base font-medium text-white bg-[#989898]">Size</h3>
+    <p class="my-2.5 mx-0 px-[15px] py-1.5 text-[0.9em]"><strong class="font-medium">Area in square miles</strong></p>
     <div class="dropdown-selectors">
       <select id="area-min" class="toggle-select min-select left">
         <option value="0" selected>No minimum</option>
@@ -90,10 +90,10 @@
 <!-- 4. COMPLIANCE -->
 <%= render UI::FilterMenuComponent.new(menu_id: 4) do %>
   <div id="container-menu-4-items">
-    <h3>Violations</h3>
-    <ul>
-      <li><input type="checkbox" class="toggle" id="compliance-open-violations"><label for="compliance-open-violations">Open violations</label></li>
-      <li>
+    <h3 class="m-0 px-[15px] py-5 text-base font-medium text-white bg-[#989898]">Violations</h3>
+    <ul class="my-[6px] mb-[10px] mx-0 list-none px-1">
+      <li class="px-[15px] py-1.5 hover:bg-neutral-50 [&_label]:align-middle [&_input]:mr-2 [&_input]:inline-block [&_input]:align-middle [&_input.rounded-checkbox]:h-[35px] [&_input.rounded-checkbox]:w-[35px] [&_input:not(.rounded-checkbox)]:size-4"><input type="checkbox" class="toggle" id="compliance-open-violations"><label for="compliance-open-violations">Open violations</label></li>
+      <li class="px-[15px] py-1.5 hover:bg-neutral-50 [&_label]:align-middle [&_input]:mr-2 [&_input]:inline-block [&_input]:align-middle [&_input.rounded-checkbox]:h-[35px] [&_input.rounded-checkbox]:w-[35px] [&_input:not(.rounded-checkbox)]:size-4">
         <input type="checkbox" class="toggle" id="viols-health-5yrs"
                data-action="change->filter#toggleSubcat"
                data-panel-id="subcat-health-5yr">
@@ -107,7 +107,7 @@
         </button>
         <div id="subcat-health-5yr" class="hidden pl-4 pb-1" data-subcat-panel
              data-action="change->filter#syncParentFromSubcat">
-        <ul class="space-y-1 mt-1">
+        <ul class="space-y-1 mt-1 list-none px-1">
           <%= render Filters::RangeFilterItemComponent.new(
                 checkbox_id: "viols-groundwater-5yr", panel_id: "slider-groundwater-5yr",
                 label: "Ground water rule", tooltip_text: filter_tooltips["groundwater_rule"],
@@ -151,7 +151,7 @@
         </ul>
         </div>
       </li>
-      <li>
+      <li class="px-[15px] py-1.5 hover:bg-neutral-50 [&_label]:align-middle [&_input]:mr-2 [&_input]:inline-block [&_input]:align-middle [&_input.rounded-checkbox]:h-[35px] [&_input.rounded-checkbox]:w-[35px] [&_input:not(.rounded-checkbox)]:size-4">
         <input type="checkbox" class="toggle" id="viols-health"
                data-action="change->filter#toggleSubcat"
                data-panel-id="subcat-health-10yr">
@@ -165,7 +165,7 @@
         </button>
         <div id="subcat-health-10yr" class="hidden pl-4 pb-1" data-subcat-panel
              data-action="change->filter#syncParentFromSubcat">
-        <ul class="space-y-1 mt-1">
+        <ul class="space-y-1 mt-1 list-none px-1">
           <%= render Filters::RangeFilterItemComponent.new(
                 checkbox_id: "viols-groundwater-10yr", panel_id: "slider-groundwater-10yr",
                 label: "Ground water rule", tooltip_text: filter_tooltips["groundwater_rule"],
@@ -209,7 +209,7 @@
         </ul>
         </div>
       </li>
-      <li>
+      <li class="px-[15px] py-1.5 hover:bg-neutral-50 [&_label]:align-middle [&_input]:mr-2 [&_input]:inline-block [&_input]:align-middle [&_input.rounded-checkbox]:h-[35px] [&_input.rounded-checkbox]:w-[35px] [&_input:not(.rounded-checkbox)]:size-4">
         <input type="checkbox" class="toggle" id="viols-paperwork-5yrs"
                data-action="change->filter#toggleSubcat"
                data-panel-id="subcat-paperwork-5yr">
@@ -235,7 +235,7 @@
           <input type="hidden" data-slider-target="maxInput" id="max-paperwork-5yr">
         </div>
       </li>
-      <li>
+      <li class="px-[15px] py-1.5 hover:bg-neutral-50 [&_label]:align-middle [&_input]:mr-2 [&_input]:inline-block [&_input]:align-middle [&_input.rounded-checkbox]:h-[35px] [&_input.rounded-checkbox]:w-[35px] [&_input:not(.rounded-checkbox)]:size-4">
         <input type="checkbox" class="toggle" id="viols-paperwork"
                data-action="change->filter#toggleSubcat"
                data-panel-id="subcat-paperwork-10yr">
@@ -262,9 +262,9 @@
         </div>
       </li>
     </ul>
-    <h3>Notices</h3>
-    <ul>
-      <li><input type="checkbox" class="toggle" disabled="disabled" id="boil-water-notices"><label class="filter-coming-soon" for="boil-water-notices">Boil water notices <span class="bwn-disabled-txt">(data unavailable <span class="geo-filter"></span>)</span></label></li>
+    <h3 class="m-0 px-[15px] py-5 text-base font-medium text-white bg-[#989898]">Notices</h3>
+    <ul class="my-[6px] mb-[10px] mx-0 list-none px-1">
+      <li class="px-[15px] py-1.5 hover:bg-neutral-50 [&_label]:align-middle [&_input]:mr-2 [&_input]:inline-block [&_input]:align-middle [&_input.rounded-checkbox]:h-[35px] [&_input.rounded-checkbox]:w-[35px] [&_input:not(.rounded-checkbox)]:size-4"><input type="checkbox" class="toggle" disabled="disabled" id="boil-water-notices"><label class="filter-coming-soon" for="boil-water-notices">Boil water notices <span class="bwn-disabled-txt">(data unavailable <span class="geo-filter"></span>)</span></label></li>
     </ul>
   </div>
 <% end %>
@@ -276,7 +276,7 @@
       reset_data_action: "click->filter#resetAll",
       reset_label: "Reset All"
     ) do %>
-  <h2 class="hide-for-mobile">More filters</h2>
+  <h2 class="m-0 px-[15px] py-5 text-base font-medium text-white bg-[#989898] hide-for-mobile max-[640px]:bg-brand-primary max-[640px]:text-center">More filters</h2>
   <%# Placeholders — filter content moves here when its nav button collapses %>
   <div id="more-filter-grp-1"></div>
   <div id="more-filter-grp-2"></div>
@@ -284,9 +284,9 @@
   <div id="more-filter-grp-4"></div>
   <div id="more-filter-grp-5"></div>
   <div id="container-menu-10-items">
-    <h3>Financial</h3>
-    <ul>
-      <li>
+    <h3 class="m-0 px-[15px] py-5 text-base font-bold text-neutral-900 bg-white">Financial</h3>
+    <ul class="my-[6px] mb-[10px] mx-0 list-none px-1">
+      <li class="px-[15px] py-1.5 hover:bg-neutral-50 [&_label]:align-middle [&_input]:mr-2 [&_input]:inline-block [&_input]:align-middle [&_input.rounded-checkbox]:h-[35px] [&_input.rounded-checkbox]:w-[35px] [&_input:not(.rounded-checkbox)]:size-4">
         <input type="checkbox" class="toggle" id="more-rate-tier"
                data-action="change->filter#toggleSubcat"
                data-panel-id="subcat-rate-tier">
@@ -304,28 +304,28 @@
           <%= icon("arrow-down", classes: "h-3 w-3 transition-transform duration-150") %>
         </button>
         <div id="subcat-rate-tier" class="hidden pl-4 pb-2" data-subcat-panel>
-          <ul class="space-y-0.5 mt-1">
-            <li><input type="checkbox" class="toggle default-checked" checked id="rate-tier-lt125">
+          <ul class="space-y-0.5 mt-1 list-none px-1">
+            <li class="px-[15px] py-1.5 hover:bg-neutral-50 [&_label]:align-middle [&_input]:mr-2 [&_input]:inline-block [&_input]:align-middle [&_input.rounded-checkbox]:h-[35px] [&_input.rounded-checkbox]:w-[35px] [&_input:not(.rounded-checkbox)]:size-4"><input type="checkbox" class="toggle default-checked" checked id="rate-tier-lt125">
                 <label for="rate-tier-lt125">Under $125</label></li>
-            <li><input type="checkbox" class="toggle default-checked" checked id="rate-tier-125-249">
+            <li class="px-[15px] py-1.5 hover:bg-neutral-50 [&_label]:align-middle [&_input]:mr-2 [&_input]:inline-block [&_input]:align-middle [&_input.rounded-checkbox]:h-[35px] [&_input.rounded-checkbox]:w-[35px] [&_input:not(.rounded-checkbox)]:size-4"><input type="checkbox" class="toggle default-checked" checked id="rate-tier-125-249">
                 <label for="rate-tier-125-249">$125&#8211;249</label></li>
-            <li><input type="checkbox" class="toggle default-checked" checked id="rate-tier-250-499">
+            <li class="px-[15px] py-1.5 hover:bg-neutral-50 [&_label]:align-middle [&_input]:mr-2 [&_input]:inline-block [&_input]:align-middle [&_input.rounded-checkbox]:h-[35px] [&_input.rounded-checkbox]:w-[35px] [&_input:not(.rounded-checkbox)]:size-4"><input type="checkbox" class="toggle default-checked" checked id="rate-tier-250-499">
                 <label for="rate-tier-250-499">$250&#8211;499</label></li>
-            <li><input type="checkbox" class="toggle default-checked" checked id="rate-tier-500-749">
+            <li class="px-[15px] py-1.5 hover:bg-neutral-50 [&_label]:align-middle [&_input]:mr-2 [&_input]:inline-block [&_input]:align-middle [&_input.rounded-checkbox]:h-[35px] [&_input.rounded-checkbox]:w-[35px] [&_input:not(.rounded-checkbox)]:size-4"><input type="checkbox" class="toggle default-checked" checked id="rate-tier-500-749">
                 <label for="rate-tier-500-749">$500&#8211;749</label></li>
-            <li><input type="checkbox" class="toggle default-checked" checked id="rate-tier-750-999">
+            <li class="px-[15px] py-1.5 hover:bg-neutral-50 [&_label]:align-middle [&_input]:mr-2 [&_input]:inline-block [&_input]:align-middle [&_input.rounded-checkbox]:h-[35px] [&_input.rounded-checkbox]:w-[35px] [&_input:not(.rounded-checkbox)]:size-4"><input type="checkbox" class="toggle default-checked" checked id="rate-tier-750-999">
                 <label for="rate-tier-750-999">$750&#8211;999</label></li>
-            <li><input type="checkbox" class="toggle default-checked" checked id="rate-tier-gt1000">
+            <li class="px-[15px] py-1.5 hover:bg-neutral-50 [&_label]:align-middle [&_input]:mr-2 [&_input]:inline-block [&_input]:align-middle [&_input.rounded-checkbox]:h-[35px] [&_input.rounded-checkbox]:w-[35px] [&_input:not(.rounded-checkbox)]:size-4"><input type="checkbox" class="toggle default-checked" checked id="rate-tier-gt1000">
                 <label for="rate-tier-gt1000">Over $1,000</label></li>
-            <li class="mt-1 border-t pt-1">
+            <li class="px-[15px] py-1.5 hover:bg-neutral-50 [&_label]:align-middle [&_input]:mr-2 [&_input]:inline-block [&_input]:align-middle [&_input.rounded-checkbox]:h-[35px] [&_input.rounded-checkbox]:w-[35px] [&_input:not(.rounded-checkbox)]:size-4 mt-1 border-t border-neutral-300 pt-1">
                 <input type="checkbox" class="toggle" id="rate-tier-no-info">
                 <label for="rate-tier-no-info">No rate info available</label></li>
           </ul>
         </div>
       </li>
     </ul>
-    <h3>Funding (2021&#8211;2025)</h3>
-    <ul>
+    <h3 class="m-0 px-[15px] py-5 text-base font-bold text-neutral-900 bg-white">Funding (2021&#8211;2025)</h3>
+    <ul class="my-[6px] mb-[10px] mx-0 list-none px-1">
       <%= render Filters::RangeFilterItemComponent.new(
             checkbox_id: "more-has-srf-financing", panel_id: "subcat-srf-financing",
             label: "State revolving fund financing", tooltip_text: filter_tooltips["srf_financing"],
@@ -342,9 +342,9 @@
             field: "total_principal_forgiveness", min_input_id: "min-srf-forgiveness", max_input_id: "max-srf-forgiveness",
             slider_label: "Amount ($)") %>
     </ul>
-    <h3>Environmental</h3>
-    <ul>
-      <li>
+    <h3 class="m-0 px-[15px] py-5 text-base font-bold text-neutral-900 bg-white">Environmental</h3>
+    <ul class="my-[6px] mb-[10px] mx-0 list-none px-1">
+      <li class="px-[15px] py-1.5 hover:bg-neutral-50 [&_label]:align-middle [&_input]:mr-2 [&_input]:inline-block [&_input]:align-middle [&_input.rounded-checkbox]:h-[35px] [&_input.rounded-checkbox]:w-[35px] [&_input:not(.rounded-checkbox)]:size-4">
         <input type="checkbox" class="toggle" id="more-watershed-hazards"
                data-action="change->filter#toggleSubcat"
                data-panel-id="subcat-watershed-hazards">
@@ -363,7 +363,7 @@
         </button>
         <div id="subcat-watershed-hazards" class="hidden pl-4 pb-1" data-subcat-panel
              data-action="change->filter#syncParentFromSubcat">
-          <ul class="space-y-1 mt-1">
+          <ul class="space-y-1 mt-1 list-none px-1">
             <%= render Filters::RangeFilterItemComponent.new(
                   checkbox_id: "more-num-facilities", panel_id: "slider-num-facilities",
                   label: "Source water connections", tooltip_text: filter_tooltips["source_water_connections"],
@@ -398,14 +398,15 @@
 
 <!-- 5. POPULATION -->
 <%= render UI::FilterMenuComponent.new(menu_id: 5) do %>
-  <div id="container-menu-5-items">
-    <h3 class="visible-in-main">Size</h3>
+  <div id="container-menu-5-items" class="min-w-[450px]">
+    <h3 class="m-0 px-[15px] py-5 text-base font-bold text-neutral-900 bg-white hidden [.filter-dropdown-more_&]:block">Population size</h3>
+    <h3 class="m-0 px-[15px] py-5 text-base font-medium text-white bg-[#989898] [.filter-dropdown-more_&]:hidden">Size</h3>
     <div class="container-population-filter-grid">
       <button type="button" id="pop-very-small" class="toggle pop-size-box pop-size-box-first pop-size-1 cursor-pointer" data-action="click->filter#togglePopSize">Very small<span>500 or less</span></button><button type="button" id="pop-small" class="toggle pop-size-box pop-size-2 cursor-pointer" data-action="click->filter#togglePopSize">Small<span>501 - 3,300</span></button><button type="button" id="pop-medium" class="toggle pop-size-box pop-size-3 cursor-pointer" data-action="click->filter#togglePopSize">Medium<span>3,301 - 10,000</span></button><button type="button" id="pop-large" class="toggle pop-size-box pop-size-4 cursor-pointer" data-action="click->filter#togglePopSize">Large<span>10,001 - 100,000</span></button><button type="button" id="pop-very-large" class="toggle pop-size-box pop-size-box-last pop-size-5 cursor-pointer" data-action="click->filter#togglePopSize">Very large<span>100,000+</span></button>
       <div class="clear"></div>
     </div>
-    <h3>Density</h3>
-    <p><strong>People per square mile</strong></p>
+    <h3 class="m-0 px-[15px] py-5 text-base font-medium text-white bg-[#989898]">Density</h3>
+    <p class="my-2.5 mx-0 px-[15px] py-1.5 text-[0.9em]"><strong class="font-medium">People per square mile</strong></p>
     <div class="dropdown-selectors">
       <select id="density-min" class="toggle-select min-select left">
         <option value="0" selected>No minimum</option>
@@ -422,8 +423,8 @@
         <option value="999999" selected>No maximum</option>
       </select>
     </div>
-    <h3>Change</h3>
-    <ul>
+    <h3 class="m-0 px-[15px] py-5 text-base font-medium text-white bg-[#989898]">Change</h3>
+    <ul class="my-[6px] mb-[10px] mx-0 list-none px-1">
       <%= render Filters::RangeFilterItemComponent.new(
             checkbox_id: "trend-pop-change", panel_id: "subcat-pop-change",
             label: "Population change (10 years)", tooltip_text: filter_tooltips["population_change"],
@@ -435,8 +436,8 @@
             field: "mhi_pct_change_capped", min_input_id: "min-mhi-change", max_input_id: "max-mhi-change",
             slider_label: "Percentage change", format: "percent_change") %>
     </ul>
-    <h3>Socioeconomics</h3>
-    <ul>
+    <h3 class="m-0 px-[15px] py-5 text-base font-medium text-white bg-[#989898]">Socioeconomics</h3>
+    <ul class="my-[6px] mb-[10px] mx-0 list-none px-1">
       <%= render Filters::RangeFilterItemComponent.new(
             checkbox_id: "more-poverty-rate", panel_id: "subcat-poverty-rate",
             label: "Poverty rate", tooltip_text: filter_tooltips["poverty_rate"],
@@ -468,8 +469,8 @@
             field: "age_over_61_rate", min_input_id: "min-age-over-61", max_input_id: "max-age-over-61",
             slider_label: "Percentage of population", format: "percent") %>
     </ul>
-    <h3>Race/Ethnicity</h3>
-    <ul>
+    <h3 class="m-0 px-[15px] py-5 text-base font-medium text-white bg-[#989898]">Race/Ethnicity</h3>
+    <ul class="my-[6px] mb-[10px] mx-0 list-none px-1">
       <%= render Filters::RangeFilterItemComponent.new(
             checkbox_id: "more-poc-rate", panel_id: "subcat-poc-rate",
             label: "People of color", tooltip_text: filter_tooltips["people_of_color"],
@@ -516,8 +517,8 @@
             field: "mixed_race_rate", min_input_id: "min-mixed-race-rate", max_input_id: "max-mixed-race-rate",
             slider_label: "Percentage of population", format: "percent") %>
     </ul>
-    <h3>Vulnerability</h3>
-    <ul>
+    <h3 class="m-0 px-[15px] py-5 text-base font-medium text-white bg-[#989898]">Vulnerability</h3>
+    <ul class="my-[6px] mb-[10px] mx-0 list-none px-1">
       <%= render Filters::RangeFilterItemComponent.new(
             checkbox_id: "more-cejst", panel_id: "subcat-cejst",
             label: "Disadvantaged area", tooltip_text: filter_tooltips["cejst_disadvantaged"],
