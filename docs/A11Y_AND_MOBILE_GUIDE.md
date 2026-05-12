@@ -97,7 +97,7 @@ Listing both is only confusing if they sound like two equal “tags” for the s
 ### Example — full-width on mobile, constrained on desktop (ERB)
 
 ```erb
-  get height on small screens; focus ring for keyboard users %>
+  <%# get height on small screens; focus ring for keyboard users %>
 <%= button_to logout_path, method: :delete,
     class: "inline-flex h-12 w-full items-center justify-center rounded-md bg-red-600 px-6 text-white hover:bg-red-700 focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 md:w-auto" do %>
   <span aria-hidden="true" class="me-2"><i class="fa-solid fa-sign-out"></i></span>
