@@ -11,12 +11,12 @@
       <li class="px-[15px] py-1.5 hover:bg-neutral-50 [&_label]:align-middle [&_input]:mr-2 [&_input]:inline-block [&_input]:align-middle [&_input.rounded-checkbox]:h-[35px] [&_input.rounded-checkbox]:w-[35px] [&_input:not(.rounded-checkbox)]:size-4"><input type="radio" name="water-source" id="ws-surface" /><label for="ws-surface">Surface only</label></li>
     </ul>
     <h3 class="m-0 px-[15px] py-5 text-base font-medium text-white bg-[#989898]">Place</h3>
-    <div data-controller="place-autocomplete" style="position:relative; margin-bottom:10px;">
-      <input type="text" class="js-place-search" placeholder="Search for a city or town..."
+    <div data-controller="place-autocomplete" class="relative mb-2.5">
+      <input type="text" class="js-place-search w-full px-2.5 py-1.5 border border-[#ccc] rounded text-[0.95em]"
+             placeholder="Search for a city or town..."
              data-place-autocomplete-target="input"
              data-action="input->place-autocomplete#search blur->place-autocomplete#blur"
-             autocomplete="off"
-             style="width:100%; padding:6px 10px; border:1px solid #ccc; border-radius:4px; font-size:0.95em;">
+             autocomplete="off">
       <input type="hidden" id="place-geoid" data-place-autocomplete-target="geoid">
       <ul data-place-autocomplete-target="results" class="place-autocomplete-results" style="display:none;"></ul>
     </div>

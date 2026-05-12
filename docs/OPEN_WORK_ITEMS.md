@@ -88,4 +88,4 @@ Known issues that have been discovered, which we know we need to come back to an
   - update docs that will persist, ensuring accuracy
   - document..
     - what it means to be 'mobile friendly'
-    - what it meands to follow a11y best practices and standards
+    - what it means to follow a11y best practices and standards

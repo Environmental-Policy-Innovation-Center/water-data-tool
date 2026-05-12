@@ -397,16 +397,6 @@ ul.stats-list li{
   padding: 16px 10px 4px 10px;
 }
 
-.container-population-filter-grid a.active, .container-water-sewer-bill-filter-grid a.active{
-  background-color:#eff6ea;
-  color:#000;
-  border:1px solid #66a03b;
-  border-left: inherit;
-}
-
-.container-population-filter-grid a.active-first, .container-water-sewer-bill-filter-grid a.active-first{
-  border-left:1px solid #66a03b !important;
-}
 
 .pop-size-box span, .wsb-box span{
   display:block;

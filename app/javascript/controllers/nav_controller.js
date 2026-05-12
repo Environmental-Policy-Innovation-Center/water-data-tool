@@ -20,6 +20,7 @@ export default class extends Controller {
       this.#closeMobileMenu()
     } else {
       btn.classList.remove("closed")
+      btn.setAttribute("aria-expanded", "true")
       menu.style.display = "block"
       btn.querySelector(".mm-icon-bars")?.classList.add("hidden")
       btn.querySelector(".mm-icon-x")?.classList.remove("hidden")
@@ -59,7 +60,7 @@ export default class extends Controller {
       el.classList.toggle("active", el.dataset.section === section)
     })
 
-    document.querySelectorAll("#container-sidebar a[data-section]").forEach((el) => {
+    document.querySelectorAll("#container-sidebar [data-section]").forEach((el) => {
       if (el.classList.contains("active")) {
         el.setAttribute("aria-current", "page")
       } else {
@@ -78,6 +79,7 @@ export default class extends Controller {
     if (!menu) return
     menu.style.display = "none"
     btn.classList.add("closed")
+    btn.setAttribute("aria-expanded", "false")
     btn.querySelector(".mm-icon-bars")?.classList.remove("hidden")
     btn.querySelector(".mm-icon-x")?.classList.add("hidden")
   }

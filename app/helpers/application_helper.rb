@@ -1,6 +1,9 @@
 module ApplicationHelper
+  # Visible only on keyboard navigation (not mouse). Centralised so a brand color change updates all components.
   FOCUS_RING_CLASSES = "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 " \
     "focus-visible:outline-blue-600 motion-reduce:transition-none"
+
+  # TODO: add FILTER_ROW_CLASSES — same ~70-char <li> Tailwind bundle is duplicated across _filter_menus.html.erb and Filters::RangeFilterItemComponent
 
   # Color is baked into each SVG; pass classes: for Tailwind sizing (e.g. 'w-5 h-5').
   ICON_CACHE = Hash.new do |h, k|
