@@ -56,21 +56,15 @@
   <%# Mapbox GL JS canvas %>
   <div id="map"></div>
 
-  <%# Region shortcut buttons (below +/− zoom controls) %>
+  <%# Map region shortcuts (48 / AK / HI / territories) — below +/− zoom controls %>
   <div id="container-region-nav" class="absolute left-0 top-[135px] z-[1] max-[640px]:hidden hide-for-table">
-    <button type="button" title="Zoom to 48 states" data-action="click->map#zoom48"
-            class="block p-1.5 mt-[5px] text-[#333] text-[0.8em] rounded-full bg-white border border-[#bfbfbf] text-center cursor-pointer hover:bg-[#f5f5f5]">48</button>
-    <button type="button" title="Zoom to Alaska" data-action="click->map#zoomAk"
-            class="block p-1.5 mt-[5px] text-[#333] text-[0.8em] rounded-full bg-white border border-[#bfbfbf] text-center cursor-pointer hover:bg-[#f5f5f5]">AK</button>
-    <button type="button" title="Zoom to Hawaii" data-action="click->map#zoomHi"
-            class="block p-1.5 mt-[5px] text-[#333] text-[0.8em] rounded-full bg-white border border-[#bfbfbf] text-center cursor-pointer hover:bg-[#f5f5f5]">HI</button>
+    <%= render UI::MapRegionShortcutButtonComponent.new(label: "48", aria_label: "Zoom to 48 states", map_action: "zoom48", territory: false) %>
+    <%= render UI::MapRegionShortcutButtonComponent.new(label: "AK", aria_label: "Zoom to Alaska", map_action: "zoomAk", territory: false) %>
+    <%= render UI::MapRegionShortcutButtonComponent.new(label: "HI", aria_label: "Zoom to Hawaii", map_action: "zoomHi", territory: false) %>
     <hr class="border-0 border-t border-[#ddd] mt-1.5 mb-0.5 mx-0.5">
-    <button type="button" title="Zoom to Puerto Rico (territory)" data-action="click->map#zoomPr"
-            class="block p-1.5 mt-[5px] text-[#666] text-[0.72em] rounded-full bg-white border border-[#bfbfbf] text-center cursor-pointer hover:bg-[#f5f5f5]">PR</button>
-    <button type="button" title="Zoom to Guam (territory)" data-action="click->map#zoomGu"
-            class="block p-1.5 mt-[5px] text-[#666] text-[0.72em] rounded-full bg-white border border-[#bfbfbf] text-center cursor-pointer hover:bg-[#f5f5f5]">GU</button>
-    <button type="button" title="Zoom to Northern Mariana Islands (territory)" data-action="click->map#zoomMp"
-            class="block p-1.5 mt-[5px] text-[#666] text-[0.72em] rounded-full bg-white border border-[#bfbfbf] text-center cursor-pointer hover:bg-[#f5f5f5]">MP</button>
+    <%= render UI::MapRegionShortcutButtonComponent.new(label: "PR", aria_label: "Zoom to Puerto Rico (territory)", map_action: "zoomPr", territory: true) %>
+    <%= render UI::MapRegionShortcutButtonComponent.new(label: "GU", aria_label: "Zoom to Guam (territory)", map_action: "zoomGu", territory: true) %>
+    <%= render UI::MapRegionShortcutButtonComponent.new(label: "MP", aria_label: "Zoom to Northern Mariana Islands (territory)", map_action: "zoomMp", territory: true) %>
   </div>
 
   <%# Intro tooltip — bottom right of map canvas %>
