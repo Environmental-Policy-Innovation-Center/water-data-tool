@@ -1,11 +1,10 @@
 class UI::MapRegionShortcutButtonComponentPreview < Lookbook::Preview
-  # @label State — 48
+  # @label 48 states
   def state_48
     render UI::MapRegionShortcutButtonComponent.new(
       label: "48",
       aria_label: "Zoom to 48 states",
-      map_action: "zoom48",
-      territory: false
+      map_action: "zoom48"
     )
   end
 
@@ -13,9 +12,8 @@ class UI::MapRegionShortcutButtonComponentPreview < Lookbook::Preview
   def territory_pr
     render UI::MapRegionShortcutButtonComponent.new(
       label: "PR",
-      aria_label: "Zoom to Puerto Rico (territory)",
-      map_action: "zoomPr",
-      territory: true
+      aria_label: "Zoom to Puerto Rico",
+      map_action: "zoomPr"
     )
   end
 end

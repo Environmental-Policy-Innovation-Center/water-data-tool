@@ -1,4 +1,7 @@
 module ApplicationHelper
+  FOCUS_RING_CLASSES = "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 " \
+    "focus-visible:outline-blue-600 motion-reduce:transition-none"
+
   # Color is baked into each SVG; pass classes: for Tailwind sizing (e.g. 'w-5 h-5').
   ICON_CACHE = Hash.new do |h, k|
     h[k] = begin

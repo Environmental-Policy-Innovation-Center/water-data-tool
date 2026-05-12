@@ -202,10 +202,6 @@ export default class extends Controller {
   togglePopSize(event) {
     event.preventDefault()
     event.currentTarget.classList.toggle("active")
-
-    // First button has a distinct left-border style when active
-    const first = document.querySelector(".pop-size-1")
-    if (first) first.classList.toggle("active-first", first.classList.contains("active"))
   }
 
   reset(event) {
@@ -549,6 +545,13 @@ export default class extends Controller {
           return sum + parentChecked + subcatCount
         }, 0)
 
+    // Count each active pop-size box as +1 (consistent with checkbox counting).
+    // pop_cat_5 is an array param — countKeys would only score it as 1 regardless of selections.
+    const countPopCatSelections = () => {
+      const selected = p["pop_cat_5"]
+      return Array.isArray(selected) ? selected.length : 0
+    }
+
     // Groups 1–5: if collapsed into More, add their count to More's badge instead
     let moreCount = countKeys(GROUP_KEYS[10] || [])
       + countRangeCheckboxes(10)
@@ -559,7 +562,11 @@ export default class extends Controller {
       if (group === 10) continue
 
       const li = document.querySelector(`.filter-${group}`)
-      const count = countKeys(keys) + countRangeCheckboxes(group) + countSubcatPanelCheckboxes(group)
+      const scalarKeys = group === 5 ? keys.filter(k => k !== "pop_cat_5") : keys
+      const count = countKeys(scalarKeys)
+        + (group === 5 ? countPopCatSelections() : 0)
+        + countRangeCheckboxes(group)
+        + countSubcatPanelCheckboxes(group)
 
       if (li?.classList.contains("hidden")) {
         moreCount += count

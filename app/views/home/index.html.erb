@@ -58,13 +58,13 @@
 
   <%# Map region shortcuts (48 / AK / HI / territories) — below +/− zoom controls %>
   <div id="container-region-nav" class="absolute left-0 top-[135px] z-[1] max-[640px]:hidden hide-for-table">
-    <%= render UI::MapRegionShortcutButtonComponent.new(label: "48", aria_label: "Zoom to 48 states", map_action: "zoom48", territory: false) %>
-    <%= render UI::MapRegionShortcutButtonComponent.new(label: "AK", aria_label: "Zoom to Alaska", map_action: "zoomAk", territory: false) %>
-    <%= render UI::MapRegionShortcutButtonComponent.new(label: "HI", aria_label: "Zoom to Hawaii", map_action: "zoomHi", territory: false) %>
+    <%= render UI::MapRegionShortcutButtonComponent.new(label: "48", aria_label: "Zoom to 48 states", map_action: "zoom48") %>
+    <%= render UI::MapRegionShortcutButtonComponent.new(label: "AK", aria_label: "Zoom to Alaska", map_action: "zoomAk") %>
+    <%= render UI::MapRegionShortcutButtonComponent.new(label: "HI", aria_label: "Zoom to Hawaii", map_action: "zoomHi") %>
     <hr class="border-0 border-t border-[#ddd] mt-1.5 mb-0.5 mx-0.5">
-    <%= render UI::MapRegionShortcutButtonComponent.new(label: "PR", aria_label: "Zoom to Puerto Rico (territory)", map_action: "zoomPr", territory: true) %>
-    <%= render UI::MapRegionShortcutButtonComponent.new(label: "GU", aria_label: "Zoom to Guam (territory)", map_action: "zoomGu", territory: true) %>
-    <%= render UI::MapRegionShortcutButtonComponent.new(label: "MP", aria_label: "Zoom to Northern Mariana Islands (territory)", map_action: "zoomMp", territory: true) %>
+    <%= render UI::MapRegionShortcutButtonComponent.new(label: "PR", aria_label: "Zoom to Puerto Rico", map_action: "zoomPr") %>
+    <%= render UI::MapRegionShortcutButtonComponent.new(label: "GU", aria_label: "Zoom to Guam", map_action: "zoomGu") %>
+    <%= render UI::MapRegionShortcutButtonComponent.new(label: "MP", aria_label: "Zoom to Northern Mariana Islands", map_action: "zoomMp") %>
   </div>
 
   <%# Intro tooltip — bottom right of map canvas %>

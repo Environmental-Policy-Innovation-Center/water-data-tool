@@ -7,7 +7,8 @@ class UI::NavItemComponent < ViewComponent::Base
     "[&.active]:bg-brand-primary [&.active]:border-brand-primary [&.active]:text-white " \
     "group-data-[sidebar-collapsed]:w-10 " \
     "group-data-[sidebar-collapsed]:px-0 group-data-[sidebar-collapsed]:justify-center " \
-    "group-data-[sidebar-collapsed]:border-0 group-data-[sidebar-collapsed]:rounded-lg"
+    "group-data-[sidebar-collapsed]:border-0 group-data-[sidebar-collapsed]:rounded-lg " \
+    "#{FOCUS_RING_CLASSES}"
 
   def initialize(label:, icon_name:, section: nil, href: nil, external: false, active: false)
     @label = label
