@@ -205,36 +205,6 @@ body{
   border-radius:1px;
 }
 
-.mapboxgl-ctrl-geocoder{
-  color: #333;
-  border-radius: 20px;
-  background-color: #fff;
-  border: 1px solid #bfbfbf;
-}
-
-/* Geocoder rendered inside the filter bar list item */
-.geocoder-li {
-  vertical-align: middle;
-}
-.geocoder-li .mapboxgl-ctrl-geocoder {
-  min-width: 200px;
-  max-width: 240px;
-  box-shadow: none;
-  margin: 0 6px 0 5px;
-}
-/* Let the suggestions dropdown overflow the narrow geocoder input */
-.geocoder-li .mapboxgl-ctrl-geocoder .suggestions-wrapper,
-.geocoder-li .mapboxgl-ctrl-geocoder .suggestions {
-  min-width: 320px;
-  position: absolute;
-  left: 0;
-  z-index: 100;
-}
-.geocoder-li .mapboxgl-ctrl-geocoder .suggestions li a {
-  white-space: normal;
-  overflow: visible;
-  text-overflow: unset;
-}
 
 #wrapper-map-ui{
   position:relative;
@@ -245,25 +215,6 @@ body{
   right: 20px;
   top: 0px;
   z-index: 99;
-}
-
-#container-map-ui-top {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 5;
-}
-
-#container-map-ui-top ul {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  padding: 5px 20px 0 5px;
-}
-
-.geocoder-li {
-  margin-right: auto;
 }
 
 
@@ -333,21 +284,6 @@ ul.stats-list li{
   margin: 10px 0px;
 }
 
-.container-map-ui ul{
-  list-style:none;
-  padding: 5px 0px 0px 20px;
-}
-
-.container-map-ui ul li{
-  display:inline-block;
-  position: relative;
-  vertical-align: middle;
-}
-
-
-.container-map-ui ul li.hidden{
-  display:none;
-}
 
 #container-zoom-to-loc{
   display:none;
@@ -389,43 +325,7 @@ ul.stats-list li{
   padding-top: 7px;
 }
 
-#container-region-nav{
-  position: absolute;
-  left: 0;
-  z-index: 1;
-}
 
-.container-region-nav-desktop{
-  top: 135px;
-}
-
-#container-region-nav a{
-  text-decoration: none;
-  display: block;
-  padding: 6px;
-  margin-top: 5px;
-  color: #333;
-  border-radius: 20px;
-  background-color: #fff;
-  border: 1px solid #bfbfbf;
-  font-size: .8em;
-  text-align:center;
-}
-
-#container-region-nav a:hover{
-  background-color: #f5f5f5;
-}
-
-#container-region-nav .region-divider {
-  border: none;
-  border-top: 1px solid #ddd;
-  margin: 6px 2px 2px;
-}
-
-#container-region-nav .territory-btn {
-  color: #666;
-  font-size: .72em;
-}
 
 
 /* TABLE VIEW */
@@ -545,25 +445,6 @@ ul.stats-list li{
   box-shadow: 1px 4px 12px #3333334d;
 }
 
-.container-filter-count{
-  background-color: #4EA324;
-  display: none;
-  color: #fff;
-  font-size: .7em;
-  border-radius: 50px;
-  text-align: center;
-  padding: 2px 6px;
-  position: absolute;
-  top: -16px;
-  right: 2px;
-  border: 1px solid #fff;
-}
-
-.container-menu-more .container-filter-count{
-  position: inherit;
-  display: inline-block;
-  vertical-align: super;
-}
 
 .container-menu-inner{
   position:relative;
@@ -1006,10 +887,6 @@ ul.stats-list li{
   background-color:#fff;
 }
 
-/* Push zoom controls below the filter bar (geocoder moved to filter bar HTML) */
-.mapboxgl-ctrl-top-left {
-  margin-top: 50px;
-}
 
 .mapboxgl-ctrl-top-left .mapboxgl-ctrl{
   background-color: transparent;
@@ -1032,15 +909,6 @@ ul.stats-list li{
 .mapboxgl-ctrl-group button + button{
   border-top:none;
   margin-top:5px;
-}
-
-.mapboxgl-ctrl-geocoder{
-  background-color:#fff !important;
-}
-
-.mapboxgl-ctrl-geocoder--input{
-  height:40px;
-  color: #000;
 }
 
 /* Place autocomplete dropdown */
@@ -1082,10 +950,10 @@ ul.stats-list li{
 
 /* =====================================================
    Mobile styles (from deprecated/assets/css/mobile.css)
-   Applied at max-width: 768px
+   Applied at max-width: 640px
    ===================================================== */
 
-@media all and (max-width: 768px) {
+@media all and (max-width: 640px) {
 
 
   .hide-for-mobile{
@@ -1180,16 +1048,8 @@ ul.stats-list li{
     height: 100%;
   }
 
-  /* Hide desktop-only UI on mobile */
-  #container-map-ui-top {
-    display: none;
-  }
 
   .map-content-wrapper-desktop {
-    display: none;
-  }
-
-  .container-region-nav-desktop {
     display: none;
   }
 
