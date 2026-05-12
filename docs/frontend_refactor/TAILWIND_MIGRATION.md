@@ -10,10 +10,8 @@ This document tracks the migration away from legacy image assets and `water_tool
 
 ### What was done
 
-Assets are split into two locations by type:
-
+We are currently using `SVG` assets exclusively, and should continue to follow that pattern if possible.
 - **`app/assets/svgs/`** — all SVG icons, read by the `icon()` helper via `File.read`
-- **`app/assets/images/`** — PNG logos only, served by the asset pipeline via `image_tag`
 
 Other directories were deleted:
 - `app/assets/dwet_design_system_svgs/` — unused design system exports, including one fake SVG that embedded a PNG via base64.
@@ -26,7 +24,6 @@ Other directories were deleted:
 | Pattern | Example | When to use |
 |---|---|---|
 | `icon()` helper | `<%= icon("arrow-down", classes: "h-4 w-4") %>` | All SVG icons — inlines SVG, supports `text-*` color via `fill="currentColor"` |
-| `image_tag` | `<%= image_tag "water-logo.png" %>` | PNG logos only — no color theming needed |
 
 ### Logo SVGs (replaced PNGs) ✅ COMPLETE
 
@@ -40,7 +37,6 @@ All three logo PNGs have been replaced with SVGs via the `icon()` helper (`app/a
 **Notes:**
 - SVGs must use inline `fill` attributes (not embedded `<style>` blocks) to avoid CSS class collisions when multiple SVGs are inlined on the same page.
 - The `icon()` helper strips uppercase from filenames — `epic.svg` not `EPIC.svg`.
-- The PNG files (`water-logo.png`, `mobile-water-logo.png`, `epic-logo-small.png`) remain in `app/assets/images/` but are no longer referenced and can be deleted.
 
 ### Current SVG inventory (`app/assets/svgs/`)
 
