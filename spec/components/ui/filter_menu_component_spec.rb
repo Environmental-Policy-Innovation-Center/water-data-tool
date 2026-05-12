@@ -8,11 +8,11 @@ RSpec.describe UI::FilterMenuComponent, type: :component do
       end
     end
 
-    it "renders outer container with expected id and container-menu class" do
+    it "renders outer container with expected id and filter-dropdown class" do
       subject
       root = html.css("div#container-menu-1").first
       expect(root).to be_present
-      expect(root["class"]).to include("container-menu")
+      expect(root["class"]).to include("filter-dropdown")
     end
 
     it "starts hidden for filter_menu_controller visibility toggling" do
@@ -75,9 +75,9 @@ RSpec.describe UI::FilterMenuComponent, type: :component do
       end
     end
 
-    it "adds container-menu-more class" do
+    it "adds filter-dropdown-more class" do
       subject
-      expect(html.css("div#container-menu-10").first["class"]).to include("container-menu-more")
+      expect(html.css("div#container-menu-10").first["class"]).to include("filter-dropdown-more")
     end
 
     it "does not render main-filter-grp placeholder" do
