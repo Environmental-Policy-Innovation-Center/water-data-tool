@@ -20,7 +20,7 @@ erDiagram
     PublicWaterSystem }o--o{ CartographicCounty : through_spatial_join
 ```
 
-`pwsid` is the universal join key — a string like `"OH0100013"` (2-letter state + 7-digit ID). It serves as the primary key on `public_water_systems` and as a foreign key on every associated table.
+`pwsid` is the universal join key — a string like `"OH0100013"` (the dominant format: 2-letter state + 7-digit ID, though tribal, state-specific alphanumeric, and ND compound variants also exist — see GLOSSARY.md → PWSID). It serves as the primary key on `public_water_systems` and as a foreign key on every associated table.
 
 ---
 
@@ -32,7 +32,7 @@ The central table. One row per public water system. Combines columns from the le
 
 | Column | Type | Nullable | Indexed | Notes |
 |--------|------|----------|---------|-------|
-| `pwsid` | `string` | no | PK | Format: `"XX0000000"` — state abbreviation + 7 digits |
+| `pwsid` | `string` | no | PK | Dominant format: `"XX0000000"` (state code + 7 digits). Variants: all-numeric tribal IDs (`084690440`), state-specific alphanumeric (`UTAH01001`, `DE00A0159`), and ND compound IDs (`"ND3401128; ND1001380; ND4801479"`). See GLOSSARY.md → PWSID |
 | `pws_name` | `string` | yes | | System name |
 | `stusps` | `string(2)` | yes | btree | State USPS abbreviation |
 | `primacy_agency` | `string` | yes | | Regulatory agency name |
