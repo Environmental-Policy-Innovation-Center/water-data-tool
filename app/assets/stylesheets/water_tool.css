@@ -14,7 +14,7 @@
    - Choropleth legend styles (was lines 1840–1895): feature not built
 
    Removed DataTables CSS (April 2026 — Tier 2):
-   - #results-table .dt-* styles: DataTables removed, replaced by Turbo Frame table
+   - #results-table and DataTables column-class styles: DataTables removed, replaced by Turbo Frame table
    - #data-table, .first-col, .dt-scroll-body: replaced by Tailwind in _table.html.erb
 
    Removed dataset card inner CSS (May 2026 — Tier 3, T3-C):
@@ -24,6 +24,19 @@
    Removed report section CSS (May 2026 — Tier 3, T3-B):
    - .detail-section, .detail-table, .detail-na, .detail-flag, .detail-footnote were orphaned
      (no CSS defined) and are now replaced by UI::DetailSectionComponent (Tailwind)
+
+   Removed legacy-only CSS (May 2026 — Tier 4, chore-remove-more-dead-css):
+   - Map hover popup (.map-hover-*), green-bar, bwn-content-wrapper, filters-desktop-display,
+     legacy filter menu footer / .btn-*-filters, category/column shells (.container-category-header,
+     .container-filter, .btn-filter-options), water/sewer bill grid (.wsb-*, .container-water-sewer-bill-filter-grid),
+     orphaned PWS report header rules, .slider-subhead, .hide-this, unused mobile hooks
+     (.container-region-nav-mobile, #mobile-btn-*, .btn-close-map-info, .filter-menu-mobile, …).
+
+   Removed dead layout hooks (May 2026 — Tier 5):
+   - #wrapper-ui, #wrapper-map-ui (no matching elements in Rails app).
+   - #container-zoom-to-loc and nested rules (element not in DOM; display:none shell).
+   - Redundant first .mapboxgl-ctrl-geolocate block (superseded by later Mapbox overrides).
+   - .mobile-header img.logo / img.nav (markup uses icon() SVGs, no matching elements).
 */
 
 /*
@@ -50,13 +63,6 @@ body{
 }
 
 
-#wrapper-ui{
-  width:100%;
-}
-
-
-
-.hide-this,
 .hide-for-desktop{
   display:none;
 }
@@ -117,62 +123,18 @@ body{
   border-radius:20px;
 }
 
-.mapboxgl-popup-content .map-detail-header,
-.mapboxgl-popup-content .map-hover-header{
+.mapboxgl-popup-content .map-detail-header{
   padding:15px 55px 15px 30px;
   border-radius: 20px 20px 0px 0px;
-}
-
-.mapboxgl-popup-content .map-hover-header{
-  padding:15px 30px 0px 30px;
-}
-
-.mapboxgl-popup-content .map-detail-header{
   background-color:#ececec;
-}
-
-.mapboxgl-popup-content .map-hover-header{
-  background-color:#fff;
-  border-radius:20px;
-}
-
-.mapboxgl-popup-content .map-hover-footer{
-  border-top:1px solid #eee;
-  padding:10px 5px 10px 5px;
-  margin-top:10px;
-  text-align:center;
-}
-
-.mapboxgl-popup-content .map-hover-footer p{
-  padding:0px;
-  margin:0px;
-  font-size:1.2em;
-}
-
-.mapboxgl-popup-content .map-hover-select-state{
-  text-align:center;
-}
-
-.mapboxgl-popup-content .map-hover-select-state p{
-  font-size:1em;
 }
 
 .mapboxgl-popup-content .map-detail-body{
   padding:10px 30px;
 }
 
-.mapboxgl-popup-content .map-detail-body a.btn-report{
-  padding: 8px 30px;
-  border: 1px solid #ccc;
-  border-radius: 15px;
-  margin: 10px 0px 0px 0px;
-  display: inline-block;
-  text-decoration: none;
-}
-
 .mapboxgl-popup-content .map-detail-body p,
-.mapboxgl-popup-content .map-detail-header p,
-.mapboxgl-popup-content .map-hover-header p{
+.mapboxgl-popup-content .map-detail-header p{
   font-size:1.2em;
   line-height:1.4;
   font-weight:400;
@@ -181,8 +143,7 @@ body{
 }
 
 .mapboxgl-popup-content .map-detail-body p strong,
-.mapboxgl-popup-content .map-detail-header p strong,
-.mapboxgl-popup-content .map-hover-header p strong{
+.mapboxgl-popup-content .map-detail-header p strong{
   font-weight:500;
 }
 
@@ -192,44 +153,6 @@ body{
 
 .infoBub {
   min-width: 280px;
-}
-
-.green-bar {
-  background-color:#4EA324;
-  display:inline-block;
-  position:relative;
-  width:4px;
-  height:11px;
-  margin-right:2px;
-  margin-left:-6px;
-  border-radius:1px;
-}
-
-
-#wrapper-map-ui{
-  position:relative;
-}
-
-.filters-desktop-display{
-  position: absolute;
-  right: 20px;
-  top: 0px;
-  z-index: 99;
-}
-
-
-.bwn-content-wrapper {
-  position: absolute;
-  right: 20px;
-  bottom: 260px;
-  max-width: 320px;
-  font-size: 11pt;
-  z-index: 9;
-  background-color: #fff;
-  border: 1px solid #bfbfbf;
-  border-radius: 20px;
-  padding: 10px 20px;
-  box-sizing: border-box;
 }
 
 .map-content-wrapper-desktop {
@@ -285,49 +208,6 @@ ul.stats-list li{
 }
 
 
-#container-zoom-to-loc{
-  display:none;
-  position: absolute;
-  left: 260px;
-  z-index: 1;
-  top: 15px;
-}
-
-.mapboxgl-ctrl-geolocate{
-  position: absolute;
-  left: 250px;
-  z-index: 1;
-  top: 6px;
-}
-
-#container-zoom-to-loc a{
-  text-decoration: none;
-  display: block;
-  color: #333;
-  position: absolute;
-  left: 250px;
-  z-index: 1;
-  top: 6px;
-  border-radius: 20px;
-  background-color: #fff;
-  border: 1px solid #bfbfbf;
-  font-size: .8em;
-  text-align: center;
-  width: 30px;
-  height: 30px;
-}
-
-#container-zoom-to-loc a:hover{
-  background-color: #f5f5f5;
-}
-
-#container-zoom-to-loc a img{
-  padding-top: 7px;
-}
-
-
-
-
 /* TABLE VIEW */
 
 #container-table{
@@ -363,13 +243,7 @@ ul.stats-list li{
   text-align:center;
 }
 
-.container-water-sewer-bill-filter-grid{
-  white-space: nowrap;
-  overflow: hidden;
-  max-height: 100px;
-}
-
-.pop-size-box, .wsb-box{
+.pop-size-box{
   display: inline-block;
   border: 1px solid #bfbfbf;
   padding: 10px 8px;
@@ -381,24 +255,19 @@ ul.stats-list li{
   min-height: 32px;
   vertical-align: middle;
 }
-.pop-size-box:hover, .wsb-box:hover{
+.pop-size-box:hover{
   background-color: #f5f5f5;
 }
-.pop-size-box-first, .wsb-box-first{
+.pop-size-box-first{
   border-left:1px solid #bfbfbf;
   border-radius:10px 0px 0px 10px;
 }
-.pop-size-box-last, .wsb-box-last{
+.pop-size-box-last{
   border-right:1px solid #bfbfbf;
   border-radius:0px 10px 10px 0px;
 }
 
-.wsb-1line{
-  padding: 16px 10px 4px 10px;
-}
-
-
-.pop-size-box span, .wsb-box span{
+.pop-size-box span{
   display:block;
   font-size:.75em;
 }
@@ -420,45 +289,6 @@ ul.stats-list li{
 
 /* MAP MENUS — filter dropdown shell lives in Tailwind (`UI::FilterMenuComponent` / `.filter-dropdown`);
    content rules migrated to application.css. */
-
-.filter-menu-footer{
-  position: sticky;
-  bottom: 0px;
-  width: 100%;
-  background-color: #fff;
-  text-align: center;
-  z-index:999;
-  padding-bottom:10px;
-}
-
-.btn-filters{
-  text-decoration: none;
-  padding: 8px 30px 8px 30px;
-  margin-right: 4px;
-  color: #333;
-  border-radius: 20px;
-  border: 1px solid #bfbfbf;
-  font-size: .9em;
-  display: inline-block;
-  margin: 6px 8px;
-}
-
-.btn-reset-filters{
-  color:#333;
-  background-color: #fff;
-}
-
-.btn-filters:hover,
-.btn-reset-filters:hover{
-  color:#000;
-  background-color: #dedede;
-}
-
-.btn-apply-filters,
-.btn-apply-filters:hover{
-  color:#fff;
-  background-color: #1054A8;
-}
 
 .rounded-checkbox {
   width:35px;
@@ -483,48 +313,6 @@ ul.stats-list li{
 }
 
 .hidden{
-  display:none;
-}
-
-.container-category-header{
-  border:none;
-  background-color: #333;
-  display:block;
-}
-
-.container-category-header h2{
-  display: inline-block;
-  border: none;
-  background-color: #333;
-  color: #fff;
-  padding-right:50px;
-}
-
-.container-category-header a{
-  color: #fff;
-  text-decoration: none;
-  position: absolute;
-  top: 12px;
-  right: 22px;
-  font-size: 1em;
-}
-
-.container-filter{
-  width:100%;
-}
-
-.container-filter p{
-  text-align:center;
-  color:#000;
-  padding-top:40%;
-  margin:0px;
-}
-
-.btn-filter-options img{
-  width: 16px;
-  position: absolute;
-  right: 10px;
-  top: 44px;
   display:none;
 }
 
@@ -617,35 +405,6 @@ ul.stats-list li{
   margin-top: 30px;
   background-color: #fff;
   margin-bottom:50px;
-}
-
-#container-report .header{
-}
-.container-report-section-inner .header-logo{
-  position:absolute;
-  left:40px;
-  top:20px;
-}
-
-.container-report-section-inner .header-title{
-  text-align:center;
-}
-
-#container-report .header .id-logo{
-  float:left;
-  margin-top:5px;
-}
-
-#container-report .header .id-text{
-  margin: 20px 0px 0px 30px;
-  float: left;
-}
-
-#container-report .header p{
-  margin:0px;
-  padding:0px;
-  font-size: 1em;
-  line-height: 1.2;
 }
 
 #container-report .container-report-body{
@@ -799,18 +558,10 @@ ul.stats-list li{
   background-color: #f0f0f0;
 }
 
-/* Slider subhead */
-.slider-subhead {
-  font-weight: bold;
-  font-size: 12px;
-  margin: 8px 0px 8px 40px;
-}
-
-
 
 /* =====================================================
-   Mobile styles (from deprecated/assets/css/mobile.css)
-   Applied at max-width: 640px
+   Mobile styles (max-width: 640px), historically ported from legacy mobile.css.
+   The deprecated/ snapshot may still contain that file for PHP; Rails uses this block only.
    ===================================================== */
 
 @media all and (max-width: 640px) {
@@ -854,16 +605,6 @@ ul.stats-list li{
   .mobile-header .m-header-right a{
     display: inline-block;
     padding: 6px 8px 6px 6px;
-  }
-
-  .mobile-header img.logo{
-    width:36px;
-    height:auto;
-    display:inline-block;
-  }
-
-  .mobile-header img.nav{
-    display:inline-block;
   }
 
   .mobile-footer{
@@ -946,83 +687,17 @@ ul.stats-list li{
     padding-bottom: 100px;
   }
 
-
-  .container-region-nav-mobile{
-    top: 135px;
-  }
-
-  .filters-mobile-display{
-    position: absolute;
-    z-index: 7;
-    right: 20px;
-    bottom: 100px;
-  }
-
-  .filter-menu-mobile{
-    left:0px !important;
-    top:0px;
-    width:100%;
-    max-height: inherit !important;
-    padding-top:60px;
-    padding-bottom:200px;
-    border-radius: 0px;
-  }
-
-  .mobile-header-map-filters{
-    position: fixed;
-    width: 100%;
-    top: 60px;
-    z-index: 9999999;
-  }
-
-  .filter-menu-footer{
-    position: fixed;
-    bottom: 60px;
-    border-top: 1px solid #eee;
-    padding: 20px 0px 30px 0px;
-  }
-
-  .map-content-stats,
-  .map-content-wrapper-mobile {
+  .map-content-stats {
     position: absolute;
     bottom: 50px;
     z-index: 9;
     border: 1px solid #bfbfbf;
     border-radius: 20px;
-    padding: 5px 15px 5px 20px;
     box-sizing: border-box;
     left: 45px;
     right: 20px;
     max-width: inherit;
-  }
-
-  .map-content-stats{
     padding: 20px 15px 10px 20px;
-  }
-
-  #mobile-btn-info,
-  #mobile-btn-filters{
-    position:absolute;
-    right:20px;
-    z-index:7;
-  }
-
-  #mobile-btn-filters{
-    bottom:115px;
-  }
-
-  #mobile-btn-info{
-    bottom:50px;
-  }
-
-  .map-content-intro .btn-close-map-info,
-  .map-content-stats .btn-close-map-info{
-    position: absolute;
-    top: 14px;
-    right: 12px;
-    background-size: 14px;
-    width: 20px;
-    height: 20px;
   }
 
 

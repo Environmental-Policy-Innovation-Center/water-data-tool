@@ -1,6 +1,6 @@
 # Asset and CSS Deprecation Guide
 
-_Last updated: 2026-05-12 — filter menu Tailwind pass + doc sync_
+_Last updated: 2026-05-12 — Progress log + Chunk F clarity (`water_tool` housekeeping vs. chunk status)_
 
 This document tracks the migration away from legacy image assets and `water_tool.css` toward a clean, Tailwind-only frontend. It serves as both a record of decisions made and a step-by-step implementation guide for future work sessions.
 
@@ -74,19 +74,52 @@ All three logo PNGs have been replaced with SVGs via the `icon()` helper (`app/a
 
 ### Overview
 
-`app/assets/stylesheets/water_tool.css` (~1,400 lines) is the legacy stylesheet ported from an older codebase. The goal is to migrate all styles to Tailwind utility classes applied directly in HTML/ERB templates, then delete the file entirely.
+`app/assets/stylesheets/water_tool.css` (~717 lines as of 2026-05-12) is the legacy stylesheet ported from an older codebase. The goal is to migrate all styles to Tailwind utility classes applied directly in HTML/ERB templates, then delete the file entirely.
 
 The file is already partially migrated — several blocks were removed in earlier sessions (DataTables, dataset cards, report sections, tippy, slider histograms). See the removal log at the top of the file.
+
+**May 2026 dead-code sweep (Tier 4, `chore/remove-more-dead-css`):** Selectors were removed only after a static check that they had **no references under `app/`** (views, components, Stimulus, specs). References confined to `deprecated/` were treated as non-blocking for the Rails app. `bin/ci` was run green on the branch. Remaining risk is the usual caveat for class names built only at runtime (none were observed for the removed sets).
+
+**May 2026 follow-up (Tier 5):** Additional **Rails-only** dead hooks removed from `water_tool.css`: `#wrapper-ui`, `#wrapper-map-ui` (no matching elements in the app), `#container-zoom-to-loc` and descendants (legacy PHP-only markup), and the **first** duplicate `.mapboxgl-ctrl-geolocate` block bundled with that shell (the surviving override is under “Mapbox control overrides”). **`deprecated/` was not modified** — the snapshot still includes `deprecated/assets/css/mobile.css` and `deprecated/index.php` still links it; Rails does not load that path.
+
+**Paused (2026-05-12):** Further **large-scale** deletion from `water_tool.css` is on hold. What remains is largely still tied to live UI; the next wins follow the **chunk** plan below (Tailwind migration + targeted QA), not another blind CSS purge.
+
+**Notable removals (Rails-facing `water_tool.css` only):**
+
+- **Map popups:** `.map-hover-*`, unused `.map-detail-body a.btn-report` (live popup uses `js-view-report` + inline styles in `map_controller.js`).
+- **Legacy map UI:** `.green-bar`, `.bwn-content-wrapper`, `.filters-desktop-display`.
+- **Population pills only:** dropped water/sewer bill grid (`.container-water-sewer-bill-filter-grid`, `.wsb-*`, `.wsb-1line`) and kept `.pop-size-box` / `.container-population-filter-grid` rules only.
+- **Old filter menu chrome:** `.filter-menu-footer`, `.btn-filters`, `.btn-reset-filters`, `.btn-apply-filters`, `.container-category-header`, `.container-filter`, `.btn-filter-options img`.
+- **Report shell:** empty `#container-report .header` and unused `.header-logo` / `.header-title` / `.id-logo` / `.id-text` / `#container-report .header p` (report header is Tailwind in `public_water_systems/reports/show.html.erb`).
+- **Other:** `.hide-this`, `.slider-subhead`.
+- **Mobile `@media (max-width: 640px)`:** unused hooks (e.g. `.container-region-nav-mobile`, `.filters-mobile-display`, `.filter-menu-mobile`, `.mobile-header-map-filters`, duplicate `.filter-menu-footer`, `#mobile-btn-*`, `.btn-close-map-info`, `.map-content-wrapper-mobile`) and collapsed stats positioning into a **single** `.map-content-stats` rule (still used from `public_water_systems/stats/show.html.erb`).
+
+**Files touched (May 2026 cleanup + doc):**
+
+| File | What changed |
+|------|----------------|
+| `app/assets/stylesheets/water_tool.css` | Tier 4 + Tier 5 removals; changelog in file header. |
+| `docs/frontend_refactor/TAILWIND_MIGRATION.md` | This guide (accuracy + pause + `mapbox_overrides` stance). |
+
+**Not touched (by policy):** `deprecated/**` — treated as a **read-only legacy snapshot** (including `deprecated/assets/css/mobile.css` for the old PHP app). Rails continues **not** to load that path; mobile for the live app is `water_tool.css` `@media (max-width: 640px)` + Tailwind.
+
+### Progress log (housekeeping vs. chunk checklist)
+
+Chunk **Status** lines below (**Not started** / **Partially complete** / **Complete**) mean **“Tailwind + templates own this area end-to-end”** (or the chunk’s defined scope is done). **Do not flip a chunk to ✅** just because dead rules were deleted from `water_tool.css` — that’s maintenance on a file we’re still carrying.
+
+| When | What happened |
+|------|-----------------|
+| **2026-05** | **Tier 4 — `water_tool.css`:** Removed selectors with **no live references under `app/`** (map-hover popup chrome, BWN/green-bar, old filter footer/button classes, water/sewer bill grid, orphan report header hooks, `.hide-this`, `.slider-subhead`, unused mobile-only hooks in `@media (max-width: 640px)`; see Section 2 overview bullets). `bin/ci` green on branch. |
+| **2026-05** | **Tier 5 — `water_tool.css`:** Removed `#wrapper-ui`, `#wrapper-map-ui`, `#container-zoom-to-loc` (+ nested rules), and a duplicate `.mapboxgl-ctrl-geolocate` block. **`deprecated/` not modified** (snapshot policy). |
+| **2026-05** | **Paused:** No further bulk deletion from `water_tool.css` until the next **chunk** migrations below; remaining rules mostly still bind to live UI. |
 
 ### General approach
 
 - **Work section by section, matching app UI areas.** Each chunk maps to a visible area of the app — easier to test and less likely to cause cross-area regressions.
 - **Start with global utilities (Chunk A)** — visibility classes cut across all views and are the easiest win with the highest impact.
 - **After each chunk:** run `bin/ci`, then do a manual visual pass on affected views at both desktop and mobile widths.
-- **Mapbox overrides are a special case (Chunk G)** — these target vendor-injected DOM and cannot be replaced with Tailwind. Extract them to a dedicated `mapbox_overrides.css` rather than deleting.
+- **Mapbox overrides (Chunk G)** — these target vendor-injected DOM and cannot be replaced with Tailwind utilities on our own elements. **Default plan:** keep a **minimal** vanilla CSS block co-located (today: mostly `water_tool.css`, with some geocoder overlap in `tailwind/application.css` — reconcile when touching this area). **Optional escape hatch:** a dedicated `mapbox_overrides.css` (see Chunk G) **only if we need it** — it is **not** an ideal end state (extra asset, load-order coupling, rules splintered across files). Prefer staying in one place until `water_tool.css` goes away.
 - When a CSS class is removed from `water_tool.css`, also remove or replace every occurrence of it in views/partials.
-
-**NOTE:** There also appears to be a `mobile.css` file which needs to be deprecated as well. We DO NOT want to have a seperate CSS config for mobile in our app, rather we want to write things in a 'mobile friendly' way. See `A11Y_AND_MOBILE_GUIDE.md` for any guidance here if needed.
 
 ---
 
@@ -96,7 +129,7 @@ The file is already partially migrated — several blocks were removed in earlie
 **Status:** ⬜ Not started
 
 **CSS classes to remove from `water_tool.css`:**
-`.hide-for-desktop`, `.hide-for-mobile`, `.hide-when-collapsed`, `.hide-when-collapsed-fade`, `.hide-this`, `.hidden`
+`.hide-for-desktop`, `.hide-for-mobile`, `.hide-when-collapsed`, `.hide-when-collapsed-fade`, `.hidden` (`.hide-this` was removed in May 2026 — it had no live references.)
 
 **Migration:**
 - `hide-for-desktop` → `md:hidden`
@@ -114,12 +147,11 @@ The file is already partially migrated — several blocks were removed in earlie
 **Status:** ⬜ Not started
 
 **CSS to remove:**
-`body {}`, `#wrapper-ui {}`, `.clear`, `.clearfix`
+`body {}`, `.clear`, `.clearfix` (`#wrapper-ui` / `#wrapper-map-ui` were removed from `water_tool.css` in May 2026 — no Rails markup; do not reintroduce.)
 
 **Migration:**
 - `body` font family is declared in `app/assets/tailwind/application.css` — verify and delete the duplicate.
 - `.clear` / `.clearfix` — grep views; almost certainly unreferenced. Delete if so.
-- `#wrapper-ui` — likely a no-op wrapper; confirm and remove from both CSS and HTML if unused.
 
 **Test:** Page font rendering unchanged. No layout collapse on any view.
 
@@ -155,7 +187,7 @@ The file is already partially migrated — several blocks were removed in earlie
 **CSS classes to remove:**
 `.mobile-header`, `.mobile-header h1/img/a`, `.m-header-left`, `.m-header-right`, `.mobile-footer`, `.mobile-footer img/p`, `#container-mobile-menu`, `.container-mobile-menu-inner`, `.mm-icon-bars`, `.mm-icon-x`
 
-**Also:** The entire `@media (max-width: 768px)` block that repositions `.container-main-content` and `#container-map` for mobile viewports.
+**Also:** The `@media (max-width: 640px)` block in `water_tool.css` that repositions `.container-main-content` and `#container-map` for small viewports (legacy mobile shell — migrate with Chunk D).
 
 **Migration:**
 - Mobile header: `position: fixed; top: 0; width: 100%` → Tailwind `fixed top-0 inset-x-0 z-[9999] bg-white`.
@@ -188,7 +220,7 @@ The file is already partially migrated — several blocks were removed in earlie
 ---
 
 #### Chunk F: Filter bar and filter menus
-**Status:** 🔶 Partially complete
+**Status:** 🔶 Partially complete — Tailwind owns the **dropdown shell**; **`water_tool.css` still styles** population pills, dropdown row chrome, and checkboxes (see **Progress log** for May 2026 dead-rule deletion only).
 
 **Done (2026-05 — dropdown shell + inner menu chrome):**
 - **`UI::FilterMenuComponent`** / **`UI::FilterTabComponent`** — outer panels use Tailwind (including `.filter-dropdown` / `.filter-dropdown-more`). Legacy **class names** `.container-menu` / `.container-menu-more` are no longer used for presentation; **element IDs** stay `container-menu-*` for `filter_menu_controller.js` and `filter_layout_controller.js`. Per-tab **filter count badges** use Tailwind on `FilterTabComponent`; JS keeps the `container-filter-count-menu-{id}` class hook for updates.
@@ -196,14 +228,17 @@ The file is already partially migrated — several blocks were removed in earlie
 - **`Filters::RangeFilterItemComponent`** — root `<li>` uses the same utility bundle as simple filter rows.
 - **Population vs “Size” heading** when `#container-menu-5-items` is reparented into the More menu — implemented with Tailwind arbitrary parent variants (`[.filter-dropdown-more_&]:…`) on the two `<h3>`s; no `.visible-in-more` / `.visible-in-main` rules in `application.css`.
 - **Scrollbars** — Firefox: arbitrary `scrollbar-width` / `scrollbar-color` on the component; WebKit: `.filter-menu-scroll::-webkit-scrollbar*` in `app/assets/tailwind/application.css` (pseudo-elements cannot be utilities).
-- **`water_tool.css` cleanup for this slice** — removed dead `.filter-cat-indent`; removed `.container-menu h2.map-filter-mobile-header` (More menu `<h2>` uses Tailwind on the element).
 
-**Still open (same chunk — grep `water_tool.css` before migrating):**
-- Filter chrome still in legacy CSS: `.container-population-filter-grid`, `.container-water-sewer-bill-filter-grid`, `.pop-size-box`, `.wsb-box`, `.dropdown-selectors`, `.rounded-checkbox`, `.filter-coming-soon`, `.container-filter`, `.btn-filters`, `.btn-reset-filters`, `.btn-apply-filters`, `.btn-filter-options img`, `.filter-menu-footer`, `.filters-desktop-display`, mobile filter rules (`#mobile-btn-filters`, `.filter-menu-mobile`, etc.), `.slider-subhead` if still present.
-- **Historical list** (many already gone or renamed): `#container-map-ui-top` is positioned via Tailwind in `index.html.erb`; `.container-menu*` **presentation** migrated as above; `.filter-cat-indent` deleted; `.visible-in-*` handled via utilities on headings.
+**Done (May 2026 — `water_tool.css` only, Tier 4 + Tier 5):**
+- Deleted **legacy-only** rules that had no live `app/` references (old filter footer / apply-reset buttons, water/sewer bill grid, orphan shells, etc.); see **Progress log**. **Does not** complete this chunk — population pills, `.dropdown-selectors`, `.rounded-checkbox`, and `.filter-coming-soon` still pull from `water_tool.css` until the bullets under **Migration (remaining work)** are done.
+
+**Still in `water_tool.css` (migrate next — grep before editing):**
+- `.container-population-filter-grid`, `.pop-size-box` (+ first/last variants), `.dropdown-selectors`, `.rounded-checkbox`, `.filter-coming-soon`. (`.active` / `.active-first` — removed: active state is already handled by Tailwind `[&.active]:` variants on the `<button>` elements; CSS rules targeted `a`, never matched.)
+
+**Historical list** (many already gone or renamed): `#container-map-ui-top` is positioned via Tailwind in `index.html.erb`; `.container-menu*` **presentation** migrated as above; `.filter-cat-indent` deleted; `.visible-in-*` handled via utilities on headings.
 
 **Migration (remaining work):**
-- Population / WSB segmented controls and `.dropdown-selectors` → Tailwind on the underlying `<button>` / `<select>` nodes (or small components if the markup stabilizes).
+- Population segmented controls (`.pop-size-box` / `.container-population-filter-grid`) and `.dropdown-selectors` → Tailwind on the underlying `<button>` / `<select>` nodes (or small components if the markup stabilizes).
 - `.rounded-checkbox` — still styled in `water_tool.css`; migrate appearance to utilities or keep a minimal `@layer` hook if browser defaults fight the design.
 - Number spinner suppression — only if/when visible `type="number"` inputs return to filter UI; prefer Tailwind arbitrary variants or a scoped rule.
 
@@ -225,17 +260,24 @@ Ship **Lookbook previews + specs** for any new public UI component per project n
 
 ---
 
-#### Chunk G: Mapbox GL overrides ⚠️ Extract, do not delete
-**Status:** ⬜ Not started (note: base **geocoder** chrome already duplicated in `app/assets/tailwind/application.css` as `.mapboxgl-ctrl-geocoder.mapboxgl-ctrl` — reconcile when extracting so rules are not split across three places forever)
+#### Chunk G: Mapbox GL overrides ⚠️ Keep minimal vanilla CSS; optional `mapbox_overrides.css` only if needed
+**Status:** ⬜ Not started (note: base **geocoder** chrome already duplicated in `app/assets/tailwind/application.css` as `.mapboxgl-ctrl-geocoder.mapboxgl-ctrl` — reconcile when touching this area so rules are not split across three places forever)
 
-**CSS to move to `app/assets/stylesheets/mapbox_overrides.css`:**
-All `.mapboxgl-*` rules, `.place-autocomplete-results`, `.mapboxgl-ctrl-geocoder`, `.mapboxgl-ctrl-group`, `.mapboxgl-ctrl-top-left`, `.infoBub`, `.green-bar`, `.bwn-content-wrapper`, `.map-content-wrapper-desktop`, `.map-content-intro`, `.map-content-stats`, `turbo-frame#stats-bar:empty`, `#container-map-content-bottom`, `#container-map.table-mode` rules, `.map-content-wrapper-mobile`, `#mobile-btn-info`, `#mobile-btn-filters`
+**Preferred approach:** Leave Mapbox-facing rules in **`water_tool.css`** (or consolidate into **`tailwind/application.css`** only where it genuinely fits, e.g. small geocoder tweaks) until the stylesheet is deleted. Tailwind cannot replace styling **inside** Mapbox’s injected DOM without fragile hacks.
 
-**Migration:**
-- Mapbox GL JS injects DOM at runtime — Tailwind cannot target vendor elements.
-- Move these rules to a new file `app/assets/stylesheets/mapbox_overrides.css`.
-- Add `stylesheet_link_tag "mapbox_overrides"` to `app/views/layouts/application.html.erb` alongside the existing stylesheet links.
-- Do not try to replace these with Tailwind — leave them as vanilla CSS in the new file.
+**Optional — `app/assets/stylesheets/mapbox_overrides.css` (escape hatch, not ideal):** Splitting vendor CSS into a second file is **not** the preferred architecture — it adds another `stylesheet_link_tag`, ordering concerns next to `"tailwind"` / `"water_tool"`, and encourages permanent fragmentation across `water_tool.css`, `application.css`, and a third file. **Consider this only if** we hit a concrete need (e.g. shrinking `water_tool.css` for reviewability, clearer ownership, or isolating vendor rules for a specific refactor). If we add it: one-time audit for duplicate selectors, then **one** canonical home per concern.
+
+**CSS to move to `mapbox_overrides.css` *if* we adopt the escape hatch:**
+All `.mapboxgl-*` rules, `.place-autocomplete-results`, `.mapboxgl-ctrl-geocoder`, `.mapboxgl-ctrl-group`, `.mapboxgl-ctrl-top-left`, `.infoBub`, `.map-content-wrapper-desktop`, `.map-content-intro`, `.map-content-stats`, `turbo-frame#stats-bar:empty`, `#container-map-content-bottom`, `#container-map.table-mode` rules.
+
+**Already deleted from `water_tool.css` (not moved — unused by Rails):** `.green-bar`, `.bwn-content-wrapper`, `.map-content-wrapper-mobile`, `#mobile-btn-info`, `#mobile-btn-filters` (these only appeared in `deprecated/` assets).
+
+**Migration (if using `mapbox_overrides.css`):**
+- Mapbox GL JS injects DOM at runtime — Tailwind cannot target those nodes with utilities on our templates.
+- Create `app/assets/stylesheets/mapbox_overrides.css`, move the rules above, and add `stylesheet_link_tag "mapbox_overrides"` to `app/views/layouts/application.html.erb` **after** Tailwind / before or after `water_tool` per cascade needs — verify once.
+- Do not try to “Tailwind-ify” Mapbox’s internal class names.
+
+**Migration (default — no new file):** Keep rules in `water_tool.css`; delete them only when the map feature is removed or styles are proven obsolete.
 
 **Test:** Map renders correctly. Popup appears on click with correct styling (rounded corners, padding). Geocoder search shows dropdown suggestions. Zoom +/- controls styled correctly. Stats bar shows/hides on filter. Table-mode toggle hides map controls correctly.
 
@@ -245,7 +287,7 @@ All `.mapboxgl-*` rules, `.place-autocomplete-results`, `.mapboxgl-ctrl-geocoder
 **Status:** ⬜ Not started
 
 **CSS to remove:**
-`#container-table`, `.table-scroll` (custom scrollbar), `#container-map #container-table`, `#container-map.table-mode *` rules (after moving to mapbox_overrides in Chunk G)
+`#container-table`, `.table-scroll` (custom scrollbar), `#container-map #container-table`, `#container-map.table-mode *` rules (after any Mapbox/table CSS consolidation per Chunk G — whether those rules stay in `water_tool.css` or move to an optional `mapbox_overrides.css`).
 
 **Migration:**
 - `#container-table` show/hide is toggled by `.table-mode` on `#container-map` (via the map-table-toggle Stimulus controller). Keep the JS; migrate the CSS display logic to Tailwind `hidden` class toggling.
@@ -261,7 +303,7 @@ All `.mapboxgl-*` rules, `.place-autocomplete-results`, `.mapboxgl-ctrl-geocoder
 **Status:** ⬜ Not started
 
 **CSS to remove:**
-`#container-report`, `.btn-report`, `.btn-print-report`, `.btn-close-report`, `.btn-print-report img`, `.btn-close-report img`, `.container-report-section-inner`, `.container-section-inner`, `.container-report-section-inner .header-logo/header-title`
+`#container-report`, `.btn-report`, `.btn-print-report`, `.btn-close-report`, `.btn-print-report img`, `.btn-close-report img`, `.container-report-section-inner`, `.container-section-inner` (`.header-logo` / `.header-title` / related `#container-report .header` rules were removed in May 2026 — report header is Tailwind in `public_water_systems/reports/show.html.erb`.)
 
 **Migration:**
 - `#container-report` is `position: fixed; inset: 0; z-index: 9999; overflow-y: auto` → Tailwind `fixed inset-0 z-[9999] bg-white overflow-y-auto`.
@@ -293,11 +335,11 @@ All `.mapboxgl-*` rules, `.place-autocomplete-results`, `.mapboxgl-ctrl-geocoder
 **Status:** ⬜ Not started
 
 **CSS to remove:**
-`#loading-mask`, `.container-filter p`, `.btn-filter-options img`, `.datasets-header h3`, `#container-datasets`
+`#loading-mask`, `.datasets-header h3`, `#container-datasets`
 
 **Migration:**
 - `#loading-mask` is `position: absolute; background: rgba(0,0,0,0.6); z-index: 1002` → Tailwind `absolute inset-0 bg-black/60 z-[1002] text-center`.
-- Grep each remaining class before migrating — some may already be dead.
+- Grep each remaining class before migrating — some may already be dead. (`.container-filter p` and `.btn-filter-options img` were removed with other dead filter-menu shell rules in May 2026.)
 
 **Test:** Loading mask appears during map data fetch, disappears when complete.
 
