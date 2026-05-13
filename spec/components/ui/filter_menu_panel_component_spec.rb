@@ -1,6 +1,6 @@
 require "rails_helper"
 
-RSpec.describe UI::FilterMenuComponent, type: :component do
+RSpec.describe UI::FilterMenuPanelComponent, type: :component do
   describe "default menu (main filter group)" do
     subject do
       render_inline(described_class.new(menu_id: 1)) do

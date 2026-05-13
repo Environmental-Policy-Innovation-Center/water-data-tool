@@ -1,7 +1,7 @@
-class Filters::RangeFilterItemComponentPreview < Lookbook::Preview
+class Filters::GroupRangeComponentPreview < Lookbook::Preview
   # @label Default (count scale — violations, funding, etc.)
   def default
-    render Filters::RangeFilterItemComponent.new(
+    render Filters::GroupRangeComponent.new(
       checkbox_id: "preview-paperwork-5yr",
       panel_id: "preview-subcat-paperwork-5yr",
       label: "Non-health violations in the last 5 years",
@@ -15,7 +15,7 @@ class Filters::RangeFilterItemComponentPreview < Lookbook::Preview
 
   # @label Percent scale (demographics — poverty rate, unemployment, race/ethnicity, etc.)
   def percent
-    render Filters::RangeFilterItemComponent.new(
+    render Filters::GroupRangeComponent.new(
       checkbox_id: "preview-poverty-rate",
       panel_id: "preview-subcat-poverty-rate",
       label: "Households below the poverty line",
@@ -30,7 +30,7 @@ class Filters::RangeFilterItemComponentPreview < Lookbook::Preview
 
   # @label Percent change scale (trend data — signed, includes negatives, shows 0 midpoint)
   def percent_change
-    render Filters::RangeFilterItemComponent.new(
+    render Filters::GroupRangeComponent.new(
       checkbox_id: "preview-pop-change",
       panel_id: "preview-subcat-pop-change",
       label: "Population change (10 years)",
@@ -45,7 +45,7 @@ class Filters::RangeFilterItemComponentPreview < Lookbook::Preview
 
   # @label Currency scale (median household income, SRF assistance amounts)
   def currency
-    render Filters::RangeFilterItemComponent.new(
+    render Filters::GroupRangeComponent.new(
       checkbox_id: "preview-median-income",
       panel_id: "preview-subcat-median-income",
       label: "Annual median household income",
@@ -60,7 +60,7 @@ class Filters::RangeFilterItemComponentPreview < Lookbook::Preview
 
   # @label Nested (health violation sub-category — inside an expanded parent panel)
   def nested
-    render Filters::RangeFilterItemComponent.new(
+    render Filters::GroupRangeComponent.new(
       checkbox_id: "preview-groundwater-5yr",
       panel_id: "preview-subcat-groundwater-5yr",
       label: "Ground water rule",

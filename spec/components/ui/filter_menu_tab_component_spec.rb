@@ -1,15 +1,15 @@
 require "rails_helper"
 
-RSpec.describe UI::FilterTabComponent, type: :component do
+RSpec.describe UI::FilterMenuTabComponent, type: :component do
   subject do
-    render_inline described_class.new(menu_id: 1, label: "Source", li_id: "source-filter-button")
+    render_inline described_class.new(menu_id: 1, label: "Source")
   end
 
-  it "renders an li with the given id" do
+  it "renders an li with id derived from menu_id" do
     subject
     li = html.css("li").first
     expect(li).to be_present
-    expect(li["id"]).to eq("source-filter-button")
+    expect(li["id"]).to eq("filter-tab-1")
   end
 
   it "sets filter class from menu_id" do

@@ -1,9 +1,13 @@
 module ApplicationHelper
+  # Constants are used directly in ViewComponent .rb class bodies (include ApplicationHelper puts them in scope).
+  # ERB templates can't resolve bare module constants, so each one that's needed in views has a helper method below.
+
   # Visible only on keyboard navigation (not mouse). Centralised so a brand color change updates all components.
   FOCUS_RING_CLASSES = "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 " \
-    "focus-visible:outline-blue-600 motion-reduce:transition-none"
+    "focus-visible:outline-blue-600 motion-reduce:transition-none".freeze
 
-  # TODO: add FILTER_ROW_CLASSES — same ~70-char <li> Tailwind bundle is duplicated across _filter_menus.html.erb and Filters::RangeFilterItemComponent
+  FILTER_ROW_CLASSES = "px-[15px] py-1.5 hover:bg-neutral-50 [&_label]:align-middle [&_input]:mr-2 " \
+    "[&_input]:inline-block [&_input]:align-middle [&_input:not(.rounded-checkbox)]:size-4".freeze
 
   # Color is baked into each SVG; pass classes: for Tailwind sizing (e.g. 'w-5 h-5').
   ICON_CACHE = Hash.new do |h, k|
@@ -13,6 +17,8 @@ module ApplicationHelper
       ""
     end
   end
+
+  def filter_row_classes = FILTER_ROW_CLASSES
 
   def icon(name, classes: nil, aria_hidden: true)
     safe_name = name.to_s.gsub(/[^a-z0-9\-_]/, "")

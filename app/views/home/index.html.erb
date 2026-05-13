@@ -41,12 +41,12 @@
   <div id="container-map-ui-top" class="max-[640px]:hidden min-[640px]:absolute min-[640px]:top-0 min-[640px]:left-0 min-[640px]:right-0 min-[640px]:z-[5] pointer-events-none"
        data-controller="filter-layout">
     <ul id="filter-tabs" role="group" aria-label="Water System Filters" class="m-0 flex list-none flex-nowrap items-start justify-end gap-1.5 pt-3 pl-5 pr-5 pointer-events-none">
-      <%= render UI::FilterTabComponent.new(menu_id: 1, label: "Source", li_id: "source-filter-button") %>
-      <%= render UI::FilterTabComponent.new(menu_id: 2, label: "Attributes", li_id: "attributes-filter-button") %>
-      <%= render UI::FilterTabComponent.new(menu_id: 3, label: "Boundaries", li_id: "boundaries-filter-button") %>
-      <%= render UI::FilterTabComponent.new(menu_id: 4, label: "Compliance", li_id: "compliance-filter-button") %>
-      <%= render UI::FilterTabComponent.new(menu_id: 5, label: "Population", li_id: "population-filter-button") %>
-      <%= render UI::FilterTabComponent.new(menu_id: 10, label: "More", li_id: "more-filter-button") %>
+      <%= render UI::FilterMenuTabComponent.new(menu_id: 1, label: "Source") %>
+      <%= render UI::FilterMenuTabComponent.new(menu_id: 2, label: "Attributes") %>
+      <%= render UI::FilterMenuTabComponent.new(menu_id: 3, label: "Boundaries") %>
+      <%= render UI::FilterMenuTabComponent.new(menu_id: 4, label: "Compliance") %>
+      <%= render UI::FilterMenuTabComponent.new(menu_id: 5, label: "Population") %>
+      <%= render UI::FilterMenuTabComponent.new(menu_id: 10, label: "More") %>
     </ul>
   </div>
 
