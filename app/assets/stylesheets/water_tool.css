@@ -238,79 +238,10 @@ ul.stats-list li{
   background: #f1f1f1;
 }
 
-.container-population-filter-grid{
-  margin: 10px 20px 10px 10px;
-  text-align:center;
-}
-
-.pop-size-box{
-  display: inline-block;
-  border: 1px solid #bfbfbf;
-  padding: 10px 8px;
-  text-decoration:none;
-  color:#565656;
-  text-align:center;
-  font-size:.9em;
-  border-left:none;
-  min-height: 32px;
-  vertical-align: middle;
-}
-.pop-size-box:hover{
-  background-color: #f5f5f5;
-}
-.pop-size-box-first{
-  border-left:1px solid #bfbfbf;
-  border-radius:10px 0px 0px 10px;
-}
-.pop-size-box-last{
-  border-right:1px solid #bfbfbf;
-  border-radius:0px 10px 10px 0px;
-}
-
-.pop-size-box span{
-  display:block;
-  font-size:.75em;
-}
-
-.dropdown-selectors {
-  margin: 0px 0px 20px 0px;
-}
-
-.dropdown-selectors select{
-  background-color: #fff;
-  border: 1px solid #bfbfbf;
-  border-radius: 6px;
-  padding: 10px 18px;
-  width: 40%;
-  margin: 0px 0px 0px 15px;
-  font-size:.9em;
-}
 
 
 /* MAP MENUS — filter dropdown shell lives in Tailwind (`UI::FilterMenuComponent` / `.filter-dropdown`);
    content rules migrated to application.css. */
-
-.rounded-checkbox {
-  width:35px;
-  height: 35px;
-  border-radius: 50%;
-  vertical-align: middle;
-  border: 1px solid black;
-  appearance: none;
-  -webkit-appearance: none;
-  outline: none;
-  cursor: pointer;
-}
-.rounded-checkbox:checked {
-  appearance: auto;
-  clip-path: circle(50% at 50% 50%);
-  background-color: #13171F;
-  accent-color: #13171F;
-}
-
-.filter-coming-soon {
-  color: #888;
-}
 
 .hidden{
   display:none;
