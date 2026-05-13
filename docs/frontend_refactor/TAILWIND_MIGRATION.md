@@ -1,6 +1,6 @@
 # Asset and CSS Deprecation Guide
 
-_Last updated: 2026-05-12 — Progress log + Chunk F clarity (`water_tool` housekeeping vs. chunk status)_
+_Last updated: 2026-05-12 — Chunk F fully complete; pointer-events geocoder fix; filter tab h-10_
 
 This document tracks the migration away from legacy image assets and `water_tool.css` toward a clean, Tailwind-only frontend. It serves as both a record of decisions made and a step-by-step implementation guide for future work sessions.
 
@@ -74,7 +74,7 @@ All three logo PNGs have been replaced with SVGs via the `icon()` helper (`app/a
 
 ### Overview
 
-`app/assets/stylesheets/water_tool.css` (~717 lines as of 2026-05-12) is the legacy stylesheet ported from an older codebase. The goal is to migrate all styles to Tailwind utility classes applied directly in HTML/ERB templates, then delete the file entirely.
+`app/assets/stylesheets/water_tool.css` (~648 lines remaining as of 2026-05-12) - the legacy stylesheet ported from an older codebase. The goal is to migrate all styles to Tailwind utility classes applied directly in HTML/ERB templates, then delete the file entirely.
 
 The file is already partially migrated — several blocks were removed in earlier sessions (DataTables, dataset cards, report sections, tippy, slider histograms). See the removal log at the top of the file.
 
@@ -220,7 +220,7 @@ Chunk **Status** lines below (**Not started** / **Partially complete** / **Compl
 ---
 
 #### Chunk F: Filter bar and filter menus
-**Status:** 🔶 Partially complete — Tailwind owns the **dropdown shell**; **`water_tool.css` still styles** population pills, dropdown row chrome, and checkboxes (see **Progress log** for May 2026 dead-rule deletion only).
+**Status:** ✅ Complete — Tailwind owns the dropdown shell and all filter content. `water_tool.css` has no remaining filter rules.
 
 **Done (2026-05 — dropdown shell + inner menu chrome):**
 - **`UI::FilterMenuComponent`** / **`UI::FilterTabComponent`** — outer panels use Tailwind (including `.filter-dropdown` / `.filter-dropdown-more`). Legacy **class names** `.container-menu` / `.container-menu-more` are no longer used for presentation; **element IDs** stay `container-menu-*` for `filter_menu_controller.js` and `filter_layout_controller.js`. Per-tab **filter count badges** use Tailwind on `FilterTabComponent`; JS keeps the `container-filter-count-menu-{id}` class hook for updates.
@@ -229,18 +229,16 @@ Chunk **Status** lines below (**Not started** / **Partially complete** / **Compl
 - **Population vs “Size” heading** when `#container-menu-5-items` is reparented into the More menu — implemented with Tailwind arbitrary parent variants (`[.filter-dropdown-more_&]:…`) on the two `<h3>`s; no `.visible-in-more` / `.visible-in-main` rules in `application.css`.
 - **Scrollbars** — Firefox: arbitrary `scrollbar-width` / `scrollbar-color` on the component; WebKit: `.filter-menu-scroll::-webkit-scrollbar*` in `app/assets/tailwind/application.css` (pseudo-elements cannot be utilities).
 
-**Done (May 2026 — `water_tool.css` only, Tier 4 + Tier 5):**
-- Deleted **legacy-only** rules that had no live `app/` references (old filter footer / apply-reset buttons, water/sewer bill grid, orphan shells, etc.); see **Progress log**. **Does not** complete this chunk — population pills, `.dropdown-selectors`, `.rounded-checkbox`, and `.filter-coming-soon` still pull from `water_tool.css` until the bullets under **Migration (remaining work)** are done.
+**Done (May 2026 — Chunk F complete):**
+- Deleted **legacy-only** rules that had no live `app/` references (old filter footer / apply-reset buttons, water/sewer bill grid, orphan shells, etc.); see **Progress log**.
+- **`Filters::PopSizePillComponent`** (new) — encapsulates the 5 population size pills with Tailwind border/radius position logic and active-state variants. `container-population-filter-grid` wrapper replaced with `flex` + spacing utilities. `pop-size-box` and related CSS rules deleted.
+- **`dropdown-selectors`** wrapper replaced with `mb-5`; Tailwind utilities added directly to each `<select>`.
+- **`.filter-coming-soon`** replaced with `text-[#888]` on the label.
+- **`.rounded-checkbox`** — class kept as a JS hook only (referenced by `filter_controller.js`). Inline Tailwind applied directly to the `<input>`: `size-4 rounded-full border border-neutral-400 appearance-none` (unchecked circle) + `checked:appearance-auto checked:[clip-path:circle(50%_at_50%_50%)] checked:bg-brand-dark checked:accent-[#13171F]` (checked: native widget clipped to circle). **Do not add `.rounded-checkbox` rules to `application.css`** — inline utilities are the pattern here.
+- **Filter bar pointer-events fix** — `#container-map-ui-top` (`pointer-events-none`) + `<ul#filter-tabs>` (`pointer-events-none`) + each `<li>` in `UI::FilterTabComponent` (`pointer-events-auto`). The full-width transparent overlay was swallowing clicks to the Mapbox geocoder beneath the empty left half of the bar.
+- **`UI::FilterTabComponent` height** — `min-h-11` → `h-10` to match the Mapbox geocoder's `height: 40px` set in `tailwind/application.css`.
 
-**Still in `water_tool.css` (migrate next — grep before editing):**
-- `.container-population-filter-grid`, `.pop-size-box` (+ first/last variants), `.dropdown-selectors`, `.rounded-checkbox`, `.filter-coming-soon`. (`.active` / `.active-first` — removed: active state is already handled by Tailwind `[&.active]:` variants on the `<button>` elements; CSS rules targeted `a`, never matched.)
-
-**Historical list** (many already gone or renamed): `#container-map-ui-top` is positioned via Tailwind in `index.html.erb`; `.container-menu*` **presentation** migrated as above; `.filter-cat-indent` deleted; `.visible-in-*` handled via utilities on headings.
-
-**Migration (remaining work):**
-- Population segmented controls (`.pop-size-box` / `.container-population-filter-grid`) and `.dropdown-selectors` → Tailwind on the underlying `<button>` / `<select>` nodes (or small components if the markup stabilizes).
-- `.rounded-checkbox` — still styled in `water_tool.css`; migrate appearance to utilities or keep a minimal `@layer` hook if browser defaults fight the design.
-- Number spinner suppression — only if/when visible `type="number"` inputs return to filter UI; prefer Tailwind arbitrary variants or a scoped rule.
+**Historical list** (all resolved): `#container-map-ui-top` is positioned via Tailwind in `index.html.erb`; `.container-menu*` **presentation** migrated as above; `.filter-cat-indent` deleted; `.visible-in-*` handled via utilities on headings; `.active`/`.active-first` CSS rules were dead (targeted `a`, pills are `button` — handled by `[&.active]:` variants).
 
 **Files:** `_filter_menus.html.erb`, `index.html.erb`, `app/components/ui/filter_menu_component.*`, `app/components/filters/range_filter_item_component.*`, `app/javascript/controllers/filter*.js`, `water_tool.css`, `app/assets/tailwind/application.css`
 
