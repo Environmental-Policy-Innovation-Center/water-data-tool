@@ -3,14 +3,15 @@
        data-controller="sidebar"
        data-action="resize@window->sidebar#handleResize"
        aria-label="Drinking Water Explorer navigation">
-  <button type="button"
-          id="sidebar-toggle-button"
-          class="absolute top-2.5 right-2.5 p-0 m-0 cursor-pointer bg-white border border-neutral-300 rounded-full w-8 h-8 flex items-center justify-center hover:bg-neutral-100"
-          data-action="click->sidebar#toggle"
-          aria-label="Toggle sidebar width">
+  <%= render UI::CircleButtonComponent.new(
+        id: "sidebar-toggle-button",
+        aria_label: "Toggle sidebar width",
+        data_action: "click->sidebar#toggle",
+        extra_classes: "absolute top-2.5 right-2.5"
+      ) do %>
     <%= icon "collapse", classes: "h-4 w-4 group-data-[sidebar-collapsed]:hidden" %>
     <%= icon "expand", classes: "h-4 w-4 group-[&:not([data-sidebar-collapsed])]:hidden" %>
-  </button>
+  <% end %>
 
   <div class="mt-10 flex justify-center px-3 group-data-[sidebar-collapsed]:invisible">
     <%= icon "water", classes: "mx-auto block w-[85px] h-auto" %>

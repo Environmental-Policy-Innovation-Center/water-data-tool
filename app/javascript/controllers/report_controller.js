@@ -19,6 +19,10 @@ export default class extends Controller {
     if (this.hasOverlayTarget) this.overlayTarget.classList.add("hidden")
   }
 
+  print() {
+    window.print()
+  }
+
   #populateHeader() {
     const name = this.frameTarget.querySelector("[data-report-field='name']")
     const id = this.frameTarget.querySelector("[data-report-field='id']")

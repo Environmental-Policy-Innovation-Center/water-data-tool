@@ -1,4 +1,7 @@
-<button type="button"
-        aria-label="<%= @aria_label %>"
-        data-action="click->map#<%= @map_action %>"
-        class="<%= BUTTON_CLASSES %>"><%= @label %></button>
+<%= render UI::CircleButtonComponent.new(
+      aria_label: @aria_label,
+      data_action: "click->map##{@map_action}",
+      extra_classes: "mt-[5px] text-xs"
+    ) do %>
+  <%= @label %>
+<% end %>

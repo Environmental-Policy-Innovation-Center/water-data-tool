@@ -187,16 +187,28 @@
 <%# =====================================================
     PWS Report overlay (hidden, toggled on map click)
     ===================================================== %>
-<div id="container-report" class="hidden" data-controller="report" data-report-target="overlay">
-  <button type="button" onclick="window.print()" id="tt-print-report" class="btn-report btn-print-report cursor-pointer" aria-label="Print report"><%= icon "print", classes: "h-5 w-5" %></button>
-  <button type="button" id="tt-close-report" class="btn-report btn-close-report cursor-pointer" aria-label="Close report" data-action="click->report#close"><%= icon "close" %></button>
+<div id="container-report"
+     class="hidden fixed inset-0 z-[9999] bg-white overflow-y-auto print:static print:h-auto print:overflow-visible"
+     data-controller="report" data-report-target="overlay">
+  <%= render UI::CircleButtonComponent.new(
+        id: "tt-print-report",
+        aria_label: "Print report",
+        data_action: "click->report#print",
+        extra_classes: "fixed top-[30px] right-20 print:hidden"
+      ) do %>
+    <%= icon "print", classes: "h-4 w-4" %>
+  <% end %>
+  <%= render UI::CircleButtonComponent.new(
+        id: "tt-close-report",
+        aria_label: "Close report",
+        data_action: "click->report#close",
+        extra_classes: "fixed top-[30px] right-5 print:hidden"
+      ) do %><%= icon "close", classes: "h-4 w-4" %><% end %>
 
-  <div class="container-report-section-inner">
-    <div class="container-report-body mt-0!">
-      <turbo-frame id="report-body" data-report-target="frame">
-        <%# Report content loaded via Turbo Frame from ReportsController %>
-      </turbo-frame>
-    </div>
+  <div class="mx-auto max-w-[1200px] border border-[#eee] bg-white p-10 mt-[30px] mb-[50px] print:border-0 print:p-0 print:mt-0 print:mb-0">
+    <turbo-frame id="report-body" data-report-target="frame">
+      <%# Report content loaded via Turbo Frame from ReportsController %>
+    </turbo-frame>
   </div>
 </div>
 
