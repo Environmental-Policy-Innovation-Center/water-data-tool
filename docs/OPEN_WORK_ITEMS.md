@@ -82,10 +82,15 @@ Known issues that have been discovered, which we know we need to come back to an
   - PR teardowns - ensure that they are getting torn down!
     - auto close PRs after 2 weeks
     
-    
 ### Documentation
   - EVENTUALLY - remove temporary docs
   - update docs that will persist, ensuring accuracy
   - document..
     - what it means to be 'mobile friendly'
     - what it means to follow a11y best practices and standards
+    
+### View Component Opportunities
+  - Pill-shaped (rounded-full but NOT square) 
+    - Filter tabs, Reset/Apply, Map/Table toggle, Nav items, Mobile nav
+    - all rounded-full but have text content and variable width
+    

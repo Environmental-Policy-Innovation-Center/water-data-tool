@@ -22,11 +22,11 @@ RSpec.describe UI::MapRegionShortcutButtonComponent, type: :component do
     expect(btn["data-action"]).to eq("click->map#zoom48")
   end
 
-  it "renders as a fixed-size circle matching Mapbox control dimensions" do
+  it "renders as a standard-size circle" do
     subject
     cls = html.at_css("button")["class"]
-    expect(cls).to include("w-[31px]")
-    expect(cls).to include("h-[31px]")
+    expect(cls).to include("w-8")
+    expect(cls).to include("h-8")
     expect(cls).to include("rounded-full")
   end
 

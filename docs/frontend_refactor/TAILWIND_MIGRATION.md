@@ -250,6 +250,8 @@ Chunk **Status** lines below (**Not started** / **Partially complete** / **Compl
 
 _Not required to finish Chunk F, but high ROI once menu markup churn slows down. Prefer components for **repeated structure + Stimulus wiring**, not for hiding Tailwind strings (utilities stay in the component template)._
 
+**Note (May 2026):** `UI::CircleButtonComponent` was extracted during `chore/remove-more-dead-css` — all circular button patterns (sidebar toggle, report overlay print/close, map region shortcuts) now delegate to it. Items 1–3 below are unrelated filter-menu TODOs that remain pending.
+
 1. **Expandable subcategory parent row** — `<li>` + checkbox with `change->filter#toggleSubcat` + label + optional info tooltip + chevron `click->filter#toggleSubcatPanel` + `hidden` `data-subcat-panel` wrapper + nested `<ul>`. Copy-pasted across Compliance and More menus; easy to mis-wire `data-panel-id` / `aria-*`.
 2. **`UI::FilterMenuSectionHeadingComponent`** (name TBD) — `h2` / `h3` with `variant: :main | :more` and optional `extra_classes:` for one-offs (Population dual headings, mobile “More filters” bar).
 3. **`UI::FilterMenuListComponent`** — optional thin wrapper for the repeated `<ul class="my-[6px] …">` if the partial stays hard to scan.
@@ -269,6 +271,8 @@ Ship **Lookbook previews + specs** for any new public UI component per project n
 All `.mapboxgl-*` rules, `.place-autocomplete-results`, `.mapboxgl-ctrl-geocoder`, `.mapboxgl-ctrl-group`, `.mapboxgl-ctrl-top-left`, `.infoBub`, `.map-content-wrapper-desktop`, `.map-content-intro`, `.map-content-stats`, `turbo-frame#stats-bar:empty`, `#container-map-content-bottom`, `#container-map.table-mode` rules.
 
 **Already deleted from `water_tool.css` (not moved — unused by Rails):** `.green-bar`, `.bwn-content-wrapper`, `.map-content-wrapper-mobile`, `#mobile-btn-info`, `#mobile-btn-filters` (these only appeared in `deprecated/` assets).
+
+**Incidental update (May 2026):** `.mapboxgl-ctrl-group button:first-child, button:last-child` `width`/`height` updated 31px → 32px and border color `#bfbfbf` → `#d1d5db` to match `UI::CircleButtonComponent` standard size.
 
 **Migration (if using `mapbox_overrides.css`):**
 - Mapbox GL JS injects DOM at runtime — Tailwind cannot target those nodes with utilities on our templates.
@@ -298,18 +302,25 @@ All `.mapboxgl-*` rules, `.place-autocomplete-results`, `.mapboxgl-ctrl-geocoder
 ---
 
 #### Chunk I: Report view
-**Status:** ⬜ Not started
+**Status:** 🔶 Partial — `.btn-report` family done; container/section CSS pending
 
-**CSS to remove:**
-`#container-report`, `.btn-report`, `.btn-print-report`, `.btn-close-report`, `.btn-print-report img`, `.btn-close-report img`, `.container-report-section-inner`, `.container-section-inner` (`.header-logo` / `.header-title` / related `#container-report .header` rules were removed in May 2026 — report header is Tailwind in `public_water_systems/reports/show.html.erb`.)
+**Completed (May 2026, `chore/remove-more-dead-css`):**
+- `.btn-report`, `.btn-print-report`, `.btn-close-report` and their `img` descendant rules removed from `water_tool.css`
+- Print and close buttons migrated to `UI::CircleButtonComponent` in `index.html.erb` with `fixed top-[30px] right-20` / `right-5` positioning
+- `report_controller.js` received `print()` method (replaces legacy `onclick="window.print()"`)
 
-**Migration:**
-- `#container-report` is `position: fixed; inset: 0; z-index: 9999; overflow-y: auto` → Tailwind `fixed inset-0 z-[9999] bg-white overflow-y-auto`.
-- `.btn-report` is a circular 40px fixed-position button — shared base for print and close buttons. Replace with Tailwind on the button elements in `reports/show.html.erb`.
+**CSS still to remove:**
+`#container-report`, `#container-report .container-report-body`, `#container-report .container-report-body h2`, `.container-report-section-inner`
+
+**Note:** `.container-section-inner` is shared with the downloads section — coordinate cleanup with Chunk J.
+
+**Migration (remaining):**
+- `#container-report` → add `fixed inset-0 z-[9999] bg-white overflow-y-auto` to `<div id="container-report">` in `index.html.erb` (currently carries only `class="hidden"`)
+- `.container-report-section-inner` and `#container-report .container-report-body` → inline Tailwind on the corresponding divs in `index.html.erb`
 
 **Files to update:** `app/views/public_water_systems/reports/show.html.erb`
 
-**Test:** Report opens as full-screen overlay. Print button triggers browser print dialog. Close button dismisses report. Logo and header visible at top. Report content scrollable.
+**Test:** Report opens as full-screen overlay. Print button triggers browser print dialog. Close button dismisses report. Report content scrollable.
 
 ---
 
