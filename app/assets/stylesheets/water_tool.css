@@ -280,37 +280,6 @@ ul.stats-list li{
 #container-map.table-mode turbo-frame#stats-bar { display: none; }
 
 
-/* REPORT */
-
-#container-report{
-  width: 100%;
-  position: fixed;
-  top: 0px;
-  left: 0px;
-  z-index: 9999;
-  background-color: #fff;
-  height: 100vh;
-  overflow-y: auto;
-}
-
-.container-report-section-inner{
-  margin: 0 auto;
-  max-width: 1200px;
-  border: 1px solid #eee;
-  padding: 40px;
-  margin-top: 30px;
-  background-color: #fff;
-  margin-bottom:50px;
-}
-
-#container-report .container-report-body{
-  margin-top:60px;
-}
-#container-report .container-report-body h2{
-  font-size:1em;
-  line-height:1.4;
-  font-weight:500;
-}
 
 .container-section-inner{
   margin-top:40px;
