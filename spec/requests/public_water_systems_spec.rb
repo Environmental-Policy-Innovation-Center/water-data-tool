@@ -133,6 +133,33 @@ RSpec.describe "PublicWaterSystems", type: :request do
   end
 
   describe "GET /public_water_systems/:pwsid" do
+    context "pwsid routing constraints" do
+      it "routes tribal systems with numeric EPA region prefix" do
+        pws = create(:public_water_system, pwsid: "084690440")
+
+        get "/public_water_systems/#{pws.pwsid}", as: :json
+
+        expect(response).to have_http_status(:ok)
+      end
+
+      it "routes Utah-style systems with letters in the system-number portion" do
+        pws = create(:public_water_system, pwsid: "UTAH01001")
+
+        get "/public_water_systems/#{pws.pwsid}", as: :json
+
+        expect(response).to have_http_status(:ok)
+      end
+
+      it "routes compound systems whose pwsid is multiple IDs joined by '; '" do
+        pws = build(:public_water_system, pwsid: "ND3401128; ND1001380; ND4801479")
+        pws.save!(validate: false)
+
+        get "/public_water_systems/ND3401128;%20ND1001380;%20ND4801479", as: :json
+
+        expect(response).to have_http_status(:ok)
+      end
+    end
+
     context "when requesting JSON" do
       it "returns 200 with top-level PWS fields" do
         pws = create(:public_water_system)

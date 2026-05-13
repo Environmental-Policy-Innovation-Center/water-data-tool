@@ -99,6 +99,15 @@ RSpec.describe "Reports", type: :request do
       expect(response).to have_http_status(:ok)
     end
 
+    it "routes compound systems whose pwsid is multiple IDs joined by '; '" do
+      pws = build(:public_water_system, pwsid: "ND3401128; ND1001380; ND4801479")
+      pws.save!(validate: false)
+
+      get "/public_water_systems/ND3401128;%20ND1001380;%20ND4801479/report"
+
+      expect(response).to have_http_status(:ok)
+    end
+
     it "returns 404 when the system does not exist" do
       get "/public_water_systems/ZZ0000000/report"
 
