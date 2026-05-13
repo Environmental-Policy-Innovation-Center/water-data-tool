@@ -1,3 +1,26 @@
+<% content_for :head do %>
+  <style>
+    /* @page at-rules and the body > *:not selector can't be expressed as Tailwind utilities */
+    @page {
+      margin: 0.5in;
+      @top-left    { content: none; }
+      @top-center  { content: none; }
+      @top-right   { content: none; }
+      @bottom-left { content: none; }
+      @bottom-center { content: none; }
+      @bottom-right {
+        content: counter(page) " of " counter(pages);
+        font-family: 'Public Sans', Arial, Helvetica, sans-serif;
+        font-size: 10px;
+        color: #565656;
+      }
+    }
+    @media print {
+      body > *:not(#container-report) { display: none !important; }
+    }
+  </style>
+<% end %>
+
 <%# Mobile header (hidden on desktop via CSS) %>
 <div class="mobile-header hide-for-desktop">
   <div class="m-header-left"><%= icon "water", classes: "w-9 h-auto inline-block" %></div>

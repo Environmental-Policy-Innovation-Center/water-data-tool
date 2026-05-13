@@ -2,10 +2,10 @@
   <div class="report-content">
 
     <%# Report header: DWE brand (left) | utility info (center) | spacer (right) %>
-    <div class="report-header grid grid-cols-3 items-center pb-4">
+    <div class="report-header grid grid-cols-[1fr_2fr_1fr] items-start pb-4">
       <div class="flex items-center gap-2">
-        <%= icon "water", classes: "w-8 md:w-[85px] h-auto" %>
-        <div class="hidden md:block text-xs font-semibold leading-tight text-gray-700" aria-hidden="true">
+        <%= icon "water", classes: "w-[85px] h-auto" %>
+        <div class="block text-xs font-semibold leading-tight text-gray-700" aria-hidden="true">
           <p>Drinking</p>
           <p>Water</p>
           <p>Explorer</p>
@@ -16,7 +16,10 @@
         <p><strong>Utility Name:</strong> <%= @pws.pws_name %></p>
         <p><strong>System ID:</strong> <%= @pws.pwsid %></p>
       </div>
-      <div></div>
+      <div class="text-right text-xs text-gray-600 leading-snug">
+        <p class="m-0"><%= Time.current.strftime("%-m/%-d/%Y") %></p>
+        <p class="m-0"><%= Time.current.strftime("%l:%M %p").lstrip %></p>
+      </div>
     </div>
 
     <%= render "public_water_systems/sections/all", pws: @pws %>

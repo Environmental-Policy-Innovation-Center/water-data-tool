@@ -302,25 +302,24 @@ All `.mapboxgl-*` rules, `.place-autocomplete-results`, `.mapboxgl-ctrl-geocoder
 ---
 
 #### Chunk I: Report view
-**Status:** 🔶 Partial — `.btn-report` family done; container/section CSS pending
+**Status:** 🔶 Nearly complete — `.container-section-inner` (shared with Chunk J) is the only remaining item
 
-**Completed (May 2026, `chore/remove-more-dead-css`):**
-- `.btn-report`, `.btn-print-report`, `.btn-close-report` and their `img` descendant rules removed from `water_tool.css`
-- Print and close buttons migrated to `UI::CircleButtonComponent` in `index.html.erb` with `fixed top-[30px] right-20` / `right-5` positioning
-- `report_controller.js` received `print()` method (replaces legacy `onclick="window.print()"`)
+**Completed (May 2026):**
+- All legacy report CSS removed from `water_tool.css`: `#container-report`, `.container-report-section-inner`, `.container-report-body`, `.container-report-body h2` (dead — no h2 in report views), and the full `.btn-report` family
+- `#container-report` → `hidden fixed inset-0 z-[9999] bg-white overflow-y-auto print:static print:h-auto print:overflow-visible` (inline Tailwind, `index.html.erb`)
+- `.container-report-section-inner` → `mx-auto max-w-[1200px] border border-[#eee] bg-white p-10 mt-[30px] mb-[50px] print:border-0 print:p-0 print:mt-0 print:mb-0` (inline Tailwind, `index.html.erb`)
+- `.container-report-body` wrapper removed; it only existed to offset the `60px` margin-top override
+- Print and close buttons → `UI::CircleButtonComponent` with `print:hidden`
+- `report_controller.js` → `print()` method replaces legacy `onclick`
+- `reports/show.html.erb` header: logo always `w-[85px]`, DWE text always visible, `grid-cols-[1fr_2fr_1fr]`, date/time stamp right-aligned
+- Print layout via `content_for :head` in `index.html.erb`: `@page` with 0.5in margins and custom page count at `@bottom-right`; `body > *:not(#container-report)` hides non-report content on print — `@page` at-rules and complex selectors can't be Tailwind utilities, so `content_for :head` is the conventional Rails home for them
 
 **CSS still to remove:**
-`#container-report`, `#container-report .container-report-body`, `#container-report .container-report-body h2`, `.container-report-section-inner`
+`.container-section-inner` (shared with downloads — coordinate with Chunk J)
 
-**Note:** `.container-section-inner` is shared with the downloads section — coordinate cleanup with Chunk J.
+**Files updated:** `app/views/home/index.html.erb`, `app/views/public_water_systems/reports/show.html.erb`
 
-**Migration (remaining):**
-- `#container-report` → add `fixed inset-0 z-[9999] bg-white overflow-y-auto` to `<div id="container-report">` in `index.html.erb` (currently carries only `class="hidden"`)
-- `.container-report-section-inner` and `#container-report .container-report-body` → inline Tailwind on the corresponding divs in `index.html.erb`
-
-**Files to update:** `app/views/public_water_systems/reports/show.html.erb`
-
-**Test:** Report opens as full-screen overlay. Print button triggers browser print dialog. Close button dismisses report. Report content scrollable.
+**Test:** Report opens as full-screen overlay. Print button hidden on print; triggers browser dialog on click. Close button dismisses report. Multi-page printing works with 0.5in margins and "X of Y" page count at bottom-right. Logo, date/time, and utility name render correctly on page 1.
 
 ---
 
