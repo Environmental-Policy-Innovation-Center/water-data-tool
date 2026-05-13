@@ -68,7 +68,6 @@ export default class extends Controller {
 
   #addControls() {
     this.map.touchZoomRotate.disableRotation()
-    this.map.addControl(new window.mapboxgl.NavigationControl({ showCompass: false }), "top-left")
 
     if (window.MapboxGeocoder) {
       const geocoder = new window.MapboxGeocoder({
@@ -80,7 +79,6 @@ export default class extends Controller {
         placeholder: "Search map..."
       })
 
-      // Fly to the selected result with zoom level based on place type
       geocoder.on("result", (ev) => {
         const placeType = ev.result.place_type?.[0]
         let zoom = 10
@@ -91,14 +89,11 @@ export default class extends Controller {
         this.map.flyTo({ center: ev.result.geometry.coordinates, zoom })
       })
 
-      // Render geocoder into the filter bar list item rather than as a floating map control
-      const geocoderLi = document.getElementById("geocoder-li")
-      if (geocoderLi) {
-        geocoderLi.appendChild(geocoder.onAdd(this.map))
-      } else {
-        this.map.addControl(geocoder, "top-left")
-      }
+      // Geocoder first so it appears above the zoom controls in the top-left column
+      this.map.addControl(geocoder, "top-left")
     }
+
+    this.map.addControl(new window.mapboxgl.NavigationControl({ showCompass: false }), "top-left")
   }
 
   #addSource() {
@@ -396,8 +391,6 @@ export default class extends Controller {
   zoom48() {
     const input = document.querySelector(".mapboxgl-ctrl-geocoder--input")
     if (input) input.value = ""
-    const closeBtn = document.querySelector(".mapboxgl-ctrl-geocoder--icon-close")
-    if (closeBtn) closeBtn.click()
     this.map.fitBounds([[-125.5, 23.5], [-65.5, 49.5]], { padding: 20 })
   }
 

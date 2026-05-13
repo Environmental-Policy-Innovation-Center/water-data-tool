@@ -1,0 +1,43 @@
+<li class="px-[15px] py-1.5 hover:bg-neutral-50 [&_label]:align-middle [&_input]:mr-2 [&_input]:inline-block [&_input]:align-middle [&_input.rounded-checkbox]:h-[35px] [&_input.rounded-checkbox]:w-[35px] [&_input:not(.rounded-checkbox)]:size-4">
+  <% if @nested %>
+    <div class="flex items-center justify-between">
+      <div>
+        <input type="checkbox" class="toggle" id="<%= @checkbox_id %>">
+        <label for="<%= @checkbox_id %>"><%= @label %></label>
+        <span class="relative ml-1 inline-block cursor-default text-neutral-800"
+              data-controller="tooltip"
+              data-tooltip-text-value="<%= @tooltip_text %>"
+              data-action="mouseenter->tooltip#show mouseleave->tooltip#hide">
+          <%= helpers.icon "info", classes: "h-3.5 w-3.5 inline align-middle" %>
+        </span>
+      </div>
+      <button type="button" class="ml-1 text-neutral-400 hover:text-neutral-600"
+              data-action="click->filter#toggleSubcatPanel"
+              data-panel-id="<%= @panel_id %>"
+              aria-expanded="false"
+              aria-controls="<%= @panel_id %>">
+        <%= helpers.icon "arrow-down", classes: "h-3.5 w-3.5 transition-transform duration-150" %>
+      </button>
+    </div>
+  <% else %>
+    <input type="checkbox" class="toggle" id="<%= @checkbox_id %>"
+           data-action="change->filter#toggleSubcat"
+           data-panel-id="<%= @panel_id %>">
+    <label for="<%= @checkbox_id %>"><%= @label %></label>
+    <span class="relative ml-1 inline-block cursor-default text-neutral-800"
+          data-controller="tooltip"
+          data-tooltip-text-value="<%= @tooltip_text %>"
+          data-action="mouseenter->tooltip#show mouseleave->tooltip#hide">
+      <%= helpers.icon "info", classes: "h-3.5 w-3.5 inline align-middle" %>
+    </span>
+    <button type="button" class="ml-1 text-neutral-400 hover:text-neutral-600"
+            data-action="click->filter#toggleSubcatPanel"
+            data-panel-id="<%= @panel_id %>"
+            aria-expanded="false"
+            aria-controls="<%= @panel_id %>">
+      <%= helpers.icon("arrow-down", classes: "h-3 w-3 transition-transform duration-150") %>
+    </button>
+  <% end %>
+  <%= render "home/slider_panel", panel_id: @panel_id, field: @field,
+             min_input_id: @min_input_id, max_input_id: @max_input_id, label: @slider_label, format: @format %>
+</li>

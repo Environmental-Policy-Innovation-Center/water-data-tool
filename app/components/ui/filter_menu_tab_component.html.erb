@@ -1,0 +1,16 @@
+<li id="filter-tab-<%= @menu_id %>" class="relative filter-<%= @menu_id %> pointer-events-auto">
+  <div class="container-filter-count-menu-<%= @menu_id %> absolute -top-2 right-0.5 hidden bg-brand-accent text-white text-[0.7em] rounded-full text-center py-px px-1.5 border border-white"
+       aria-hidden="true">
+    <span class="filter-count-group-<%= @menu_id %>">0</span>
+  </div>
+  <button type="button"
+          aria-expanded="false"
+          aria-haspopup="true"
+          data-menu="<%= @menu_id %>"
+          class="<%= FILTER_TAB_BUTTON_CLASSES %>"
+          id="container-menu-btn-<%= @menu_id %>"
+          data-action="click->filter-menu#toggleMenu">
+    <span class="flex-1"><%= @label %></span>
+    <%= icon "nav-arrow-down", classes: "h-5 w-5 shrink-0 motion-safe:transition-transform [.active_&]:rotate-180" %>
+  </button>
+</li>

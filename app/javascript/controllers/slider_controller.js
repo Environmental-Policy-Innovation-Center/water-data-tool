@@ -5,13 +5,13 @@ const CACHE = new Map()
 const SVG_W = 200
 const SVG_H = 80
 const HANDLE_R = 5
-const BLUE = "#1054A8"
+const BLUE = "#3B82F6"
 const GRAY = "#bfbfbf"
 const NS = "http://www.w3.org/2000/svg"
 
 export default class extends Controller {
-  static values = { field: String, url: String }
-  static targets = ["chart", "minLabel", "maxLabel", "minInput", "maxInput"]
+  static values = { field: String, url: String, format: String }
+  static targets = ["chart", "minLabel", "maxLabel", "minInput", "maxInput", "zeroLabel"]
 
   #bins = []
   #domMin = 0
@@ -65,6 +65,19 @@ export default class extends Controller {
 
   #init({ bins, domain_min, domain_max }) {
     this.#bins = bins
+
+    const fmt = this.formatValue
+    if (fmt === "percent") {
+      domain_min = 0
+      domain_max = 100
+    } else if (fmt === "percent_change") {
+      domain_min = Math.min(domain_min, -100)
+      domain_max = Math.max(domain_max, 100)
+    } else {
+      // count and currency: floor at 1 so scale always starts at 1 / $1
+      domain_min = Math.min(domain_min, 1)
+    }
+
     this.#domMin = domain_min
     this.#domMax = domain_max
     this.#curMin = domain_min
@@ -72,16 +85,17 @@ export default class extends Controller {
 
     const minVal = this.minInputTarget.value
     const maxVal = this.maxInputTarget.value
-    
-    if (minVal) this.#curMin = parseInt(minVal, 10)
-    if (maxVal) this.#curMax = parseInt(maxVal, 10)
-      
+
+    if (minVal) this.#curMin = parseFloat(minVal)
+    if (maxVal) this.#curMax = parseFloat(maxVal)
+
     if (!minVal) this.minInputTarget.value = this.#curMin
     if (!maxVal) this.maxInputTarget.value = this.#curMax
 
     this.#draw()
     this.minLabelTarget.textContent = this.#fmt(domain_min)
     this.maxLabelTarget.textContent = this.#fmt(domain_max)
+    if (this.hasZeroLabelTarget) this.zeroLabelTarget.textContent = "0"
   }
 
   #draw() {
@@ -107,14 +121,18 @@ export default class extends Controller {
     }
 
     const maxCount = Math.max(...this.#bins.map(b => b.count))
+    const sqrtMax = maxCount ? Math.sqrt(maxCount) : 1
     const barArea = SVG_H - HANDLE_R * 2 - 2
     const barW = SVG_W / this.#bins.length
-
+    const gap = 1
+    const drawW = Math.max(1, barW - gap)
+    
+    // Using a square root scale for bar heights to give more visual distinction to smaller counts.
     this.#bins.forEach((bin, i) => {
-      const h = maxCount ? Math.max(1, (bin.count / maxCount) * barArea) : 0
+      const h = maxCount ? Math.max(1, (Math.sqrt(bin.count) / sqrtMax) * barArea) : 0
       svg.appendChild(this.#el("rect", {
-        x: i * barW, y: SVG_H - HANDLE_R * 2 - h - 1,
-        width: barW, height: h,
+        x: i * barW + gap / 2, y: SVG_H - HANDLE_R * 2 - h - 1,
+        width: drawW, height: h, rx: 2, ry: 2,
         "data-bin-min": bin.min, "data-bin-max": bin.max
       }))
     })
@@ -218,6 +236,13 @@ export default class extends Controller {
   }
 
   #fmt(n) {
-    return Number(n).toLocaleString("en-US")
+    const fmt = this.formatValue
+    const r = Math.round(n)
+    if (fmt === "percent" || fmt === "percent_change") {
+      const sign = (fmt === "percent_change" && r > 0) ? "+" : ""
+      return `${sign}${r.toLocaleString("en-US")}%`
+    }
+    if (fmt === "currency") return "$" + r.toLocaleString("en-US")
+    return r.toLocaleString("en-US")
   }
 }

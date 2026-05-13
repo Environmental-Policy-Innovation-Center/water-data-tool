@@ -1,6 +1,31 @@
 # Filtering
 
-The map page exposes a multi-level filter system that narrows the set of public water systems shown on the map and in the data table. All filters are collected by `filter_controller.js` on Apply, written to `FilterState`, and dispatched as a `filters:changed` event. `map_controller.js` and the Turbo Frame table both listen for that event and re-fetch with the current params. Backend filtering is handled entirely by the `Filterable` concern (`app/models/concerns/filterable.rb`).
+The map page exposes a multi-level filter system that narrows the set of public water systems shown on the map and in the data table. Filters are collected by `filter_controller.js` on Apply, written to `FilterState`, and dispatched as a `filters:changed` event. `map_controller.js` and the Turbo Frame table listen for that event and re-fetch with the current params. Backend filtering is implemented in the `Filterable` concern on `PublicWaterSystem` (`app/models/concerns/filterable.rb`).
+
+---
+
+## Source of truth (implementation)
+
+**Canonical contract:** `config/filters.yml`, loaded at runtime by `FilterRegistry` (`app/filters/filter_registry.rb`).
+
+| Piece | Role |
+|--------|------|
+| `config/filters.yml` | Declares `direct_params`, `array_params`, `special_range_param_keys` (e.g. boil-water notice bounds), `area_range` / `density_range` key names, `violations` column lists (health 5yr/10yr subcats, paperwork columns), `range_column_groups` (demographics, EJ, funding, trends, watershed hazards: association, table, coercion, columns), and `histogram_field_groups` for the histogram API. |
+| `FilterRegistry` | Parses YAML (memoized), exposes `permit_arguments`, column helpers (`demographic_range_columns`, …), `paperwork_violation_columns`, health subcat lists, `histogram_field_config`, and `client_payload` / `client_payload_json` for the browser. |
+| `FilterParams` | `params.permit(*FilterRegistry.permit_arguments)` — no duplicated permit lists outside YAML. |
+| `Filterable` | Composed `apply_*` methods; range column sets and violation columns come from `FilterRegistry`; violations/funding/hazard ranges use Arel where those clauses are combined with OR. |
+| `PublicWaterSystems::HistogramsController` | Allowed histogram fields and model mapping come from `FilterRegistry.histogram_field_config` (from `histogram_field_groups` + `HISTOGRAM_MODELS`). |
+
+**Map page embed:** `app/views/home/_filter_registry_config.html.erb` renders `<script type="application/json" id="filter-registry-config">` with `FilterRegistry.client_payload_json`. That JSON is the **browser-visible copy of the server permit/column contract** (param keys, range groups, violations structure). Stimulus does **not** consume it yet for building requests.
+
+**What is outside the YAML single source (by design):** The map UI still has a **manual client layer** that must stay in sync with the contract whenever you add or rename a backend-facing filter:
+
+1. **`FILTERS`** in `app/javascript/controllers/filter_controller.js` — param names, `param_min` / `param_max`, Stimulus `type`, menu `group`, value maps, and pointers to DOM ids.
+2. **Markup** in `app/views/home/_filter_menus.html.erb` (and related partials) — element `id`s, panels, and checkboxes must match what `FILTERS` references (`getElementById`, etc.).
+
+**Checklist when adding a filter:** Update `config/filters.yml` (and any new `Filterable` / join logic if it is not a plain range on an existing group) → extend `FILTERS` → add or adjust ERB ids → if it is histogram-driven, ensure the field exists under `histogram_field_groups` and slider `data-*` matches → add or extend specs. The embed is there so you can **compare** or **JSON.parse** in dev tools; optional automation is described under [TODO](#todo) (same doc: client consumption of the `#filter-registry-config` embed).
+
+Design rationale and a phased checklist for the registry work live in [REFACTOR_FILTER_FIELDS.md](./REFACTOR_FILTER_FIELDS.md) (working document; may be removed once the team no longer needs it).
 
 ---
 
@@ -16,41 +41,59 @@ Five levels describe every filter option in the system. Use these terms consiste
 | 4 | **Sub-filter** | Ground water rule |
 | 5 | **Range** | Histogram slider min / max |
 
-- A **Menu** is one of the main topic tabs across the top of the map — Source, Attributes, Boundaries, Compliance, Population, and More. Clicking a tab opens a dropdown with all the options for that topic.
-- A **Category** is a named section within a menu that groups related options together. For example, the Compliance menu contains a Violations category and a Notices category.
-- A **Group** is a filter option within a category. Turning a group on narrows results to systems that match that criterion. Some groups reveal sub-filters when enabled.
-- A **Sub-filter** is a more specific option nested under a group, letting users drill down further. For example, the Health violations group reveals ten sub-filters — one per violation type.
-- A **Range** is a histogram slider attached to a group or sub-filter that lets users narrow results to a specific numeric range (e.g., number of violations, percentage of population, dollar amount).
+- A **Menu** is one of the main topic tabs — Source, Attributes, Boundaries, Compliance, Population, More.
+- A **Category** is a named section within a menu that groups related options. Categories are headers — they have no filter params of their own.
+- A **Group** is a toggleable filter option within a category. Turning it on narrows results. Some groups reveal sub-filters when enabled.
+- A **Sub-filter** is a more specific option nested under a group.
+- A **Range** is a histogram slider attached to a group or sub-filter. Intermediate levels are optional — a Group can attach a Range directly with no Sub-filter in between.
+
+In `filter_controller.js`, nested **group → sub-filters → ranges** UIs (Compliance health 5yr/10yr and **More → Watershed hazards**) share the Stimulus filter `type` **`subcat_panel`** and the `SUBCAT_PANEL_FILTERS` list. That naming is domain-neutral; backend params still map to `violations_summaries` columns vs `watershed_hazards` via `Filterable` / `config/filters.yml`.
 
 ---
 
 ## Filter Logic
 
-### Implemented behavior (faceted search model)
+### Faceted search model
 
 | Boundary | Logic | Example |
 |---|---|---|
-| Between menus | AND | Source AND Compliance must both be satisfied |
-| Between categories within a menu | AND | Violations AND Notices must both be satisfied |
+| Between menus | AND | Source AND Compliance both satisfied |
+| Between categories within a menu | AND | Violations AND Notices both satisfied |
 | Between groups within a category | OR | Health 5yr OR Non-health 5yr satisfies Violations |
 | Between sub-filters within a group | OR | Groundwater rule OR Lead & copper satisfies Health 5yr |
-| Between range bounds (min/max) | AND | `col >= min AND col <= max` |
+| Between range bounds | AND | `col >= min AND col <= max` |
 | Between time windows (5yr vs 10yr) | OR | A system with qualifying violations in either window is included |
 
-Enabling more groups within a category **broadens** results (inclusive / OR). Enabling filters across different categories **narrows** results (AND). This is the standard faceted-search model.
+Enabling more groups within a category **broadens** results (OR). Enabling filters across different categories **narrows** results (AND).
+
+---
+
+## Trend metrics: which column we filter on (`*_capped`)
+
+**Population change** and **Median household income change** on the map are range filters. The user’s lower and upper bounds are sent as URL params ending in `_min` and `_max` (those suffixes are **not** database columns—they are only the request keys for the two numbers).
+
+**What we query in SQL:** `Filterable` compares the user’s bounds only to `trend_data.population_pct_change_capped` and `trend_data.mhi_pct_change_capped`. We do **not** filter on the raw columns.
+
+**Why cap:** Raw percent changes can explode when the 2011 baseline is tiny (e.g. a military installation going from a handful of connections to thousands). That produces meaningless percentages for mapping and makes histograms collapse into a single bin. ETL stores **capped** values (typically clipped to a band such as ±200%) so filters, sliders, and histograms stay on a human scale. See [frontend_refactor/HISTOGRAMS.md](./frontend_refactor/HISTOGRAMS.md).
+
+**Why we still store raw:** `population_pct_change` and `mhi_pct_change` keep the **true** calculated change for exports, API payloads, and completeness. They are not used for map filtering.
+
+**Example (large raw vs capped):** `PublicWaterSystem` **Ft Wainwright - Main Post** (`pwsid` **AK2310918**) — `population_pct_change` **+555,500%** (artifact of a small baseline), `population_pct_change_capped` **+200%** (capped for display and filtering). Map logic uses **+200%** when deciding if the system passes a population-change range filter.
+
+**URL shape:** Params mirror the filtered column name, e.g. `population_pct_change_capped_min` / `population_pct_change_capped_max` (bounds applied to `population_pct_change_capped`).
 
 ---
 
 ## Filter Tree
 
 **Legend:**
-- No marker — implemented
-- `⚠️` — partially implemented (UI exists; needs range histogram, parent group, or other work noted inline)
-- `🔲` — not yet built
-- `🚫` — disabled (data unavailable or TBD)
-- `~ range` — has a range histogram attached
 
-> All groups and sub-filters should have a tooltip (ⓘ icon). The legacy app had tooltips on nearly every item. Tooltip copy should be sourced from `deprecated/assets/js/tooltips.js` and migrated to `config/tooltips.yml`.
+- *(no marker)* — implemented
+- `⚠️` — partially implemented; issue noted inline
+- `🚫` — disabled in UI (may still be permitted/filterable on the server)
+- `~ range` — has a histogram range slider attached
+
+> All groups and sub-filters have a `ⓘ` tooltip. Tooltip copy lives in `config/tooltips.yml`, sourced from the legacy app's `deprecated/assets/js/tooltips.js` where applicable.
 
 ---
 
@@ -102,21 +145,11 @@ Enabling more groups within a category **broadens** results (inclusive / OR). En
     - Coliform *(Sub-filter)* ~ range
     - Stage 1 disinfectants *(Sub-filter)* ~ range
     - Stage 2 disinfectants *(Sub-filter)* ~ range
-  - Health violations in the last 10 years *(Group, parent toggle)*
-    - Ground water rule *(Sub-filter)* ~ range
-    - Surface water treatment rules *(Sub-filter)* ~ range
-    - Lead & copper *(Sub-filter)* ~ range
-    - Radionuclides *(Sub-filter)* ~ range
-    - Inorganic chemicals *(Sub-filter)* ~ range
-    - Synthetic organic chemicals *(Sub-filter)* ~ range
-    - Volatile organic chemicals *(Sub-filter)* ~ range
-    - Coliform *(Sub-filter)* ~ range
-    - Stage 1 disinfectants *(Sub-filter)* ~ range
-    - Stage 2 disinfectants *(Sub-filter)* ~ range
+  - Health violations in the last 10 years *(Group, parent toggle)* — same 10 sub-filters as 5yr
   - Non-health violations in the last 5 years *(Group)* ~ range
   - Non-health violations in the last 10 years *(Group)* ~ range
 - **Notices** *(Category)*
-  - Boil water notices 🚫 *(Group, bool — data unavailable)* ~ range
+  - Boil water notices 🚫 *(Map UI is a disabled placeholder only—no `FILTERS` row / collect path, so Apply does not send params. The server already permits and applies `boil_water_notices_min` / `max` via `boil_water_summaries` (`config/filters.yml`, `Filterable`). The legacy app enabled this filter only for selected geographies because BWN coverage was treated as incomplete; that Stimulus behavior is not re‑implemented yet.)*
 
 ---
 
@@ -124,115 +157,100 @@ Enabling more groups within a category **broadens** results (inclusive / OR). En
 
 - **Size** *(Category)*
   - Population category — Very small / Small / Medium / Large / Very large *(Group, button set)*
-  - > ⚠️ When this category collapses into the More menu, the header should read "Population size" not "Size". Legacy used two `<h3>` elements with CSS toggling on `visible-in-main` / `visible-in-more`.
+  - > ⚠️ When this category overflows into the More menu, the header reads "Size" rather than "Population size". The legacy app toggled two `<h3>` elements via CSS (`visible-in-main` / `visible-in-more`). Not yet fixed.
 - **Density** *(Category)*
   - People per square mile *(Group, select min/max)*
-- **Change** 🔲 *(Category — not yet built)*
-  - Change in people the last 10 years 🔲 *(Group, bool)* ~ range (% change, signed)
-  - Change in income the last 10 years 🔲 *(Group, bool)* ~ range (% change, signed)
-- **Socioeconomics** 🔲 *(Category — not yet built)*
-  - Households below the poverty line 🔲 *(Group, bool)* ~ range (%)
-  - Unemployment 🔲 *(Group, bool)* ~ range (%)
-  - Annual median household income 🔲 *(Group, bool)* ~ range ($)
-  - Higher education attainment 🔲 *(Group, bool)* ~ range (%)
-  - Children under 5 🔲 *(Group, bool)* ~ range (%)
-  - Elderly over 61 🔲 *(Group, bool)* ~ range (%)
-- **Race/Ethnicity** 🔲 *(Category — not yet built)*
-  - People of color 🔲 *(Group, bool)* ~ range (%)
-  - White 🔲 *(Group, bool)* ~ range (%)
-  - Black 🔲 *(Group, bool)* ~ range (%)
-  - American Indian and Alaskan Native 🔲 *(Group, bool)* ~ range (%)
-  - Native Hawaiian and Pacific Islanders 🔲 *(Group, bool)* ~ range (%)
-  - Asian 🔲 *(Group, bool)* ~ range (%)
-  - Latino/a 🔲 *(Group, bool)* ~ range (%)
-  - Other 🔲 *(Group, bool)* ~ range (%)
-  - Mixed race 🔲 *(Group, bool)* ~ range (%)
-- **Vulnerability** 🔲 *(Category — not yet built)*
-  - Disadvantaged area 🔲 *(Group, bool)* ~ range (%)
-  - Social Vulnerability Index 🔲 *(Group, bool)* ~ range (percentile)
-  - Climate Vulnerability Index 🔲 *(Group, bool)* ~ range (percentile)
+- **Change** *(Category)*
+  - Population change (10 years) *(Group)* ~ range (% change, signed)
+  - Median household income change (10 years) *(Group)* ~ range (% change, signed)
+- **Socioeconomics** *(Category)*
+  - Households below the poverty line *(Group)* ~ range (%)
+  - Unemployment *(Group)* ~ range (%)
+  - Annual median household income *(Group)* ~ range ($)
+  - Higher education attainment *(Group)* ~ range (%)
+  - Children under 5 *(Group)* ~ range (%)
+  - Elderly over 61 *(Group)* ~ range (%)
+- **Race/Ethnicity** *(Category)*
+  - People of color *(Group)* ~ range (%)
+  - White *(Group)* ~ range (%)
+  - Black *(Group)* ~ range (%)
+  - American Indian and Alaskan Native *(Group)* ~ range (%)
+  - Native Hawaiian and Pacific Islanders *(Group)* ~ range (%)
+  - Asian *(Group)* ~ range (%)
+  - Latino/a *(Group)* ~ range (%)
+  - Other *(Group)* ~ range (%)
+  - Mixed race *(Group)* ~ range (%)
+- **Vulnerability** *(Category)*
+  - Disadvantaged area (CEJST) *(Group)* ~ range (%)
+  - Social Vulnerability Index *(Group)* ~ range (percentile)
+  - Climate Vulnerability Index *(Group)* ~ range (percentile)
 
 ---
 
 ### More *(Menu)*
 
-> More is a responsive overflow container. When the viewport narrows, other menus' categories collapse into it in order (Population → Compliance → Boundaries → Attributes → Source). The sections below are items that live permanently in More.
+> More is a responsive overflow container. When the viewport narrows, other menus' categories collapse into it (Population → Compliance → Boundaries → Attributes → Source). The sections below live permanently in More.
 
 - **Financial** *(Category)*
-  - Annual water and sewer bill ⚠️ *(Group — currently shows as a disabled checkbox labeled TBD; legacy used a button-set UI with 7 tiers: Any / <$125 / <$250 / <$500 / <$750 / <$1,000 / >$1,000)*
-    - Show systems with no available information on rates 🔲 *(checkbox option within the group — legacy had this as a separate toggle inside the sub-panel)*
+  - Annual water and sewer bill *(Group, multi-checkbox tier)*
+    - Six tier options: Under $125 / $125–249 / $250–499 / $500–749 / $750–999 / Over $1,000
+    - No rate info available *(boolean toggle — expands results to include systems with null rate data)*
 - **Funding (2021–2025)** *(Category)*
-  - State revolving fund financing ⚠️ *(Group, bool — needs range histogram: number of times received)*
-  - State revolving fund assistance ⚠️ *(Group, bool — needs range histogram: amount in $)*
-  - State revolving fund principal forgiveness ⚠️ *(Group, bool — needs range histogram: amount in $)*
+  - State revolving fund financing *(Group)* ~ range (number of times received)
+  - State revolving fund assistance *(Group)* ~ range (amount in $)
+  - State revolving fund principal forgiveness *(Group)* ~ range (amount in $)
 - **Environmental** *(Category)*
-  - Potential Watershed Hazards 🔲 *(Group, parent toggle — missing; legacy had sub-filters nested under this parent)*
-    - Source water connections ⚠️ *(Sub-filter, bool — exists as direct item today, needs to move under parent; needs range histogram: number of locations)*
-    - Pollution permits with breaches ⚠️ *(Sub-filter, bool — exists as direct item today, needs to move under parent; needs range histogram: number of breaches)*
-    - Underground storage tanks ⚠️ *(Sub-filter, bool — exists as direct item today, needs to move under parent; needs range histogram: number of tanks)*
-    - Risk management plan facilities ⚠️ *(Sub-filter, bool — exists as direct item today, needs to move under parent; needs range histogram: number of facilities)*
-    - Streams with impaired or threatened surface waters ⚠️ *(Sub-filter, bool — exists as direct item today, needs to move under parent; needs range histogram: number of streams)*
-  
----
-
-## Open Questions
-
-### 1. More menu — taxonomy of Financial / Funding / Environmental
-
-**Current taxonomy:** More is a Menu; Financial, Funding, and Environmental are Categories within it.
-
-**Question raised:** Should Financial/Funding/Environmental be treated as Groups (with "More" acting as the Category)?
-
-**Assessment:** The current taxonomy appears correct. The test is whether an item produces filter behavior on its own — Categories are organizational headers with no filter params; Groups are toggleable filter options. "Financial" and "Funding" are headers, not toggles. The items within them (Annual water bill, SRF financing, etc.) are the Groups. This matches the Compliance pattern exactly: Violations (Category) → Open violations (Group). More is a Menu like any other; it happens to also receive overflow Categories from other menus at narrow viewports, but its permanent sections follow the same hierarchy.
-
-**Decision needed:** Confirm or reconsider this before building any new More menu UI sections.
+  - Potential Watershed Hazards *(Group, parent toggle)*
+    - Source water connections *(Sub-filter)* ~ range (number of locations)
+    - Pollution permits with breaches *(Sub-filter)* ~ range (number of breaches)
+    - Underground storage tanks *(Sub-filter)* ~ range (number of tanks)
+    - Risk management plan facilities *(Sub-filter)* ~ range (number of facilities)
+    - Streams with impaired or threatened surface waters *(Sub-filter)* ~ range (number of streams)
 
 ---
 
-### 2. "Show systems with no available information on rates"
+## Key Decisions
 
-**Current status:** Documented as a checkbox option nested under the Annual water and sewer bill Group.
+### Full column names in URL params
 
-**Question raised:** Should this be treated as a boolean Group, a Sub-filter, or does it need a new taxonomy term?
+URL params use full DB column names (e.g. `groundwater_rule_5yr_min=3`). A short-alias approach was explored and reverted — aliases added complexity with no clear long-term URL strategy, and full names are self-documenting in the URL.
 
-**Assessment:** This item doesn't narrow results — it's an opt-in to *include* systems that would otherwise be excluded (systems with null rate data). It behaves more like an "include-nulls modifier" than a filter. None of the current taxonomy levels (Group, Sub-filter, Range) cleanly describe it. Options:
-- Treat it as a boolean Group (simplest, consistent with existing terms)
-- Introduce a new term (e.g., **Modifier**) for "include nulls" type toggles that expand rather than narrow results
+### Range params: min and max
 
-**Decision needed:** Agree on the term before building the Financial section.
+**Intended behavior:** An applied histogram range is a **closed interval**: both `{field}_min` and `{field}_max` should appear in the request so SQL matches what the slider shows.
+
+**How the UI gets there:** Each histogram uses `slider_controller.js`. After the histogram JSON loads, `#init` writes **both** hidden inputs—if they were empty, to **domain_min** and **domain_max** (see `if (!minVal)` / `if (!maxVal)` in `#init`). When a violations sub-row’s panel is opened, `filter_controller.js` calls `populateDefaultsIfEmpty()` on that slider so checked subcats carry the full domain on both inputs once bins exist (comment in `slider_controller.js`: *“Apply always sends params for checked subcats”*). After a drag, `#onUp` writes **both** values from the current handles. So in normal use—histogram fetched, panel visible, user Apply—**both keys are sent** for each active range row.
+
+**Collection:** `filter_controller.js` still does `if (minVal)` / `if (maxVal)` when building params, so an input that is literally empty omits that key. That matters only in edge cases: e.g. Apply before the histogram request has finished (inputs not yet filled), a bookmark/URL that restored only one bound, or right after `resetToFullRange()` which clears inputs to `""` until defaults run again. **`Filterable`** applies each present bound separately; there is no server-side guard that both must exist together.
+
+### Badge counting rule
+
+Every checked checkbox counts as +1. Parent and child checkboxes are counted independently. If a parent is checked and three of its sub-filters are checked, the badge shows 4. `filter_controller.js` counts range-type filters by DOM checkbox state (not by param presence) to stay consistent with this rule.
+
+### Rate tiers as array params
+
+`most_common_rate_tier` is permitted as an array param (`most_common_rate_tier[]` in URL). This allows multi-select — users can narrow to a subset of tiers. The six tiers map to stored string values in the `demographics` table.
+
+### "No rate info" as a standard Group
+
+The "No rate info available" toggle within the Financial section is treated as a boolean Group (Option A), not a new taxonomy term. It expands results rather than narrowing them (includes systems with null rate tier data), but this distinction lives in the backend logic — it does not require a new taxonomy level. A code comment in `filterable.rb` notes that this param expands rather than narrows.
+
+### OR logic within categories, AND between
+
+Active groups within the Funding category OR together — a system qualifies if it has received *any* form of SRF assistance, not all three. Active watershed hazard sub-filters also OR — a system with any matching hazard qualifies. Both were previously AND (incorrect); fixed in `filterable.rb` using Arel.
+
+### Health violation sub-categories and violation ranges
+
+- **Within one time window (5yr or 10yr):** checked sub-filters OR together — a system matches if any selected sub-category’s range condition is satisfied (combined into one disjunct per window).
+- **Across windows (5yr vs 10yr) and paperwork columns:** each window or paperwork column with an active range contributes a separate disjunct; `Filterable` ORs those disjuncts. So a system can match because of 5yr health, 10yr health, 5yr paperwork, and/or 10yr paperwork, depending on which params are set.
 
 ---
 
-### 3. OR logic for Funding groups
+## TODO
 
-**Current behavior:** When multiple Funding groups are active (e.g., SRF financing AND SRF assistance), `filterable.rb` applies AND logic — a system must satisfy all active funding groups simultaneously.
+- **Filter Counter badges** — badge counts are wired and increment per the rule above (each checked box = 1), but the visual presentation and exact design expectations need confirmation against final design mockups.
+- **Missing tooltips** — `ⓘ` tooltips are missing on several headline category labels: Primary type, Type, Violations, and the Wholesaler filter. Keys need to be added to `config/tooltips.yml` and tooltip spans added to the corresponding ERB.
+- **Annual water/sewer bill "no rate info" behavior** — the checkbox is implemented, but expected behavior needs product confirmation: does checking "No rate info" show *only* systems with no rate data, or does it show all currently-filtered systems *plus* those with no rate data? Currently implemented as the latter (expands).
+- **Client consumption of `#filter-registry-config`** — optional next step: parse the embed in `filter_controller.js` to validate or derive param keys, reducing the risk of drift with **`FILTERS`**.
+- **URL length** — with many active filters, URLs can become very long. A param compression or alias strategy may be needed. A mapping approach was tried previously and reverted due to complexity; revisit when URLs become a practical problem.
 
-**Intended behavior:** Groups within a Category should OR (inclusive). A system qualifies if it matches any active Funding group.
-
-**Fix needed:** Apply the same OR-across-groups pattern used in the Violations section. Hold until Funding histograms are built and the section is more complete.
-
----
-
-### 4. OR logic for Watershed Hazard sub-filters
-
-**Current behavior:** The five watershed hazard columns (`num_facilities`, `permit_effluent_violations`, `open_underground_storage_tanks`, `risk_management_plan_facilities`, `impaired_streams_303d`) are chained with AND in `filterable.rb`.
-
-**Intended behavior:** Sub-filters within a Group should OR — a system qualifies if any active sub-filter matches.
-
-**Fix needed:** Apply Arel OR across active hazard sub-filter nodes. Hold until the Potential Watershed Hazards parent Group toggle is built (the sub-filters currently have no UI entry point).
-
----                                                                 
-### 5. Taxonomy — Groups with direct Range controls, and "include nulls" toggles
-                                                                                                                          
-**Clarification:** Not every Group requires Sub-filters. A Group can attach a Range (histogram slider or selector) directly at Level 5 with no Level 4 in between. Example: Non-health violations 5yr (Group) → histogram slider (Range). This is valid — intermediate levels are optional.                                 
-                                                                                                                          
-**Open question:** What do we call a checkbox attached to a Group that broadens results rather than narrowing them — specifically, an opt-in to include systems with null/missing data? Example: "Show systems with no available information on rates" under Annual water and sewer bill.                                                                                
-                                                                    
-**Options:**
-- **Option A — Boolean Group:** treat it like any other on/off Group (Wholesaler, School or daycare). No new terminology. The
-Group just happens to expand rather than narrow.                                                                          
-- **Option B — Modifier:** introduce a new taxonomy term for toggles that change how a Group's filter applies (include nulls,
-invert, etc.). More precise; adds a sixth taxonomy level to maintain.                                                     
-                                                                                                                          
-**Suggestion: Option A**. The expand-vs-narrow distinction is worth a code comment, but doesn't need a new taxonomy level.
-Keeps the spec simple and the existing five-level hierarchy intact.

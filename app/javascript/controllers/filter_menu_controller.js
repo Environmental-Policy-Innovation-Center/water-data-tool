@@ -3,7 +3,7 @@ import { Controller } from "@hotwired/stimulus"
 // Listens for "filter:close-all" to dismiss menus when other controllers need them closed.
 export default class extends Controller {
   #outsideClick = (e) => {
-    if (!e.target.closest(".filter-menu-btn") && !e.target.closest(".container-menu")) {
+    if (!e.target.closest(".filter-menu-btn") && !e.target.closest(".filter-dropdown")) {
       this.#closeAll()
     }
   }
@@ -27,7 +27,7 @@ export default class extends Controller {
     const menu = document.getElementById(`container-menu-${menuId}`)
     if (!menu) return
 
-    const isOpen = menu.style.display === "block"
+    const isOpen = !menu.classList.contains("hidden")
     this.#closeAll()
     if (!isOpen) {
       const mapRect = document.getElementById("container-map").getBoundingClientRect()
@@ -35,8 +35,9 @@ export default class extends Controller {
 
       // Show first so offsetWidth is accurate, then clamp to avoid right-edge overflow
       menu.style.left = "0"
-      menu.style.display = "block"
+      menu.classList.remove("hidden")
       btn.classList.add("active")
+      btn.setAttribute("aria-expanded", "true")
 
       const leftPos = btnRect.left - mapRect.left
       const maxLeft = mapRect.width - menu.offsetWidth - 10
@@ -45,7 +46,12 @@ export default class extends Controller {
   }
 
   #closeAll() {
-    document.querySelectorAll(".container-menu").forEach(m => { m.style.display = "none" })
-    document.querySelectorAll(".filter-menu-btn").forEach(b => b.classList.remove("active"))
+    document.querySelectorAll(".filter-dropdown").forEach(m => {
+      m.classList.add("hidden")
+    })
+    document.querySelectorAll(".filter-menu-btn").forEach(b => {
+      b.classList.remove("active")
+      b.setAttribute("aria-expanded", "false")
+    })
   }
 }

@@ -363,6 +363,42 @@ RSpec.describe Filterable, type: :model do
       end
     end
 
+    context "rate tier filters" do
+      let!(:low_tier) { create(:public_water_system) }
+      let!(:high_tier) { create(:public_water_system) }
+      let!(:no_tier) { create(:public_water_system) }
+
+      before do
+        create(:demographic, public_water_system: low_tier, pwsid: low_tier.pwsid, most_common_rate_tier: "$125-249")
+        create(:demographic, public_water_system: high_tier, pwsid: high_tier.pwsid, most_common_rate_tier: "$500-749")
+        create(:demographic, public_water_system: no_tier, pwsid: no_tier.pwsid, most_common_rate_tier: nil)
+      end
+
+      it "filters by a single rate tier" do
+        results = PublicWaterSystem.apply_filters(most_common_rate_tier: ["$125-249"])
+        expect(results).to include(low_tier)
+        expect(results).not_to include(high_tier, no_tier)
+      end
+
+      it "ORs multiple rate tiers" do
+        results = PublicWaterSystem.apply_filters(most_common_rate_tier: ["$125-249", "$500-749"])
+        expect(results).to include(low_tier, high_tier)
+        expect(results).not_to include(no_tier)
+      end
+
+      it "includes null-rate systems when no_rate_info is true" do
+        results = PublicWaterSystem.apply_filters(no_rate_info: "true")
+        expect(results).to include(no_tier)
+        expect(results).not_to include(low_tier, high_tier)
+      end
+
+      it "ORs rate tier with no_rate_info" do
+        results = PublicWaterSystem.apply_filters(most_common_rate_tier: ["$125-249"], no_rate_info: "true")
+        expect(results).to include(low_tier, no_tier)
+        expect(results).not_to include(high_tier)
+      end
+    end
+
     context "funding filters" do
       it "filters by total_srf_assistance_min" do
         low_funded = create(:public_water_system)
@@ -373,6 +409,19 @@ RSpec.describe Filterable, type: :model do
         results = PublicWaterSystem.apply_filters(total_srf_assistance_min: "1000000")
         expect(results).to include(high_funded)
         expect(results).not_to include(low_funded)
+      end
+
+      it "ORs multiple funding columns" do
+        many_times = create(:public_water_system)
+        high_amount = create(:public_water_system)
+        neither = create(:public_water_system)
+        create(:funding_summary, public_water_system: many_times, times_funded: 5, total_srf_assistance: 10_000)
+        create(:funding_summary, public_water_system: high_amount, times_funded: 1, total_srf_assistance: 5_000_000)
+        create(:funding_summary, public_water_system: neither, times_funded: 0, total_srf_assistance: 0)
+
+        results = PublicWaterSystem.apply_filters(times_funded_min: "3", total_srf_assistance_min: "1000000")
+        expect(results).to include(many_times, high_amount)
+        expect(results).not_to include(neither)
       end
     end
 
@@ -387,18 +436,67 @@ RSpec.describe Filterable, type: :model do
         expect(results).to include(high_hazard)
         expect(results).not_to include(low_hazard)
       end
+
+      it "ORs multiple hazard columns" do
+        many_facilities = create(:public_water_system)
+        many_usts = create(:public_water_system)
+        clean = create(:public_water_system)
+        create(:watershed_hazard, public_water_system: many_facilities, num_facilities: 50, open_underground_storage_tanks: 1)
+        create(:watershed_hazard, public_water_system: many_usts, num_facilities: 1, open_underground_storage_tanks: 30)
+        create(:watershed_hazard, public_water_system: clean, num_facilities: 0, open_underground_storage_tanks: 0)
+
+        results = PublicWaterSystem.apply_filters(num_facilities_min: "20", open_underground_storage_tanks_min: "20")
+        expect(results).to include(many_facilities, many_usts)
+        expect(results).not_to include(clean)
+      end
     end
 
     context "trend filters" do
-      it "filters by population_pct_change_min" do
+      it "filters by population_pct_change_capped_min" do
         declining = create(:public_water_system)
         growing = create(:public_water_system)
-        create(:trend_datum, public_water_system: declining, population_pct_change: -5.0)
-        create(:trend_datum, public_water_system: growing, population_pct_change: 15.0)
+        create(:trend_datum, public_water_system: declining, population_pct_change_capped: -5.0)
+        create(:trend_datum, public_water_system: growing, population_pct_change_capped: 15.0)
 
-        results = PublicWaterSystem.apply_filters(population_pct_change_min: "10")
+        results = PublicWaterSystem.apply_filters(population_pct_change_capped_min: "10")
         expect(results).to include(growing)
         expect(results).not_to include(declining)
+      end
+
+      it "filters on population_pct_change_capped, not the raw uncapped value" do
+        # Both records have raw=5000% (an artifact of a tiny baseline population, cap is +200%).
+        # If filtering used the raw column, neither would pass a 20..200 range.
+        # Only the one with capped=150 is in range; the one with capped=10 is not.
+        in_range = create(:public_water_system)
+        out_of_range = create(:public_water_system)
+        create(:trend_datum, public_water_system: in_range,
+          population_pct_change: 5000.0, population_pct_change_capped: 150.0)
+        create(:trend_datum, public_water_system: out_of_range,
+          population_pct_change: 5000.0, population_pct_change_capped: 10.0)
+
+        results = PublicWaterSystem.apply_filters(
+          population_pct_change_capped_min: "20",
+          population_pct_change_capped_max: "200"
+        )
+        expect(results).to include(in_range)
+        expect(results).not_to include(out_of_range)
+      end
+
+      it "filters on mhi_pct_change_capped, not the raw uncapped value" do
+        # Same cap logic as population — raw income-change artifacts are capped at +200%.
+        in_range = create(:public_water_system)
+        out_of_range = create(:public_water_system)
+        create(:trend_datum, public_water_system: in_range,
+          mhi_pct_change: 9999.0, mhi_pct_change_capped: 120.0)
+        create(:trend_datum, public_water_system: out_of_range,
+          mhi_pct_change: 9999.0, mhi_pct_change_capped: 10.0)
+
+        results = PublicWaterSystem.apply_filters(
+          mhi_pct_change_capped_min: "20",
+          mhi_pct_change_capped_max: "200"
+        )
+        expect(results).to include(in_range)
+        expect(results).not_to include(out_of_range)
       end
     end
 

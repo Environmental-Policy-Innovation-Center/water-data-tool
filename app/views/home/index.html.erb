@@ -1,12 +1,35 @@
+<% content_for :head do %>
+  <style>
+    /* @page at-rules and the body > *:not selector can't be expressed as Tailwind utilities */
+    @page {
+      margin: 0.5in;
+      @top-left    { content: none; }
+      @top-center  { content: none; }
+      @top-right   { content: none; }
+      @bottom-left { content: none; }
+      @bottom-center { content: none; }
+      @bottom-right {
+        content: counter(page) " of " counter(pages);
+        font-family: 'Public Sans', Arial, Helvetica, sans-serif;
+        font-size: 10px;
+        color: #565656;
+      }
+    }
+    @media print {
+      body > *:not(#container-report) { display: none !important; }
+    }
+  </style>
+<% end %>
+
 <%# Mobile header (hidden on desktop via CSS) %>
 <div class="mobile-header hide-for-desktop">
-  <div class="m-header-left"><%= image_tag "logo-drinking-water-explorer.png", class: "logo" %></div>
+  <div class="m-header-left"><%= icon "water", classes: "w-9 h-auto inline-block" %></div>
   <h1>Drinking Water Explorer</h1>
   <div class="m-header-right">
-    <a href="javascript:void(0)" id="mobile-menu-toggle" class="mobile-btn closed" data-action="click->nav#toggleMobile">
+    <button type="button" id="mobile-menu-toggle" class="mobile-btn closed cursor-pointer" aria-expanded="false" aria-label="Toggle navigation menu" data-action="click->nav#toggleMobile">
       <%= icon "mobile-menu", classes: "mm-icon-bars" %>
       <%= icon "close", classes: "mm-icon-x hidden" %>
-    </a>
+    </button>
   </div>
 </div>
 
@@ -23,57 +46,30 @@
   </ul>
 </div>
 
+<%# Canonical filter keys from config/filters.yml (FilterRegistry) — embedded JSON for filter_controller %>
+<%= render "filter_registry_config" %>
+
 <%# Left sidebar navigation %>
 <%= render "sidebar" %>
 
 <%# =====================================================
     Map view (default section)
     ===================================================== %>
-<div id="container-map" class="container-main-content"
-     data-controller="map filter filter-menu filter-layout"
+<div id="container-map" class="container-main-content w-full absolute left-0"
+     data-controller="map filter filter-menu"
      data-map-tile-url-value="/tiles/{z}/{x}/{y}">
 
-  <%# Filter tab bar %>
-  <div id="container-map-ui-top" class="container-map-ui">
-    <ul id="filter-tabs" class="m-0 flex list-none flex-nowrap items-center gap-1.5 pt-1.5 pl-5">
-      <%# Geocoder search — populated by map_controller once map loads %>
-      <li id="geocoder-li" class="geocoder-li"></li>
-      <li id="source-filter-button" class="filter-1">
-        <div class="container-filter-count container-filter-count-menu-1">
-          <span class="filter-count-group-1">0</span>
-        </div>
-        <a href="javascript:void(0);" data-menu="1" class="filter-menu-btn" id="container-menu-btn-1" data-action="click->filter-menu#toggleMenu">Source</a>
-      </li>
-      <li id="attributes-filter-button" class="filter-2">
-        <div class="container-filter-count container-filter-count-menu-2">
-          <span class="filter-count-group-2">0</span>
-        </div>
-        <a href="javascript:void(0);" data-menu="2" class="filter-menu-btn" id="container-menu-btn-2" data-action="click->filter-menu#toggleMenu">Attributes</a>
-      </li>
-      <li id="boundaries-filter-button" class="filter-3">
-        <div class="container-filter-count container-filter-count-menu-3">
-          <span class="filter-count-group-3">0</span>
-        </div>
-        <a href="javascript:void(0);" data-menu="3" class="filter-menu-btn" id="container-menu-btn-3" data-action="click->filter-menu#toggleMenu">Boundaries</a>
-      </li>
-      <li id="compliance-filter-button" class="filter-4">
-        <div class="container-filter-count container-filter-count-menu-4">
-          <span class="filter-count-group-4">0</span>
-        </div>
-        <a href="javascript:void(0);" data-menu="4" class="filter-menu-btn" id="container-menu-btn-4" data-action="click->filter-menu#toggleMenu">Compliance</a>
-      </li>
-      <li id="population-filter-button" class="filter-5">
-        <div class="container-filter-count container-filter-count-menu-5">
-          <span class="filter-count-group-5">0</span>
-        </div>
-        <a href="javascript:void(0);" data-menu="5" class="filter-menu-btn" id="container-menu-btn-5" data-action="click->filter-menu#toggleMenu">Population</a>
-      </li>
-      <li id="more-filter-button" class="filter-10">
-        <div class="container-filter-count container-filter-count-menu-10">
-          <span class="filter-count-group-10">0</span>
-        </div>
-        <a href="javascript:void(0);" data-menu="10" class="filter-menu-btn" id="container-menu-btn-10" data-action="click->filter-menu#toggleMenu">More</a>
-      </li>
+  <%# Filter tab bar — filter-layout controller lives here so its ResizeObserver measures the
+      filter bar's actual usable width (viewport − sidebar offset), not the full container width. %>
+  <div id="container-map-ui-top" class="max-[640px]:hidden min-[640px]:absolute min-[640px]:top-0 min-[640px]:left-0 min-[640px]:right-0 min-[640px]:z-[5] pointer-events-none"
+       data-controller="filter-layout">
+    <ul id="filter-tabs" role="group" aria-label="Water System Filters" class="m-0 flex list-none flex-nowrap items-start justify-end gap-1.5 pt-3 pl-5 pr-5 pointer-events-none">
+      <%= render UI::FilterMenuTabComponent.new(menu_id: 1, label: "Source") %>
+      <%= render UI::FilterMenuTabComponent.new(menu_id: 2, label: "Attributes") %>
+      <%= render UI::FilterMenuTabComponent.new(menu_id: 3, label: "Boundaries") %>
+      <%= render UI::FilterMenuTabComponent.new(menu_id: 4, label: "Compliance") %>
+      <%= render UI::FilterMenuTabComponent.new(menu_id: 5, label: "Population") %>
+      <%= render UI::FilterMenuTabComponent.new(menu_id: 10, label: "More") %>
     </ul>
   </div>
 
@@ -83,21 +79,15 @@
   <%# Mapbox GL JS canvas %>
   <div id="map"></div>
 
-  <%# Region shortcut buttons (below +/− zoom controls) %>
-  <div id="container-ak-hi" class="container-ak-hi-desktop hide-for-table">
-    <a href="javascript:void(0);" title="Zoom to 48 states"
-       data-action="click->map#zoom48">48</a>
-    <a href="javascript:void(0);" title="Zoom to Alaska"
-       data-action="click->map#zoomAk">AK</a>
-    <a href="javascript:void(0);" title="Zoom to Hawaii"
-       data-action="click->map#zoomHi">HI</a>
-    <hr class="region-divider">
-    <a href="javascript:void(0);" title="Zoom to Puerto Rico (territory)"
-       data-action="click->map#zoomPr" class="territory-btn">PR</a>
-    <a href="javascript:void(0);" title="Zoom to Guam (territory)"
-       data-action="click->map#zoomGu" class="territory-btn">GU</a>
-    <a href="javascript:void(0);" title="Zoom to Northern Mariana Islands (territory)"
-       data-action="click->map#zoomMp" class="territory-btn">MP</a>
+  <%# Map region shortcuts (48 / AK / HI / territories) — below +/− zoom controls %>
+  <div id="container-region-nav" class="absolute left-0 top-[135px] z-[1] max-[640px]:hidden hide-for-table">
+    <%= render UI::MapRegionShortcutButtonComponent.new(label: "48", aria_label: "Zoom to 48 states", map_action: "zoom48") %>
+    <%= render UI::MapRegionShortcutButtonComponent.new(label: "AK", aria_label: "Zoom to Alaska", map_action: "zoomAk") %>
+    <%= render UI::MapRegionShortcutButtonComponent.new(label: "HI", aria_label: "Zoom to Hawaii", map_action: "zoomHi") %>
+    <hr class="border-0 border-t border-[#ddd] mt-1.5 mb-0.5 mx-0.5">
+    <%= render UI::MapRegionShortcutButtonComponent.new(label: "PR", aria_label: "Zoom to Puerto Rico", map_action: "zoomPr") %>
+    <%= render UI::MapRegionShortcutButtonComponent.new(label: "GU", aria_label: "Zoom to Guam", map_action: "zoomGu") %>
+    <%= render UI::MapRegionShortcutButtonComponent.new(label: "MP", aria_label: "Zoom to Northern Mariana Islands", map_action: "zoomMp") %>
   </div>
 
   <%# Intro tooltip — bottom right of map canvas %>
@@ -120,22 +110,22 @@
        class="hide-for-mobile hide-for-table absolute right-5 bottom-[30px] z-[999]">
     <ul class="m-0 flex list-none flex-nowrap items-center gap-1.5 pt-1.5 pl-5">
       <li class="relative shrink-0">
-        <a href="javascript:void(0);"
+        <button type="button"
            data-section="map"
-           class="nav-item nav-map-toggle active relative inline-flex items-center whitespace-nowrap rounded-full border border-neutral-400 bg-[#fdfefb] px-3 py-2 pl-8 text-base font-normal leading-none text-neutral-700 no-underline [&.active]:bg-[#989898] [&.active]:text-white"
+           class="nav-item nav-map-toggle active relative inline-flex items-center whitespace-nowrap rounded-full border border-neutral-400 bg-[#fdfefb] px-3 py-2 pl-8 text-base font-normal leading-none text-neutral-700 cursor-pointer [&.active]:bg-[#989898] [&.active]:text-white"
            data-action="click->nav#show">
           <%= icon "map", classes: "pointer-events-none absolute left-2.5 top-1/2 size-[17px] -translate-y-1/2" %>
           Map
-        </a>
+        </button>
       </li>
       <li class="relative shrink-0">
-        <a href="javascript:void(0);"
+        <button type="button"
            data-section="table"
-           class="nav-item nav-table relative inline-flex items-center whitespace-nowrap rounded-full border border-neutral-400 bg-[#fdfefb] px-3 py-2 pl-8 text-base font-normal leading-none text-neutral-700 no-underline [&.active]:bg-[#989898] [&.active]:text-white"
+           class="nav-item nav-table relative inline-flex items-center whitespace-nowrap rounded-full border border-neutral-400 bg-[#fdfefb] px-3 py-2 pl-8 text-base font-normal leading-none text-neutral-700 cursor-pointer [&.active]:bg-[#989898] [&.active]:text-white"
            data-action="click->nav#show">
           <%= icon "table", classes: "pointer-events-none absolute left-2.5 top-1/2 size-[17px] -translate-y-1/2" %>
           Table
-        </a>
+        </button>
       </li>
     </ul>
   </div>
@@ -193,7 +183,7 @@
 <%# =====================================================
     Datasets section (hidden until user navigates)
     ===================================================== %>
-<div id="container-datasets" class="container-main-content hidden">
+<div id="container-datasets" class="container-main-content w-full absolute left-0 hidden">
   <div class="container-section-inner">
     <%= render "datasets" %>
   </div>
@@ -202,7 +192,7 @@
 <%# =====================================================
     Documentation section
     ===================================================== %>
-<div id="container-documentation" class="container-main-content hidden">
+<div id="container-documentation" class="container-main-content w-full absolute left-0 hidden">
   <div class="container-section-inner">
     <h3 class="placeholder">Documentation</h3>
   </div>
@@ -211,7 +201,7 @@
 <%# =====================================================
     Downloads section (hidden until user navigates)
     ===================================================== %>
-<div id="container-downloads" class="container-main-content hidden">
+<div id="container-downloads" class="container-main-content w-full absolute left-0 hidden">
   <div class="container-section-inner">
     <%= render "downloads" %>
   </div>
@@ -220,22 +210,34 @@
 <%# =====================================================
     PWS Report overlay (hidden, toggled on map click)
     ===================================================== %>
-<div id="container-report" class="hidden" data-controller="report" data-report-target="overlay">
-  <a href="javascript:void(0);" onclick="window.print()" id="tt-print-report" class="btn-report btn-print-report"><%= image_tag "icon-print.png" %></a>
-  <a href="javascript:void(0);" id="tt-close-report" class="btn-report btn-close-report" data-action="click->report#close"><%= icon "close" %></a>
+<div id="container-report"
+     class="hidden fixed inset-0 z-[9999] bg-white overflow-y-auto print:static print:h-auto print:overflow-visible"
+     data-controller="report" data-report-target="overlay">
+  <%= render UI::CircleButtonComponent.new(
+        id: "tt-print-report",
+        aria_label: "Print report",
+        data_action: "click->report#print",
+        extra_classes: "fixed top-[30px] right-20 print:hidden"
+      ) do %>
+    <%= icon "print", classes: "h-4 w-4" %>
+  <% end %>
+  <%= render UI::CircleButtonComponent.new(
+        id: "tt-close-report",
+        aria_label: "Close report",
+        data_action: "click->report#close",
+        extra_classes: "fixed top-[30px] right-5 print:hidden"
+      ) do %><%= icon "close", classes: "h-4 w-4" %><% end %>
 
-  <div class="container-report-section-inner">
-    <div class="container-report-body mt-0!">
-      <turbo-frame id="report-body" data-report-target="frame">
-        <%# Report content loaded via Turbo Frame from ReportsController %>
-      </turbo-frame>
-    </div>
+  <div class="mx-auto max-w-[1200px] border border-[#eee] bg-white p-10 mt-[30px] mb-[50px] print:border-0 print:p-0 print:mt-0 print:mb-0">
+    <turbo-frame id="report-body" data-report-target="frame">
+      <%# Report content loaded via Turbo Frame from ReportsController %>
+    </turbo-frame>
   </div>
 </div>
 
 <%# Mobile footer (hidden on desktop) %>
 <div class="mobile-footer hide-for-desktop">
-  <%= image_tag "EPIC-logo.png" %>
+  <%= icon "epic", classes: "w-9 h-auto" %>
   <% if @last_updated %>
     <p>Last updated on <%= @last_updated.in_time_zone("Eastern Time (US & Canada)").strftime("%m/%d/%Y at %I:%M %p %Z") %></p>
   <% end %>
@@ -244,18 +246,18 @@
 
 <%# Mobile menu overlay %>
 <div id="container-mobile-menu" class="" style="display:none;">
-  <div class="container-mobile-menu-inner">
-    <p><strong>How to use this tool:</strong></p>
-    <p>Search or zoom into the map to see information about public drinking water systems in areas of interest. Use the filters to customize the display.</p>
+  <div class="container-mobile-menu-inner flex flex-col min-h-full">
+    <p class="pt-6 pb-2"><strong>How to use this tool:</strong></p>
+    <p class="pb-6">Search or zoom into the map to see information about public drinking water systems in areas of interest. Use the filters to customize the display.</p>
     <ul>
-      <li class="nav-1"><a href="javascript:void(0);" data-section="map" data-action="click->nav#show" class="nav-item nav-1 nav-map active">Explore the Map</a></li>
-      <li class="nav-2"><a href="javascript:void(0);" data-section="datasets" data-action="click->nav#show" class="nav-item nav-2 nav-datasets">Datasets</a></li>
-      <li class="nav-3"><a href="https://tech-team-data.s3.us-east-1.amazonaws.com/national-dw-tool/public-data-downloads/EPIC's+Drinking+Water+Explorer+Tool+-+Methodology.pdf" target="_blank" class="nav-item nav-3 nav-documentation">Documentation</a></li>
-      <li class="nav-4"><a href="javascript:void(0);" data-section="downloads" data-action="click->nav#show" class="nav-item nav-4 nav-downloads">Downloads</a></li>
-      <li class="nav-5"><a href="https://github.com/Environmental-Policy-Innovation-Center/national-dw-tool-public" target="_blank" class="nav-item nav-5">Github</a></li>
-      <li class="nav-6"><a href="https://docs.google.com/forms/d/e/1FAIpQLSdj-JcAmFNHnyEGoou74kyL_R1YOUtsFG4dKlYl0TWWwkUcrg/viewform" target="_blank" class="nav-item nav-6">Feedback</a></li>
-      <li class="nav-7"><a href="mailto:watertool@policyinnovation.org" class="nav-item nav-7">Contact EPIC</a></li>
+      <li class="nav-1"><button type="button" data-section="map" data-action="click->nav#show" class="nav-item nav-1 nav-map active flex items-center gap-3 px-4 py-2.5 bg-white text-neutral-900 cursor-pointer rounded-full border border-neutral-400 my-2 mx-5 hover:bg-neutral-200 hover:text-black [&.active]:bg-brand-primary [&.active]:border-brand-primary [&.active]:text-white"><%= icon "explore", classes: "h-[18px] w-[18px] shrink-0" %>Explore the Map</button></li>
+      <li class="nav-2"><button type="button" data-section="datasets" data-action="click->nav#show" class="nav-item nav-2 nav-datasets flex items-center gap-3 px-4 py-2.5 bg-white text-neutral-900 cursor-pointer rounded-full border border-neutral-400 my-2 mx-5 hover:bg-neutral-200 hover:text-black [&.active]:bg-brand-primary [&.active]:border-brand-primary [&.active]:text-white"><%= icon "data", classes: "h-[18px] w-[18px] shrink-0" %>Datasets</button></li>
+      <li class="nav-3"><a href="https://tech-team-data.s3.us-east-1.amazonaws.com/national-dw-tool/public-data-downloads/EPIC's+Drinking+Water+Explorer+Tool+-+Methodology.pdf" target="_blank" rel="noopener noreferrer" title="Opens in new tab" class="nav-item nav-3 nav-documentation flex items-center gap-3 px-4 py-2.5 bg-white text-neutral-900 no-underline rounded-full border border-neutral-400 my-2 mx-5 hover:bg-neutral-200 hover:text-black [&.active]:bg-brand-primary [&.active]:border-brand-primary [&.active]:text-white"><%= icon "documentation", classes: "h-[18px] w-[18px] shrink-0" %><span class="flex-1">Documentation</span><%= icon "external-link", classes: "inline ml-1 shrink-0" %><span class="sr-only">(opens in new tab)</span></a></li>
+      <li class="nav-4"><button type="button" data-section="downloads" data-action="click->nav#show" class="nav-item nav-4 nav-downloads flex items-center gap-3 px-4 py-2.5 bg-white text-neutral-900 cursor-pointer rounded-full border border-neutral-400 my-2 mx-5 hover:bg-neutral-200 hover:text-black [&.active]:bg-brand-primary [&.active]:border-brand-primary [&.active]:text-white"><%= icon "downloads", classes: "h-[18px] w-[18px] shrink-0" %>Downloads</button></li>
+      <li class="nav-5"><a href="https://github.com/Environmental-Policy-Innovation-Center/national-dw-tool-public" target="_blank" rel="noopener noreferrer" title="Opens in new tab" class="nav-item nav-5 flex items-center gap-3 px-4 py-2.5 bg-white text-neutral-900 no-underline rounded-full border border-neutral-400 my-2 mx-5 hover:bg-neutral-200 hover:text-black"><%= icon "github", classes: "h-[18px] w-[18px] shrink-0" %><span class="flex-1">Github</span><%= icon "external-link", classes: "inline ml-1 shrink-0" %><span class="sr-only">(opens in new tab)</span></a></li>
+      <li class="nav-6"><a href="https://docs.google.com/forms/d/e/1FAIpQLSdj-JcAmFNHnyEGoou74kyL_R1YOUtsFG4dKlYl0TWWwkUcrg/viewform" target="_blank" rel="noopener noreferrer" title="Opens in new tab" class="nav-item nav-6 flex items-center gap-3 px-4 py-2.5 bg-white text-neutral-900 no-underline rounded-full border border-neutral-400 my-2 mx-5 hover:bg-neutral-200 hover:text-black"><%= icon "feedback", classes: "h-[18px] w-[18px] shrink-0" %><span class="flex-1">Feedback</span><%= icon "external-link", classes: "inline ml-1 shrink-0" %><span class="sr-only">(opens in new tab)</span></a></li>
+      <li class="nav-7"><a href="mailto:watertool@policyinnovation.org" class="nav-item nav-7 flex items-center gap-3 px-4 py-2.5 bg-white text-neutral-900 no-underline rounded-full border border-neutral-400 my-2 mx-5 hover:bg-neutral-200 hover:text-black"><%= icon "email", classes: "h-[18px] w-[18px] shrink-0" %>Contact EPIC</a></li>
     </ul>
-    <p style="margin:40px 0px 0px 20px;">(<a href="https://creativecommons.org/share-your-work/cclicenses/" target="_blank">cc</a>) Environmental Policy<br/>Center (EPIC)</p>
+    <p class="mt-auto px-5 pt-8 pb-4 text-sm">(<a href="https://creativecommons.org/share-your-work/cclicenses/" target="_blank" rel="noopener noreferrer">cc</a>) Environmental Policy Innovation Center (EPIC)</p>
   </div>
 </div>

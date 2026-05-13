@@ -1,18 +1,18 @@
+# frozen_string_literal: true
+
 module PublicWaterSystems
   class HistogramsController < ApplicationController
-    ALLOWED_FIELDS = (
-      Filterable::PAPERWORK_VIOLATIONS_COLS.map(&:to_s) +
-      Filterable::HEALTH_SUBCATS_ALL.map(&:to_s)
-    ).freeze
+    FIELD_CONFIG = FilterRegistry.histogram_field_config.freeze
+    ALLOWED_FIELDS = FIELD_CONFIG.keys.map(&:to_s).freeze
 
     def show
       field = params[:field]
-      unless ALLOWED_FIELDS.include?(field)
-        render json: {error: "Unknown field"}, status: :bad_request
-        return
-      end
+      field_config = FIELD_CONFIG[field&.to_sym]
+      return render json: {error: "Unknown field"}, status: :bad_request unless field_config
 
-      render json: ViolationsSummary.histogram_bins(field)
+      model = field_config[:model]
+      kwargs = field_config.except(:model)
+      render json: model.histogram_bins(field, **kwargs)
     end
   end
 end

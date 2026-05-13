@@ -1,93 +1,78 @@
 <aside id="container-sidebar"
-       class="container-nav-panel hide-for-mobile"
+       class="group fixed top-3 left-4 bottom-8 bg-white rounded-xl shadow-md overflow-y-auto overflow-x-hidden z-[1000] max-[640px]:hidden min-[640px]:flex min-[640px]:flex-col w-[250px]"
+       data-controller="sidebar"
+       data-action="resize@window->sidebar#handleResize"
        aria-label="Drinking Water Explorer navigation">
-  <div>
-    <button type="button"
-            id="toggle-button"
-            class="btn-toggle-panel open"
-            aria-label="Toggle sidebar width"></button>
+  <%= render UI::CircleButtonComponent.new(
+        id: "sidebar-toggle-button",
+        aria_label: "Toggle sidebar width",
+        data_action: "click->sidebar#toggle",
+        extra_classes: "absolute top-2.5 right-2.5"
+      ) do %>
+    <%= icon "collapse", classes: "h-4 w-4 group-data-[sidebar-collapsed]:hidden" %>
+    <%= icon "expand", classes: "h-4 w-4 group-[&:not([data-sidebar-collapsed])]:hidden" %>
+  <% end %>
+
+  <div class="mt-10 flex justify-center px-3 group-data-[sidebar-collapsed]:invisible">
+    <%= icon "water", classes: "mx-auto block w-[85px] h-auto" %>
+  </div>
+  <div class="pl-5 pr-2.5 mt-6 min-w-[250px] group-data-[sidebar-collapsed]:invisible">
+    <h2 id="sidebar-intro-title" class="text-base font-bold leading-none text-[#565656] m-0 p-0">Drinking Water Explorer</h2>
+    <p class="text-base leading-snug text-[#102033] mt-2.5 mb-0">Use this tool to view and compare public water systems across the country.</p>
   </div>
 
-  <div class="container-logo flex justify-center px-3">
-    <%= image_tag "logo-drinking-water-explorer.png",
-          alt: "Drinking Water Explorer",
-          class: "mx-auto block h-auto max-w-full" %>
-  </div>
-  <div class="container-intro hide-when-collapsed-fade">
-    <h2 id="sidebar-intro-title">Drinking Water Explorer</h2>
-    <p>Use this tool to view and compare public water systems across the country.</p>
-  </div>
-  <nav class="container-sidebar-nav" aria-label="Main sections">
-    <ul class="sidebar-nav">
-      <li class="nav-1">
-        <a href="javascript:void(0);"
-           data-section="map"
-           data-action="click->nav#show"
-           class="nav-item nav-1 nav-map active"
-           aria-current="page">
-          <span class="hide-when-collapsed">Explore the Map</span>
-        </a>
+  <nav id="sidebar-nav" class="mt-4 w-full" aria-label="Main sections">
+    <ul class="list-none m-0 p-0">
+      <li class="px-5 group-data-[sidebar-collapsed]:px-0 group-data-[sidebar-collapsed]:flex group-data-[sidebar-collapsed]:justify-center">
+        <%= render UI::NavItemComponent.new(section: "map", label: "Explore the Map", icon_name: "explore", active: true) %>
       </li>
-      <li class="nav-2">
-        <a href="javascript:void(0);"
-           data-section="datasets"
-           data-action="click->nav#show"
-           class="nav-item nav-2 nav-datasets">
-          <span class="hide-when-collapsed">Datasets</span>
-        </a>
+      <li class="px-5 group-data-[sidebar-collapsed]:px-0 group-data-[sidebar-collapsed]:flex group-data-[sidebar-collapsed]:justify-center">
+        <%= render UI::NavItemComponent.new(section: "datasets", label: "Datasets", icon_name: "data") %>
       </li>
-      <li class="nav-3">
-        <a href="https://tech-team-data.s3.us-east-1.amazonaws.com/national-dw-tool/public-data-downloads/EPIC's+Drinking+Water+Explorer+Tool+-+Methodology.pdf"
-           target="_blank"
-           rel="noopener noreferrer"
-           class="nav-item nav-3 nav-documentation">
-          <span class="hide-when-collapsed">Documentation</span><%= icon "external-link", classes: "inline" %>
-        </a>
+      <li class="px-5 group-data-[sidebar-collapsed]:px-0 group-data-[sidebar-collapsed]:flex group-data-[sidebar-collapsed]:justify-center">
+        <%= render UI::NavItemComponent.new(
+          label: "Documentation",
+          icon_name: "documentation",
+          href: "https://tech-team-data.s3.us-east-1.amazonaws.com/national-dw-tool/public-data-downloads/EPIC's+Drinking+Water+Explorer+Tool+-+Methodology.pdf",
+          external: true
+        ) %>
       </li>
-      <li class="nav-4">
-        <a href="javascript:void(0);"
-           data-section="downloads"
-           data-action="click->nav#show"
-           class="nav-item nav-4 nav-downloads">
-          <span class="hide-when-collapsed">Downloads</span>
-        </a>
+      <li class="px-5 group-data-[sidebar-collapsed]:px-0 group-data-[sidebar-collapsed]:flex group-data-[sidebar-collapsed]:justify-center">
+        <%= render UI::NavItemComponent.new(section: "downloads", label: "Downloads", icon_name: "downloads") %>
       </li>
     </ul>
   </nav>
 
-  <div class="container-sidebar-bottom">
-    <div class="container-epic-logo flex justify-center px-3 py-3">
-      <%= image_tag "EPIC-logo.png",
-            alt: "Environmental Policy Innovation Center",
-            class: "mx-auto block h-auto max-w-full" %>
+  <div class="mt-auto py-4 min-w-[250px] text-center text-[#565656] [&_a]:text-[#565656] group-data-[sidebar-collapsed]:invisible">
+    <div class="flex justify-center px-3 py-3">
+      <%= icon "epic", classes: "mx-auto block w-9 h-auto" %>
     </div>
     <p class="mt-2">
       (<a href="https://creativecommons.org/share-your-work/cclicenses/"
           target="_blank"
           rel="noopener noreferrer">cc</a>)
-      <span class="hide-when-collapsed">Environmental Policy<br>Center </span>(EPIC)
+      <span>Environmental Policy<br>Center </span>(EPIC)
     </p>
     <div class="my-6 space-y-2">
       <p>
         <a href="https://github.com/Environmental-Policy-Innovation-Center/national-dw-tool-public"
            target="_blank"
-           rel="noopener noreferrer">Github</a><%= icon "external-link", classes: "inline" %>
+           rel="noopener noreferrer"
+           title="Opens in new tab">Github<%= icon "external-link", classes: "inline ml-0.5" %><span class="sr-only">(opens in new tab)</span></a>
       </p>
       <p>
         <a href="https://docs.google.com/forms/d/e/1FAIpQLSdj-JcAmFNHnyEGoou74kyL_R1YOUtsFG4dKlYl0TWWwkUcrg/viewform"
            target="_blank"
-           rel="noopener noreferrer">Feedback</a><%= icon "external-link", classes: "inline" %>
+           rel="noopener noreferrer"
+           title="Opens in new tab">Feedback<%= icon "external-link", classes: "inline ml-0.5" %><span class="sr-only">(opens in new tab)</span></a>
       </p>
-      <p class="hide-when-collapsed">
+      <p>
         <a href="mailto:watertool@policyinnovation.org">Contact EPIC</a><%= icon "email", classes: "inline" %>
-      </p>
-      <p class="show-when-collapsed hide-when-expanded" style="display:none;">
-        <a href="mailto:watertool@policyinnovation.org">Contact</a><%= icon "email", classes: "inline w-3" %>
       </p>
     </div>
     <% if @last_updated %>
       <p class="text-sm">
-        <strong>Last updated on:</strong><br>
+        <strong>Latest data update on:</strong><br>
         <span class="last-updated-date">
           <%= @last_updated.in_time_zone("Eastern Time (US & Canada)").strftime("%m/%d/%Y at %I:%M %p %Z") %>
         </span>

@@ -1,0 +1,16 @@
+<div id="container-menu-<%= @menu_id %>" class="<%= container_classes %>">
+  <% unless @more_menu %>
+    <div id="main-filter-grp-<%= @menu_id %>"></div>
+  <% end %>
+  <%= content %>
+  <div class="sticky bottom-0 z-[999] w-full bg-white pb-2.5 text-center"
+       role="group"
+       aria-label="Filter actions">
+    <button type="button"
+            class="<%= RESET_BUTTON_CLASSES %>"
+            data-action="<%= @reset_data_action %>"><%= @reset_label %></button>
+    <button type="button"
+            class="<%= APPLY_BUTTON_CLASSES %>"
+            data-action="click->filter#apply">Apply</button>
+  </div>
+</div>
