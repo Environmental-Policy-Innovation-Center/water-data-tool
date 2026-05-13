@@ -1,6 +1,6 @@
 require "rails_helper"
 
-RSpec.describe Filters::RangeFilterItemComponent, type: :component do
+RSpec.describe Filters::GroupRangeComponent, type: :component do
   let(:base_args) do
     {
       checkbox_id: "more-poverty-rate",

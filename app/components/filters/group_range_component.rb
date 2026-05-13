@@ -1,4 +1,4 @@
-class Filters::RangeFilterItemComponent < ViewComponent::Base
+class Filters::GroupRangeComponent < ViewComponent::Base
   def initialize(checkbox_id:, panel_id:, label:, tooltip_text:, field:, min_input_id:, max_input_id:, slider_label: "Number of violations", nested: false, format: nil)
     @checkbox_id = checkbox_id
     @panel_id = panel_id

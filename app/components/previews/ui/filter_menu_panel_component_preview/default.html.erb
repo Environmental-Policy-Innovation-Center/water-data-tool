@@ -1,0 +1,27 @@
+<%# [&_.filter-dropdown]:!block forces panel open — Stimulus controls this at runtime %>
+<div class="relative h-[480px] [&_.filter-dropdown]:!block">
+  <%= render UI::FilterMenuPanelComponent.new(menu_id: 1) do %>
+    <div id="container-menu-1-items">
+      <%= render Filters::CategoryComponent.new(label: "Primary type") do %>
+        <ul class="my-[6px] mb-[10px] mx-0 list-none px-1">
+          <li class="<%= filter_row_classes %>">
+            <input type="radio" name="preview-water-source" id="preview-ws-both" checked> <label for="preview-ws-both">Both ground and surface</label>
+          </li>
+          <li class="<%= filter_row_classes %>">
+            <input type="radio" name="preview-water-source" id="preview-ws-ground"> <label for="preview-ws-ground">Ground only</label>
+          </li>
+          <li class="<%= filter_row_classes %>">
+            <input type="radio" name="preview-water-source" id="preview-ws-surface"> <label for="preview-ws-surface">Surface only</label>
+          </li>
+        </ul>
+      <% end %>
+      <%= render Filters::CategoryComponent.new(label: "Protection") do %>
+        <ul class="my-[6px] mb-[10px] mx-0 list-none px-1">
+          <li class="<%= filter_row_classes %>">
+            <input type="checkbox" id="preview-has-source-protection"> <label for="preview-has-source-protection">Has source protection</label>
+          </li>
+        </ul>
+      <% end %>
+    </div>
+  <% end %>
+</div>

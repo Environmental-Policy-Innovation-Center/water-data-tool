@@ -1,12 +1,12 @@
 require "rails_helper"
 
-RSpec.describe Filters::PopSizePillComponent, type: :component do
+RSpec.describe Filters::PopSizeGroupComponent, type: :component do
   def render_pill(**overrides)
     defaults = {id: "pop-medium", label: "Medium", sublabel: "3,301 - 10,000", pop_number: 3}
     render_inline described_class.new(**defaults.merge(overrides))
   end
 
-  shared_examples "a valid pop size pill" do |id:, label:, sublabel:, pop_number:|
+  shared_examples "a valid pop size group" do |id:, label:, sublabel:, pop_number:|
     it "renders a button with the correct id" do
       expect(html.css("button[id='#{id}']")).not_to be_empty
     end
@@ -32,7 +32,7 @@ RSpec.describe Filters::PopSizePillComponent, type: :component do
   context "middle pill (default position)" do
     before { render_pill }
 
-    include_examples "a valid pop size pill",
+    include_examples "a valid pop size group",
       id: "pop-medium", label: "Medium", sublabel: "3,301 - 10,000", pop_number: 3
 
     it "has no radius classes" do
@@ -45,7 +45,7 @@ RSpec.describe Filters::PopSizePillComponent, type: :component do
   context "first pill" do
     before { render_pill(id: "pop-very-small", label: "Very small", sublabel: "500 or less", pop_number: 1, position: :first) }
 
-    include_examples "a valid pop size pill",
+    include_examples "a valid pop size group",
       id: "pop-very-small", label: "Very small", sublabel: "500 or less", pop_number: 1
 
     it "has a left border and left radius" do
@@ -62,7 +62,7 @@ RSpec.describe Filters::PopSizePillComponent, type: :component do
   context "last pill" do
     before { render_pill(id: "pop-very-large", label: "Very large", sublabel: "100,000+", pop_number: 5, position: :last) }
 
-    include_examples "a valid pop size pill",
+    include_examples "a valid pop size group",
       id: "pop-very-large", label: "Very large", sublabel: "100,000+", pop_number: 5
 
     it "has right radius" do

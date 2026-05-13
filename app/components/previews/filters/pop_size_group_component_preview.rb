@@ -1,4 +1,4 @@
-class Filters::PopSizePillComponentPreview < Lookbook::Preview
+class Filters::PopSizeGroupComponentPreview < Lookbook::Preview
   # @label Full segmented control (all five pills)
   def default
     render_with_template
@@ -6,7 +6,7 @@ class Filters::PopSizePillComponentPreview < Lookbook::Preview
 
   # @label First pill
   def first
-    render Filters::PopSizePillComponent.new(
+    render Filters::PopSizeGroupComponent.new(
       id: "preview-pop-very-small", label: "Very small", sublabel: "500 or less",
       pop_number: 1, position: :first
     )
@@ -14,7 +14,7 @@ class Filters::PopSizePillComponentPreview < Lookbook::Preview
 
   # @label Middle pill
   def middle
-    render Filters::PopSizePillComponent.new(
+    render Filters::PopSizeGroupComponent.new(
       id: "preview-pop-medium", label: "Medium", sublabel: "3,301 - 10,000",
       pop_number: 3
     )
@@ -22,7 +22,7 @@ class Filters::PopSizePillComponentPreview < Lookbook::Preview
 
   # @label Last pill
   def last
-    render Filters::PopSizePillComponent.new(
+    render Filters::PopSizeGroupComponent.new(
       id: "preview-pop-very-large", label: "Very large", sublabel: "100,000+",
       pop_number: 5, position: :last
     )

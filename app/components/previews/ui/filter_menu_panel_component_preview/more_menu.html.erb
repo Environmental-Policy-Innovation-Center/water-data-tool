@@ -1,0 +1,33 @@
+<%# [&_.filter-dropdown]:!block forces panel open — Stimulus controls this at runtime %>
+<%# Default-variant categories auto-switch to light styling via [.filter-dropdown-more_&] CSS %>
+<div class="relative h-[580px] [&_.filter-dropdown]:!block">
+  <%= render UI::FilterMenuPanelComponent.new(
+        menu_id: 10,
+        more_menu: true,
+        reset_data_action: "click->filter#resetAll",
+        reset_label: "Reset All"
+      ) do %>
+    <h2 class="m-0 px-[15px] py-5 text-base font-medium text-white bg-[#989898]">More filters</h2>
+
+    <%# Collapsed from another menu — default variant auto-switches to light inside filter-dropdown-more %>
+    <%= render Filters::CategoryComponent.new(label: "Source (collapsed)") do %>
+      <ul class="my-[6px] mb-[10px] mx-0 list-none px-1">
+        <li class="<%= filter_row_classes %>">
+          <input type="radio" name="preview-more-source" id="preview-more-ws-both" checked> <label for="preview-more-ws-both">Both ground and surface</label>
+        </li>
+        <li class="<%= filter_row_classes %>">
+          <input type="radio" name="preview-more-source" id="preview-more-ws-ground"> <label for="preview-more-ws-ground">Ground only</label>
+        </li>
+      </ul>
+    <% end %>
+
+    <%# Permanently in More — uses light variant explicitly %>
+    <%= render Filters::CategoryComponent.new(label: "Financial", variant: :light) do %>
+      <ul class="my-[6px] mb-[10px] mx-0 list-none px-1">
+        <li class="<%= filter_row_classes %>">
+          <input type="checkbox" id="preview-rate-tier"> <label for="preview-rate-tier">Annual water and sewer bill</label>
+        </li>
+      </ul>
+    <% end %>
+  <% end %>
+</div>
