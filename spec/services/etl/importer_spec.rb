@@ -54,6 +54,14 @@ RSpec.describe Etl::Importer do
       importer.call
     end
 
+    it "triggers no tile cache or warm job side effects when no files are imported" do
+      allow_all_importers_to_skip
+      allow(Etl::PostImportSteps).to receive(:call).and_call_original
+
+      expect(TileCacheWarmJob).not_to receive(:perform_later)
+      importer.call
+    end
+
     it "passes force: true to each importer when called with force: true" do
       force_importer = described_class.new(force: true)
       allow(force_importer).to receive(:build_file_entries).and_return(file_entries)

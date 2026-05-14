@@ -97,6 +97,10 @@ class CartographicBoundaries
 
     count = conn.select_value("SELECT COUNT(*) FROM #{target}")
     Rails.logger.info("[Cartographic] #{layer[:target_table]}: #{count} rows loaded")
+
+    # Remove extracted shapefile components — the zip is kept for re-run caching.
+    basename = File.basename(layer[:shapefile], ".shp")
+    Dir.glob(tmp_dir.join("#{basename}.*")).each { |f| FileUtils.rm_f(f) }
   end
 
   # Returns [conn_string, password]. Password is kept out of the connection
