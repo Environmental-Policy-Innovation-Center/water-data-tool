@@ -6,9 +6,9 @@
   <div id="container-menu-1-items">
     <%= render Filters::CategoryComponent.new(label: "Primary type") do %>
       <ul class="my-[6px] mb-[10px] mx-0 list-none px-1">
-        <li class="<%= filter_row_classes %>"><input type="radio" name="water-source" id="ws-both" checked="checked" data-default /><label for="ws-both">Both ground and surface</label></li>
-        <li class="<%= filter_row_classes %>"><input type="radio" name="water-source" id="ws-ground" /><label for="ws-ground">Ground only</label></li>
-        <li class="<%= filter_row_classes %>"><input type="radio" name="water-source" id="ws-surface" /><label for="ws-surface">Surface only</label></li>
+        <li class="<%= filter_row_classes %>"><input type="radio" name="water-source" id="ws-both" checked="checked" data-default><label for="ws-both">Both ground and surface</label></li>
+        <li class="<%= filter_row_classes %>"><input type="radio" name="water-source" id="ws-ground"><label for="ws-ground">Ground only</label></li>
+        <li class="<%= filter_row_classes %>"><input type="radio" name="water-source" id="ws-surface"><label for="ws-surface">Surface only</label></li>
       </ul>
     <% end %>
     <%= render Filters::CategoryComponent.new(label: "Place") do %>
@@ -69,9 +69,9 @@
   <div id="container-menu-3-items">
     <%= render Filters::CategoryComponent.new(label: "Type") do %>
       <ul class="my-[6px] mb-[10px] mx-0 list-none px-1">
-        <li class="<%= filter_row_classes %>"><input type="radio" name="boundary-type" id="bt-both" checked="checked" data-default /><label for="bt-both">Both modeled and system sourced</label></li>
-        <li class="<%= filter_row_classes %>"><input type="radio" name="boundary-type" id="bt-modeled" /><label for="bt-modeled">Modeled only</label></li>
-        <li class="<%= filter_row_classes %>"><input type="radio" name="boundary-type" id="bt-system" /><label for="bt-system">System sourced only</label></li>
+        <li class="<%= filter_row_classes %>"><input type="radio" name="boundary-type" id="bt-both" checked="checked" data-default><label for="bt-both">Both modeled and system sourced</label></li>
+        <li class="<%= filter_row_classes %>"><input type="radio" name="boundary-type" id="bt-modeled"><label for="bt-modeled">Modeled only</label></li>
+        <li class="<%= filter_row_classes %>"><input type="radio" name="boundary-type" id="bt-system"><label for="bt-system">System sourced only</label></li>
       </ul>
     <% end %>
     <%= render Filters::CategoryComponent.new(label: "Size") do %>

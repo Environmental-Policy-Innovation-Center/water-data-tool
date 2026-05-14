@@ -296,6 +296,7 @@
           <% end %>
           <input type="number" name="page" value="<%= @pagy.page %>"
                  min="1" max="<%= @pagy.last %>"
+                 autocomplete="off"
                  class="border border-gray-300 rounded px-1.5 py-1 w-14 text-center focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-400"
                  aria-label="Page number">
           <span class="text-gray-500 whitespace-nowrap">of <%= number_with_delimiter(@pagy.last) %></span>

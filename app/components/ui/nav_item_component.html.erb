@@ -7,7 +7,7 @@
        target="_blank"
        rel="noopener noreferrer"
      <% end %>
-     <% if @active %>aria-current="page"<% end %>>
+     <% if @active %> aria-current="page"<% end %>>
     <%= icon @icon_name, classes: "h-[18px] w-[18px] shrink-0" %>
     <span class="group-data-[sidebar-collapsed]:hidden" aria-hidden="true"><%= @label %></span>
     <% if @external %>
@@ -18,9 +18,9 @@
 <% else %>
   <button type="button"
           aria-label="<%= @label %>"
-          <% if @section %>data-section="<%= @section %>" data-action="click->nav#show"<% end %>
+          <% if @section %> data-section="<%= @section %>" data-action="click->nav#show"<% end %>
           class="<%= base_classes %>"
-          <% if @active %>aria-current="page"<% end %>>
+          <% if @active %> aria-current="page"<% end %>>
     <%= icon @icon_name, classes: "h-[18px] w-[18px] shrink-0" %>
     <span class="group-data-[sidebar-collapsed]:hidden" aria-hidden="true"><%= @label %></span>
   </button>
