@@ -14,7 +14,7 @@ module Etl
       TileCacheWarmJob.perform_later
 
       # The following steps are only necessary if the geometry file was imported.
-      return unless imported_files.include?('epa_sabs_geoms')
+      return unless imported_files.include?("epa_sabs_geoms")
 
       # Tee up initial geoms repair and enrichment steps before refreshing
       fix_invalid_geometries
@@ -24,7 +24,6 @@ module Etl
       # Assign state codes and county associations based on the new geometries,
       # then rebuild spatial indexes and place crosswalks that depend on those joins.
       assign_state_codes
-      build_county_associations
       rebuild_spatial_indexes
       build_place_crosswalks
     end
@@ -74,24 +73,6 @@ module Etl
           AND sag.centroid IS NOT NULL
       SQL
       Rails.logger.info("[ETL] assign_state_codes: updated #{result.cmd_tuples} row(s)")
-    end
-
-    # Aggregate intersecting county names into the denormalized counties column.
-    def build_county_associations
-      result = ApplicationRecord.connection.execute(<<~SQL)
-        UPDATE public_water_systems pws
-        SET counties = sub.counties
-        FROM (
-          SELECT sag.pwsid,
-                 array_to_string(array_agg(cc.namelsad || ', ' || cc.stusps ORDER BY cc.namelsad), '; ') AS counties
-          FROM cartographic_counties cc
-          JOIN service_area_geometries sag ON ST_Intersects(sag.geom, cc.geom)
-          WHERE GeometryType(ST_Intersection(sag.geom, cc.geom)) IN ('POLYGON', 'MULTIPOLYGON')
-          GROUP BY sag.pwsid
-        ) sub
-        WHERE pws.pwsid = sub.pwsid
-      SQL
-      Rails.logger.info("[ETL] build_county_associations: updated #{result.cmd_tuples} row(s)")
     end
 
     # Rebuild the place_system_crosswalks table from spatial intersections.

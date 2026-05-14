@@ -74,12 +74,6 @@ RSpec.describe Etl::PostImportSteps do
     end
   end
 
-  describe ".build_county_associations" do
-    it "runs without error" do
-      expect { described_class.build_county_associations }.not_to raise_error
-    end
-  end
-
   describe ".build_place_crosswalks" do
     it "runs without error" do
       expect { described_class.build_place_crosswalks }.not_to raise_error

@@ -21,7 +21,8 @@ module Etl
       "cvi" => Etl::Importers::Cvi,
       "national_bwn_highlevel_summary" => Etl::Importers::NationalBwnHighlevelSummary,
       "pwsid_funded_highlevel_summary" => Etl::Importers::PwsidFundedHighlevelSummary,
-      "pwsid_npdes_usts_rmps_imp" => Etl::Importers::PwsidNpdesUstsRmpsImp
+      "pwsid_npdes_usts_rmps_imp" => Etl::Importers::PwsidNpdesUstsRmpsImp,
+      "sabs_pwsid_county" => Etl::Importers::SabsPwsidCounty
     }.freeze
 
     FILE_EXTENSIONS = {
@@ -36,7 +37,8 @@ module Etl
       "cvi" => ".csv",
       "national_bwn_highlevel_summary" => ".csv",
       "pwsid_funded_highlevel_summary" => ".csv",
-      "pwsid_npdes_usts_rmps_imp" => ".csv"
+      "pwsid_npdes_usts_rmps_imp" => ".csv",
+      "sabs_pwsid_county" => ".csv"
     }.freeze
 
     def initialize(force: false, only: nil)
@@ -59,7 +61,7 @@ module Etl
           result = klass.new(file_url: entry["http_path"], last_updated: entry["last_updated"], force: @force).call
           imported_files << file_key if result == :imported
         rescue => e
-          errors << { file_key: file_key, error: e }
+          errors << {file_key: file_key, error: e}
           Rails.logger.error("[ETL] #{file_key} failed: #{e.class} — #{e.message}")
         end
       end

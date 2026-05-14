@@ -72,9 +72,9 @@ class CartographicBoundaries
     )
     raise "ogr2ogr failed for #{layer[:target_table]}" unless success
 
-    target  = conn.quote_table_name(layer[:target_table])
+    target = conn.quote_table_name(layer[:target_table])
     staging = conn.quote_table_name(layer[:staging_table])
-    cols    = layer[:columns].split(",").map { |c| conn.quote_column_name(c.strip) }.join(", ")
+    cols = layer[:columns].split(",").map { |c| conn.quote_column_name(c.strip) }.join(", ")
 
     conn.execute("TRUNCATE #{target}")
     conn.execute("INSERT INTO #{target} (#{cols}) SELECT #{cols} FROM #{staging}")
