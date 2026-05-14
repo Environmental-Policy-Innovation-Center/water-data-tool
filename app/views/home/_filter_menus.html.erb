@@ -36,12 +36,12 @@
     <%= render Filters::CategoryComponent.new(label: "Ownership") do %>
       <ul class="my-[6px] mb-[10px] mx-0 list-none px-1">
         <li class="<%= filter_row_classes %>"><input type="checkbox" class="toggle select-all default-checked rounded-checkbox size-4 rounded-full border border-neutral-400 appearance-none cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 checked:appearance-auto checked:[clip-path:circle(50%_at_50%_50%)] checked:bg-brand-dark checked:accent-[#13171F]" id="type-deselect-all" checked="checked" data-action="change->filter#toggleSelectAll"><label for="type-deselect-all" id="type-deselect-all-txt">Deselect all</label></li>
-        <li class="<%= filter_row_classes %>"><input type="checkbox" class="toggle default-checked checkbox-type" checked="checked" id="type-federal-government"><label for="type-federal-government">Federal</label></li>
-        <li class="<%= filter_row_classes %>"><input type="checkbox" class="toggle default-checked checkbox-type" checked="checked" id="type-state-government"><label for="type-state-government">State</label></li>
-        <li class="<%= filter_row_classes %>"><input type="checkbox" class="toggle default-checked checkbox-type" checked="checked" id="type-local-government"><label for="type-local-government">Local</label></li>
-        <li class="<%= filter_row_classes %>"><input type="checkbox" class="toggle default-checked checkbox-type" checked="checked" id="type-native-american"><label for="type-native-american">Tribal</label></li>
-        <li class="<%= filter_row_classes %>"><input type="checkbox" class="toggle default-checked checkbox-type" checked="checked" id="type-private"><label for="type-private">Private</label></li>
-        <li class="<%= filter_row_classes %>"><input type="checkbox" class="toggle default-checked checkbox-type" checked="checked" id="type-public-private"><label for="type-public-private">Public/Private partnership</label></li>
+        <li class="<%= filter_row_classes %>"><input type="checkbox" class="toggle default-checked checkbox-type" checked="checked" id="type-federal-government" data-action="change->filter#syncSelectAll"><label for="type-federal-government">Federal</label></li>
+        <li class="<%= filter_row_classes %>"><input type="checkbox" class="toggle default-checked checkbox-type" checked="checked" id="type-state-government" data-action="change->filter#syncSelectAll"><label for="type-state-government">State</label></li>
+        <li class="<%= filter_row_classes %>"><input type="checkbox" class="toggle default-checked checkbox-type" checked="checked" id="type-local-government" data-action="change->filter#syncSelectAll"><label for="type-local-government">Local</label></li>
+        <li class="<%= filter_row_classes %>"><input type="checkbox" class="toggle default-checked checkbox-type" checked="checked" id="type-native-american" data-action="change->filter#syncSelectAll"><label for="type-native-american">Tribal</label></li>
+        <li class="<%= filter_row_classes %>"><input type="checkbox" class="toggle default-checked checkbox-type" checked="checked" id="type-private" data-action="change->filter#syncSelectAll"><label for="type-private">Private</label></li>
+        <li class="<%= filter_row_classes %>"><input type="checkbox" class="toggle default-checked checkbox-type" checked="checked" id="type-public-private" data-action="change->filter#syncSelectAll"><label for="type-public-private">Public/Private partnership</label></li>
       </ul>
     <% end %>
     <%= render Filters::CategoryComponent.new(label: "Authority") do %>
