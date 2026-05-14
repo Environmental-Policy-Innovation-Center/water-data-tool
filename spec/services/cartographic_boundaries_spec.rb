@@ -21,6 +21,20 @@ RSpec.describe CartographicBoundaries do
     end
   end
 
+  describe ".loaded?" do
+    it "returns false when any of the three boundary tables is empty" do
+      expect(described_class.loaded?).to be false
+    end
+
+    it "returns true when all three boundary tables have rows" do
+      allow(CartographicState).to receive(:exists?).and_return(true)
+      allow(CartographicCounty).to receive(:exists?).and_return(true)
+      allow(CartographicPlace).to receive(:exists?).and_return(true)
+
+      expect(described_class.loaded?).to be true
+    end
+  end
+
   describe "#load" do
     it "raises if ogr2ogr is not available" do
       allow(instance).to receive(:system).with("which ogr2ogr > /dev/null 2>&1").and_return(false)
@@ -33,7 +47,9 @@ RSpec.describe CartographicBoundaries do
 
       before do
         allow(instance).to receive(:system) do |*args|
-          if args.first == "ogr2ogr"
+          if args.first.is_a?(Hash) && args[1] == "ogr2ogr"
+            ogr2ogr_calls << args
+          elsif args.first == "ogr2ogr"
             ogr2ogr_calls << args
           elsif args.first == "unzip"
             FileUtils.mkdir_p(tmp_dir)
@@ -61,17 +77,17 @@ RSpec.describe CartographicBoundaries do
         instance.load
 
         expect(ogr2ogr_calls.size).to eq(3)
-        expect(ogr2ogr_calls[0]).to include("cartographic_states_staging")
-        expect(ogr2ogr_calls[1]).to include("cartographic_counties_staging")
-        expect(ogr2ogr_calls[2]).to include("cartographic_places_staging")
+        expect(ogr2ogr_calls[0].flatten).to include("cartographic_states_staging")
+        expect(ogr2ogr_calls[1].flatten).to include("cartographic_counties_staging")
+        expect(ogr2ogr_calls[2].flatten).to include("cartographic_places_staging")
       end
 
       it "uses PROMOTE_TO_MULTI and EPSG:4326 for correct geometry handling" do
         instance.load
 
         ogr2ogr_calls.each do |args|
-          expect(args).to include("PROMOTE_TO_MULTI")
-          expect(args).to include("EPSG:4326")
+          expect(args.flatten).to include("PROMOTE_TO_MULTI")
+          expect(args.flatten).to include("EPSG:4326")
         end
       end
 

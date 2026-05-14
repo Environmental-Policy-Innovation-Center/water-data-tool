@@ -30,6 +30,13 @@ class CartographicBoundaries
     new.load
   end
 
+  # Returns true when all three boundary tables contain data. Used by callers
+  # to skip a reload when boundaries are already in place — Census geometries
+  # change at most once a year, so reloading on every ETL run is unnecessary.
+  def self.loaded?
+    CartographicState.exists? && CartographicCounty.exists? && CartographicPlace.exists?
+  end
+
   def load
     raise "ogr2ogr not found. Install GDAL: brew install gdal (macOS) or apt-get install gdal-bin (Linux)" unless system("which ogr2ogr > /dev/null 2>&1")
 
@@ -37,14 +44,15 @@ class CartographicBoundaries
     FileUtils.mkdir_p(tmp_dir)
 
     conn = ApplicationRecord.connection
-    pg_conn_string = build_pg_connection_string(ApplicationRecord.connection_db_config.configuration_hash)
+    config = ApplicationRecord.connection_db_config.configuration_hash
+    pg_conn_string, pg_password = build_pg_connection_string(config)
 
-    LAYERS.each { |layer| load_layer(layer, tmp_dir, conn, pg_conn_string) }
+    LAYERS.each { |layer| load_layer(layer, tmp_dir, conn, pg_conn_string, pg_password) }
   end
 
   private
 
-  def load_layer(layer, tmp_dir, conn, pg_conn_string)
+  def load_layer(layer, tmp_dir, conn, pg_conn_string, pg_password)
     zip_path = tmp_dir.join(File.basename(layer[:zip_url]))
     shp_path = tmp_dir.join(layer[:shapefile])
 
@@ -57,7 +65,9 @@ class CartographicBoundaries
     raise "Shapefile not found: #{shp_path}" unless shp_path.exist?
 
     Rails.logger.info("[Cartographic] Loading #{layer[:target_table]} via ogr2ogr...")
+    env = pg_password ? {"PGPASSWORD" => pg_password} : {}
     success = system(
+      env,
       "ogr2ogr",
       "-f", "PostgreSQL",
       "PG:#{pg_conn_string}",
@@ -76,14 +86,22 @@ class CartographicBoundaries
     staging = conn.quote_table_name(layer[:staging_table])
     cols = layer[:columns].split(",").map { |c| conn.quote_column_name(c.strip) }.join(", ")
 
-    conn.execute("TRUNCATE #{target}")
-    conn.execute("INSERT INTO #{target} (#{cols}) SELECT #{cols} FROM #{staging}")
-    conn.execute("DROP TABLE IF EXISTS #{staging}")
+    # Each layer's swap is atomic: a failed INSERT leaves the target untouched.
+    # There is no cross-layer rollback — if layer 2 fails, layer 1 is already
+    # committed. A re-run will correct the partial state.
+    conn.transaction do
+      conn.execute("TRUNCATE #{target}")
+      conn.execute("INSERT INTO #{target} (#{cols}) SELECT #{cols} FROM #{staging}")
+      conn.execute("DROP TABLE IF EXISTS #{staging}")
+    end
 
     count = conn.select_value("SELECT COUNT(*) FROM #{target}")
     Rails.logger.info("[Cartographic] #{layer[:target_table]}: #{count} rows loaded")
   end
 
+  # Returns [conn_string, password]. Password is kept out of the connection
+  # string so it isn't visible in the ogr2ogr argument list (e.g. via ps aux).
+  # Callers pass it via the PGPASSWORD environment variable instead.
   def build_pg_connection_string(config)
     if config[:url]
       uri = URI.parse(config[:url])
@@ -92,8 +110,7 @@ class CartographicBoundaries
       parts << "port=#{uri.port}" if uri.port
       parts << "dbname=#{uri.path&.delete_prefix("/")}" if uri.path
       parts << "user=#{uri.user}" if uri.user
-      parts << "password=#{uri.password}" if uri.password
-      return parts.join(" ")
+      return [parts.join(" "), uri.password.presence]
     end
 
     parts = []
@@ -101,8 +118,7 @@ class CartographicBoundaries
     parts << "port=#{config[:port]}" if config[:port]
     parts << "dbname=#{config[:database]}" if config[:database]
     parts << "user=#{config[:username]}" if config[:username]
-    parts << "password=#{config[:password]}" if config[:password]
-    parts.join(" ")
+    [parts.join(" "), config[:password].presence]
   end
 
   def download_file(url, destination)

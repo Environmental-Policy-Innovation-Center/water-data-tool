@@ -47,10 +47,10 @@ RSpec.describe Etl::Importer do
       importer.call
     end
 
-    it "skips geometry steps when no files are imported" do
+    it "calls PostImportSteps with an empty list when no files are imported" do
       allow_all_importers_to_skip
 
-      expect(CartographicBoundaries).not_to receive(:load)
+      expect(Etl::PostImportSteps).to receive(:call).with(imported_files: [])
       importer.call
     end
 

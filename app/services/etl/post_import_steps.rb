@@ -19,7 +19,7 @@ module Etl
       # Tee up initial geoms repair and enrichment steps before refreshing
       fix_invalid_geometries
       generate_centroids
-      CartographicBoundaries.load
+      CartographicBoundaries.load unless CartographicBoundaries.loaded?
 
       # Assign state codes and county associations based on the new geometries,
       # then rebuild spatial indexes and place crosswalks that depend on those joins.

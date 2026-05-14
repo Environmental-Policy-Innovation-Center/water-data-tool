@@ -36,6 +36,11 @@ RSpec.describe Etl::Importers::SabsPwsidCounty do
       counties = row[:counties].split("; ")
       expect(counties).to eq(counties.sort)
     end
+
+    it "skips rows with a blank county_served without raising" do
+      expect { rows }.not_to raise_error
+      expect(rows.find { |r| r[:pwsid] == "VT0000005" }).to be_nil
+    end
   end
 
   describe "#import!" do
@@ -59,6 +64,16 @@ RSpec.describe Etl::Importers::SabsPwsidCounty do
 
     it "does not create new records for unknown pwsids" do
       expect(PublicWaterSystem.find_by(pwsid: "UNKNOWN999")).to be_nil
+    end
+
+    context "when a pwsid has only blank county_served rows in the CSV" do
+      let!(:pws_with_existing_counties) { create(:public_water_system, pwsid: "VT0000006", counties: "Existing County, VT") }
+
+      before { importer.import!([]) }
+
+      it "preserves the existing county data rather than clearing it" do
+        expect(pws_with_existing_counties.reload.counties).to eq("Existing County, VT")
+      end
     end
   end
 end

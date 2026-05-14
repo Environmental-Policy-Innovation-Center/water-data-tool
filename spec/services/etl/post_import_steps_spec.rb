@@ -107,6 +107,30 @@ RSpec.describe Etl::PostImportSteps do
       allow(TileCacheWarmJob).to receive(:perform_later)
     end
 
+    it "is a no-op when imported_files is empty" do
+      expect(TileCacheWarmJob).not_to receive(:perform_later)
+      expect(CartographicBoundaries).not_to receive(:load)
+      described_class.call(imported_files: [])
+    end
+
+    it "busts tile cache but skips geometry steps for non-geometry imports" do
+      expect(TileCacheWarmJob).to receive(:perform_later)
+      expect(CartographicBoundaries).not_to receive(:load)
+      described_class.call(imported_files: ["epa_sabs"])
+    end
+
+    it "skips CartographicBoundaries.load when boundaries are already loaded" do
+      allow(CartographicBoundaries).to receive(:loaded?).and_return(true)
+      expect(CartographicBoundaries).not_to receive(:load)
+      described_class.call(imported_files: ["epa_sabs_geoms"])
+    end
+
+    it "loads CartographicBoundaries when boundaries are not yet loaded" do
+      allow(CartographicBoundaries).to receive(:loaded?).and_return(false)
+      expect(CartographicBoundaries).to receive(:load)
+      described_class.call(imported_files: ["epa_sabs_geoms"])
+    end
+
     it "runs all steps in sequence without error" do
       expect { described_class.call(imported_files: ["epa_sabs_geoms"]) }.not_to raise_error
     end
