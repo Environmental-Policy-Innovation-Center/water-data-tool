@@ -8,8 +8,10 @@ module Etl
       # imported_files is an array of successfully-imported file keys, e.g. ["epa_sabs", "epa_sabs_geoms"]
       return if imported_files.empty?
 
-      # If any files were imported, bust the tile cache to ensure all tiles are regenerated with fresh data.
-      # This is a broad hammer but ensures no stale tiles are served after any import.
+      # Bust the tile cache for any import, not just geometry — tiles embed non-geometry
+      # attributes (violations, demographics, etc.) that can become stale after any data
+      # update. Upstream, Etl::Importer only calls us when at least one file actually
+      # imported (not just checked), so this only fires when there is real new data.
       bust_tile_cache
       TileCacheWarmJob.perform_later
 

@@ -7,8 +7,8 @@ module Etl
         grouped = Hash.new { |h, k| h[k] = [] }
 
         CSV.parse(content, headers: true) do |row|
-          # Skip blank rows. If a PWSID's every row is blank it won't appear
-          # in the output, so import! leaves any existing county data untouched —
+          # Skip blank rows. If every county_served value for a PWSID is blank,
+          # that PWSID won't appear in the parsed output and import! skips it —
           # conservative by design: don't clear data we can't replace.
           next if row["county_served"].blank?
 

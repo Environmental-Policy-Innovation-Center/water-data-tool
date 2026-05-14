@@ -30,9 +30,12 @@ class CartographicBoundaries
     new.load
   end
 
-  # Returns true when all three boundary tables contain data. Used by callers
-  # to skip a reload when boundaries are already in place — Census geometries
-  # change at most once a year, so reloading on every ETL run is unnecessary.
+  # Returns true when all three boundary tables contain data. Census TIGER
+  # geometries change at most once per year, so we skip reloading on every
+  # ETL run. Note: this guard only checks row presence — it does not detect
+  # when LAYERS URLs have been updated for a new TIGER year. When that happens,
+  # the cartographic_* tables must be cleared (or load must be forced) before
+  # the new shapefiles will be picked up.
   def self.loaded?
     CartographicState.exists? && CartographicCounty.exists? && CartographicPlace.exists?
   end
