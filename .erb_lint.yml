@@ -1,0 +1,7 @@
+---
+# ERB Lint — default linter set from the erb_lint gem (Shopify).
+# Same behavior as when no config file exists; this file exists so the CLI does not print
+# ".erb_lint.yml not found: using default config" and so the choice is explicit in git.
+# See: https://github.com/Shopify/erb-lint#configuration
+# Source for defaults: ERBLint::RunnerConfig.default in the gem.
+EnableDefaultLinters: true

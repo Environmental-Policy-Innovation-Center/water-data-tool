@@ -95,6 +95,12 @@ group :development do
   # Annotate models with schema comments [https://github.com/drwl/annotaterb]
   gem "annotaterb", "~> 4.22.0", require: false
 
+  # ERB template linting [https://github.com/Shopify/erb-lint]
+  gem "erb_lint", "~> 0.9.0", require: false
+
+  # Git hooks manager [https://github.com/evilmartians/lefthook]
+  gem "lefthook", "~> 2.1.6", require: false
+
   # Lookbook — ViewComponent dev preview catalog [https://lookbook.build]
   gem "lookbook", "~> 2.3.14"
 
