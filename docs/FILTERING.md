@@ -126,7 +126,7 @@ Enabling more groups within a category **broadens** results (OR). Enabling filte
 - **Type** *(Category)*
   - Boundary type — Modeled only / System sourced only / Both *(Group, radio)*
 - **Size** *(Category)*
-  - Service area in square miles *(Group, select min/max)*
+  - Service area in square miles *(Group, range_select — min/max pair counts as 1)*
 
 ---
 
@@ -159,7 +159,7 @@ Enabling more groups within a category **broadens** results (OR). Enabling filte
   - Population category — Very small / Small / Medium / Large / Very large *(Group, button set)*
   - > ⚠️ When this category overflows into the More menu, the header reads "Size" rather than "Population size". The legacy app toggled two `<h3>` elements via CSS (`visible-in-main` / `visible-in-more`). Not yet fixed.
 - **Density** *(Category)*
-  - People per square mile *(Group, select min/max)*
+  - People per square mile *(Group, range_select — min/max pair counts as 1)*
 - **Change** *(Category)*
   - Population change (10 years) *(Group)* ~ range (% change, signed)
   - Median household income change (10 years) *(Group)* ~ range (% change, signed)
@@ -225,7 +225,20 @@ URL params use full DB column names (e.g. `groundwater_rule_5yr_min=3`). A short
 
 ### Badge counting rule
 
-Every checked checkbox counts as +1. Parent and child checkboxes are counted independently. If a parent is checked and three of its sub-filters are checked, the badge shows 4. `filter_controller.js` counts range-type filters by DOM checkbox state (not by param presence) to stay consistent with this rule.
+Badge counts are driven entirely by `FilterState` (the applied URL params snapshot) — never by DOM checkbox state. Counts only update on Apply, which is when FilterState is written. This eliminates any divergence between the displayed count and what was actually last applied.
+
+Rules per filter type:
+
+| Type | Counting rule |
+|------|---------------|
+| `bool` / `radio` / `place` | +1 per set param |
+| `group` (`owner_type`, `primacy_type`, `most_common_rate_tier`) | +1 per individually selected option; all selected (default) or none = 0 |
+| `pop_cat` | +1 per selected population size category |
+| `range` (histograms) | +1 per active parent row, regardless of where min/max handles land |
+| `range_select` (area, density) | +1 for the pair if either or both ends are non-sentinel |
+| `subcat_panel` (health violations, watershed hazards) | +1 for the parent + +1 per active sub-row; parent with 3 active sub-filters = 4 |
+
+Adding new `FILTERS` entries of any of these types automatically counts correctly — no counter code changes are needed.
 
 ### Rate tiers as array params
 
@@ -248,7 +261,7 @@ Active groups within the Funding category OR together — a system qualifies if 
 
 ## TODO
 
-- **Filter Counter badges** — badge counts are wired and increment per the rule above (each checked box = 1), but the visual presentation and exact design expectations need confirmation against final design mockups.
+- **Filter Counter badges** — counting logic is fully implemented and FilterState-based (see Badge counting rule above). Visual presentation and exact design expectations still need confirmation against final design mockups.
 - **Missing tooltips** — `ⓘ` tooltips are missing on several headline category labels: Primary type, Type, Violations, and the Wholesaler filter. Keys need to be added to `config/tooltips.yml` and tooltip spans added to the corresponding ERB.
 - **Annual water/sewer bill "no rate info" behavior** — the checkbox is implemented, but expected behavior needs product confirmation: does checking "No rate info" show *only* systems with no rate data, or does it show all currently-filtered systems *plus* those with no rate data? Currently implemented as the latter (expands).
 - **Client consumption of `#filter-registry-config`** — optional next step: parse the embed in `filter_controller.js` to validate or derive param keys, reducing the risk of drift with **`FILTERS`**.

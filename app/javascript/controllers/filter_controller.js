@@ -32,7 +32,7 @@ const RATE_TIER_VALUE_MAP = {
 // embedded as #filter-registry-config JSON — extend FilterRegistry when adding backend-facing keys.
 // Per-entry key order: type → group → id (if any) → param | parentId → panelId → param_min → param_max → …rest.
 // subcat rows: id → param_min → param_max → minInputId → maxInputId → sliderPanelId (column-aligned within each subcats: [] block).
-// Types: 'radio' | 'bool' | 'group' | 'select' | 'pop_cat' | 'place' | 'subcat_panel' | 'range'
+// Types: 'radio' | 'bool' | 'group' | 'range_select' | 'pop_cat' | 'place' | 'subcat_panel' | 'range'
 const FILTERS = [
   // ── Source (menu 1) ──────────────────────────────────────────────────────
   { type: "radio", group: 1, param: "gw_sw_code", ids: { "ws-ground": "Groundwater", "ws-surface": "Surface Water" } },
@@ -47,8 +47,7 @@ const FILTERS = [
 
   // ── Boundaries (menu 3) ──────────────────────────────────────────────────
   { type: "radio",  group: 3, param: "symbology_field", ids: { "bt-modeled": "Modeled", "bt-system": "System Sourced" } },
-  { type: "select", group: 3, id: "area-min", param: "area_min",     sentinel: "0" },
-  { type: "select", group: 3, id: "area-max", param: "area_max",     sentinel: "999999" },
+  { type: "range_select", group: 3, param_min: "area_min", param_max: "area_max", minInputId: "area-min", maxInputId: "area-max", minSentinel: "0", maxSentinel: "999999" },
 
   // ── Compliance (menu 4) ──────────────────────────────────────────────────
   { type: "bool",  group: 4, id: "compliance-open-violations", param: "has_open_violations", value: "true" },
@@ -84,8 +83,7 @@ const FILTERS = [
 
   // ── Population (menu 5) ──────────────────────────────────────────────────
   { type: "pop_cat", group: 5, param: "pop_cat_5" },
-  { type: "select",  group: 5, id: "density-min", param: "density_min",   sentinel: "0" },
-  { type: "select",  group: 5, id: "density-max", param: "density_max",   sentinel: "999999" },
+  { type: "range_select", group: 5, param_min: "density_min", param_max: "density_max", minInputId: "density-min", maxInputId: "density-max", minSentinel: "0", maxSentinel: "999999" },
 
   // ── Change (alphabetical by param_min) ───────────────────────────────────
   { type: "range", group: 5, parentId: "trend-mhi-change",  panelId: "subcat-mhi-change",  param_min: "mhi_pct_change_capped_min",         param_max: "mhi_pct_change_capped_max",         minInputId: "min-mhi-change",  maxInputId: "max-mhi-change" },
@@ -135,16 +133,19 @@ const FILTERS = [
   ] },
 ]
 
-// Filters with .param contribute a single URL key counted directly.
-// subcat_panel and range omit .param and are counted separately below.
-const GROUP_KEYS = FILTERS.reduce((acc, f) => {
-  if (f.param) (acc[f.group] ||= []).push(f.param)
-  return acc
-}, {})
-
-// Nested panels: parent checkbox, sub-checkboxes, per-subrow range sliders (violations health + watershed hazards).
+const GROUP_TYPE_FILTERS   = FILTERS.filter(f => f.type === "group")
+const POP_CAT_FILTERS      = FILTERS.filter(f => f.type === "pop_cat")
 const SUBCAT_PANEL_FILTERS = FILTERS.filter(f => f.type === "subcat_panel")
-const RANGE_FILTERS = FILTERS.filter(f => f.type === "range")
+const RANGE_FILTERS        = FILTERS.filter(f => f.type === "range")
+const RANGE_SELECT_FILTERS = FILTERS.filter(f => f.type === "range_select")
+
+// Only scalar types (radio, bool, place) have a single param counted directly from FilterState.
+// Array params (group, pop_cat) and min/max pairs (range, range_select, subcat_panel) have their own counters.
+const SCALAR_TYPES = new Set(["radio", "bool", "place"])
+const GROUP_KEYS = {}
+for (const { type, group, param } of FILTERS) {
+  if (SCALAR_TYPES.has(type)) (GROUP_KEYS[group] ||= []).push(param)
+}
 
 // Collects filter state → writes to FilterState → dispatches filters:changed.
 // Menu open/close lives in filter_menu_controller. Responsive layout in filter_layout_controller.
@@ -183,20 +184,21 @@ export default class extends Controller {
   }
 
   toggleSelectAll(event) {
-    const master = event.currentTarget
-    const menu = master.closest(".filter-dropdown")
+    const selectAll = event.currentTarget
+    const menu = selectAll.closest(".filter-dropdown")
     if (!menu) return
+    menu.querySelectorAll(".checkbox-type").forEach(cb => { cb.checked = selectAll.checked })
+    this.#syncTypeLabel(selectAll.checked)
+  }
 
-    const boxes = menu.querySelectorAll(".checkbox-type")
-    const label = document.getElementById("type-deselect-all-txt")
-
-    if (master.checked) {
-      boxes.forEach(cb => { cb.checked = true })
-      if (label) label.textContent = "Deselect all"
-    } else {
-      boxes.forEach(cb => { cb.checked = false })
-      if (label) label.textContent = "Select all"
-    }
+  syncSelectAll(event) {
+    const menu = event.currentTarget.closest(".filter-dropdown")
+    if (!menu) return
+    const selectAll = menu.querySelector(".select-all")
+    if (!selectAll) return
+    const allChecked = [...menu.querySelectorAll(".checkbox-type")].every(cb => cb.checked)
+    selectAll.checked = allChecked
+    this.#syncTypeLabel(allChecked)
   }
 
   togglePopSize(event) {
@@ -393,6 +395,13 @@ export default class extends Controller {
           if (maxVal) p[f.param_max] = maxVal
           break
         }
+        case "range_select": {
+          const minVal = document.getElementById(f.minInputId)?.value
+          const maxVal = document.getElementById(f.maxInputId)?.value
+          if (minVal && minVal !== f.minSentinel) p[f.param_min] = minVal
+          if (maxVal && maxVal !== f.maxSentinel) p[f.param_max] = maxVal
+          break
+        }
       }
     }
 
@@ -503,6 +512,13 @@ export default class extends Controller {
           if (maxEl && maxSet) maxEl.value = params[f.param_max]
           break
         }
+        case "range_select": {
+          const minEl = document.getElementById(f.minInputId)
+          if (minEl && params[f.param_min] != null) minEl.value = params[f.param_min]
+          const maxEl = document.getElementById(f.maxInputId)
+          if (maxEl && params[f.param_max] != null) maxEl.value = params[f.param_max]
+          break
+        }
       }
     }
   }
@@ -531,43 +547,35 @@ export default class extends Controller {
 
     const countKeys = (keys) => keys.filter(k => p[k] != null && p[k] !== "").length
 
-    // Count range-type filters by DOM checkbox state: each checked parentId = +1
-    const countRangeCheckboxes = (group) =>
-      RANGE_FILTERS.filter(f => f.group === group)
-        .reduce((sum, f) => sum + (document.getElementById(f.parentId)?.checked ? 1 : 0), 0)
+    const countArrayFilters = (filters, group) =>
+      filters.filter(f => f.group === group)
+        .reduce((sum, f) => sum + (Array.isArray(p[f.param]) ? p[f.param].length : 0), 0)
 
-    // Count subcat_panel filters: 1 for parent + 1 per checked subcat checkbox
-    const countSubcatPanelCheckboxes = (group) =>
+    const countMinMaxFilters = (filters, group) =>
+      filters.filter(f => f.group === group)
+        .reduce((sum, f) => sum + (p[f.param_min] != null || p[f.param_max] != null ? 1 : 0), 0)
+
+    // 1 for the parent + 1 per active subcat row
+    const countSubcatPanelFilters = (group) =>
       SUBCAT_PANEL_FILTERS.filter(f => f.group === group)
         .reduce((sum, f) => {
-          const parentChecked = document.getElementById(f.parentId)?.checked ? 1 : 0
-          const subcatCount = f.subcats.filter(s => document.getElementById(s.id)?.checked).length
-          return sum + parentChecked + subcatCount
+          const activeSubcats = f.subcats.filter(s => p[s.param_min] != null || p[s.param_max] != null)
+          return sum + (activeSubcats.length > 0 ? 1 + activeSubcats.length : 0)
         }, 0)
 
-    // Count each active pop-size box as +1 (consistent with checkbox counting).
-    // pop_cat_5 is an array param — countKeys would only score it as 1 regardless of selections.
-    const countPopCatSelections = () => {
-      const selected = p["pop_cat_5"]
-      return Array.isArray(selected) ? selected.length : 0
-    }
+    const countForGroup = (group) =>
+      countKeys(GROUP_KEYS[group] || [])
+        + countArrayFilters(GROUP_TYPE_FILTERS, group)
+        + countArrayFilters(POP_CAT_FILTERS, group)
+        + countMinMaxFilters(RANGE_FILTERS, group)
+        + countMinMaxFilters(RANGE_SELECT_FILTERS, group)
+        + countSubcatPanelFilters(group)
 
-    // Groups 1–5: if collapsed into More, add their count to More's badge instead
-    let moreCount = countKeys(GROUP_KEYS[10] || [])
-      + countRangeCheckboxes(10)
-      + countSubcatPanelCheckboxes(10)
+    let moreCount = countForGroup(10)
 
-    for (const [groupStr, keys] of Object.entries(GROUP_KEYS)) {
-      const group = Number(groupStr)
-      if (group === 10) continue
-
+    for (const group of [1, 2, 3, 4, 5]) {
       const li = document.querySelector(`.filter-${group}`)
-      const scalarKeys = group === 5 ? keys.filter(k => k !== "pop_cat_5") : keys
-      const count = countKeys(scalarKeys)
-        + (group === 5 ? countPopCatSelections() : 0)
-        + countRangeCheckboxes(group)
-        + countSubcatPanelCheckboxes(group)
-
+      const count = countForGroup(group)
       if (li?.classList.contains("hidden")) {
         moreCount += count
       } else {
@@ -583,6 +591,11 @@ export default class extends Controller {
     badge.style.display = count > 0 ? "inline-block" : "none"
     const span = badge.querySelector("span")
     if (span) span.textContent = count
+  }
+
+  #syncTypeLabel(allChecked) {
+    const label = document.getElementById("type-deselect-all-txt")
+    if (label) label.textContent = allChecked ? "Deselect all" : "Select all"
   }
 
   #reloadStatsFrame() {
