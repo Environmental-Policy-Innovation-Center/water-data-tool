@@ -29,7 +29,7 @@ export default class extends Controller {
   }
 
   toggle() {
-    if (this.contentTarget.classList.contains("dataset-card-body")) {
+    if (this.contentTarget.getAttribute("data-collapsed") === "true") {
       this.expand()
     } else {
       this.collapse()
@@ -37,12 +37,12 @@ export default class extends Controller {
   }
 
   expand() {
-    this.contentTarget.classList.remove("dataset-card-body")
+    this.contentTarget.setAttribute("data-collapsed", "false")
     this.#scheduleUpdate()
   }
 
   collapse() {
-    this.contentTarget.classList.add("dataset-card-body")
+    this.contentTarget.setAttribute("data-collapsed", "true")
     this.#scheduleUpdate()
   }
 
@@ -76,7 +76,7 @@ export default class extends Controller {
       return
     }
 
-    const collapsed = el.classList.contains("dataset-card-body")
+    const collapsed = el.getAttribute("data-collapsed") === "true"
     if (!collapsed) {
       this.toggleTarget.hidden = false
       this.toggleTarget.textContent = "show less"

@@ -37,7 +37,7 @@ export default class extends Controller {
   filterByFrequency(event) {
     const btn = event.currentTarget
     this.#clearButtonGroup(".btn-filter", btn.parentElement)
-    btn.classList.add("is-checked")
+    btn.setAttribute("data-active", "true")
     btn.setAttribute("aria-pressed", "true")
     this.frequencyFilter = btn.dataset.frequency
     this.applyFilters()
@@ -46,7 +46,7 @@ export default class extends Controller {
   sortByDate(event) {
     const btn = event.currentTarget
     this.#clearButtonGroup(".btn-sort", btn.parentElement)
-    btn.classList.add("is-checked")
+    btn.setAttribute("data-active", "true")
     btn.setAttribute("aria-pressed", "true")
     this.resetSortTarget.style.display = "inline"
 
@@ -99,7 +99,7 @@ export default class extends Controller {
 
   #clearButtonGroup(selector, container = this.element) {
     container.querySelectorAll(selector).forEach(b => {
-      b.classList.remove("is-checked")
+      b.setAttribute("data-active", "false")
       b.setAttribute("aria-pressed", "false")
     })
   }
