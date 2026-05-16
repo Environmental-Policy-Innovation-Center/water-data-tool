@@ -276,45 +276,6 @@ ul.stats-list li{
 
 
 
-.container-section-inner{
-  margin-top:40px;
-}
-
-.container-section-inner h3{
-  margin:0px;
-  font-size:16px;
-}
-
-#container-downloads .container-section-inner{
-  margin: 40px 35px 0px 35px;
-  overflow:auto;
-  padding-bottom:50px;
-}
-
-#container-downloads .container-section-inner .container-content{
-  max-width:600px;
-}
-
-#container-downloads .container-section-inner .container-content ul li{
-  margin:8px 0px;
-}
-
-#container-downloads .container-section-inner .grid-conatiner{
-  max-width:600px;
-}
-
-#container-downloads .container-section-inner .grid-conatiner .grid-row p{
-  width:25%;
-  height:auto;
-  float:left;
-}
-
-#container-downloads .container-section-inner a,
-#container-downloads .container-section-inner .grid-conatiner .grid-row p a{
-  color:#000;
-  font-weight:bold;
-}
-
 /****************/
 /*** Datasets ***/
 /****************/
@@ -323,14 +284,6 @@ ul.stats-list li{
    _datasets.html.erb, dataset_card_component.html.erb
    is-checked utility moved to tailwind/application.css */
 
-#container-datasets {
-  right: 0;
-  width: auto;
-}
-
-.datasets-header h3 {
-  margin-bottom: 12px;
-}
 
 /* Loading mask */
 #loading-mask {
@@ -543,10 +496,6 @@ ul.stats-list li{
     padding: 60px 20px 60px 20px;
   }
 
-  .container-section-inner {
-    padding-bottom: 100px;
-  }
-
   .map-content-stats {
     position: absolute;
     bottom: 50px;
@@ -562,16 +511,5 @@ ul.stats-list li{
 
 
 
-
-  #container-downloads .container-section-inner {
-    padding:60px 0px 100px 0px;
-    overflow:auto;
-  }
-
-  #container-downloads .container-section-inner .grid-conatiner .grid-row p {
-    width: 50%;
-    height: auto;
-    float: left;
-  }
 
 }

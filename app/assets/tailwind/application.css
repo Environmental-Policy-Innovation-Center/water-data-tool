@@ -80,6 +80,12 @@
   overflow: hidden;
 }
 
+/* Section cards (datasets, downloads, documentation) use the map as a decorative background.
+   Hide all interactive map overlays — they are restored when returning to map or table view. */
+#container-map.section-mode #container-map-ui-top,
+#container-map.section-mode #container-region-nav,
+#container-map.section-mode .mapboxgl-ctrl-top-left { display: none; }
+
 /* Filter dropdown scroll areas (UI::FilterMenuComponent + matching class on scroll containers).
    Firefox: scrollbar-width / scrollbar-color via Tailwind arbitrary classes on the element.
    Chromium / Safari: ::-webkit-scrollbar* cannot be expressed as Tailwind utilities — keep
