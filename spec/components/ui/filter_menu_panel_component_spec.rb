@@ -25,12 +25,10 @@ RSpec.describe UI::FilterMenuPanelComponent, type: :component do
       expect(html.css("div#container-menu-1").first["class"]).to include("max-h-[calc(100vh-350px)]")
     end
 
-    it "scopes scrollbar hooks for WebKit (class) and Firefox (arbitrary properties)" do
+    it "scopes scrollbar hooks for WebKit (class) and overflow" do
       subject
       cls = html.css("div#container-menu-1").first["class"]
       expect(cls).to include("filter-menu-scroll")
-      expect(cls).to include("[scrollbar-width:thin]")
-      expect(cls).to include("[scrollbar-color:#b0b0b0_#f1f1f1]")
       expect(cls).to include("overflow-y-auto")
     end
 

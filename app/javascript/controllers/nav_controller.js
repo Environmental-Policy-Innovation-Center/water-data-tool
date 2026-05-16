@@ -45,8 +45,7 @@ export default class extends Controller {
     const filterBar = document.querySelector("#container-map-ui-top")
     if (filterBar) {
       if (section === "table") {
-        const sidebarTop = getComputedStyle(document.getElementById("container-sidebar")).top
-        filterBar.style.setProperty("top", sidebarTop)
+        filterBar.style.setProperty("top", "12px") // matches card's top-3
         filterBar.style.setProperty("right", "16px") // matches card's right-4
       } else {
         filterBar.style.removeProperty("top")

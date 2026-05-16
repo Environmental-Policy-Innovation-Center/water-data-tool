@@ -4,7 +4,7 @@ class UI::FilterMenuPanelComponent < ViewComponent::Base
   CONTAINER_BASE_CLASSES = "filter-dropdown filter-menu-scroll absolute top-[72px] z-[1001] " \
     "bg-white border-t-0 min-w-[350px] rounded-[15px] " \
     "shadow-[1px_4px_12px_rgba(51,51,51,0.3)] max-h-[calc(100vh-350px)] " \
-    "[scrollbar-width:thin] [scrollbar-color:#b0b0b0_#f1f1f1] overflow-y-auto hidden".freeze
+    "overflow-y-auto hidden".freeze
 
   RESET_BUTTON_CLASSES = "inline-block cursor-pointer rounded-full border border-neutral-400 bg-white " \
     "px-7 py-2 text-sm text-neutral-800 no-underline mx-2 my-1.5 min-h-11 " \
