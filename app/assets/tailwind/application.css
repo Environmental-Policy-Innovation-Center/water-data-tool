@@ -1,63 +1,25 @@
 @import "tailwindcss";
 
 @theme {
-  /* ── Typography ──────────────────────────────────────────
-     Public Sans confirmed from water_tool.css.
-     Weights/sizes below are from existing CSS — verify exact
-     scale against Figma type styles when available.          */
   --font-sans: 'Public Sans', Arial, Helvetica, sans-serif;
 
-  /* ── Brand colors ────────────────────────────────────────
-     Derived from water_tool.css frequency analysis.
-     Confirm exact hex values and additional palette entries
-     against Figma "Colors" page before shipping design work. */
+  /* Brand colors — confirm hex values against Figma before shipping */
+  --color-brand-primary: #1054A8;  /* nav active, buttons, focus rings */
+  --color-brand-accent:  #4EA324;  /* map bar indicators */
+  --color-brand-dark:    #13171F;  /* checkbox checked, filter controls */
 
-  /* Primary blue — nav active, buttons, focus rings */
-  --color-brand-primary: #1054A8;
-
-  /* Green accent — map bar indicators */
-  --color-brand-accent: #4EA324;
-
-  /* Dark navy — checkbox checked, filter controls */
-  --color-brand-dark: #13171F;
-
-  /* ── Neutrals ────────────────────────────────────────────
-     These are extracted from water_tool.css.
-     If Figma defines a named gray scale, replace these.      */
+  /* Neutrals — replace with Figma named scale when available */
   --color-neutral-900: #181818;
   --color-neutral-700: #565656;
   --color-neutral-400: #bfbfbf;
   --color-neutral-200: #dedede;
   --color-neutral-100: #f5f5f5;
-
-  /* ── Needs Figma confirmation ────────────────────────────
-     Add these once design tokens are exported from Figma:
-       --color-brand-secondary: ?
-       --color-brand-primary-hover: ?
-       --radius-card: ?       (currently 20px in CSS)
-       --radius-button: ?     (currently 20px in CSS)
-       --shadow-card: ?
-       --shadow-modal: ?
-     ──────────────────────────────────────────────────────── */
 }
 
-@layer utilities {
-  /* Active state for datasets filter/sort buttons — toggled by datasets_controller.js */
-  .is-checked {
-    background-color: var(--color-brand-primary);
-    color: white;
-    border-color: var(--color-brand-primary);
-  }
+/* ── Mapbox CDN overrides ─────────────────────────────────────────────────
+   Outside @layer so unlayered CDN styles don't win on specificity.
+   Two-class selector beats CDN's single-class specificity. */
 
-  /* margin-top: 2px + Mapbox's internal 10px control margin = 12px, matching top-3 on sidebar/filter buttons */
-  .mapboxgl-ctrl-top-left { margin-top: 2px; }
-  @media (max-width: 640px) {
-    .mapboxgl-ctrl-top-left { display: none; }
-  }
-}
-
-/* Mapbox-generated elements — must stay outside @layer so unlayered CDN styles don't beat them.
-   Two-class selector (.mapboxgl-ctrl-geocoder.mapboxgl-ctrl) beats the CDN's single-class specificity. */
 .mapboxgl-ctrl-geocoder.mapboxgl-ctrl {
   color: var(--color-neutral-900);
   border-radius: 20px;
@@ -66,41 +28,54 @@
   box-shadow: none;
   height: 40px;
 }
-
 .mapboxgl-ctrl-geocoder--input {
   height: 40px;
   color: var(--color-neutral-900);
   background-color: transparent;
 }
-
-/* Truncation height for dataset cards — toggled off by dataset_card_controller.js.
-   Kept outside @layer so it is always applied regardless of cascade layer ordering. */
-.dataset-card-body {
-  max-height: 450px;
-  overflow: hidden;
+/* 2px + Mapbox's internal 10px = 12px, matching top-3 on sidebar/filter buttons */
+.mapboxgl-ctrl-top-left { margin-top: 2px; }
+@media (max-width: 640px) {
+  .mapboxgl-ctrl-top-left { display: none; }
 }
 
-/* Section cards (datasets, downloads, documentation) use the map as a decorative background.
-   Hide all interactive map overlays — they are restored when returning to map or table view. */
-#container-map.section-mode #container-map-ui-top,
-#container-map.section-mode #container-region-nav,
+/* ── Map view states ──────────────────────────────────────────────────────
+   #container-map carries a class for each non-map view:
+   .table-mode (data table) · .section-mode (datasets / downloads / docs)
+   The map canvas is always visible as background; mode classes control overlays. */
+
+/* Freeze map canvas in non-map views */
+#container-map.table-mode #map,
+#container-map.section-mode #map { pointer-events: none; }
+
+/* Stats bar: hidden when empty (Turbo frame not yet loaded) */
+turbo-frame#stats-bar:empty { display: none; }
+/* Intro tooltip: hidden once user applies a filter (has-stats added by filter_controller.js#reloadStatsFrame) */
+#container-map-content-bottom.has-stats { display: none; }
+#container-map.table-mode turbo-frame#stats-bar,
+#container-map.section-mode turbo-frame#stats-bar,
+#container-map.section-mode #container-map-content-bottom { display: none; }
+
+/* Table/section mode: hide geocoder control */
+#container-map.table-mode .mapboxgl-ctrl-top-left,
 #container-map.section-mode .mapboxgl-ctrl-top-left { display: none; }
 
-/* Filter dropdown scroll areas (UI::FilterMenuComponent + matching class on scroll containers).
-   Firefox: scrollbar-width / scrollbar-color via Tailwind arbitrary classes on the element.
-   Chromium / Safari: ::-webkit-scrollbar* cannot be expressed as Tailwind utilities — keep
-   this small block in the compiled stylesheet (textbook asset pipeline), not inline <style>. */
-.filter-menu-scroll::-webkit-scrollbar {
-  width: 8px;
-}
-.filter-menu-scroll::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 4px;
-}
-.filter-menu-scroll::-webkit-scrollbar-thumb {
-  background: #b0b0b0;
-  border-radius: 4px;
-}
-.filter-menu-scroll::-webkit-scrollbar-thumb:hover {
-  background: #888;
-}
+/* Section mode: hide all interactive map overlays */
+#container-map.section-mode #container-map-ui-top,
+#container-map.section-mode #container-region-nav { display: none; }
+
+/* ── Webkit scrollbars ────────────────────────────────────────────────────
+   ::-webkit-scrollbar* can't be expressed as Tailwind utilities.
+   Firefox uses scrollbar-width / scrollbar-color via arbitrary classes on the element. */
+
+.filter-menu-scroll::-webkit-scrollbar { width: 8px; }
+.table-scroll::-webkit-scrollbar       { width: 8px; height: 8px; }
+.filter-menu-scroll::-webkit-scrollbar-track,
+.table-scroll::-webkit-scrollbar-track  { background: #f1f1f1; border-radius: 4px; }
+.filter-menu-scroll::-webkit-scrollbar-thumb,
+.table-scroll::-webkit-scrollbar-thumb  { background: #b0b0b0; border-radius: 4px; }
+.filter-menu-scroll::-webkit-scrollbar-thumb:hover,
+.table-scroll::-webkit-scrollbar-thumb:hover { background: #888; }
+.table-scroll::-webkit-scrollbar-corner { background: #f1f1f1; }
+.filter-menu-scroll,
+.table-scroll { scrollbar-width: thin; scrollbar-color: #b0b0b0 #f1f1f1; }

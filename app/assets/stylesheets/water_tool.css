@@ -52,17 +52,6 @@ body{
   font-style: normal;
 }
 
-.clear,
-.clearfix{
-  clear: both;
-  display: block;
-  overflow: hidden;
-  visibility: hidden;
-  width: 0;
-  height: 0;
-}
-
-
 .hide-for-desktop{
   display:none;
 }
@@ -80,29 +69,6 @@ body{
 }
 
 
-
-/* Main Content */
-
-
-.container-main-content h3.placeholder{
-  text-align: center;
-  margin-top: 30%;
-}
-
-/* Map */
-#container-map{
-  background-color:#ccc;
-  position:absolute;
-  top:0;
-  bottom:0;
-  right:0;
-  width:auto;
-}
-
-#map {
-  width:100%;
-  height:100%;
-}
 
 /* MAP UI */
 
@@ -155,97 +121,10 @@ body{
   min-width: 280px;
 }
 
-.map-content-wrapper-desktop {
-  position: absolute;
-  right: 20px;
-  bottom: 100px;
-  z-index: 9;
-  background-color: #fff;
-  border: 1px solid #bfbfbf;
-  border-radius: 20px;
-  padding: 10px 20px;
-  box-sizing: border-box;
-}
-turbo-frame#stats-bar:empty {
-  display: none;
-}
-
-#container-map-content-bottom.has-stats {
-  display: none;
-}
-
-.map-content-intro{
-  max-width:310px;
-  background-color:#fff;
-}
-
-.map-content-stats{
-  max-width:420px;
-  background-color: #7A7A7A;
-}
-
-ul.stats-list{
-  list-style:none;
-  padding: 0px;
-  margin: 15px 5px;
-}
-ul.stats-list li{
-  color:#fff;
-  font-weight: bold;
-  margin: 2px 0px;
-}
-
-#container-map-content-bottom h2{
-  font-size:1.2em;
-  line-height:1.4;
-  margin:0px;
-}
-
-#container-map-content-bottom p{
-  font-size:1em;
-  line-height:1.4;
-  margin: 10px 0px;
-}
-
-
 /* TABLE VIEW */
-
-#container-table{
-  background-color:#fff;
-}
-
-/* Styled scrollbars for the single table scroll container (handles both axes) */
-.table-scroll {
-  scrollbar-width: thin;
-  scrollbar-color: #b0b0b0 #f1f1f1;
-}
-.table-scroll::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-.table-scroll::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 4px;
-}
-.table-scroll::-webkit-scrollbar-thumb {
-  background: #b0b0b0;
-  border-radius: 4px;
-}
-.table-scroll::-webkit-scrollbar-thumb:hover {
-  background: #888;
-}
-.table-scroll::-webkit-scrollbar-corner {
-  background: #f1f1f1;
-}
-
-
 
 /* MAP MENUS — filter dropdown shell lives in Tailwind (`UI::FilterMenuComponent` / `.filter-dropdown`);
    content rules migrated to application.css. */
-
-.hidden{
-  display:none;
-}
 
 /* =====================================================================
    Table-mode: #container-table lives inside #container-map so the
@@ -263,7 +142,6 @@ ul.stats-list li{
 
 /* table-mode: map canvas stays visible as background — only hide interactive overlays */
 #container-map.table-mode .hide-for-table { display: none; }
-#container-map.table-mode .mapboxgl-ctrl-top-left { display: none; }
 
 /* table-mode: show the table panel as a flex column so sticky headers and pinned footer work */
 #container-map.table-mode #container-table {
@@ -271,8 +149,7 @@ ul.stats-list li{
   flex-direction: column;
 }
 
-/* table-mode: hide stats bar (only relevant on the map view) */
-#container-map.table-mode turbo-frame#stats-bar { display: none; }
+/* table-mode: stats bar and intro tooltip hidden — rules moved to application.css */
 
 
 
@@ -281,8 +158,7 @@ ul.stats-list li{
 /****************/
 
 /* Datasets section migrated to Tailwind (May 2026):
-   _datasets.html.erb, dataset_card_component.html.erb
-   is-checked utility moved to tailwind/application.css */
+   _datasets.html.erb, dataset_card_component.html.erb */
 
 
 /* Loading mask */
@@ -449,23 +325,7 @@ ul.stats-list li{
     overflow-y: auto;
   }
 
-  #container-map{
-    position: fixed;
-    top: 60px;
-    left: 0;
-    right: 0;
-    bottom: 50px;
-  }
 
-  #container-map #map {
-    width: 100%;
-    height: 100%;
-  }
-
-
-  .map-content-wrapper-desktop {
-    display: none;
-  }
 
   #container-map-ui-bottom {
     display: none;
@@ -474,13 +334,6 @@ ul.stats-list li{
   /* Mobile hamburger icon states */
   .mm-icon-bars { display: inline; }
   .mm-icon-x { display: none; }
-
-  #container-map-content-bottom{
-    max-width: inherit;
-    top: 25%;
-    bottom:inherit;
-    margin: 0px 10%;
-  }
 
   #container-mobile-menu{
     position: fixed;
@@ -495,20 +348,6 @@ ul.stats-list li{
   .container-mobile-menu-inner{
     padding: 60px 20px 60px 20px;
   }
-
-  .map-content-stats {
-    position: absolute;
-    bottom: 50px;
-    z-index: 9;
-    border: 1px solid #bfbfbf;
-    border-radius: 20px;
-    box-sizing: border-box;
-    left: 45px;
-    right: 20px;
-    max-width: inherit;
-    padding: 20px 15px 10px 20px;
-  }
-
 
 
 

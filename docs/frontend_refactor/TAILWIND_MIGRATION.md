@@ -1,6 +1,6 @@
 # Asset and CSS Deprecation Guide
 
-_Last updated: 2026-05-12 — Chunk F fully complete; pointer-events geocoder fix; filter tab h-10_
+_Last updated: 2026-05-16 — Chunks E, I, J complete; section-mode architecture; map/stats CSS migrated; CSS cleanup (tier 6)_
 
 This document tracks the migration away from legacy image assets and `water_tool.css` toward a clean, Tailwind-only frontend. It serves as both a record of decisions made and a step-by-step implementation guide for future work sessions.
 
@@ -111,7 +111,8 @@ Chunk **Status** lines below (**Not started** / **Partially complete** / **Compl
 |------|-----------------|
 | **2026-05** | **Tier 4 — `water_tool.css`:** Removed selectors with **no live references under `app/`** (map-hover popup chrome, BWN/green-bar, old filter footer/button classes, water/sewer bill grid, orphan report header hooks, `.hide-this`, `.slider-subhead`, unused mobile-only hooks in `@media (max-width: 640px)`; see Section 2 overview bullets). `bin/ci` green on branch. |
 | **2026-05** | **Tier 5 — `water_tool.css`:** Removed `#wrapper-ui`, `#wrapper-map-ui`, `#container-zoom-to-loc` (+ nested rules), and a duplicate `.mapboxgl-ctrl-geolocate` block. **`deprecated/` not modified** (snapshot policy). |
-| **2026-05** | **Paused:** No further bulk deletion from `water_tool.css` until the next **chunk** migrations below; remaining rules mostly still bind to live UI. |
+| **2026-05** | **Section-mode architecture + section cards (branch: `fix/datasets-page-multiple-fixes`):** Introduced `.section-mode` CSS class on `#container-map` (alongside existing `.table-mode`) so map always stays visible as a decorative background in all views. `nav_controller.js` refactored: JS show/hide replaced with CSS class toggling; map canvas never hidden. `sidebar_controller.js` extended: section containers (`#container-datasets`, `#container-documentation`, `#container-downloads`, `#container-table`) shift right of sidebar on collapse/expand. Section containers and table container given Tailwind card classes (`top-3 bottom-8 rounded-xl shadow-lg`). `.container-section-inner` wrapper class removed from `water_tool.css` and all HTML; `_downloads.html.erb` fully migrated to Tailwind. `#container-map.table-mode #map { display: none }` removed — map now stays visible as background in table mode. Dead CSS removed: `#container-datasets`, `.datasets-header h3`. Section-mode overlay rules added to `application.css`. |
+| **2026-05** | **Tier 6 — CSS cleanup (branch: `fix/datasets-page-multiple-fixes`):** `#container-map` and `#map` desktop CSS removed → Tailwind `bg-[#ccc] absolute inset-0` / `w-full h-full` on elements in `index.html.erb`. Stats-bar + intro tooltip migrated to Tailwind: `.map-content-wrapper-desktop`, `.map-content-intro`, `.map-content-stats`, `ul.stats-list`, `#container-map-content-bottom h2/p` all removed from `water_tool.css`; `turbo-frame#stats-bar` and intro tooltip markup updated to inline Tailwind. `.table-scroll` scrollbar rules (Firefox + WebKit) moved to `application.css` alongside `.filter-menu-scroll`. `#container-map.table-mode .mapboxgl-ctrl-top-left` moved to `application.css` (consolidated with section-mode geocoder rule). Dead CSS removed: `.clear`/`.clearfix`, `.container-main-content h3.placeholder`, `#container-table { background-color }` (redundant with higher-specificity nested rule), `.hidden` (Tailwind provides this). |
 
 ### General approach
 
@@ -129,7 +130,7 @@ Chunk **Status** lines below (**Not started** / **Partially complete** / **Compl
 **Status:** ⬜ Not started
 
 **CSS classes to remove from `water_tool.css`:**
-`.hide-for-desktop`, `.hide-for-mobile`, `.hide-when-collapsed`, `.hide-when-collapsed-fade`, `.hidden` (`.hide-this` was removed in May 2026 — it had no live references.)
+`.hide-for-desktop`, `.hide-for-mobile`, `.hide-when-collapsed`, `.hide-when-collapsed-fade` (`.hidden` and `.hide-this` were removed in May 2026 — Tailwind provides `.hidden`; `.hide-this` had no live references.)
 
 **Migration:**
 - `hide-for-desktop` → `md:hidden`
@@ -144,14 +145,13 @@ Chunk **Status** lines below (**Not started** / **Partially complete** / **Compl
 ---
 
 #### Chunk B: Base and body styles
-**Status:** ⬜ Not started
+**Status:** 🔶 Partially complete
 
 **CSS to remove:**
-`body {}`, `.clear`, `.clearfix` (`#wrapper-ui` / `#wrapper-map-ui` were removed from `water_tool.css` in May 2026 — no Rails markup; do not reintroduce.)
+`body {}` (`#wrapper-ui` / `#wrapper-map-ui` removed in May 2026; `.clear` / `.clearfix` removed in May 2026 — no live float layouts.)
 
 **Migration:**
-- `body` font family is declared in `app/assets/tailwind/application.css` — verify and delete the duplicate.
-- `.clear` / `.clearfix` — grep views; almost certainly unreferenced. Delete if so.
+- `body` font family is declared in `app/assets/tailwind/application.css` — verify Tailwind preflight covers margin/padding/font and delete the duplicate.
 
 **Test:** Page font rendering unchanged. No layout collapse on any view.
 
@@ -202,20 +202,14 @@ Chunk **Status** lines below (**Not started** / **Partially complete** / **Compl
 ---
 
 #### Chunk E: Core app layout (map + main content containers)
-**Status:** 🔶 Partially complete
+**Status:** ✅ Complete
 
-**CSS to remove:**
-`.container-main-content`, `#container-map`, `#map`
+**CSS removed:**
+- `.container-main-content` CSS rule (Chunk C) ✅
+- `#container-map` → Tailwind `bg-[#ccc] absolute inset-0 max-[640px]:fixed max-[640px]:top-[60px] max-[640px]:bottom-[50px]` on element in `index.html.erb` ✅
+- `#map` → Tailwind `w-full h-full` on element ✅
 
-**Migration:**
-- `.container-main-content` `left: 250px` removed — sidebar now overlays the map (Chunk C). All four `.container-main-content` divs in `index.html.erb` now have Tailwind `w-full absolute left-0`; the CSS rule has been deleted. ✅
-- `#container-map` is `position: absolute; inset: 0` — replace with Tailwind `absolute inset-0`. ⬜
-- `#map` is `width: 100%; height: 100%` → Tailwind `w-full h-full`. ⬜
-- **Do remaining items after Chunk D** — mobile pixel values inform these dimensions.
-
-**Files to update:** `index.html.erb`
-
-**Test:** Map fills available space at all viewport sizes. No white gaps, no overflow. Sidebar and map don't overlap. Switching between map and table view works.
+**Files updated:** `index.html.erb`
 
 ---
 
@@ -289,11 +283,13 @@ All `.mapboxgl-*` rules, `.place-autocomplete-results`, `.mapboxgl-ctrl-geocoder
 **Status:** ⬜ Not started
 
 **CSS to remove:**
-`#container-table`, `.table-scroll` (custom scrollbar), `#container-map #container-table`, `#container-map.table-mode *` rules (after any Mapbox/table CSS consolidation per Chunk G — whether those rules stay in `water_tool.css` or move to an optional `mapbox_overrides.css`).
+`#container-map #container-table` (display/position/z-index), `#container-map.table-mode .hide-for-table`, `#container-map.table-mode #container-table` (flex show rule).
+
+**Note:** `.table-scroll` scrollbar rules were moved to `application.css` in May 2026 (alongside `.filter-menu-scroll`). `#container-table { background-color: #fff }` standalone rule removed (covered by nested selector). `#container-map.table-mode .mapboxgl-ctrl-top-left` moved to `application.css`. Remaining water_tool.css rules for this area are the table-panel display/position block and the `hide-for-table` overlay rule.
 
 **Migration:**
-- `#container-table` show/hide is toggled by `.table-mode` on `#container-map` (via the map-table-toggle Stimulus controller). Keep the JS; migrate the CSS display logic to Tailwind `hidden` class toggling.
-- `.table-scroll` scrollbar styling — Tailwind v4 has `scrollbar-thin`, `scrollbar-color-*` utilities; use those, or keep as a small utility block in `application.css` if browser support is a concern.
+- `#container-map #container-table` display logic: replace `display:none` default + `display:flex` in table-mode with Tailwind `hidden`/`flex` class toggling (already done via `.table-mode` CSS — migrate the CSS rule itself).
+- `#container-table` position/z-index → Tailwind `absolute z-[3]` on the element.
 
 **Files to update:** `index.html.erb`, possibly the map-table-toggle Stimulus controller
 
@@ -302,7 +298,7 @@ All `.mapboxgl-*` rules, `.place-autocomplete-results`, `.mapboxgl-ctrl-geocoder
 ---
 
 #### Chunk I: Report view
-**Status:** 🔶 Nearly complete — `.container-section-inner` (shared with Chunk J) is the only remaining item
+**Status:** ✅ Complete
 
 **Completed (May 2026):**
 - All legacy report CSS removed from `water_tool.css`: `#container-report`, `.container-report-section-inner`, `.container-report-body`, `.container-report-body h2` (dead — no h2 in report views), and the full `.btn-report` family
@@ -314,28 +310,20 @@ All `.mapboxgl-*` rules, `.place-autocomplete-results`, `.mapboxgl-ctrl-geocoder
 - `reports/show.html.erb` header: logo always `w-[85px]`, DWE text always visible, `grid-cols-[1fr_2fr_1fr]`, date/time stamp right-aligned
 - Print layout via `content_for :head` in `index.html.erb`: `@page` with 0.5in margins and custom page count at `@bottom-right`; `body > *:not(#container-report)` hides non-report content on print — `@page` at-rules and complex selectors can't be Tailwind utilities, so `content_for :head` is the conventional Rails home for them
 
-**CSS still to remove:**
-`.container-section-inner` (shared with downloads — coordinate with Chunk J)
-
 **Files updated:** `app/views/home/index.html.erb`, `app/views/public_water_systems/reports/show.html.erb`
+
+**Completed (May 2026):** `.container-section-inner` removed from `water_tool.css` (shared with Chunk J — coordinated). No remaining CSS for this chunk.
 
 **Test:** Report opens as full-screen overlay. Print button hidden on print; triggers browser dialog on click. Close button dismisses report. Multi-page printing works with 0.5in margins and "X of Y" page count at bottom-right. Logo, date/time, and utility name render correctly on page 1.
 
 ---
 
 #### Chunk J: Downloads section
-**Status:** ⬜ Not started
+**Status:** ✅ Complete
 
-**CSS to remove:**
-`#container-downloads .container-section-inner` and its descendant rules
+**CSS removed:** `.container-section-inner`, `#container-downloads .container-section-inner` (desktop + mobile blocks, including `.grid-conatiner` float layout). All removed from `water_tool.css`.
 
-**Migration:**
-- Note the typo in the CSS: `.grid-conatiner` (not "container") — grep for this in views to locate the actual element.
-- Mostly margin, width, and float-based grid layout. Replace with Tailwind flex/grid utilities.
-
-**Files to update:** Downloads view — locate with `grep -r "container-downloads" app/views/`
-
-**Test:** Downloads section renders with correct layout at desktop and mobile widths. Links accessible and correct.
+**Migration done:** `_downloads.html.erb` fully rewritten with Tailwind (`max-w-2xl`, `grid grid-cols-2 md:grid-cols-4`, etc.). `#container-downloads` in `index.html.erb` uses Tailwind card classes directly (no `.container-section-inner` wrapper).
 
 ---
 
@@ -343,11 +331,10 @@ All `.mapboxgl-*` rules, `.place-autocomplete-results`, `.mapboxgl-ctrl-geocoder
 **Status:** ⬜ Not started
 
 **CSS to remove:**
-`#loading-mask`, `.datasets-header h3`, `#container-datasets`
+`#loading-mask` (`.datasets-header h3` and `#container-datasets` were removed in May 2026 — both dead CSS with no live references.)
 
 **Migration:**
 - `#loading-mask` is `position: absolute; background: rgba(0,0,0,0.6); z-index: 1002` → Tailwind `absolute inset-0 bg-black/60 z-[1002] text-center`.
-- Grep each remaining class before migrating — some may already be dead. (`.container-filter p` and `.btn-filter-options img` were removed with other dead filter-menu shell rules in May 2026.)
 
 **Test:** Loading mask appears during map data fetch, disappears when complete.
 
