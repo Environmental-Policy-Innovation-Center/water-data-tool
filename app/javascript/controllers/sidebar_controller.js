@@ -3,7 +3,7 @@ import { Controller } from "@hotwired/stimulus"
 const FULL_WIDTH = 250
 const COLLAPSED_WIDTH = 80
 const SIDEBAR_LEFT = 16      // matches left-4 (16px)
-const CONTROLS_GAP = 8       // gap between sidebar right edge and map controls
+const CONTROLS_GAP = 16      // gap between sidebar right edge and content — matches SIDEBAR_LEFT so all three outer gaps are equal
 const MAPBOX_CTRL_PAD = 10   // Mapbox adds padding:10px to .mapboxgl-ctrl-top-left
 const AUTO_COLLAPSE_BELOW = 1280
 
@@ -45,14 +45,31 @@ export default class extends Controller {
       this.element.removeAttribute("data-sidebar-collapsed")
     }
     this.element.style.width = `${width}px`
-    this.#shiftMapControls(width)
+    this.#shiftContent(width)
   }
 
-  #shiftMapControls(sidebarWidth) {
+  #shiftContent(sidebarWidth) {
     const base = sidebarWidth + SIDEBAR_LEFT + CONTROLS_GAP
+
+    // Map UI overlay elements (filter bar, mapbox controls, region nav)
     document.querySelector("#container-map-ui-top")?.style.setProperty("left", `${base}px`)
     document.querySelector(".mapboxgl-ctrl-top-left")?.style.setProperty("margin-left", `${base}px`)
     // Zoom buttons sit INSIDE .mapboxgl-ctrl-top-left at padding:10px from its edge
     document.querySelector("#container-region-nav")?.style.setProperty("left", `${base + MAPBOX_CTRL_PAD}px`)
+
+    // Sidebar is hidden on mobile — skip section offsets below 640px
+    if (window.innerWidth < 640) return
+
+    // Section containers (datasets, documentation, downloads) — shift right of sidebar
+    ;["#container-datasets", "#container-documentation", "#container-downloads"].forEach(id => {
+      const el = document.querySelector(id)
+      if (!el) return
+      el.style.setProperty("left", `${base}px`)
+      el.style.setProperty("right", "0")
+      el.style.setProperty("width", "auto")
+    })
+
+    // Table panel (inside #container-map) — also needs to clear the sidebar
+    document.querySelector("#container-table")?.style.setProperty("left", `${base}px`)
   }
 }
