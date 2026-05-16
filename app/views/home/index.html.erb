@@ -183,8 +183,8 @@
 <%# =====================================================
     Datasets section (hidden until user navigates)
     ===================================================== %>
-<div id="container-datasets" class="container-main-content w-full absolute left-0 hidden">
-  <div class="container-section-inner">
+<div id="container-datasets" class="container-main-content absolute hidden top-3 bottom-8 bg-white rounded-xl shadow-lg overflow-hidden">
+  <div class="h-full overflow-y-auto">
     <%= render "datasets" %>
   </div>
 </div>
@@ -192,17 +192,17 @@
 <%# =====================================================
     Documentation section
     ===================================================== %>
-<div id="container-documentation" class="container-main-content w-full absolute left-0 hidden">
-  <div class="container-section-inner">
-    <h3 class="placeholder">Documentation</h3>
+<div id="container-documentation" class="container-main-content absolute hidden top-3 bottom-8 bg-white rounded-xl shadow-lg overflow-hidden">
+  <div class="h-full overflow-y-auto px-5 py-5">
+    <h3 class="m-0 text-base font-semibold">Documentation</h3>
   </div>
 </div>
 
 <%# =====================================================
     Downloads section (hidden until user navigates)
     ===================================================== %>
-<div id="container-downloads" class="container-main-content w-full absolute left-0 hidden">
-  <div class="container-section-inner">
+<div id="container-downloads" class="container-main-content absolute hidden top-3 bottom-8 bg-white rounded-xl shadow-lg overflow-hidden">
+  <div class="h-full overflow-y-auto px-5 py-5">
     <%= render "downloads" %>
   </div>
 </div>

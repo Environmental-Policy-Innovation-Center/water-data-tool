@@ -65,7 +65,7 @@ export default class extends Controller {
       const el = document.querySelector(id)
       if (!el) return
       el.style.setProperty("left", `${base}px`)
-      el.style.setProperty("right", "0")
+      el.style.setProperty("right", `${SIDEBAR_LEFT}px`)
       el.style.setProperty("width", "auto")
     })
 

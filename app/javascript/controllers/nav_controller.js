@@ -36,29 +36,27 @@ export default class extends Controller {
 
     document.querySelectorAll(".container-main-content").forEach(el => el.classList.add("hidden"))
 
-    if (section === "map" || section === "table") {
-      containerMap.classList.remove("hidden")
+    // Map is always visible as background; section cards float on top of it
+    containerMap.classList.remove("hidden")
+    containerMap.classList.toggle("table-mode", section === "table")
+    containerMap.classList.toggle("section-mode", section !== "map" && section !== "table")
 
-      // Toggle map vs table mode (CSS handles #container-table visibility)
-      containerMap.classList.toggle("table-mode", section === "table")
-
-      // In table mode, pin the filter bar inside the card so it acts as the card header
-      const filterBar = document.querySelector("#container-map-ui-top")
-      if (filterBar) {
-        if (section === "table") {
-          const sidebarTop = getComputedStyle(document.getElementById("container-sidebar")).top
-          filterBar.style.setProperty("top", sidebarTop)
-          filterBar.style.setProperty("right", "16px") // matches card's right-4
-        } else {
-          filterBar.style.removeProperty("top")
-          filterBar.style.removeProperty("right")
-        }
-      }
-
+    // In table mode, pin the filter bar inside the card so it acts as the card header
+    const filterBar = document.querySelector("#container-map-ui-top")
+    if (filterBar) {
       if (section === "table") {
-        document.dispatchEvent(new CustomEvent("table:show"))
+        const sidebarTop = getComputedStyle(document.getElementById("container-sidebar")).top
+        filterBar.style.setProperty("top", sidebarTop)
+        filterBar.style.setProperty("right", "16px") // matches card's right-4
+      } else {
+        filterBar.style.removeProperty("top")
+        filterBar.style.removeProperty("right")
       }
-    } else {
+    }
+
+    if (section === "table") {
+      document.dispatchEvent(new CustomEvent("table:show"))
+    } else if (section !== "map") {
       const target = document.getElementById(`container-${section}`)
       if (target) target.classList.remove("hidden")
     }
