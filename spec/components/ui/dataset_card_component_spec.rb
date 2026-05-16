@@ -64,11 +64,11 @@ RSpec.describe UI::DatasetCardComponent, type: :component do
     expect(card).to be_present
   end
 
-  it "marks the content area as the Stimulus content target with max height" do
+  it "marks the content area as the Stimulus content target with collapsed state" do
     render_inline described_class.new(**defaults)
     content = html.css("[data-dataset-card-target='content']").first
     expect(content).to be_present
-    expect(content["class"]).to include("dataset-card-body")
+    expect(content["data-collapsed"]).to eq("true")
   end
 
   it "renders a sentinel for clip detection at the end of the body" do

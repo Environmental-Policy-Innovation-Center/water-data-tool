@@ -1,7 +1,7 @@
 # Lookbook previews for UI::DatasetCardComponent (datasets catalog).
 #
 # Behavior (see app/javascript/controllers/dataset_card_controller.js):
-# - Body uses .dataset-card-body (max-height + overflow hidden in application.css).
+# - Body uses data-collapsed="true/false" with Tailwind data-variant utilities for clip/expand.
 # - A bottom sentinel drives clip detection; the footer button toggles show more / show less
 #   via Stimulus (click->dataset-card#toggle). Button starts hidden until overflow is detected.
 class UI::DatasetCardComponentPreview < Lookbook::Preview
