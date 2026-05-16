@@ -253,20 +253,15 @@ ul.stats-list li{
    #container-map.
    ===================================================================== */
 
-/* Table panel — hidden by default, fills the map container */
+/* Table panel — hidden by default, floats as a card above the map */
 #container-map #container-table {
   display: none;
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
   background-color: #fff;
   z-index: 3; /* above map canvas, below filter bar (z-index: 5) */
 }
 
-/* table-mode: hide map canvas and map-only overlays */
-#container-map.table-mode #map { display: none; }
+/* table-mode: map canvas stays visible as background — only hide interactive overlays */
 #container-map.table-mode .hide-for-table { display: none; }
 #container-map.table-mode .mapboxgl-ctrl-top-left { display: none; }
 

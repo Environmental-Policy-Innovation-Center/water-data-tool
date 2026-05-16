@@ -41,6 +41,7 @@ Known issues that have been discovered, which we know we need to come back to an
   - General formatting
 
 ### Mobile Issues
+  - Remove any legacy mobile only styling - try and rely solely on mobile friendly best practices using Tailwinds _(A11Y_AND_MOBILE_GUIDE.md)_
   - Map/Table view toggle is desktop-only (`hide-for-mobile` CSS) — intentional per current design; revisit if mobile map+table is scoped
   - Filter bar is desktop-only on mobile (`#container-map-ui-top { display: none }`) — mobile users currently have no filter access; open design question
   - [ ] Export button shows downloads icon
