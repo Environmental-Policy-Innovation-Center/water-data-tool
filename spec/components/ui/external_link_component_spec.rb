@@ -19,6 +19,11 @@ RSpec.describe UI::ExternalLinkComponent, type: :component do
     expect(html.at_css("a")["title"]).to eq("Opens in new tab")
   end
 
+  it "always applies structural base classes" do
+    render_inline(component) { "Example" }
+    expect(html.at_css("a")["class"]).to include("inline-flex", "items-center", "gap-0.5")
+  end
+
   it "is underlined by default" do
     render_inline(component) { "Example" }
     expect(html.at_css("a")["class"]).to include("underline")
@@ -34,28 +39,31 @@ RSpec.describe UI::ExternalLinkComponent, type: :component do
     expect(html.at_css(".sr-only").text).to eq("(opens in new tab)")
   end
 
-  context "with aria_label" do
-    subject(:component) { described_class.new(url: "https://example.com", aria_label: "Example site (opens in new tab)") }
+  it "does not set aria-label" do
+    render_inline(component) { "Example" }
+    expect(html.at_css("a")["aria-label"]).to be_nil
+  end
 
-    it "sets the aria-label" do
+  it "renders the external-link icon by default" do
+    render_inline(component) { "Example" }
+    expect(html.at_css("a svg")).to be_present
+  end
+
+  context "with show_icon: false" do
+    subject(:component) { described_class.new(url: "https://example.com", show_icon: false) }
+
+    it "omits the icon" do
       render_inline(component) { "Example" }
-      expect(html.at_css("a")["aria-label"]).to eq("Example site (opens in new tab)")
+      expect(html.at_css("a svg")).to be_nil
     end
   end
 
-  context "without aria_label" do
-    it "omits the aria-label attribute" do
-      render_inline(component) { "Example" }
-      expect(html.at_css("a")["aria-label"]).to be_nil
-    end
-  end
+  context "with custom classes" do
+    subject(:component) { described_class.new(url: "https://example.com", classes: "text-blue-600") }
 
-  context "with custom css_class" do
-    subject(:component) { described_class.new(url: "https://example.com", css_class: "text-blue-600 underline") }
-
-    it "applies the custom class" do
+    it "merges custom class with base classes" do
       render_inline(component) { "Example" }
-      expect(html.at_css("a")["class"]).to eq("text-blue-600 underline")
+      expect(html.at_css("a")["class"]).to include("inline-flex", "items-center", "gap-0.5", "text-blue-600")
     end
   end
 end

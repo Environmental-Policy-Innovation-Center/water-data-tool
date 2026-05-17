@@ -9,8 +9,7 @@
     <li class="mb-2">Please refer to the README.txt in the download for additional details on the datasets contained and their limitations.</li>
   </ul>
   <p class="mb-6">Have questions about the data? Fill out our
-    <%= external_link_to "feedback form", "https://docs.google.com/forms/d/15GExM4tPoErkbLW43CkNNB2t27SZ7wvPcTwG5IzN5S4/edit",
-        class: "inline-flex items-center gap-0.5 text-black font-bold" %>
+    <%= render UI::ExternalLinkComponent.new(url: "https://docs.google.com/forms/d/15GExM4tPoErkbLW43CkNNB2t27SZ7wvPcTwG5IzN5S4/edit", classes: "text-black font-bold") do %>feedback form<% end %>
     or get in touch via email <a href="mailto:watertool@policyinnovation.org" class="text-black font-bold">watertool@policyinnovation.org</a>.</p>
 
   <div class="border-t border-gray-200 pt-6">
