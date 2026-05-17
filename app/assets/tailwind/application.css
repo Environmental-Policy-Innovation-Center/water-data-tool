@@ -53,8 +53,7 @@ turbo-frame#stats-bar:empty { display: none; }
 /* Intro tooltip: hidden once user applies a filter (has-stats added by filter_controller.js#reloadStatsFrame) */
 #container-map-content-bottom.has-stats { display: none; }
 #container-map.table-mode turbo-frame#stats-bar,
-#container-map.section-mode turbo-frame#stats-bar,
-#container-map.section-mode #container-map-content-bottom { display: none; }
+#container-map.section-mode turbo-frame#stats-bar { display: none; }
 
 /* Table/section mode: hide geocoder control */
 #container-map.table-mode .mapboxgl-ctrl-top-left,

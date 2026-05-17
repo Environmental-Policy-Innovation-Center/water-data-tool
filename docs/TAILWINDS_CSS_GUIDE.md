@@ -3,7 +3,7 @@
 This guide outlines the standard practices for managing Tailwind CSS (v4) within this Rails application. Follow these rules to keep the styling ecosystem clean, fast, and scalable.
 
 ## 🚀 Quick Reference
-* **Primary Entrypoint**: `app/assets/stylesheets/application.css`
+* **Primary Entrypoint**: `app/assets/tailwind/application.css`
 * **Configuration File**: NONE (`tailwind.config.js` is deprecated). Use the `@theme` block in your CSS entrypoint.
 * **Development Watcher**: Always boot the app using `bin/dev` to run active asset compilation.
 
@@ -94,5 +94,5 @@ When working with heavy client-side libraries like Mapbox, certain layout constr
 When generating or modifying views for this repository:
 1. **Never inline custom CSS blocks**: Use valid utility classes.
 2. **Apply Mobile-First Prefixes**: Write base styles for mobile layouts first, then append `md:` or `lg:` media prefixes to scale upward for the primary desktop view.
-3. **Verify Config Tokens**: Check `app/assets/stylesheets/application.css` under the `@theme` directive for custom variables (like `--color-brand-*`) before choosing raw Tailwind default colors.
+3. **Verify Config Tokens**: Check `app/assets/tailwind/application.css` under the `@theme` directive for custom variables (like `--color-brand-*`) before choosing raw Tailwind default colors.
 4. **Enforce Semantic HTML and Focus Rules**: Include appropriate `aria-*` attributes, ensure `sr-only` labels exist on visual-only icon buttons, and always style the `focus-visible:` state.

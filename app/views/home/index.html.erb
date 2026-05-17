@@ -55,7 +55,7 @@
 <%# =====================================================
     Map view (default section)
     ===================================================== %>
-<div id="container-map" class="container-main-content group bg-[#ccc] absolute inset-0 max-[640px]:fixed max-[640px]:top-[60px] max-[640px]:bottom-[50px]"
+<div id="container-map" class="container-main-content group/map bg-[#ccc] absolute inset-0 max-[640px]:fixed max-[640px]:top-[60px] max-[640px]:bottom-[50px]"
      data-controller="map filter filter-menu"
      data-map-tile-url-value="/tiles/{z}/{x}/{y}">
 
@@ -80,7 +80,7 @@
   <div id="map" class="w-full h-full"></div>
 
   <%# Map region shortcuts (48 / AK / HI / territories) — below +/− zoom controls %>
-  <div id="container-region-nav" class="absolute left-0 top-[135px] z-[1] max-[640px]:hidden group-[.table-mode]:hidden">
+  <div id="container-region-nav" class="absolute left-0 top-[135px] z-[1] max-[640px]:hidden group-[.table-mode]/map:hidden">
     <%= render UI::MapRegionShortcutButtonComponent.new(label: "48", aria_label: "Zoom to 48 states", map_action: "zoom48") %>
     <%= render UI::MapRegionShortcutButtonComponent.new(label: "AK", aria_label: "Zoom to Alaska", map_action: "zoomAk") %>
     <%= render UI::MapRegionShortcutButtonComponent.new(label: "HI", aria_label: "Zoom to Hawaii", map_action: "zoomHi") %>
@@ -91,7 +91,7 @@
   </div>
 
   <%# Intro tooltip — bottom right of map canvas %>
-  <div id="container-map-content-bottom" class="group-[.table-mode]:hidden">
+  <div id="container-map-content-bottom" class="group-[.table-mode]/map:hidden group-[.section-mode]/map:hidden">
     <div class="absolute right-5 bottom-[100px] z-[9] max-w-[310px] max-[640px]:hidden bg-white border border-neutral-400 rounded-[20px] py-2.5 px-5">
       <p class="text-[1.2em] leading-[1.4] m-0"><strong>How to use this tool:</strong></p>
       <p class="text-[1em] leading-[1.4] my-2.5 mx-0">Search or zoom into the map to see information about public drinking water systems in areas of interest. Use the filters to customize the display.</p>
@@ -105,7 +105,7 @@
 
   <%# Map/Table view toggle — bottom right of map canvas %>
   <div id="container-map-ui-bottom"
-       class="max-[640px]:hidden group-[.section-mode]:hidden absolute right-5 bottom-[42px] z-[999]">
+       class="max-[640px]:hidden group-[.section-mode]/map:hidden absolute right-5 bottom-[42px] z-[999]">
     <ul class="m-0 flex list-none flex-nowrap items-center gap-1.5 pt-1.5 pl-5">
       <li class="relative shrink-0">
         <button type="button"

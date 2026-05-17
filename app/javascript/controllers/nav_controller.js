@@ -2,12 +2,12 @@ import { Controller } from "@hotwired/stimulus"
 
 // Handles section navigation.
 //
-// Map and Table views share #container-map (so the filter bar stays visible).
-// Switching between them toggles the .table-mode class on #container-map —
-// CSS hides/shows #map vs #container-table accordingly.
-//
-// All other sections (datasets, documentation, downloads) use the standard
-// .container-main-content show/hide approach.
+// The map is always rendered as a background; #container-map is never hidden.
+// Map vs Table: toggles .table-mode on #container-map — CSS hides/shows #map
+// vs #container-table accordingly.
+// Non-map/table sections (datasets, documentation, downloads): toggles
+// .section-mode on #container-map (for overlay styling) and shows the matching
+// .container-main-content element.
 export default class extends Controller {
   toggleMobile(event) {
     event.preventDefault()
