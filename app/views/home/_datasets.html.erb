@@ -12,18 +12,35 @@
           <button class="px-5 py-2.5 bg-white text-neutral-700 border border-neutral-400 rounded-full text-sm cursor-pointer hover:bg-neutral-200"
                   data-action="click->datasets#showAll">show all</button>
         </div>
-        <p class="m-0 text-sm text-neutral-700">This inventory of drinking water datasets includes information from various public data providers. Here, you can learn details about specific sources and considerations for use. Please visit the documentation for additional information.</p>
+        <p class="m-0 text-sm text-neutral-700">
+          This inventory of drinking water datasets includes information from various public data providers.
+          You can learn details about specific sources and considerations for use below.
+          Please visit the
+          <a href="https://tech-team-data.s3.us-east-1.amazonaws.com/national-dw-tool/public-data-downloads/EPIC's+Drinking+Water+Explorer+Tool+-+Methodology.pdf"
+             target="_blank" rel="noopener noreferrer"
+             title="Opens in new tab"
+             class="inline-flex items-center gap-0.5 text-brand-primary underline">documentation
+            <%= icon "external-link", classes: "w-3.5 h-3.5 shrink-0" %>
+            <span class="sr-only">(opens in new tab)</span>
+          </a>
+          for additional information and caveats.
+        </p>
       </div>
 
       <%# Right: recommend button + filter/sort toggles -%>
       <div class="flex-1 mt-4 md:mt-0 md:ml-8">
         <div class="flex flex-col items-center md:items-end gap-3">
+          <p class="hidden md:block text-sm text-neutral-700 m-0 max-w-[30ch] text-right">
+            EPIC wants to know what other datasets should be included in the tool.
+          </p>
           <a href="https://docs.google.com/forms/d/e/1FAIpQLSc6H73GVlF-dlmJrjpRa1J-kgkbzGIHoys5Tcnn3DNzCZlt4Q/viewform?usp=dialog"
              target="_blank" rel="noopener noreferrer"
-             class="inline-block px-5 py-2.5 bg-brand-primary text-white no-underline rounded-full border border-brand-primary text-sm">
+             title="Opens in new tab"
+             class="inline-flex items-center gap-1.5 px-5 py-2.5 bg-brand-primary text-white no-underline rounded-full border border-brand-primary text-sm">
             Recommend Datasets
+            <%= icon "external-link", classes: "w-4 h-4 shrink-0" %>
+            <span class="sr-only">(opens in new tab)</span>
           </a>
-          <p class="hidden md:block text-sm text-neutral-700 m-0">EPIC wants to know what other datasets should be included in the tool.</p>
           <div class="flex gap-3">
             <button type="button"
                     data-action="click->datasets#togglePanel"

@@ -27,15 +27,30 @@
     <li class="mb-2">Data for territories contains a limited set of information.</li>
     <li class="mb-2">Please refer to the README.txt in the download for additional details on the datasets contained and their limitations.</li>
   </ul>
-  <p class="mb-6">Have questions about the data? Fill out our <a href="https://docs.google.com/forms/d/15GExM4tPoErkbLW43CkNNB2t27SZ7wvPcTwG5IzN5S4/edit" target="_blank" rel="noopener noreferrer" class="text-black font-bold">feedback form</a> or get in touch via email <a href="mailto:watertool@policyinnovation.org" class="text-black font-bold">watertool@policyinnovation.org</a>.</p>
+  <p class="mb-6">Have questions about the data? Fill out our
+    <%= external_link_to "feedback form", "https://docs.google.com/forms/d/15GExM4tPoErkbLW43CkNNB2t27SZ7wvPcTwG5IzN5S4/edit",
+        class: "inline-flex items-center gap-0.5 text-black font-bold" %>
+    or get in touch via email <a href="mailto:watertool@policyinnovation.org" class="text-black font-bold">watertool@policyinnovation.org</a>.</p>
 
   <div>
     <div class="mb-4">
-      <a href="<%= s3_base %>/national-dw-tool-staged.zip" target="_blank" rel="noopener noreferrer" class="text-black font-bold">National</a>
+      <a href="<%= s3_base %>/national-dw-tool-staged.zip"
+         target="_blank" rel="noopener noreferrer"
+         class="inline-flex items-center gap-1.5 text-black font-bold">
+        <%= icon "downloads", classes: "w-4 h-4 shrink-0" %>
+        National
+      </a>
     </div>
     <div class="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-2">
       <% states.each do |code, name| %>
-        <div><a href="<%= s3_base %>/states/<%= code %>.zip" target="_blank" rel="noopener noreferrer" class="text-black font-bold"><%= name %></a></div>
+        <div>
+          <a href="<%= s3_base %>/states/<%= code %>.zip"
+             target="_blank" rel="noopener noreferrer"
+             class="inline-flex items-center gap-1.5 text-black font-bold">
+            <%= icon "downloads", classes: "w-4 h-4 shrink-0" %>
+            <%= name %>
+          </a>
+        </div>
       <% end %>
     </div>
   </div>

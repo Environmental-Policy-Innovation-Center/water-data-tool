@@ -20,6 +20,16 @@ module ApplicationHelper
 
   def filter_row_classes = FILTER_ROW_CLASSES
 
+  def external_link_to(text, url, **html_options)
+    link_to url, target: "_blank", rel: "noopener noreferrer", title: "Opens in new tab", **html_options do
+      safe_join([
+        text,
+        icon("external-link", classes: "w-3.5 h-3.5 shrink-0"),
+        content_tag(:span, "(opens in new tab)", class: "sr-only")
+      ])
+    end
+  end
+
   def icon(name, classes: nil, aria_hidden: true)
     safe_name = name.to_s.gsub(/[^a-z0-9\-_]/, "")
     svg = ICON_CACHE[safe_name]
