@@ -19,9 +19,9 @@
   ]
 %>
 
-<div class="max-w-2xl">
-  <h3 class="m-0 mb-4 text-base font-semibold">Downloads</h3>
-  <p class="mb-4">Below, you'll find geospatial and tabular data for states, territories, and the nation as a zipped package.</p>
+<div class="px-4 md:px-9 pt-4 pb-8">
+  <h3 class="m-0 mb-3 font-bold">Downloads</h3>
+  <p class="mb-4 text-neutral-700">Below, you'll find geospatial and tabular data for states, territories, and the nation as a zipped package.</p>
   <ul class="mb-4 list-disc pl-5">
     <li class="mb-2">Data for states contains water systems which overlap other states.</li>
     <li class="mb-2">Data for territories contains a limited set of information.</li>
@@ -32,7 +32,7 @@
         class: "inline-flex items-center gap-0.5 text-black font-bold" %>
     or get in touch via email <a href="mailto:watertool@policyinnovation.org" class="text-black font-bold">watertool@policyinnovation.org</a>.</p>
 
-  <div>
+  <div class="border-t border-gray-200 pt-6">
     <div class="mb-4">
       <a href="<%= s3_base %>/national-dw-tool-staged.zip"
          target="_blank" rel="noopener noreferrer"
@@ -41,7 +41,7 @@
         National
       </a>
     </div>
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-2">
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-4">
       <% states.each do |code, name| %>
         <div>
           <a href="<%= s3_base %>/states/<%= code %>.zip"
