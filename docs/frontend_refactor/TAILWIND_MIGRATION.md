@@ -1,6 +1,6 @@
 # Asset and CSS Deprecation Guide
 
-_Last updated: 2026-05-16 — Chunks E, I, J complete; section-mode architecture; map/stats CSS migrated; CSS cleanup (tier 6)_
+_Last updated: 2026-05-17 — Chunk A complete; hide-for-\* classes migrated to Tailwind group variants; application.css deleted_
 
 This document tracks the migration away from legacy image assets and `water_tool.css` toward a clean, Tailwind-only frontend. It serves as both a record of decisions made and a step-by-step implementation guide for future work sessions.
 
@@ -113,6 +113,7 @@ Chunk **Status** lines below (**Not started** / **Partially complete** / **Compl
 | **2026-05** | **Tier 5 — `water_tool.css`:** Removed `#wrapper-ui`, `#wrapper-map-ui`, `#container-zoom-to-loc` (+ nested rules), and a duplicate `.mapboxgl-ctrl-geolocate` block. **`deprecated/` not modified** (snapshot policy). |
 | **2026-05** | **Section-mode architecture + section cards (branch: `fix/datasets-page-multiple-fixes`):** Introduced `.section-mode` CSS class on `#container-map` (alongside existing `.table-mode`) so map always stays visible as a decorative background in all views. `nav_controller.js` refactored: JS show/hide replaced with CSS class toggling; map canvas never hidden. `sidebar_controller.js` extended: section containers (`#container-datasets`, `#container-documentation`, `#container-downloads`, `#container-table`) shift right of sidebar on collapse/expand. Section containers and table container given Tailwind card classes (`top-3 bottom-8 rounded-xl shadow-lg`). `.container-section-inner` wrapper class removed from `water_tool.css` and all HTML; `_downloads.html.erb` fully migrated to Tailwind. `#container-map.table-mode #map { display: none }` removed — map now stays visible as background in table mode. Dead CSS removed: `#container-datasets`, `.datasets-header h3`. Section-mode overlay rules added to `application.css`. |
 | **2026-05** | **Tier 6 — CSS cleanup (branch: `fix/datasets-page-multiple-fixes`):** `#container-map` and `#map` desktop CSS removed → Tailwind `bg-[#ccc] absolute inset-0` / `w-full h-full` on elements in `index.html.erb`. Stats-bar + intro tooltip migrated to Tailwind: `.map-content-wrapper-desktop`, `.map-content-intro`, `.map-content-stats`, `ul.stats-list`, `#container-map-content-bottom h2/p` all removed from `water_tool.css`; `turbo-frame#stats-bar` and intro tooltip markup updated to inline Tailwind. `.table-scroll` scrollbar rules (Firefox + WebKit) moved to `application.css` alongside `.filter-menu-scroll`. `#container-map.table-mode .mapboxgl-ctrl-top-left` moved to `application.css` (consolidated with section-mode geocoder rule). Dead CSS removed: `.clear`/`.clearfix`, `.container-main-content h3.placeholder`, `#container-table { background-color }` (redundant with higher-specificity nested rule), `.hidden` (Tailwind provides this). |
+| **2026-05-17** | **Chunk A complete — global visibility utilities (branch: `feat/datasets-page-cleanup-work`):** All `hide-for-*` legacy classes removed from `water_tool.css` and replaced with Tailwind directly on elements. `hide-for-desktop` → `sm:hidden`; `hide-for-mobile` → `max-[640px]:hidden`; `hide-for-table` → `group-[.table-mode]:hidden`; `hide-for-section` (was in `application.css`) → `group-[.section-mode]:hidden`. `group` class added to `#container-map` to support group-based conditional visibility. Redundant `@media (max-width:640px)` rules also removed: `#container-map-ui-bottom { display:none }` (now `max-[640px]:hidden`), `.mm-icon-bars`/`.mm-icon-x` (default display + `hidden` on icon in HTML). `app/assets/stylesheets/application.css` deleted entirely; `stylesheet_link_tag "application"` removed from layout. |
 
 ### General approach
 
@@ -127,20 +128,19 @@ Chunk **Status** lines below (**Not started** / **Partially complete** / **Compl
 ### Chunks
 
 #### Chunk A: Global visibility utilities
-**Status:** ⬜ Not started
+**Status:** ✅ Complete
 
-**CSS classes to remove from `water_tool.css`:**
-`.hide-for-desktop`, `.hide-for-mobile`, `.hide-when-collapsed`, `.hide-when-collapsed-fade` (`.hidden` and `.hide-this` were removed in May 2026 — Tailwind provides `.hidden`; `.hide-this` had no live references.)
+**What was done:**
+- `hide-for-desktop` → `sm:hidden` on `.mobile-header` and `.mobile-footer` in `index.html.erb`
+- `hide-for-mobile` → `max-[640px]:hidden` on `container-region-nav`, `container-map-ui-bottom` intro tooltip, `container-map-ui-bottom` toggle, and the "More filters" `<h2>` in `_filter_menus.html.erb`
+- `hide-for-table` → `group-[.table-mode]:hidden` on `container-region-nav` and `container-map-content-bottom` in `index.html.erb`
+- `hide-for-section` (was `application.css`) → `group-[.section-mode]:hidden` on `container-map-ui-bottom` in `index.html.erb`
+- `group` class added to `#container-map` to enable all `group-[...]` variants above
+- `.hide-when-collapsed` / `.hide-when-collapsed-fade` — these never existed in Rails; sidebar uses `group-data-[sidebar-collapsed]:hidden` / `group-[&:not([data-sidebar-collapsed])]:hidden` (Chunk C)
+- All three CSS rules removed from `water_tool.css`; redundant `@media` rules (`#container-map-ui-bottom`, `.mm-icon-bars`, `.mm-icon-x`) also cleaned up
+- `app/assets/stylesheets/application.css` deleted; `stylesheet_link_tag "application"` removed from layout
 
-**Migration:**
-- `hide-for-desktop` → `md:hidden`
-- `hide-for-mobile` → `hidden md:block`
-- `hide-when-collapsed` / `hide-when-collapsed-fade` → driven by the `nav` Stimulus controller; switch to a Tailwind `group` or `data-collapsed` attribute + Tailwind variant so the controller sets a data attribute and CSS responds to it
-- `.hidden` → Tailwind `hidden` (confirm no naming collision)
-
-**Files to update:** `_sidebar.html.erb`, `index.html.erb`, `_filter_menus.html.erb`
-
-**Test:** Desktop sidebar collapses/expands, hiding the correct elements. On mobile, sidebar is hidden and mobile header/menu appear. No flash of wrong content on load.
+**Files updated:** `index.html.erb`, `_filter_menus.html.erb`, `water_tool.css`, `layouts/application.html.erb`
 
 ---
 
@@ -184,18 +184,55 @@ Chunk **Status** lines below (**Not started** / **Partially complete** / **Compl
 #### Chunk D: Mobile shell (header, footer, menu overlay)
 **Status:** ⬜ Not started
 
-**CSS classes to remove:**
-`.mobile-header`, `.mobile-header h1/img/a`, `.m-header-left`, `.m-header-right`, `.mobile-footer`, `.mobile-footer img/p`, `#container-mobile-menu`, `.container-mobile-menu-inner`, `.mm-icon-bars`, `.mm-icon-x`
+---
 
-**Also:** The `@media (max-width: 640px)` block in `water_tool.css` that repositions `.container-main-content` and `#container-map` for small viewports (legacy mobile shell — migrate with Chunk D).
+##### Mobile/Desktop Audit (2026-05-17)
 
-**Migration:**
-- Mobile header: `position: fixed; top: 0; width: 100%` → Tailwind `fixed top-0 inset-x-0 z-[9999] bg-white`.
-- Mobile footer: `position: fixed; bottom: 0` → same pattern.
-- The media query shifts `#container-map` and `.container-main-content` to account for 60px header and 50px footer — use Tailwind `md:` prefix to toggle between mobile and desktop positioning.
-- `mm-icon-bars` / `mm-icon-x` visibility is driven by the `nav` Stimulus controller — keep JS logic, switch to Tailwind `hidden` class toggling.
+The sections below map every mobile-only / desktop-only pattern currently in the app to a concrete Tailwind migration path.
 
-**Files to update:** `index.html.erb` (mobile header, footer, and menu sections)
+**Already handled by Tailwind — no further work needed:**
+
+| Element | Current Tailwind | Note |
+|---|---|---|
+| `#container-map` mobile offset | `max-[640px]:fixed max-[640px]:top-[60px] max-[640px]:bottom-[50px]` | ✅ |
+| `#container-map-ui-top` hidden on mobile | `max-[640px]:hidden` | ✅ |
+| `#container-region-nav` hidden on mobile | `max-[640px]:hidden` | ✅ |
+| `#container-map-ui-bottom` toggle hidden on mobile | `max-[640px]:hidden` | ✅ (CSS rule also removed from `@media` block) |
+| Sidebar hidden on mobile | `max-[640px]:hidden` on `_sidebar.html.erb` root | ✅ |
+| `.mobile-header` / `.mobile-footer` hidden on desktop | `sm:hidden` | ✅ (was `hide-for-desktop` — Chunk A) |
+| `.mm-icon-x` hidden initially | `hidden` class on element in HTML | ✅ (JS nav controller toggles it — CSS rule removed) |
+
+**Still in `water_tool.css` @media block — needs Tailwind migration (Chunk D work):**
+
+| CSS selector | Current rule | Tailwind migration |
+|---|---|---|
+| `.mobile-header` | `fixed top-0 w-full bg-white text-center z-[9999] p-3` (box-sizing, floats layout) | Replace float layout with: `fixed inset-x-0 top-0 z-[9999] flex items-center justify-between px-3 py-2 bg-white` on the element. Remove float children (see below). |
+| `.mobile-header h1` | `display:inline-block; font-size:1.2em; font-weight:500; color:#25325b; padding-top:4px` | Add to `<h1>`: `text-xl font-medium text-[#25325b] m-0 pt-1` |
+| `.mobile-header .m-header-left` | `float:left` | `<div class="m-header-left">` → just a flex child; no class needed once parent is `flex` |
+| `.mobile-header .m-header-right` | `float:right` | Same — remove float, flex parent handles layout |
+| `.mobile-header .m-header-right a` | `display:inline-block; padding:6px 8px 6px 6px` | Add to the `<a>`: `inline-flex p-1.5` |
+| `.mobile-footer` | `fixed bottom-0 w-full bg-[#1054A8] text-center z-[99999] px-2.5 py-2.5` | `fixed inset-x-0 bottom-0 z-[99999] bg-[#1054A8] text-center px-2.5 py-2.5` on element |
+| `.mobile-footer img` | `margin-top: -20px` | Add `-mt-5` to the `<%= icon "epic" %>` call |
+| `.mobile-footer p` | `color:#fff; margin:0; font-size:.9em` | Add `text-white m-0 text-sm` to `<p>` elements |
+| `.container-main-content` (mobile) | `position:fixed; top:60px; left:0; right:0; bottom:50px; overflow-y:auto` | Add `max-[640px]:fixed max-[640px]:inset-x-0 max-[640px]:top-[60px] max-[640px]:bottom-[50px] max-[640px]:overflow-y-auto` to each `container-main-content` section (`#container-datasets`, `#container-documentation`, `#container-downloads`). Note: `#container-map` already has these classes. Once all four elements have explicit Tailwind, the CSS rule and `.container-main-content` class can both be removed. |
+| `#container-mobile-menu` | `fixed left-0 bg-white w-full h-full z-[999] overflow-scroll` | Already uses `style="display:none"` controlled by JS. Add Tailwind: `fixed inset-0 z-[999] bg-white overflow-y-scroll hidden`. Update `nav_controller.js` to toggle `hidden` instead of setting `style.display`. |
+| `.container-mobile-menu-inner` | `padding:60px 20px` | Add `px-5 pt-[60px] pb-[60px]` to the `<div class="container-mobile-menu-inner ...">` — class already partially migrated to Tailwind (`flex flex-col min-h-full`). Remove class once padding is inline. |
+
+**`nav_controller.js` changes needed (for `#container-mobile-menu`):**
+The menu currently uses `menu.style.display = "block"` / `"none"`. Once the element has `hidden` in HTML, switch to:
+```js
+menu.classList.remove("hidden")  // was: menu.style.display = "block"
+menu.classList.add("hidden")     // was: menu.style.display = "none"
+```
+
+---
+
+**CSS classes to remove from `water_tool.css`:**
+`.mobile-header` (and descendants), `.mobile-footer` (and descendants), `.container-main-content` media rule, `#container-mobile-menu`, `.container-mobile-menu-inner`
+
+**After completing Chunk D**, the entire `@media (max-width: 640px)` block in `water_tool.css` will be empty and can be deleted.
+
+**Files to update:** `index.html.erb` (mobile header, footer, and menu sections), `nav_controller.js`
 
 **Test:** On mobile: fixed header visible at top, hamburger opens full-screen menu, footer pinned at bottom. No overlap between header/map/footer. On desktop: mobile elements hidden, no layout shift.
 
@@ -280,12 +317,16 @@ All `.mapboxgl-*` rules, `.place-autocomplete-results`, `.mapboxgl-ctrl-geocoder
 ---
 
 #### Chunk H: Table view
-**Status:** ⬜ Not started
+**Status:** 🔶 Partially complete
 
-**CSS to remove:**
-`#container-map #container-table` (display/position/z-index), `#container-map.table-mode .hide-for-table`, `#container-map.table-mode #container-table` (flex show rule).
+**Already done:**
+- `#container-map.table-mode .hide-for-table { display: none }` → removed from `water_tool.css`; all `hide-for-table` usages replaced with `group-[.table-mode]:hidden` (Chunk A, 2026-05-17)
+- `.table-scroll` scrollbar rules → `tailwind/application.css`
+- `#container-table { background-color: #fff }` standalone rule removed (covered by nested selector)
+- `#container-map.table-mode .mapboxgl-ctrl-top-left` → `tailwind/application.css`
 
-**Note:** `.table-scroll` scrollbar rules were moved to `application.css` in May 2026 (alongside `.filter-menu-scroll`). `#container-table { background-color: #fff }` standalone rule removed (covered by nested selector). `#container-map.table-mode .mapboxgl-ctrl-top-left` moved to `application.css`. Remaining water_tool.css rules for this area are the table-panel display/position block and the `hide-for-table` overlay rule.
+**CSS still to remove from `water_tool.css`:**
+`#container-map #container-table` (display/position/z-index block), `#container-map.table-mode #container-table` (flex show rule).
 
 **Migration:**
 - `#container-map #container-table` display logic: replace `display:none` default + `display:flex` in table-mode with Tailwind `hidden`/`flex` class toggling (already done via `.table-mode` CSS — migrate the CSS rule itself).
