@@ -146,5 +146,10 @@ RSpec.describe UI::NavItemComponent, type: :component do
       expect(sr).to be_present
       expect(sr.text).to include("opens in new tab")
     end
+
+    it "appends (opens in new tab) to aria-label" do
+      subject
+      expect(html.css("a").first["aria-label"]).to eq("Documentation (opens in new tab)")
+    end
   end
 end
