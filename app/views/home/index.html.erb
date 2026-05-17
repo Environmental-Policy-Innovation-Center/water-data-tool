@@ -261,7 +261,7 @@
   <% if @last_updated %>
     <p class="text-white m-0 text-[0.9em]">Latest data update on <%= @last_updated.in_time_zone("Eastern Time (US & Canada)").strftime("%m/%d/%Y at %I:%M %p %Z") %></p>
   <% end %>
-  <p class="text-white m-0 text-[0.9em]">(<%= render UI::ExternalLinkComponent.new(url: "https://creativecommons.org/share-your-work/cclicenses/", aria_label: "Creative Commons license (opens in new tab)", css_class: "text-white inline-flex items-center gap-0.5") do %>cc<%= icon "external-link", classes: "w-3 h-3" %><% end %>) Environmental Policy Innovation Center (EPIC)</p>
+  <p class="text-white m-0 text-[0.9em]">(<%= render UI::ExternalLinkComponent.new(url: "https://creativecommons.org/share-your-work/cclicenses/", classes: "text-white") do %><span class="sr-only">Creative Commons license</span><span aria-hidden="true">cc</span><% end %>) Environmental Policy Innovation Center (EPIC)</p>
 </div>
 
 <%# Mobile menu overlay %>
