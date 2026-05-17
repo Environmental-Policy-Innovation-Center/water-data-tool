@@ -37,6 +37,15 @@
    - #container-zoom-to-loc and nested rules (element not in DOM; display:none shell).
    - Redundant first .mapboxgl-ctrl-geolocate block (superseded by later Mapbox overrides).
    - .mobile-header img.logo / img.nav (markup uses icon() SVGs, no matching elements).
+
+   Chunk A complete — global visibility utilities (May 2026 — feat/datasets-page-cleanup-work):
+   - .hide-for-desktop, .hide-for-mobile, .hide-for-table global rules removed; replaced by
+     Tailwind group/responsive variants directly on elements in index.html.erb and _filter_menus.html.erb.
+   - #container-map.section-mode .hide-for-section rule (was in application.css) → group-[.section-mode]:hidden.
+   - #container-map gets `group` class to enable group-[.table-mode]: and group-[.section-mode]: variants.
+   - application.css deleted (sole rule moved to Tailwind); stylesheet_link_tag "application" removed from layout.
+   - Redundant @media (max-width:640px) rules removed: #container-map-ui-bottom (covered by max-[640px]:hidden),
+     .mm-icon-bars/.mm-icon-x (covered by default display / .hidden on the x icon in HTML).
 */
 
 /*
@@ -52,9 +61,6 @@ body{
   font-style: normal;
 }
 
-.hide-for-desktop{
-  display:none;
-}
 
 
 #container-mobile-menu{
@@ -140,16 +146,12 @@ body{
   z-index: 3; /* above map canvas, below filter bar (z-index: 5) */
 }
 
-/* table-mode: map canvas stays visible as background — only hide interactive overlays */
-#container-map.table-mode .hide-for-table { display: none; }
-
 /* table-mode: show the table panel as a flex column so sticky headers and pinned footer work */
 #container-map.table-mode #container-table {
   display: flex;
   flex-direction: column;
 }
 
-/* table-mode: stats bar and intro tooltip hidden — rules moved to application.css */
 
 
 
@@ -256,14 +258,6 @@ body{
 @media all and (max-width: 640px) {
 
 
-  .hide-for-mobile{
-    display:none;
-  }
-
-  .hide-for-desktop{
-    display:inherit;
-  }
-
   .mobile-header{
     padding: 12px 12px 12px 12px;
     background-color: #fff;
@@ -326,14 +320,6 @@ body{
   }
 
 
-
-  #container-map-ui-bottom {
-    display: none;
-  }
-
-  /* Mobile hamburger icon states */
-  .mm-icon-bars { display: inline; }
-  .mm-icon-x { display: none; }
 
   #container-mobile-menu{
     position: fixed;
