@@ -23,6 +23,10 @@ class UI::NavItemComponent < ViewComponent::Base
     @active ? "#{NAV_ITEM_CLASSES} active" : NAV_ITEM_CLASSES
   end
 
+  def accessible_label
+    @external ? "#{@label} (opens in new tab)" : @label
+  end
+
   def link?
     @href.present?
   end

@@ -250,12 +250,43 @@
     <ul>
       <li class="nav-1"><button type="button" data-section="map" data-action="click->nav#show" class="nav-item nav-1 nav-map active flex items-center gap-3 px-4 py-2.5 bg-white text-neutral-900 cursor-pointer rounded-full border border-neutral-400 my-2 mx-5 hover:bg-neutral-200 hover:text-black [&.active]:bg-brand-primary [&.active]:border-brand-primary [&.active]:text-white"><%= icon "explore", classes: "h-[18px] w-[18px] shrink-0" %>Explore the Map</button></li>
       <li class="nav-2"><button type="button" data-section="datasets" data-action="click->nav#show" class="nav-item nav-2 nav-datasets flex items-center gap-3 px-4 py-2.5 bg-white text-neutral-900 cursor-pointer rounded-full border border-neutral-400 my-2 mx-5 hover:bg-neutral-200 hover:text-black [&.active]:bg-brand-primary [&.active]:border-brand-primary [&.active]:text-white"><%= icon "data", classes: "h-[18px] w-[18px] shrink-0" %>Datasets</button></li>
-      <li class="nav-3"><a href="https://tech-team-data.s3.us-east-1.amazonaws.com/national-dw-tool/public-data-downloads/EPIC's+Drinking+Water+Explorer+Tool+-+Methodology.pdf" target="_blank" rel="noopener noreferrer" title="Opens in new tab" class="nav-item nav-3 nav-documentation flex items-center gap-3 px-4 py-2.5 bg-white text-neutral-900 no-underline rounded-full border border-neutral-400 my-2 mx-5 hover:bg-neutral-200 hover:text-black [&.active]:bg-brand-primary [&.active]:border-brand-primary [&.active]:text-white"><%= icon "documentation", classes: "h-[18px] w-[18px] shrink-0" %><span class="flex-1">Documentation</span><%= icon "external-link", classes: "inline ml-1 shrink-0" %><span class="sr-only">(opens in new tab)</span></a></li>
+      <li class="px-5">
+        <%= render UI::NavItemComponent.new(
+          label: "Documentation",
+          icon_name: "documentation",
+          href: "https://tech-team-data.s3.us-east-1.amazonaws.com/national-dw-tool/public-data-downloads/EPIC's+Drinking+Water+Explorer+Tool+-+Methodology.pdf",
+          external: true
+        ) %>
+      </li>
       <li class="nav-4"><button type="button" data-section="downloads" data-action="click->nav#show" class="nav-item nav-4 nav-downloads flex items-center gap-3 px-4 py-2.5 bg-white text-neutral-900 cursor-pointer rounded-full border border-neutral-400 my-2 mx-5 hover:bg-neutral-200 hover:text-black [&.active]:bg-brand-primary [&.active]:border-brand-primary [&.active]:text-white"><%= icon "downloads", classes: "h-[18px] w-[18px] shrink-0" %>Downloads</button></li>
-      <li class="nav-5"><a href="https://github.com/Environmental-Policy-Innovation-Center/national-dw-tool-public" target="_blank" rel="noopener noreferrer" title="Opens in new tab" class="nav-item nav-5 flex items-center gap-3 px-4 py-2.5 bg-white text-neutral-900 no-underline rounded-full border border-neutral-400 my-2 mx-5 hover:bg-neutral-200 hover:text-black"><%= icon "github", classes: "h-[18px] w-[18px] shrink-0" %><span class="flex-1">Github</span><%= icon "external-link", classes: "inline ml-1 shrink-0" %><span class="sr-only">(opens in new tab)</span></a></li>
-      <li class="nav-6"><a href="https://docs.google.com/forms/d/e/1FAIpQLSdj-JcAmFNHnyEGoou74kyL_R1YOUtsFG4dKlYl0TWWwkUcrg/viewform" target="_blank" rel="noopener noreferrer" title="Opens in new tab" class="nav-item nav-6 flex items-center gap-3 px-4 py-2.5 bg-white text-neutral-900 no-underline rounded-full border border-neutral-400 my-2 mx-5 hover:bg-neutral-200 hover:text-black"><%= icon "feedback", classes: "h-[18px] w-[18px] shrink-0" %><span class="flex-1">Feedback</span><%= icon "external-link", classes: "inline ml-1 shrink-0" %><span class="sr-only">(opens in new tab)</span></a></li>
-      <li class="nav-7"><a href="mailto:watertool@policyinnovation.org" class="nav-item nav-7 flex items-center gap-3 px-4 py-2.5 bg-white text-neutral-900 no-underline rounded-full border border-neutral-400 my-2 mx-5 hover:bg-neutral-200 hover:text-black"><%= icon "email", classes: "h-[18px] w-[18px] shrink-0" %>Contact EPIC</a></li>
+      <li class="px-5">
+        <%= render UI::NavItemComponent.new(
+          label: "Github",
+          icon_name: "github",
+          href: "https://github.com/Environmental-Policy-Innovation-Center/national-dw-tool-public",
+          external: true
+        ) %>
+      </li>
+      <li class="px-5">
+        <%= render UI::NavItemComponent.new(
+          label: "Feedback",
+          icon_name: "feedback",
+          href: "https://docs.google.com/forms/d/e/1FAIpQLSdj-JcAmFNHnyEGoou74kyL_R1YOUtsFG4dKlYl0TWWwkUcrg/viewform",
+          external: true
+        ) %>
+      </li>
+      <li class="px-5">
+        <%= render UI::NavItemComponent.new(
+          label: "Contact EPIC",
+          icon_name: "email",
+          href: "mailto:watertool@policyinnovation.org"
+        ) %>
+      </li>
     </ul>
-    <p class="mt-auto px-5 pt-8 pb-4 text-sm">(<a href="https://creativecommons.org/share-your-work/cclicenses/" target="_blank" rel="noopener noreferrer">cc</a>) Environmental Policy Innovation Center (EPIC)</p>
+    <p class="mt-auto px-5 pt-8 pb-4 text-sm">(<a href="https://creativecommons.org/share-your-work/cclicenses/"
+       target="_blank" rel="noopener noreferrer"
+       title="Opens in new tab"
+       aria-label="Creative Commons license (opens in new tab)"
+       class="underline">cc</a>) Environmental Policy Innovation Center (EPIC)</p>
   </div>
 </div>

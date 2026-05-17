@@ -49,8 +49,10 @@
     </div>
     <p class="mt-2">
       (<a href="https://creativecommons.org/share-your-work/cclicenses/"
-          target="_blank"
-          rel="noopener noreferrer">cc</a>)
+          target="_blank" rel="noopener noreferrer"
+          title="Opens in new tab"
+          aria-label="Creative Commons license (opens in new tab)"
+          class="underline">cc</a>)
       <span>Environmental Policy<br>Center </span>(EPIC)
     </p>
     <div class="my-6 space-y-2">
@@ -67,7 +69,10 @@
            title="Opens in new tab">Feedback<%= icon "external-link", classes: "inline ml-0.5" %><span class="sr-only">(opens in new tab)</span></a>
       </p>
       <p>
-        <a href="mailto:watertool@policyinnovation.org">Contact EPIC</a><%= icon "email", classes: "inline" %>
+        <a href="mailto:watertool@policyinnovation.org"
+           class="inline-flex items-center gap-1">Contact EPIC
+          <%= icon "email", classes: "w-3.5 h-3.5 shrink-0" %>
+        </a>
       </p>
     </div>
     <% if @last_updated %>
