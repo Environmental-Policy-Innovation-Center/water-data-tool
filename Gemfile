@@ -52,7 +52,7 @@ gem "lograge-sql", "~> 2.6.1"
 gem "oj", "~> 3.17.0"
 
 # Pagination [https://github.com/ddnexus/pagy]
-gem "pagy", "~> 43.5.1"
+gem "pagy", "~> 43.5.4"
 
 # Use postgresql as the database for Active Record
 gem "pg", "~> 1.6.3"
