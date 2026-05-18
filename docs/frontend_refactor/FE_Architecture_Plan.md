@@ -64,7 +64,7 @@ app/
     controllers/
       map_controller.js           ← owns Mapbox instance
       filter_controller.js        ← refactored: declarative config
-      nav_controller.js           ← mobile nav fix applied
+      nav_controller.js           ← mobile nav + toggleMobileFilters/toggleMobileStats
       table_controller.js         ← removed after Tier 2
       datasets_controller.js
       slider_controller.js        ← implemented in Tier 5
