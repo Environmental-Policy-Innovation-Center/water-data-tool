@@ -33,7 +33,6 @@ jobs:
     permissions:
       id-token: write
       contents: read
-      pull-requests: write
       deployments: write
     env:
       AWS_REGION:            ${{ vars.AWS_REGION }}
@@ -41,12 +40,6 @@ jobs:
       SERVICE_BUILDER_IMAGE: ${{ vars.SERVICE_BUILDER_IMAGE_URI }}
 
     steps:
-      - name: Validate confirmation input
-        if: github.event.inputs.confirm != 'teardown'
-        run: |
-          echo "::error::Confirmation input must be exactly 'teardown'. Got: '${{ github.event.inputs.confirm }}'"
-          exit 1
-
       - name: Validate specific mode inputs
         if: github.event.inputs.mode == 'specific' && github.event.inputs.pr_number == ''
         run: |
@@ -58,9 +51,6 @@ jobs:
         with:
           role-to-assume: ${{ secrets.AWS_PR_DEPLOY_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
-
-      - name: Login to Amazon ECR
-        uses: aws-actions/amazon-ecr-login@v2
 
       - name: Resolve PR list
         id: prs
@@ -102,7 +92,7 @@ jobs:
               fi
             done
 
-            echo "list=$(echo $STALE | xargs)" >> "$GITHUB_OUTPUT"
+            echo "list=$(echo "$STALE" | xargs)" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Tear down PR environments
@@ -162,7 +152,7 @@ jobs:
             echo "| | |"
             echo "|---|---|"
             echo "| **Mode** | ${{ github.event.inputs.mode }} |"
-            echo "| **PRs torn down** | \`$(echo $PR_LIST | tr ' ' ', ')\` |"
+            echo "| **PRs torn down** | \`$(echo "$PR_LIST" | tr ' ' ', ')\` |"
             echo "| **Triggered by** | @${{ github.actor }} |"
             echo "| **Time** | $(date -u '+%Y-%m-%d %H:%M UTC') |"
           } >> "$GITHUB_STEP_SUMMARY"
