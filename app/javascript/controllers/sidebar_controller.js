@@ -51,14 +51,27 @@ export default class extends Controller {
   #shiftContent(sidebarWidth) {
     const base = sidebarWidth + SIDEBAR_LEFT + CONTROLS_GAP
 
+    if (window.innerWidth < 640) {
+      // Sidebar is hidden on mobile — reset any inline styles set at desktop width so
+      // Tailwind responsive classes (max-[640px]:left-0 etc.) can take over.
+      document.querySelector("#container-map-ui-top")?.style.removeProperty("left")
+      document.querySelector(".mapboxgl-ctrl-top-left")?.style.removeProperty("margin-left")
+      document.querySelector("#container-region-nav")?.style.removeProperty("left")
+      ;["#container-datasets", "#container-documentation", "#container-downloads"].forEach(id => {
+        const el = document.querySelector(id)
+        if (!el) return
+        el.style.removeProperty("left")
+        el.style.removeProperty("right")
+        el.style.removeProperty("width")
+      })
+      return
+    }
+
     // Map UI overlay elements (filter bar, mapbox controls, region nav)
     document.querySelector("#container-map-ui-top")?.style.setProperty("left", `${base}px`)
     document.querySelector(".mapboxgl-ctrl-top-left")?.style.setProperty("margin-left", `${base}px`)
     // Zoom buttons sit INSIDE .mapboxgl-ctrl-top-left at padding:10px from its edge
     document.querySelector("#container-region-nav")?.style.setProperty("left", `${base + MAPBOX_CTRL_PAD}px`)
-
-    // Sidebar is hidden on mobile — skip section offsets below 640px
-    if (window.innerWidth < 640) return
 
     // Section containers (datasets, documentation, downloads) — shift right of sidebar
     ;["#container-datasets", "#container-documentation", "#container-downloads"].forEach(id => {

@@ -145,13 +145,9 @@ Chunk **Status** lines below (**Not started** / **Partially complete** / **Compl
 ---
 
 #### Chunk B: Base and body styles
-**Status:** 🔶 Partially complete
+**Status:** ✅ Complete
 
-**CSS to remove:**
-`body {}` (`#wrapper-ui` / `#wrapper-map-ui` removed in May 2026; `.clear` / `.clearfix` removed in May 2026 — no live float layouts.)
-
-**Migration:**
-- `body` font family is declared in `app/assets/tailwind/application.css` — verify Tailwind preflight covers margin/padding/font and delete the duplicate.
+**CSS removed:** `body {}` — `margin`/`padding`/`font-style` covered by Tailwind v4 preflight; `font-family` covered by `--font-sans` in `@theme`.
 
 **Test:** Page font rendering unchanged. No layout collapse on any view.
 
@@ -317,22 +313,13 @@ All `.mapboxgl-*` rules, `.place-autocomplete-results`, `.mapboxgl-ctrl-geocoder
 ---
 
 #### Chunk H: Table view
-**Status:** 🔶 Partially complete
+**Status:** ✅ Complete
 
-**Already done:**
-- `#container-map.table-mode .hide-for-table { display: none }` → removed from `water_tool.css`; all `hide-for-table` usages replaced with `group-[.table-mode]:hidden` (Chunk A, 2026-05-17)
-- `.table-scroll` scrollbar rules → `tailwind/application.css`
-- `#container-table { background-color: #fff }` standalone rule removed (covered by nested selector)
-- `#container-map.table-mode .mapboxgl-ctrl-top-left` → `tailwind/application.css`
+**CSS removed:** `#container-map #container-table` (display/position/z-index) and `#container-map.table-mode #container-table` (flex show rule).
 
-**CSS still to remove from `water_tool.css`:**
-`#container-map #container-table` (display/position/z-index block), `#container-map.table-mode #container-table` (flex show rule).
-
-**Migration:**
-- `#container-map #container-table` display logic: replace `display:none` default + `display:flex` in table-mode with Tailwind `hidden`/`flex` class toggling (already done via `.table-mode` CSS — migrate the CSS rule itself).
-- `#container-table` position/z-index → Tailwind `absolute z-[3]` on the element.
-
-**Files to update:** `index.html.erb`, possibly the map-table-toggle Stimulus controller
+**Migration done:**
+- `#container-table` → `hidden absolute bg-white z-[3]` added directly in `index.html.erb`.
+- `nav_controller.js#show` now explicitly toggles `hidden`/`flex`/`flex-col` on `#container-table` when switching to/from table mode (CSS-based toggle removed).
 
 **Test:** Map/Table toggle switches views. Table fills the space where the map was. Custom scrollbar visible on table overflow. Switching back to map re-renders Mapbox without error.
 
@@ -369,13 +356,11 @@ All `.mapboxgl-*` rules, `.place-autocomplete-results`, `.mapboxgl-ctrl-geocoder
 ---
 
 #### Chunk K: Loading mask and remaining utilities
-**Status:** ⬜ Not started
+**Status:** ✅ Complete
 
-**CSS to remove:**
-`#loading-mask` (`.datasets-header h3` and `#container-datasets` were removed in May 2026 — both dead CSS with no live references.)
+**CSS removed:** `#loading-mask` and `#loading-mask p`.
 
-**Migration:**
-- `#loading-mask` is `position: absolute; background: rgba(0,0,0,0.6); z-index: 1002` → Tailwind `absolute inset-0 bg-black/60 z-[1002] text-center`.
+**Migration done:** `#loading-mask` → `absolute inset-0 bg-black/60 z-[1002] text-center`; inner `<p>` → `pt-[200px] text-2xl text-white` — all inline in `index.html.erb`.
 
 **Test:** Loading mask appears during map data fetch, disappears when complete.
 
