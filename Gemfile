@@ -58,7 +58,7 @@ gem "pagy", "~> 43.5.1"
 gem "pg", "~> 1.6.3"
 
 # Use the Puma web server [https://github.com/puma/puma]
-gem "puma", "~> 7.2.0"
+gem "puma", "~> 8.0.1"
 
 # Add HTTP asset caching/compression and X-Sendfile acceleration to Puma [https://github.com/basecamp/thruster/]
 gem "thruster", "~> 0.1.20", require: false
