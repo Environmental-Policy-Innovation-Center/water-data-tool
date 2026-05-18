@@ -48,11 +48,7 @@
       <%= icon "epic", classes: "mx-auto block w-9 h-auto" %>
     </div>
     <p class="mt-2">
-      (<a href="https://creativecommons.org/share-your-work/cclicenses/"
-          target="_blank" rel="noopener noreferrer"
-          title="Opens in new tab"
-          aria-label="Creative Commons license (opens in new tab)"
-          class="underline">cc</a>)
+      (<%= render UI::ExternalLinkComponent.new(url: "https://creativecommons.org/share-your-work/cclicenses/", aria_label: "Creative Commons license (opens in new tab)") do %>cc<% end %>)
       <span>Environmental Policy<br>Center </span>(EPIC)
     </p>
     <div class="my-6 space-y-2">

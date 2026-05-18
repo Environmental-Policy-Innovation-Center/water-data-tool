@@ -1,23 +1,4 @@
-<%
-  s3_base = "https://tech-team-data.s3.us-east-1.amazonaws.com/national-dw-tool/public-data-downloads/staged"
-
-  states = [
-    %w[AL Alabama],    %w[AK Alaska],       %w[AZ Arizona],      %w[AR Arkansas],
-    %w[CA California],  %w[CO Colorado],     %w[CT Connecticut],  %w[DE Delaware],
-    %w[DC District\ of\ Columbia], %w[FL Florida], %w[GA Georgia], %w[GU Guam],
-    %w[HI Hawaii],      %w[ID Idaho],        %w[IL Illinois],     %w[IN Indiana],
-    %w[IA Iowa],        %w[KS Kansas],       %w[KY Kentucky],     %w[LA Louisiana],
-    %w[ME Maine],       %w[MD Maryland],     %w[MA Massachusetts], %w[MI Michigan],
-    %w[MN Minnesota],   %w[MS Mississippi],  %w[MO Missouri],     %w[MT Montana],
-    %w[NE Nebraska],    %w[NV Nevada],       %w[NH New\ Hampshire], %w[NJ New\ Jersey],
-    %w[NM New\ Mexico], %w[NY New\ York],    %w[NC North\ Carolina], %w[ND North\ Dakota],
-    %w[MP Northern\ Mariana\ Islands], %w[OH Ohio], %w[OK Oklahoma], %w[OR Oregon],
-    %w[PA Pennsylvania], %w[PR Puerto\ Rico], %w[RI Rhode\ Island], %w[SC South\ Carolina],
-    %w[SD South\ Dakota], %w[TN Tennessee],  %w[TX Texas],        %w[UT Utah],
-    %w[VT Vermont],     %w[VA Virginia],     %w[WA Washington],   %w[WV West\ Virginia],
-    %w[WI Wisconsin],   %w[WY Wyoming]
-  ]
-%>
+<% s3_base = "https://tech-team-data.s3.us-east-1.amazonaws.com/national-dw-tool/public-data-downloads/staged" %>
 
 <div class="px-4 md:px-9 pt-4 pb-8">
   <h3 class="m-0 mb-3 font-bold">Downloads</h3>
@@ -34,22 +15,12 @@
 
   <div class="border-t border-gray-200 pt-6">
     <div class="mb-4">
-      <a href="<%= s3_base %>/national-dw-tool-staged.zip"
-         target="_blank" rel="noopener noreferrer"
-         class="inline-flex items-center gap-1.5 text-black font-bold">
-        <%= icon "downloads", classes: "w-4 h-4 shrink-0" %>
-        National
-      </a>
+      <%= render UI::DownloadLinkComponent.new(url: "#{s3_base}/national-dw-tool-staged.zip") do %>National<% end %>
     </div>
     <div class="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-4">
-      <% states.each do |code, name| %>
+      <% download_states.each do |code, name| %>
         <div>
-          <a href="<%= s3_base %>/states/<%= code %>.zip"
-             target="_blank" rel="noopener noreferrer"
-             class="inline-flex items-center gap-1.5 text-black font-bold">
-            <%= icon "downloads", classes: "w-4 h-4 shrink-0" %>
-            <%= name %>
-          </a>
+          <%= render UI::DownloadLinkComponent.new(url: "#{s3_base}/states/#{code}.zip") do %><%= name %><% end %>
         </div>
       <% end %>
     </div>
