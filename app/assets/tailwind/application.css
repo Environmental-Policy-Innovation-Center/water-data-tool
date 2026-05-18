@@ -17,9 +17,10 @@
 }
 
 /* ── Mapbox CDN overrides ─────────────────────────────────────────────────
-   Outside @layer so unlayered CDN styles don't win on specificity.
-   Two-class selector beats CDN's single-class specificity. */
+   All rules target SDK-injected DOM; Tailwind utilities cannot reach these.
+   Outside @layer so unlayered CDN styles don't win on specificity. */
 
+/* Geocoder search control */
 .mapboxgl-ctrl-geocoder.mapboxgl-ctrl {
   color: var(--color-neutral-900);
   border-radius: 20px;
@@ -33,11 +34,25 @@
   color: var(--color-neutral-900);
   background-color: transparent;
 }
+
+/* Popup chrome */
+.mapboxgl-popup-close-button { right: 15px; top: 10px; font-size: 2em; }
+.mapboxgl-popup-close-button:hover { background-color: #ececec; }
+.mapboxgl-popup-content { padding: 0; border-radius: 20px; }
+
+/* Navigation control (zoom +/−) */
+.mapboxgl-ctrl-top-left .mapboxgl-ctrl { background-color: transparent; box-shadow: none; }
+.mapboxgl-ctrl-group button:only-child { border-radius: 20px; border: 1px solid #bfbfbf; background-color: #fff; }
+.mapboxgl-ctrl-group button:first-child,
+.mapboxgl-ctrl-group button:last-child { border-radius: 20px; border: 1px solid #d1d5db; background-color: #fff; width: 32px; height: 32px; }
+.mapboxgl-ctrl-group button:first-child:hover { background-color: #f5f5f5; }
+.mapboxgl-ctrl-group button + button { border-top: none; margin-top: 5px; }
+
+/* Control positioning and visibility */
 /* 2px + Mapbox's internal 10px = 12px, matching top-3 on sidebar/filter buttons */
 .mapboxgl-ctrl-top-left { margin-top: 2px; }
-@media (max-width: 640px) {
-  .mapboxgl-ctrl-top-left { display: none; }
-}
+#container-map.table-mode .mapboxgl-ctrl-top-left,
+#container-map.section-mode .mapboxgl-ctrl-top-left { display: none; }
 
 /* ── Map view states ──────────────────────────────────────────────────────
    #container-map carries a class for each non-map view:
@@ -54,10 +69,6 @@ turbo-frame#stats-bar:empty { display: none; }
 #container-map-content-bottom.has-stats { display: none; }
 #container-map.table-mode turbo-frame#stats-bar,
 #container-map.section-mode turbo-frame#stats-bar { display: none; }
-
-/* Table/section mode: hide geocoder control */
-#container-map.table-mode .mapboxgl-ctrl-top-left,
-#container-map.section-mode .mapboxgl-ctrl-top-left { display: none; }
 
 /* Section mode: hide all interactive map overlays */
 #container-map.section-mode #container-map-ui-top,

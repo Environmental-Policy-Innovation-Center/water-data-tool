@@ -1,10 +1,9 @@
-<div class="pws-detail">
-  <div class="map-detail-header">
-    <p><strong><%= @pws.pws_name %></strong></p>
-    <p><%= @pws.pwsid %> &mdash; <%= @pws.stusps %></p>
+<div>
+  <div class="py-[15px] pl-[30px] pr-[55px] rounded-t-[20px] bg-[#ececec]">
+    <p class="text-[1.2em] leading-[1.4] font-normal m-0 mb-[2px] p-0"><strong class="font-medium"><%= @pws.pws_name %></strong></p>
+    <p class="text-[1.2em] leading-[1.4] font-normal m-0 mb-[2px] p-0"><%= @pws.pwsid %> &mdash; <%= @pws.stusps %></p>
   </div>
-
-  <div class="map-detail-body">
+  <div class="px-[30px] py-[10px]">
     <%= render "public_water_systems/sections/all", pws: @pws %>
   </div>
 </div>

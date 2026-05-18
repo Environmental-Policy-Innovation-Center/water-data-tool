@@ -1,5 +1,5 @@
 <turbo-frame id="stats-bar">
-  <div class="absolute right-5 bottom-[100px] z-[9] max-w-[420px] max-[640px]:hidden bg-[#7A7A7A] border border-neutral-400 rounded-[20px] py-2.5 px-5">
+  <div class="hidden absolute right-5 bottom-[100px] z-[9] max-w-[420px] sm:block bg-[#7A7A7A] border border-neutral-400 rounded-[20px] py-2.5 px-5">
     <ul class="list-none p-0 my-[15px] mx-[5px]">
       <li class="text-white font-bold my-0.5">Systems: <%= "#{number_with_delimiter(@summary[:systems_count])} of #{number_with_delimiter(@summary[:unfiltered_total])}" %></li>
       <li class="text-white font-bold my-0.5">Customers served: <%= number_with_delimiter(@summary[:total_population_served]) %></li>

@@ -19,7 +19,7 @@
                data-action="input->place-autocomplete#search blur->place-autocomplete#blur"
                autocomplete="off">
         <input type="hidden" id="place-geoid" data-place-autocomplete-target="geoid">
-        <ul data-place-autocomplete-target="results" class="place-autocomplete-results" style="display:none;"></ul>
+        <ul data-place-autocomplete-target="results" class="hidden list-none m-0 p-0 absolute inset-x-0 top-full bg-white border border-[#ccc] rounded max-h-[200px] overflow-y-auto z-[200] shadow-[0_2px_6px_rgba(0,0,0,0.15)]"></ul>
       </div>
     <% end %>
     <%= render Filters::CategoryComponent.new(label: "Protection") do %>

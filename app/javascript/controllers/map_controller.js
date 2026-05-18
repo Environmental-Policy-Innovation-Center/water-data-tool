@@ -304,7 +304,7 @@ export default class extends Controller {
       const html = this.#buildHoverHtml(props)
       this.hoverPopup = new window.mapboxgl.Popup({
         closeButton: false,
-        className: "infoBub",
+        className: "min-w-[280px]",
         maxWidth: "400px"
       })
         .setLngLat(e.lngLat)
@@ -359,7 +359,7 @@ export default class extends Controller {
       if (this.clickPopup) this.clickPopup.remove()
       this.clickPopup = new window.mapboxgl.Popup({
         closeButton: true,
-        className: "infoBub",
+        className: "min-w-[280px]",
         maxWidth: "400px"
       })
         .setLngLat(e.lngLat)
@@ -481,29 +481,31 @@ export default class extends Controller {
       ? Number(props.service_connections_count).toLocaleString("en-US")
       : "—"
 
+    const pAttr = `class="text-[1.2em] leading-[1.4] font-normal m-0 mb-[2px] p-0"`
+    const strongAttr = `class="font-medium"`
+
     let body = `
-        <p><strong>State:</strong> ${e(props.stusps || "—")}</p>`
+        <p ${pAttr}><strong ${strongAttr}>State:</strong> ${e(props.stusps || "—")}</p>`
     if (showType) {
       body += `
-        <p><strong>Type:</strong> ${e(props.symbology_field || "—")}</p>`
+        <p ${pAttr}><strong ${strongAttr}>Type:</strong> ${e(props.symbology_field || "—")}</p>`
     }
     body += `
-        <p><strong>Service connections:</strong> ${connections}</p>
-        <p><strong>Customers served:</strong> ${pop}</p>`
+        <p ${pAttr}><strong ${strongAttr}>Service connections:</strong> ${connections}</p>
+        <p ${pAttr}><strong ${strongAttr}>Customers served:</strong> ${pop}</p>`
     if (showReport) {
       body += `
-        <p style="text-align:center; margin-top:10px;">
-          <a href="javascript:void(0);" class="js-view-report"
-             style="color:#444; text-decoration:none; border:1px solid #ccc; border-radius:15px; padding:6px 24px; display:inline-block; font-size:0.95em;">View Full Report</a>
+        <p class="text-center mt-[10px]">
+          <a href="javascript:void(0);" class="js-view-report text-[#444] no-underline border border-[#ccc] rounded-[15px] px-6 py-1.5 inline-block text-[0.95em]">View Full Report</a>
         </p>`
     }
 
     return `
-      <div class="map-detail-header">
-        <p><strong>Utility Name:</strong> ${e(props.pws_name || "—")}</p>
-        <p><strong>System ID:</strong> ${e(props.pwsid || "—")}</p>
+      <div class="py-[15px] pl-[30px] pr-[55px] rounded-t-[20px] bg-[#ececec]">
+        <p ${pAttr}><strong ${strongAttr}>Utility Name:</strong> ${e(props.pws_name || "—")}</p>
+        <p ${pAttr}><strong ${strongAttr}>System ID:</strong> ${e(props.pwsid || "—")}</p>
       </div>
-      <div class="map-detail-body">${body}
+      <div class="px-[30px] py-[10px]">${body}
       </div>
     `
   }
@@ -524,6 +526,6 @@ export default class extends Controller {
 
   #hideLoadingMask() {
     const mask = document.getElementById("loading-mask")
-    if (mask) mask.style.display = "none"
+    if (mask) mask.classList.add("hidden")
   }
 }

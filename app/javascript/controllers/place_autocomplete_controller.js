@@ -64,6 +64,7 @@ export default class extends Controller {
       const li = document.createElement("li")
       const a = document.createElement("a")
       a.href = "javascript:void(0);"
+      a.className = "block px-2.5 py-1.5 no-underline text-[#333] text-[0.95em] hover:bg-neutral-100 cursor-pointer"
       a.dataset.action = "click->place-autocomplete#select"
       a.dataset.geoid = p.geoid
       a.dataset.name = `${p.name}, ${p.stusps}`
@@ -71,11 +72,12 @@ export default class extends Controller {
       li.appendChild(a)
       this.resultsTarget.appendChild(li)
     })
-    this.resultsTarget.style.display = "block"
+    this.resultsTarget.classList.remove("hidden")
   }
 
   #hideResults() {
-    this.resultsTarget.style.display = "none"
+    if (this.resultsTarget.classList.contains("hidden")) return
+    this.resultsTarget.classList.add("hidden")
     this.resultsTarget.innerHTML = ""
   }
 }

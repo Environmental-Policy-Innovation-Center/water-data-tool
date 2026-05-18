@@ -9,6 +9,10 @@ import { Controller } from "@hotwired/stimulus"
 // .section-mode on #container-map (for overlay styling) and shows the matching
 // .container-main-content element.
 export default class extends Controller {
+  connect() {
+    this._tableContainer = document.getElementById("container-table")
+  }
+
   toggleMobile(event) {
     event.preventDefault()
     const menu = document.getElementById("container-mobile-menu")
@@ -21,7 +25,7 @@ export default class extends Controller {
     } else {
       btn.classList.remove("closed")
       btn.setAttribute("aria-expanded", "true")
-      menu.style.display = "block"
+      menu.classList.remove("hidden")
       btn.querySelector(".mm-icon-bars")?.classList.add("hidden")
       btn.querySelector(".mm-icon-x")?.classList.remove("hidden")
     }
@@ -40,6 +44,13 @@ export default class extends Controller {
     containerMap.classList.remove("hidden")
     containerMap.classList.toggle("table-mode", section === "table")
     containerMap.classList.toggle("section-mode", section !== "map" && section !== "table")
+
+    if (this._tableContainer) {
+      const isTable = section === "table"
+      this._tableContainer.classList.toggle("hidden", !isTable)
+      this._tableContainer.classList.toggle("flex", isTable)
+      this._tableContainer.classList.toggle("flex-col", isTable)
+    }
 
     // In table mode, pin the filter bar inside the card so it acts as the card header
     const filterBar = document.querySelector("#container-map-ui-top")
@@ -75,13 +86,43 @@ export default class extends Controller {
     this.#closeMobileMenu()
   }
 
+  toggleMobileFilters() {
+    if (window.innerWidth >= 640) return
+    const el = document.getElementById("container-map-ui-top")
+    if (!el) return
+    const isHidden = window.getComputedStyle(el).display === "none"
+    if (isHidden) {
+      el.style.setProperty("display", "block")
+      el.style.setProperty("position", "absolute")
+      el.style.setProperty("top", "0")
+      el.style.setProperty("left", "0")
+      el.style.setProperty("right", "0")
+      el.style.setProperty("z-index", "10")
+    } else {
+      el.style.removeProperty("display")
+      el.style.removeProperty("position")
+      el.style.removeProperty("top")
+      el.style.removeProperty("left")
+      el.style.removeProperty("right")
+      el.style.removeProperty("z-index")
+    }
+  }
+
+  toggleMobileStats() {
+    if (window.innerWidth >= 640) return
+    const el = document.querySelector("turbo-frame#stats-bar > div")
+    if (!el) return
+    const isHidden = window.getComputedStyle(el).display === "none"
+    el.style.setProperty("display", isHidden ? "block" : "none")
+  }
+
   #closeMobileMenu() {
     const btn = document.getElementById("mobile-menu-toggle")
     if (!btn || btn.classList.contains("closed")) return
 
     const menu = document.getElementById("container-mobile-menu")
     if (!menu) return
-    menu.style.display = "none"
+    menu.classList.add("hidden")
     btn.classList.add("closed")
     btn.setAttribute("aria-expanded", "false")
     btn.querySelector(".mm-icon-bars")?.classList.remove("hidden")

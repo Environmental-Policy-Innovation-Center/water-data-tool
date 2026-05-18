@@ -215,7 +215,7 @@ RSpec.describe "PublicWaterSystems", type: :request do
         get "/public_water_systems/#{pws.pwsid}"
 
         expect(response).to have_http_status(:ok)
-        expect(response.body).to include('class="pws-detail"')
+        expect(response.body).to include("rounded-t-[20px]")
       end
 
       it "renders the system name and ID" do

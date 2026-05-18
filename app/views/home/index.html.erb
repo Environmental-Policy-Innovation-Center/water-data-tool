@@ -21,11 +21,11 @@
   </style>
 <% end %>
 
-<%# Mobile header (hidden on desktop via CSS) %>
-<div class="mobile-header sm:hidden">
-  <div class="m-header-left"><%= icon "water", classes: "w-9 h-auto inline-block" %></div>
-  <h1>Drinking Water Explorer</h1>
-  <div class="m-header-right">
+<%# Mobile header %>
+<div class="sm:hidden fixed top-0 w-full p-3 bg-white z-[9999] text-center">
+  <div class="float-left"><%= icon "water", classes: "w-9 h-auto inline-block" %></div>
+  <h1 class="inline-block text-[1.2em] m-0 font-medium pt-1 text-brand-primary">Drinking Water Explorer</h1>
+  <div class="float-right">
     <button type="button" id="mobile-menu-toggle" class="mobile-btn closed cursor-pointer" aria-expanded="false" aria-label="Toggle navigation menu" data-action="click->nav#toggleMobile">
       <%= icon "mobile-menu", classes: "mm-icon-bars" %>
       <%= icon "close", classes: "mm-icon-x hidden" %>
@@ -34,8 +34,8 @@
 </div>
 
 <%# Loading mask — hidden by map_controller once map is ready %>
-<div id="loading-mask">
-  <p>LOADING DATA...</p>
+<div id="loading-mask" class="absolute inset-0 bg-black/60 z-[1002] text-center">
+  <p class="pt-[200px] text-2xl text-white">LOADING DATA...</p>
 </div>
 
 <%# Active filter tag list (shown above map when filters are applied) %>
@@ -55,13 +55,13 @@
 <%# =====================================================
     Map view (default section)
     ===================================================== %>
-<div id="container-map" class="container-main-content group/map bg-[#ccc] absolute inset-0 max-[640px]:fixed max-[640px]:top-[60px] max-[640px]:bottom-[50px]"
+<div id="container-map" class="container-main-content group/map bg-[#ccc] fixed inset-x-0 top-[60px] bottom-[70px] overflow-y-auto sm:absolute sm:inset-0 sm:overflow-visible"
      data-controller="map filter filter-menu"
      data-map-tile-url-value="/tiles/{z}/{x}/{y}">
 
   <%# Filter tab bar — filter-layout controller lives here so its ResizeObserver measures the
       filter bar's actual usable width (viewport − sidebar offset), not the full container width. %>
-  <div id="container-map-ui-top" class="max-[640px]:hidden min-[640px]:absolute min-[640px]:top-0 min-[640px]:left-0 min-[640px]:right-0 min-[640px]:z-[5] pointer-events-none"
+  <div id="container-map-ui-top" class="hidden sm:block sm:absolute sm:top-0 sm:left-0 sm:right-0 sm:z-[5] pointer-events-none"
        data-controller="filter-layout">
     <ul id="filter-tabs" role="group" aria-label="Water System Filters" class="m-0 flex list-none flex-nowrap items-start justify-end gap-1.5 pt-3 pl-5 pr-5 pointer-events-none">
       <%= render UI::FilterMenuTabComponent.new(menu_id: 1, label: "Source") %>
@@ -80,7 +80,7 @@
   <div id="map" class="w-full h-full"></div>
 
   <%# Map region shortcuts (48 / AK / HI / territories) — below +/− zoom controls %>
-  <div id="container-region-nav" class="absolute left-0 top-[135px] z-[1] max-[640px]:hidden group-[.table-mode]/map:hidden">
+  <div id="container-region-nav" class="absolute left-[10px] top-[135px] z-[1] group-[.table-mode]/map:hidden">
     <%= render UI::MapRegionShortcutButtonComponent.new(label: "48", aria_label: "Zoom to 48 states", map_action: "zoom48") %>
     <%= render UI::MapRegionShortcutButtonComponent.new(label: "AK", aria_label: "Zoom to Alaska", map_action: "zoomAk") %>
     <%= render UI::MapRegionShortcutButtonComponent.new(label: "HI", aria_label: "Zoom to Hawaii", map_action: "zoomHi") %>
@@ -92,7 +92,7 @@
 
   <%# Intro tooltip — bottom right of map canvas %>
   <div id="container-map-content-bottom" class="group-[.table-mode]/map:hidden group-[.section-mode]/map:hidden">
-    <div class="absolute right-5 bottom-[100px] z-[9] max-w-[310px] max-[640px]:hidden bg-white border border-neutral-400 rounded-[20px] py-2.5 px-5">
+    <div class="hidden absolute right-5 bottom-[100px] z-[9] max-w-[310px] sm:block bg-white border border-neutral-400 rounded-[20px] py-2.5 px-5">
       <p class="text-[1.2em] leading-[1.4] m-0"><strong>How to use this tool:</strong></p>
       <p class="text-[1em] leading-[1.4] my-2.5 mx-0">Search or zoom into the map to see information about public drinking water systems in areas of interest. Use the filters to customize the display.</p>
     </div>
@@ -100,12 +100,30 @@
 
   <turbo-frame id="stats-bar"></turbo-frame>
 
+  <%# Mobile floating action buttons — filter and stats %>
+  <div id="container-mobile-map-actions" class="sm:hidden group-[.table-mode]/map:hidden group-[.section-mode]/map:hidden absolute right-[10px] bottom-12 z-[10] flex flex-col gap-3">
+    <%= render UI::CircleButtonComponent.new(
+          aria_label: "Toggle map filters",
+          data_action: "click->nav#toggleMobileFilters",
+          extra_classes: "!w-12 !h-12 shadow-sm"
+        ) do %>
+      <%= icon "map-filters", classes: "w-6 h-6" %>
+    <% end %>
+    <%= render UI::CircleButtonComponent.new(
+          aria_label: "Toggle statistics panel",
+          data_action: "click->nav#toggleMobileStats",
+          extra_classes: "!w-12 !h-12 shadow-sm"
+        ) do %>
+      <%= icon "info", classes: "w-6 h-6" %>
+    <% end %>
+  </div>
+
   <%# Detail data loaded via Mapbox popup on map click;
       full report loaded into report-body Turbo Frame below %>
 
   <%# Map/Table view toggle — bottom right of map canvas %>
   <div id="container-map-ui-bottom"
-       class="max-[640px]:hidden group-[.section-mode]/map:hidden absolute right-5 bottom-[42px] z-[999]">
+       class="hidden sm:block sm:absolute sm:right-5 sm:bottom-[42px] sm:z-[999] group-[.section-mode]/map:hidden">
     <ul class="m-0 flex list-none flex-nowrap items-center gap-1.5 pt-1.5 pl-5">
       <li class="relative shrink-0">
         <button type="button"
@@ -131,9 +149,9 @@
   <%# =====================================================
       Table view — lives inside container-map so the filter
       bar stays visible when the user switches to it.
-      Shown/hidden via the .table-mode class on container-map.
+      Shown/hidden by nav_controller.js#show via classList.
       ===================================================== %>
-  <div id="container-table" class="absolute top-3 right-4 bottom-8 rounded-xl shadow-lg overflow-hidden">
+  <div id="container-table" class="hidden absolute bg-white z-[3] top-3 right-4 bottom-8 rounded-xl shadow-lg overflow-hidden">
     <div class="flex min-h-0 flex-1 flex-col px-5 pt-[52px]">
       <div class="flex min-w-0 flex-col gap-4 overflow-hidden py-5 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
         <div class="min-w-0 shrink">
@@ -181,7 +199,7 @@
 <%# =====================================================
     Datasets section (hidden until user navigates)
     ===================================================== %>
-<div id="container-datasets" class="container-main-content absolute hidden top-3 bottom-8 bg-white rounded-xl shadow-lg overflow-hidden">
+<div id="container-datasets" class="container-main-content hidden fixed top-[60px] bottom-[50px] left-0 right-0 bg-white rounded-xl shadow-lg overflow-hidden sm:absolute sm:top-3 sm:bottom-8">
   <div class="h-full overflow-y-auto">
     <%= render "datasets" %>
   </div>
@@ -190,7 +208,7 @@
 <%# =====================================================
     Documentation section
     ===================================================== %>
-<div id="container-documentation" class="container-main-content absolute hidden top-3 bottom-8 bg-white rounded-xl shadow-lg overflow-hidden">
+<div id="container-documentation" class="container-main-content hidden fixed top-[60px] bottom-[50px] left-0 right-0 bg-white rounded-xl shadow-lg overflow-hidden sm:absolute sm:top-3 sm:bottom-8">
   <div class="h-full overflow-y-auto px-5 py-5">
     <h3 class="m-0 text-base font-semibold">Documentation</h3>
   </div>
@@ -199,7 +217,7 @@
 <%# =====================================================
     Downloads section (hidden until user navigates)
     ===================================================== %>
-<div id="container-downloads" class="container-main-content absolute hidden top-3 bottom-8 bg-white rounded-xl shadow-lg overflow-hidden">
+<div id="container-downloads" class="container-main-content hidden fixed top-[60px] bottom-[50px] left-0 right-0 bg-white rounded-xl shadow-lg overflow-hidden sm:absolute sm:top-3 sm:bottom-8">
   <div class="h-full overflow-y-auto">
     <%= render "downloads" %>
   </div>
@@ -233,23 +251,27 @@
   </div>
 </div>
 
-<%# Mobile footer (hidden on desktop) %>
-<div class="mobile-footer sm:hidden">
-  <%= icon "epic", classes: "w-9 h-auto" %>
+<%# Mobile footer %>
+<div class="sm:hidden fixed bottom-0 w-full pb-[10px] px-[10px] bg-brand-primary z-[99999] text-center">
+  <div class="flex justify-center -mt-5">
+    <div class="bg-white rounded-full p-0.25">
+      <%= icon "epic", classes: "block w-9 h-auto" %>
+    </div>
+  </div>
   <% if @last_updated %>
-    <p>Last updated on <%= @last_updated.in_time_zone("Eastern Time (US & Canada)").strftime("%m/%d/%Y at %I:%M %p %Z") %></p>
+    <p class="text-white m-0 text-[0.9em]">Latest data update on <%= @last_updated.in_time_zone("Eastern Time (US & Canada)").strftime("%m/%d/%Y at %I:%M %p %Z") %></p>
   <% end %>
-  <p>(cc) Environmental Policy Innovation Center (EPIC)</p>
+  <p class="text-white m-0 text-[0.9em]">(<%= render UI::ExternalLinkComponent.new(url: "https://creativecommons.org/share-your-work/cclicenses/", aria_label: "Creative Commons license (opens in new tab)", css_class: "text-white inline-flex items-center gap-0.5") do %>cc<%= icon "external-link", classes: "w-3 h-3" %><% end %>) Environmental Policy Innovation Center (EPIC)</p>
 </div>
 
 <%# Mobile menu overlay %>
-<div id="container-mobile-menu" class="" style="display:none;">
-  <div class="container-mobile-menu-inner flex flex-col min-h-full">
+<div id="container-mobile-menu" class="hidden fixed inset-0 bg-white z-[999] overflow-y-scroll">
+  <div class="flex flex-col min-h-full py-[60px] px-5">
     <p class="pt-6 pb-2"><strong>How to use this tool:</strong></p>
     <p class="pb-6">Search or zoom into the map to see information about public drinking water systems in areas of interest. Use the filters to customize the display.</p>
-    <ul>
-      <li class="nav-1"><button type="button" data-section="map" data-action="click->nav#show" class="nav-item nav-1 nav-map active flex items-center gap-3 px-4 py-2.5 bg-white text-neutral-900 cursor-pointer rounded-full border border-neutral-400 my-2 mx-5 hover:bg-neutral-200 hover:text-black [&.active]:bg-brand-primary [&.active]:border-brand-primary [&.active]:text-white"><%= icon "explore", classes: "h-[18px] w-[18px] shrink-0" %>Explore the Map</button></li>
-      <li class="nav-2"><button type="button" data-section="datasets" data-action="click->nav#show" class="nav-item nav-2 nav-datasets flex items-center gap-3 px-4 py-2.5 bg-white text-neutral-900 cursor-pointer rounded-full border border-neutral-400 my-2 mx-5 hover:bg-neutral-200 hover:text-black [&.active]:bg-brand-primary [&.active]:border-brand-primary [&.active]:text-white"><%= icon "data", classes: "h-[18px] w-[18px] shrink-0" %>Datasets</button></li>
+    <ul class="list-none m-0 p-0">
+      <li class="px-5"><%= render UI::NavItemComponent.new(section: "map", label: "Explore the Map", icon_name: "explore", active: true) %></li>
+      <li class="px-5"><%= render UI::NavItemComponent.new(section: "datasets", label: "Datasets", icon_name: "data") %></li>
       <li class="px-5">
         <%= render UI::NavItemComponent.new(
           label: "Documentation",
@@ -258,7 +280,7 @@
           external: true
         ) %>
       </li>
-      <li class="nav-4"><button type="button" data-section="downloads" data-action="click->nav#show" class="nav-item nav-4 nav-downloads flex items-center gap-3 px-4 py-2.5 bg-white text-neutral-900 cursor-pointer rounded-full border border-neutral-400 my-2 mx-5 hover:bg-neutral-200 hover:text-black [&.active]:bg-brand-primary [&.active]:border-brand-primary [&.active]:text-white"><%= icon "downloads", classes: "h-[18px] w-[18px] shrink-0" %>Downloads</button></li>
+      <li class="px-5"><%= render UI::NavItemComponent.new(section: "downloads", label: "Downloads", icon_name: "downloads") %></li>
       <li class="px-5">
         <%= render UI::NavItemComponent.new(
           label: "Github",
@@ -283,6 +305,5 @@
         ) %>
       </li>
     </ul>
-    <p class="mt-auto px-5 pt-8 pb-4 text-sm">(<%= render UI::ExternalLinkComponent.new(url: "https://creativecommons.org/share-your-work/cclicenses/", aria_label: "Creative Commons license (opens in new tab)") do %>cc<% end %>) Environmental Policy Innovation Center (EPIC)</p>
   </div>
 </div>
