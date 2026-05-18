@@ -58,6 +58,7 @@ When a PR is opened or updated against `main`:
 2. Secrets Manager ARNs are looked up (`rails_master_key`, `mapbox_access_token`, `mapbox_style_url`, `database_url`).
 3. `service_builder` runs with `EP_ACTION=apply` — this provisions a full ECS service, ALB, Route53 DNS record, and ACM certificate unique to that PR. First provision takes ~5–10 minutes (ACM cert validation).
 4. The environment is available at `https://water-data-tool-pr-<N>.policyinnovation.info`.
+5. GitHub registers a deployment against the shared `pr-previews` environment. The PR timeline shows a **View deployment** button linked to the preview URL. Clicking into `pr-previews` from the repository Deployments sidebar shows all PR deployments with individual URLs and statuses. When a PR is closed, `pr-teardown` marks that specific deployment inactive.
 
 When the PR is closed, `service_builder` runs with `EP_ACTION=destroy` and tears down all provisioned resources.
 
@@ -84,6 +85,12 @@ Watch progress in the **Actions** tab. Both workflows write a summary table (ima
 ---
 
 ## Checking what's currently deployed
+
+### GitHub Environments UI
+
+The fastest way to see what PR environments are live: go to the repository home page on GitHub and click **Deployments** in the right sidebar. This shows `staging`, `production`, and `pr-previews`. Click into `pr-previews` to see every PR deployment — each entry shows its unique preview URL and whether it is currently active or has been torn down.
+
+For a full deployment history (timestamps, who triggered, how long it ran), go to **Settings → Environments** and click into any environment.
 
 ### Health check all environments
 
