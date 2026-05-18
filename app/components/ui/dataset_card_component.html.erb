@@ -7,7 +7,7 @@
       <p class="text-sm text-gray-600 mb-4"><%= @description %></p>
       <div class="border-t border-b border-gray-200 py-3 mb-4 space-y-1">
         <p class="text-sm text-gray-600">
-          Data source: <%= link_to @source_name, @source_url, target: "_blank", rel: "noopener noreferrer", class: "text-gray-700 underline hover:text-gray-900" %>
+          Data source: <%= render UI::ExternalLinkComponent.new(url: @source_url, aria_label: "#{@source_name} (opens in new tab)", css_class: "text-gray-700 underline hover:text-gray-900") do %><%= @source_name %><% end %>
         </p>
         <p class="text-sm text-gray-600">Last updated: <span class="date"><%= formatted_date %></span></p>
         <p class="text-sm text-gray-600">Update frequency: <%= frequency_label %></p>
