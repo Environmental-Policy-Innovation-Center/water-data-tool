@@ -30,11 +30,10 @@ Built for [EPIC](https://www.policyinnovation.org/) (Environmental Policy Innova
 - `ETL_SOURCE_URL` env var — the base HTTPS URL to the S3 folder containing source data files. Required to seed the database. Get this value from the project team and add it to your `.env` before running `bin/setup`.
 
 
-## Current Deployed Instances (example values)
-- **Staging**: https://apps.cnt.org/water-data-tool-staging/
-- **Production**: https://apps.cnt.org/water-data-tool/
-
-These URLs reflect the current hosting environment and should be replaced during ownership transfer.
+## Current Deployed Instances
+- **Production**: https://water-data-tool.policyinnovation.info
+- **Staging**: https://water-data-tool-staging.policyinnovation.info
+- **PR previews**: https://water-data-tool-pr-\<N\>.policyinnovation.info (spun up automatically for each open PR)
 
 ---
 
