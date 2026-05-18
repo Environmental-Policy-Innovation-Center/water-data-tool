@@ -101,7 +101,19 @@ These URLs reflect the current hosting environment and should be replaced during
 
    After seeding, the map is fully functional — tile generation happens on-demand. No additional setup steps are required.
 
-6. **Start the app**
+6. **Install Git hooks (Lefthook)** (recommended)
+
+   The repo includes [`lefthook.yml`](lefthook.yml), which runs [Standard](https://github.com/standardrb/standard) on staged `.rb` files and [ERB Lint](https://github.com/Shopify/erb-lint) on staged `.html.erb` files before each commit. After `bundle install`, register the hooks **once per clone**:
+
+   ```bash
+   bundle exec lefthook install
+   ```
+
+   To replace hook scripts that are already installed (for example after a Lefthook upgrade), use `bundle exec lefthook install -f`.
+
+   You can still lint without Git hooks (see [Development workflow](#development-workflow)): check with `bin/standardrb` / `bundle exec erb_lint --lint-all`, or apply safe auto-fixes with `bin/standardrb --fix` / `bundle exec erb_lint --lint-all --autocorrect`. ERB Lint config lives in [`.erb_lint.yml`](.erb_lint.yml) at the repo root (see [Shopify erb-lint](https://github.com/Shopify/erb-lint#configuration)).
+
+7. **Start the app**
 
    ```bash
    bin/dev
@@ -148,6 +160,14 @@ bin/dev
 
 # Run tests
 bundle exec rspec
+
+# Lint (check only — same tools as Lefthook pre-commit; no Git hook required)
+bin/standardrb
+bundle exec erb_lint --lint-all
+
+# Auto-fix what each tool can safely correct (review `git diff` afterward)
+bin/standardrb --fix
+bundle exec erb_lint --lint-all --autocorrect
 
 # Rails console
 bin/rails console

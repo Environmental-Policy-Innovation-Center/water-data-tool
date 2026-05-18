@@ -42,7 +42,8 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     env:
-      RUBOCOP_CACHE_ROOT: tmp/rubocop
+      # Standard wraps RuboCop; this env name is defined by RuboCop for the persistent cache directory.
+      RUBOCOP_CACHE_ROOT: tmp/standard-style-cache
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -52,18 +53,18 @@ jobs:
         with:
           bundler-cache: true
 
-      - name: Prepare RuboCop cache
+      - name: Prepare Standard style cache
         uses: actions/cache@v4
         env:
-          DEPENDENCIES_HASH: ${{ hashFiles('.ruby-version', '**/.rubocop.yml', '**/.rubocop_todo.yml', 'Gemfile.lock') }}
+          DEPENDENCIES_HASH: ${{ hashFiles('.ruby-version', '.standard.yml', '.erb_lint.yml', 'Gemfile.lock') }}
         with:
           path: ${{ env.RUBOCOP_CACHE_ROOT }}
-          key: rubocop-${{ runner.os }}-${{ env.DEPENDENCIES_HASH }}-${{ github.ref_name == github.event.repository.default_branch && github.run_id || 'default' }}
+          key: standard-style-${{ runner.os }}-${{ env.DEPENDENCIES_HASH }}-${{ github.ref_name == github.event.repository.default_branch && github.run_id || 'default' }}
           restore-keys: |
-            rubocop-${{ runner.os }}-${{ env.DEPENDENCIES_HASH }}-
+            standard-style-${{ runner.os }}-${{ env.DEPENDENCIES_HASH }}-
 
-      - name: Lint code for consistent style
-        run: bin/rubocop -f github
+      - name: Lint Ruby with Standard
+        run: bin/standardrb -f github
 
   test:
     runs-on: ubuntu-latest

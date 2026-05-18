@@ -1,0 +1,12 @@
+pre-commit:
+  parallel: true
+  commands:
+    standard:
+      glob: "**/*.rb"
+      run: bin/standardrb --fix {staged_files}
+      stage_fixed: true
+
+    erb-lint:
+      glob: "**/*.html.erb"
+      run: bundle exec erb_lint --autocorrect {staged_files}
+      stage_fixed: true

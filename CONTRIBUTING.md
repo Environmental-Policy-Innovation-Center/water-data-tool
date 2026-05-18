@@ -45,7 +45,8 @@ Open a GitHub Issue with:
 ### Ruby
 
 - Follow standard Rails conventions
-- Run RuboCop before committing: `bundle exec rubocop`
+- Run [Standard](https://github.com/standardrb/standard) before committing: `bin/standardrb` (or `bundle exec standardrb`); auto-fix with `bin/standardrb --fix`. Lefthook runs Standard with `--fix` on staged `.rb` files when hooks are installed.
+- Lint ERB templates with [ERB Lint](https://github.com/Shopify/erb-lint): `bundle exec erb_lint --lint-all`; auto-fix with `bundle exec erb_lint --lint-all --autocorrect` (or `-a`). Lefthook runs ERB Lint with `--autocorrect` on staged `.html.erb` when hooks are installed. Repo config: `.erb_lint.yml`.
 - Use `snake_case` for methods and variables
 - Keep controllers thin — business logic belongs in models or concerns
 
