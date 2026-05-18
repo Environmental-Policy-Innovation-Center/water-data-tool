@@ -21,7 +21,8 @@ module Etl
       "cvi" => Etl::Importers::Cvi,
       "national_bwn_highlevel_summary" => Etl::Importers::NationalBwnHighlevelSummary,
       "pwsid_funded_highlevel_summary" => Etl::Importers::PwsidFundedHighlevelSummary,
-      "pwsid_npdes_usts_rmps_imp" => Etl::Importers::PwsidNpdesUstsRmpsImp
+      "pwsid_npdes_usts_rmps_imp" => Etl::Importers::PwsidNpdesUstsRmpsImp,
+      "sabs_pwsid_county" => Etl::Importers::SabsPwsidCounty
     }.freeze
 
     FILE_EXTENSIONS = {
@@ -36,7 +37,8 @@ module Etl
       "cvi" => ".csv",
       "national_bwn_highlevel_summary" => ".csv",
       "pwsid_funded_highlevel_summary" => ".csv",
-      "pwsid_npdes_usts_rmps_imp" => ".csv"
+      "pwsid_npdes_usts_rmps_imp" => ".csv",
+      "sabs_pwsid_county" => ".csv"
     }.freeze
 
     def initialize(force: false, only: nil)
@@ -46,8 +48,7 @@ module Etl
 
     def call
       entries = build_file_entries
-      geometry_imported = false
-      any_imported = false
+      imported_files = []
       errors = []
 
       entries.each do |entry|
@@ -58,21 +59,14 @@ module Etl
 
         begin
           result = klass.new(file_url: entry["http_path"], last_updated: entry["last_updated"], force: @force).call
-          if result == :imported
-            any_imported = true
-            geometry_imported = true if file_key == "epa_sabs_geoms"
-          end
-        rescue => e # StandardError only — intentional fault isolation per importer
+          imported_files << file_key if result == :imported
+        rescue => e
           errors << {file_key: file_key, error: e}
           Rails.logger.error("[ETL] #{file_key} failed: #{e.class} — #{e.message}")
         end
       end
 
-      # Bust stale tiles before spatial reprocessing so requests during
-      # the reindex window generate fresh tiles on demand.
-      Etl::PostImportSteps.bust_tile_cache if any_imported
-      Etl::PostImportSteps.call if geometry_imported
-      TileCacheWarmJob.perform_later if any_imported
+      Etl::PostImportSteps.call(imported_files: imported_files)
 
       errors
     end

@@ -38,19 +38,27 @@ RSpec.describe Etl::Importer do
       expect(importer.call).to eq([])
     end
 
-    it "runs PostImportSteps when the geometry file is imported" do
+    it "runs PostImportSteps with the geometry file key when geometry is imported" do
       geoms_importer = instance_double(Etl::Importers::EpaSabsGeoms, call: :imported)
       allow(Etl::Importers::EpaSabsGeoms).to receive(:new).and_return(geoms_importer)
       allow_all_importers_to_skip(except: Etl::Importers::EpaSabsGeoms)
 
-      expect(Etl::PostImportSteps).to receive(:call)
+      expect(Etl::PostImportSteps).to receive(:call).with(imported_files: ["epa_sabs_geoms"])
       importer.call
     end
 
-    it "skips PostImportSteps when the geometry file is skipped" do
+    it "calls PostImportSteps with an empty list when no files are imported" do
       allow_all_importers_to_skip
 
-      expect(Etl::PostImportSteps).not_to receive(:call)
+      expect(Etl::PostImportSteps).to receive(:call).with(imported_files: [])
+      importer.call
+    end
+
+    it "triggers no tile cache or warm job side effects when no files are imported" do
+      allow_all_importers_to_skip
+      allow(Etl::PostImportSteps).to receive(:call).and_call_original
+
+      expect(TileCacheWarmJob).not_to receive(:perform_later)
       importer.call
     end
 
@@ -114,7 +122,7 @@ RSpec.describe Etl::Importer do
         expect(errors.first[:error].message).to eq("boom")
       end
 
-      it "still runs PostImportSteps if geometry was imported before the failure" do
+      it "still runs PostImportSteps with geometry key if geometry was imported before the failure" do
         geoms_importer = instance_double(Etl::Importers::EpaSabsGeoms, call: :imported)
         allow(Etl::Importers::EpaSabsGeoms).to receive(:new).and_return(geoms_importer)
 
@@ -124,51 +132,40 @@ RSpec.describe Etl::Importer do
 
         allow_all_importers_to_skip(except: [Etl::Importers::EpaSabsGeoms, Etl::Importers::EpaSabs])
 
-        expect(Etl::PostImportSteps).to receive(:call)
+        expect(Etl::PostImportSteps).to receive(:call).with(imported_files: ["epa_sabs_geoms"])
         importer.call
       end
     end
   end
 
-  describe "tile cache invalidation" do
+  describe "imported_files tracking" do
     before do
       allow(importer).to receive(:build_file_entries).and_return(file_entries)
+      allow(Etl::PostImportSteps).to receive(:call)
     end
 
-    it "busts the tile cache when any file is imported" do
+    it "passes the imported file key to PostImportSteps when a file is imported" do
       epa_sabs_importer = instance_double(Etl::Importers::EpaSabs, call: :imported)
       allow(Etl::Importers::EpaSabs).to receive(:new).and_return(epa_sabs_importer)
       allow_all_importers_to_skip(except: Etl::Importers::EpaSabs)
 
-      expect(Etl::PostImportSteps).to receive(:bust_tile_cache)
+      expect(Etl::PostImportSteps).to receive(:call).with(imported_files: ["epa_sabs"])
       importer.call
     end
 
-    it "enqueues TileCacheWarmJob after busting the cache" do
-      epa_sabs_importer = instance_double(Etl::Importers::EpaSabs, call: :imported)
-      allow(Etl::Importers::EpaSabs).to receive(:new).and_return(epa_sabs_importer)
-      allow_all_importers_to_skip(except: Etl::Importers::EpaSabs)
-
-      allow(Etl::PostImportSteps).to receive(:bust_tile_cache)
-      expect(TileCacheWarmJob).to receive(:perform_later)
-      importer.call
-    end
-
-    it "does not bust the cache when all files are skipped" do
+    it "passes an empty imported_files when all files are skipped" do
       allow_all_importers_to_skip
 
-      expect(Etl::PostImportSteps).not_to receive(:bust_tile_cache)
-      expect(TileCacheWarmJob).not_to receive(:perform_later)
+      expect(Etl::PostImportSteps).to receive(:call).with(imported_files: [])
       importer.call
     end
 
-    it "busts the cache even when only non-geometry files are imported" do
+    it "passes only the imported file key when a non-geometry file is imported" do
       sdwis_importer = instance_double(Etl::Importers::SdwisViols, call: :imported)
       allow(Etl::Importers::SdwisViols).to receive(:new).and_return(sdwis_importer)
       allow_all_importers_to_skip(except: Etl::Importers::SdwisViols)
 
-      expect(Etl::PostImportSteps).to receive(:bust_tile_cache)
-      expect(TileCacheWarmJob).to receive(:perform_later)
+      expect(Etl::PostImportSteps).to receive(:call).with(imported_files: ["sdwis_viols"])
       importer.call
     end
   end

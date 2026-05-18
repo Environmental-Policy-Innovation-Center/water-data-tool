@@ -455,7 +455,7 @@ namespace :db do
       # ---------------------------------------------------------------------------
       if CartographicState.count == 0
         puts "\n→ Loading cartographic boundaries..."
-        Rake::Task["cartographic:load"].invoke
+        CartographicBoundaries.load
       else
         puts "\n  Cartographic boundaries: already loaded (#{CartographicState.count} states)"
       end
@@ -465,7 +465,7 @@ namespace :db do
       # ---------------------------------------------------------------------------
       if ServiceAreaGeometry.count > 0
         puts "\n→ Running post-import spatial steps..."
-        Etl::PostImportSteps.call
+        Etl::PostImportSteps.call(imported_files: ["epa_sabs_geoms"])
       end
 
       DataImport.create!(file_url: "seed:states[#{states.join(",")}]", imported_at: Time.current)

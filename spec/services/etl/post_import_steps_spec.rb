@@ -74,12 +74,6 @@ RSpec.describe Etl::PostImportSteps do
     end
   end
 
-  describe ".build_county_associations" do
-    it "runs without error" do
-      expect { described_class.build_county_associations }.not_to raise_error
-    end
-  end
-
   describe ".build_place_crosswalks" do
     it "runs without error" do
       expect { described_class.build_place_crosswalks }.not_to raise_error
@@ -107,20 +101,48 @@ RSpec.describe Etl::PostImportSteps do
   end
 
   describe ".call" do
-    before { insert_state("VT", VERMONT_STATE_WKT) }
+    before do
+      insert_state("VT", VERMONT_STATE_WKT)
+      allow(CartographicBoundaries).to receive(:load)
+      allow(TileCacheWarmJob).to receive(:perform_later)
+    end
+
+    it "is a no-op when imported_files is empty" do
+      expect(TileCacheWarmJob).not_to receive(:perform_later)
+      expect(CartographicBoundaries).not_to receive(:load)
+      described_class.call(imported_files: [])
+    end
+
+    it "busts tile cache but skips geometry steps for non-geometry imports" do
+      expect(TileCacheWarmJob).to receive(:perform_later)
+      expect(CartographicBoundaries).not_to receive(:load)
+      described_class.call(imported_files: ["epa_sabs"])
+    end
+
+    it "skips CartographicBoundaries.load when boundaries are already loaded" do
+      allow(CartographicBoundaries).to receive(:loaded?).and_return(true)
+      expect(CartographicBoundaries).not_to receive(:load)
+      described_class.call(imported_files: ["epa_sabs_geoms"])
+    end
+
+    it "loads CartographicBoundaries when boundaries are not yet loaded" do
+      allow(CartographicBoundaries).to receive(:loaded?).and_return(false)
+      expect(CartographicBoundaries).to receive(:load)
+      described_class.call(imported_files: ["epa_sabs_geoms"])
+    end
 
     it "runs all steps in sequence without error" do
-      expect { described_class.call }.not_to raise_error
+      expect { described_class.call(imported_files: ["epa_sabs_geoms"]) }.not_to raise_error
     end
 
     it "populates centroids as part of the full run" do
-      described_class.call
+      described_class.call(imported_files: ["epa_sabs_geoms"])
       sag = ServiceAreaGeometry.find_by(pwsid: "VT0000001")
       expect(sag.centroid).not_to be_nil
     end
 
     it "assigns state codes as part of the full run" do
-      described_class.call
+      described_class.call(imported_files: ["epa_sabs_geoms"])
       expect(PublicWaterSystem.find_by(pwsid: "VT0000001").stusps).to eq("VT")
     end
   end
