@@ -1,0 +1,168 @@
+name: Teardown PR Environments
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: '"specific" to destroy one PR, "stale" to sweep by last-commit age'
+        required: true
+        type: choice
+        options: [specific, stale]
+      pr_number:
+        description: 'PR number to destroy (mode=specific only)'
+        required: false
+      days_old:
+        description: 'Destroy PRs with no new commits in this many days (mode=stale only) - default: 14'
+        required: false
+        default: '14'
+      confirm:
+        description: 'Type "teardown" to confirm'
+        required: true
+
+concurrency:
+  group: teardown-pr-envs
+  cancel-in-progress: false
+
+jobs:
+  teardown:
+    if: >
+      vars.AWS_DEPLOY_ENABLED == 'true' &&
+      github.event.inputs.confirm == 'teardown'
+    runs-on: ubuntu-latest
+    environment: pr-previews
+    permissions:
+      id-token: write
+      contents: read
+      pull-requests: write
+      deployments: write
+    env:
+      AWS_REGION:            ${{ vars.AWS_REGION }}
+      ECS_CLUSTER:           ${{ vars.ECS_CLUSTER }}
+      SERVICE_BUILDER_IMAGE: ${{ vars.SERVICE_BUILDER_IMAGE_URI }}
+
+    steps:
+      - name: Validate confirmation input
+        if: github.event.inputs.confirm != 'teardown'
+        run: |
+          echo "::error::Confirmation input must be exactly 'teardown'. Got: '${{ github.event.inputs.confirm }}'"
+          exit 1
+
+      - name: Validate specific mode inputs
+        if: github.event.inputs.mode == 'specific' && github.event.inputs.pr_number == ''
+        run: |
+          echo "::error::pr_number is required when mode=specific"
+          exit 1
+
+      - name: Configure AWS credentials (PR role)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_PR_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Resolve PR list
+        id: prs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [[ "${{ github.event.inputs.mode }}" == "specific" ]]; then
+            echo "list=${{ github.event.inputs.pr_number }}" >> "$GITHUB_OUTPUT"
+          else
+            DAYS="${{ github.event.inputs.days_old }}"
+            CUTOFF=$(date -u -d "${DAYS} days ago" '+%Y-%m-%dT%H:%M:%SZ')
+
+            SERVICES=$(aws ecs list-services \
+              --cluster "$ECS_CLUSTER" \
+              --output text \
+              | tr '\t' '\n' \
+              | grep "water_data_tool_pr_" \
+              | sed 's|.*/water_data_tool_pr_||')
+
+            STALE=""
+            for PR_NUM in $SERVICES; do
+              HEAD_SHA=$(gh pr view "$PR_NUM" \
+                --json headRefOid \
+                --jq '.headRefOid' 2>/dev/null || echo "")
+              LAST_COMMIT=""
+              if [[ -n "$HEAD_SHA" ]]; then
+                LAST_COMMIT=$(gh api "repos/$GITHUB_REPOSITORY/commits/$HEAD_SHA" \
+                  --jq '.commit.committer.date' 2>/dev/null || echo "")
+              fi
+
+              if [[ -z "$LAST_COMMIT" ]]; then
+                echo "PR #$PR_NUM — not found or closed, marking stale"
+                STALE="$STALE $PR_NUM"
+              elif [[ "$LAST_COMMIT" < "$CUTOFF" ]]; then
+                echo "PR #$PR_NUM — last commit $LAST_COMMIT, stale"
+                STALE="$STALE $PR_NUM"
+              else
+                echo "PR #$PR_NUM — last commit $LAST_COMMIT, still active, skipping"
+              fi
+            done
+
+            echo "list=$(echo $STALE | xargs)" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Tear down PR environments
+        env:
+          PR_LIST: ${{ steps.prs.outputs.list }}
+        run: |
+          if [[ -z "$PR_LIST" ]]; then
+            echo "No PR environments matched — nothing to tear down."
+            exit 0
+          fi
+
+          for PR_NUM in $PR_LIST; do
+            echo "── Tearing down PR #${PR_NUM} ──"
+
+            NODE_SG_ID=$(aws ec2 describe-security-groups \
+              --filters "Name=group-name,Values=epapp__nodes_water_data_tool_pr_${PR_NUM}__dev_us-east-1" \
+              --query 'SecurityGroups[0].GroupId' --output text)
+            if [ -n "$NODE_SG_ID" ] && [ "$NODE_SG_ID" != "None" ]; then
+              aws ec2 revoke-security-group-ingress \
+                --group-id "${{ vars.RDS_SG_ID }}" \
+                --protocol tcp \
+                --port 5432 \
+                --source-group "$NODE_SG_ID" || true
+            fi
+
+            docker run --rm \
+              -e EP_ACTION=destroy \
+              -e EP_ENV="pr-${PR_NUM}" \
+              -e EP_SERVICE_NAME="water_data_tool_pr_${PR_NUM}" \
+              -e EP_SERVICE_SHORT_NAME="pr${PR_NUM}" \
+              -e EP_ECS_CLUSTER_NAME="$ECS_CLUSTER" \
+              -e EP_TF_STATE_S3_BUCKET_NAME="ep-service-builder" \
+              -e EP_SERVICE_INSTANCE_TYPE="t3.small" \
+              -e EP_SERVICE_INSTANCE_COUNT="1" \
+              -e EP_SERVICE_CONTAINER_RAM_MB="1700" \
+              -e EP_SERVICE_DOMAIN="water-data-tool-pr-${PR_NUM}.policyinnovation.info" \
+              -e EP_SERVICE_PORT="3000" \
+              -e EP_SERVICE_HEALTH_PORT="3000" \
+              -e EP_SERVICE_HEALTH_CHECK_PATH="/up" \
+              -e EP_CREATE_ECR_REPO="false" \
+              -e AWS_ACCESS_KEY_ID="$AWS_ACCESS_KEY_ID" \
+              -e AWS_SECRET_ACCESS_KEY="$AWS_SECRET_ACCESS_KEY" \
+              -e AWS_SESSION_TOKEN="$AWS_SESSION_TOKEN" \
+              -e AWS_REGION="$AWS_REGION" \
+              "$SERVICE_BUILDER_IMAGE"
+
+            echo "PR #${PR_NUM} torn down."
+          done
+
+      - name: Summary
+        env:
+          PR_LIST: ${{ steps.prs.outputs.list }}
+        run: |
+          {
+            echo "## PR environment teardown complete"
+            echo ""
+            echo "| | |"
+            echo "|---|---|"
+            echo "| **Mode** | ${{ github.event.inputs.mode }} |"
+            echo "| **PRs torn down** | \`$(echo $PR_LIST | tr ' ' ', ')\` |"
+            echo "| **Triggered by** | @${{ github.actor }} |"
+            echo "| **Time** | $(date -u '+%Y-%m-%d %H:%M UTC') |"
+          } >> "$GITHUB_STEP_SUMMARY"

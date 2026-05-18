@@ -62,7 +62,7 @@ When a PR is opened or updated against `main`:
 
 When the PR is closed, `service_builder` runs with `EP_ACTION=destroy` and tears down all provisioned resources.
 
-> **Stale environments:** Teardown only fires on PR close. If teardown fails, the environment persists. Terraform state is preserved in S3 at `tf/water_data_tool_pr_<N>/water_data_tool_pr_<N>_pr-<N>.tfstate`. Re-run the teardown job in GitHub Actions, or run `terraform destroy` locally using that state file.
+> **Stale environments:** Teardown only fires on PR close. If teardown fails, the environment persists. Terraform state is preserved in S3 at `tf/water_data_tool_pr_<N>/water_data_tool_pr_<N>_pr-<N>.tfstate`. Use the **Teardown PR Environments** workflow to clean up manually, or run `terraform destroy` locally using that state file.
 
 ---
 
@@ -81,6 +81,24 @@ When the PR is closed, `service_builder` runs with `EP_ACTION=destroy` and tears
 3. Click **Run workflow**
 
 Watch progress in the **Actions** tab. Both workflows write a summary table (image digest, URL, who triggered it) to the job summary on completion.
+
+### Tear down PR environments manually
+
+Use **Actions → Teardown PR Environments → Run workflow** to destroy one or more PR environments on demand. Two modes:
+
+**Specific** — destroy a single PR environment by number:
+1. Set **Mode** to `specific`
+2. Enter the PR number
+3. Type `teardown` in the confirmation field
+4. Click **Run workflow**
+
+**Stale** — sweep all PR environments whose last commit is older than N days:
+1. Set **Mode** to `stale`
+2. Optionally set **Days old** (default: 14)
+3. Type `teardown` in the confirmation field
+4. Click **Run workflow**
+
+The stale sweep lists all ECS services matching `water_data_tool_pr_*`, checks each PR's last commit date via the GitHub API, and destroys any that haven't been updated within the threshold. PRs that are already closed or not found are also torn down.
 
 ---
 
@@ -270,12 +288,6 @@ Neither strategy is wired up yet — both are day-two operational items before s
 
 ### Stale PR environment cleanup
 
-PR environments are torn down by the `pr-teardown` job when a PR is closed. If teardown fails, the environment persists indefinitely — there is no age-based sweep.
+PR environments are torn down automatically by the `pr-teardown` job when a PR is closed. If teardown fails, environments can be cleaned up manually using the **Teardown PR Environments** workflow (see [Tear down PR environments manually](#tear-down-pr-environments-manually) above).
 
-**Recommended:** add `.github/workflows/stale-pr-envs.yml` — a scheduled workflow (e.g. nightly) that:
-
-1. Lists all ECS services in the cluster matching `water_data_tool_pr_*`
-2. For each, checks whether the corresponding PR (`#N`) is still open via the GitHub API
-3. If the PR is merged or closed, runs `service_builder` with `EP_ACTION=destroy` to clean it up
-
-This follows the same pattern as the existing `pr-teardown` job and uses the same `AWS_PR_DEPLOY_ROLE_ARN` role — no new IAM permissions needed. It acts as a safety net, not a replacement for the primary teardown trigger.
+A scheduled automatic sweep (e.g. nightly cron) does not exist yet. If stale environments become a recurring problem, the `teardown-pr-envs.yml` workflow could be extended with a `schedule:` trigger using the existing `stale` mode logic.
