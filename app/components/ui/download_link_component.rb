@@ -15,7 +15,7 @@ class UI::DownloadLinkComponent < ViewComponent::Base
       parts = []
       parts << icon("downloads", classes: "w-4 h-4 shrink-0") if @show_icon
       parts << content
-      parts << tag.span("(download)", class: "sr-only")
+      parts << tag.span("(downloads file)", class: "sr-only")
       safe_join(parts)
     end
   end

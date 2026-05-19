@@ -115,6 +115,48 @@ RSpec.describe UI::NavItemComponent, type: :component do
     end
   end
 
+  describe "mailto link variant" do
+    subject do
+      render_inline described_class.new(
+        label: "Contact Us",
+        icon_name: "email",
+        href: "mailto:contact@example.com"
+      )
+    end
+
+    it "renders an anchor with the mailto href" do
+      subject
+      expect(html.css("a").first["href"]).to eq("mailto:contact@example.com")
+    end
+
+    it "appends (send email) to aria-label" do
+      subject
+      expect(html.css("a").first["aria-label"]).to eq("Contact Us (send email)")
+    end
+
+    it "does not include no-underline class" do
+      subject
+      expect(html.css("a").first["class"].split).not_to include("no-underline")
+    end
+
+    it "renders a sr-only span disclosing the email action" do
+      subject
+      sr = html.css(".sr-only").first
+      expect(sr).to be_present
+      expect(sr.text).to include("send email")
+    end
+
+    it "renders the email icon" do
+      subject
+      expect(html.to_html).to include("email")
+    end
+
+    it "does not add target=_blank" do
+      subject
+      expect(html.css("a").first["target"]).to be_nil
+    end
+  end
+
   describe "external: true" do
     subject do
       render_inline described_class.new(

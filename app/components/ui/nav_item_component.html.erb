@@ -1,7 +1,7 @@
 <% if link? %>
   <a href="<%= @href %>"
      aria-label="<%= accessible_label %>"
-     class="<%= base_classes %> <%= (@external || mailto?) ? nil : "no-underline" %>"
+     class="<%= link_classes %>"
      <% if @external %>
        title="Opens in new tab"
        target="_blank"
@@ -13,6 +13,9 @@
     <% if @external %>
       <%= icon "external-link", classes: "inline ml-1 group-data-[sidebar-collapsed]:hidden" %>
       <span class="sr-only">(opens in new tab)</span>
+    <% elsif mailto? %>
+      <%= icon "email", classes: "inline ml-1 group-data-[sidebar-collapsed]:hidden" %>
+      <span class="sr-only">(send email)</span>
     <% end %>
   </a>
 <% else %>

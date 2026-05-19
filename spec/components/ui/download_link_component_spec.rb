@@ -26,7 +26,7 @@ RSpec.describe UI::DownloadLinkComponent, type: :component do
 
   it "includes sr-only download text" do
     render_inline(component) { "National" }
-    expect(html.at_css(".sr-only").text).to eq("(download)")
+    expect(html.at_css(".sr-only").text).to eq("(downloads file)")
   end
 
   it "yields content inside the anchor" do

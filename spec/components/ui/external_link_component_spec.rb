@@ -24,7 +24,7 @@ RSpec.describe UI::ExternalLinkComponent, type: :component do
     expect(html.at_css("a")["class"]).to include("inline-flex", "items-center", "gap-0.5")
   end
 
-  it "is always underlined" do
+  it "is underlined by default" do
     render_inline(component) { "Example" }
     expect(html.at_css("a")["class"]).to include("underline")
   end
@@ -55,6 +55,20 @@ RSpec.describe UI::ExternalLinkComponent, type: :component do
     it "omits the icon" do
       render_inline(component) { "Example" }
       expect(html.at_css("a svg")).to be_nil
+    end
+  end
+
+  context "with underline: false" do
+    subject(:component) { described_class.new(url: "https://example.com", underline: false) }
+
+    it "omits the underline class" do
+      render_inline(component) { "Example" }
+      expect(html.at_css("a")["class"].split).not_to include("underline")
+    end
+
+    it "retains structural classes" do
+      render_inline(component) { "Example" }
+      expect(html.at_css("a")["class"]).to include("inline-flex", "items-center")
     end
   end
 
