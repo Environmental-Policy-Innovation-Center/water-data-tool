@@ -10,7 +10,7 @@ body:
     attributes:
       value: | 
         ## ISSUE DETAILS
- ---       
+        ---       
         #### IMPORTANT: ⚠️ Before submitting this issue, please scroll to the bottom of the GitHub issue page and select the following:
         
         - **Issue Type**
@@ -21,7 +21,7 @@ body:
           - Any additional applicable labels
         
         These selections are required for workflow management.
- ---
+        ---
   - type: dropdown
     id: team-area
     attributes:
