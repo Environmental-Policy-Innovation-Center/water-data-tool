@@ -219,9 +219,11 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh pr comment ${{ env.PR_NUM }} \
+            --repo ${{ github.repository }} \
             --body "**Preview environment torn down.** This PR has been closed." \
             --edit-last || \
           gh pr comment ${{ env.PR_NUM }} \
+            --repo ${{ github.repository }} \
             --body "**Preview environment torn down.** This PR has been closed."
 
       - name: Summary
