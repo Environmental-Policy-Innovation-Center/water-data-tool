@@ -45,7 +45,7 @@ RSpec.describe UI::CircleButtonComponent, type: :component do
         aria_label: "Print",
         id: "tt-print-report",
         data_action: "click->report#print",
-        extra_classes: "fixed top-[30px] right-20"
+        classes: "fixed top-[30px] right-20"
       )
     end
 
@@ -56,13 +56,10 @@ RSpec.describe UI::CircleButtonComponent, type: :component do
       expect(btn["data-action"]).to eq("click->report#print")
     end
 
-    it "appends extra_classes to base classes" do
+    it "merges classes with base classes" do
       render_inline(component) { "" }
       cls = html.at_css("button")["class"]
-      expect(cls).to include("fixed")
-      expect(cls).to include("top-[30px]")
-      expect(cls).to include("right-20")
-      expect(cls).to include("w-8")
+      expect(cls).to include("fixed", "top-[30px]", "right-20", "w-8")
     end
   end
 end

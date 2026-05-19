@@ -20,11 +20,17 @@ class UI::NavItemComponent < ViewComponent::Base
   end
 
   def base_classes
-    @active ? "#{NAV_ITEM_CLASSES} active" : NAV_ITEM_CLASSES
+    class_names(NAV_ITEM_CLASSES, @active && "active")
   end
 
   def accessible_label
-    @external ? "#{@label} (opens in new tab)" : @label
+    if @external
+      "#{@label} (opens in new tab)"
+    elsif mailto?
+      "#{@label} (send email)"
+    else
+      @label
+    end
   end
 
   def link?

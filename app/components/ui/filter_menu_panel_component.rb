@@ -22,6 +22,6 @@ class UI::FilterMenuPanelComponent < ViewComponent::Base
   end
 
   def container_classes
-    @more_menu ? "#{CONTAINER_BASE_CLASSES} filter-dropdown-more" : CONTAINER_BASE_CLASSES
+    class_names(CONTAINER_BASE_CLASSES, @more_menu && "filter-dropdown-more")
   end
 end

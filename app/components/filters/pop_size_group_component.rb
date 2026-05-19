@@ -19,8 +19,8 @@ class Filters::PopSizeGroupComponent < ViewComponent::Base
 
   def button_classes
     case @position
-    when :first then "#{BASE_CLASSES} border-l rounded-l-[10px]"
-    when :last then "#{BASE_CLASSES} rounded-r-[10px]"
+    when :first then class_names(BASE_CLASSES, "border-l rounded-l-[10px]")
+    when :last then class_names(BASE_CLASSES, "rounded-r-[10px]")
     else BASE_CLASSES
     end
   end

@@ -50,12 +50,17 @@ RSpec.describe UI::DownloadLinkComponent, type: :component do
     end
   end
 
-  context "with custom css_class" do
-    subject(:component) { described_class.new(url: "https://example.com/file.zip", css_class: "text-blue-600") }
+  it "always applies structural base classes" do
+    render_inline(component) { "National" }
+    expect(html.at_css("a")["class"]).to include("inline-flex", "items-center", "gap-1.5")
+  end
 
-    it "applies the custom class" do
+  context "with custom classes" do
+    subject(:component) { described_class.new(url: "https://example.com/file.zip", classes: "text-blue-600") }
+
+    it "merges custom classes with base classes" do
       render_inline(component) { "National" }
-      expect(html.at_css("a")["class"]).to eq("text-blue-600")
+      expect(html.at_css("a")["class"]).to include("inline-flex", "items-center", "text-blue-600")
     end
   end
 end

@@ -7,7 +7,7 @@
         id: "sidebar-toggle-button",
         aria_label: "Toggle sidebar width",
         data_action: "click->sidebar#toggle",
-        extra_classes: "absolute top-2.5 right-2.5"
+        classes: "absolute top-2.5 right-2.5"
       ) do %>
     <%= icon "collapse", classes: "h-4 w-4 group-data-[sidebar-collapsed]:hidden" %>
     <%= icon "expand", classes: "h-4 w-4 group-[&:not([data-sidebar-collapsed])]:hidden" %>
@@ -53,16 +53,10 @@
     </p>
     <div class="my-6 space-y-2">
       <p>
-        <a href="https://github.com/Environmental-Policy-Innovation-Center/national-dw-tool-public"
-           target="_blank"
-           rel="noopener noreferrer"
-           title="Opens in new tab">Github<%= icon "external-link", classes: "inline ml-0.5" %><span class="sr-only">(opens in new tab)</span></a>
+        <%= render UI::ExternalLinkComponent.new(url: "https://github.com/Environmental-Policy-Innovation-Center/national-dw-tool-public") do %>Github<% end %>
       </p>
       <p>
-        <a href="https://docs.google.com/forms/d/e/1FAIpQLSdj-JcAmFNHnyEGoou74kyL_R1YOUtsFG4dKlYl0TWWwkUcrg/viewform"
-           target="_blank"
-           rel="noopener noreferrer"
-           title="Opens in new tab">Feedback<%= icon "external-link", classes: "inline ml-0.5" %><span class="sr-only">(opens in new tab)</span></a>
+        <%= render UI::ExternalLinkComponent.new(url: "https://docs.google.com/forms/d/e/1FAIpQLSdj-JcAmFNHnyEGoou74kyL_R1YOUtsFG4dKlYl0TWWwkUcrg/viewform") do %>Feedback<% end %>
       </p>
       <p>
         <a href="mailto:watertool@policyinnovation.org"
