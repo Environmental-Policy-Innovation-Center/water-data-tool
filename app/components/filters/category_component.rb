@@ -12,6 +12,6 @@ class Filters::CategoryComponent < ViewComponent::Base
 
   def heading_classes
     variant_classes = (@variant == :light) ? LIGHT_VARIANT_CLASSES : DEFAULT_VARIANT_CLASSES
-    "#{BASE_HEADING_CLASSES} #{variant_classes}"
+    class_names(BASE_HEADING_CLASSES, variant_classes)
   end
 end

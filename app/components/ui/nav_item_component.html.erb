@@ -1,7 +1,7 @@
 <% if link? %>
   <a href="<%= @href %>"
      aria-label="<%= accessible_label %>"
-     class="<%= base_classes %> no-underline"
+     class="<%= base_classes %> <%= (@external || mailto?) ? nil : "no-underline" %>"
      <% if @external %>
        title="Opens in new tab"
        target="_blank"
@@ -18,7 +18,7 @@
 <% else %>
   <button type="button"
           aria-label="<%= accessible_label %>"
-          <% if @section %>data-section="<%= @section %>" data-action="click->nav#show"<% end %>
+          <% if @section %> data-section="<%= @section %>" data-action="click->nav#show"<% end %>
           class="<%= base_classes %>"
           <% if @active %> aria-current="page"<% end %>>
     <%= icon @icon_name, classes: "h-[18px] w-[18px] shrink-0" %>

@@ -105,14 +105,14 @@
     <%= render UI::CircleButtonComponent.new(
           aria_label: "Toggle map filters",
           data_action: "click->nav#toggleMobileFilters",
-          extra_classes: "!w-12 !h-12 shadow-sm"
+          classes: "!w-12 !h-12 shadow-sm"
         ) do %>
       <%= icon "map-filters", classes: "w-6 h-6" %>
     <% end %>
     <%= render UI::CircleButtonComponent.new(
           aria_label: "Toggle statistics panel",
           data_action: "click->nav#toggleMobileStats",
-          extra_classes: "!w-12 !h-12 shadow-sm"
+          classes: "!w-12 !h-12 shadow-sm"
         ) do %>
       <%= icon "info", classes: "w-6 h-6" %>
     <% end %>
@@ -233,7 +233,7 @@
         id: "tt-print-report",
         aria_label: "Print report",
         data_action: "click->report#print",
-        extra_classes: "fixed top-[30px] right-20 print:hidden"
+        classes: "fixed top-[30px] right-20 print:hidden"
       ) do %>
     <%= icon "print", classes: "h-4 w-4" %>
   <% end %>
@@ -241,7 +241,7 @@
         id: "tt-close-report",
         aria_label: "Close report",
         data_action: "click->report#close",
-        extra_classes: "fixed top-[30px] right-5 print:hidden"
+        classes: "fixed top-[30px] right-5 print:hidden"
       ) do %><%= icon "close", classes: "h-4 w-4" %><% end %>
 
   <div class="mx-auto max-w-[1200px] border border-[#eee] bg-white p-10 mt-[30px] mb-[50px] print:border-0 print:p-0 print:mt-0 print:mb-0">

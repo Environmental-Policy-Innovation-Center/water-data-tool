@@ -8,7 +8,7 @@ class UI::CircleButtonComponentPreview < Lookbook::Preview
 
   # @label Text button (region shortcut)
   def text_button
-    render UI::CircleButtonComponent.new(aria_label: "Zoom to Hawaii", data_action: "click->map#zoomHi", extra_classes: "text-xs") do
+    render UI::CircleButtonComponent.new(aria_label: "Zoom to Hawaii", data_action: "click->map#zoomHi", classes: "text-xs") do
       "HI"
     end
   end

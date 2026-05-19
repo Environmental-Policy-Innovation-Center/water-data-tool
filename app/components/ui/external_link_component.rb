@@ -1,9 +1,9 @@
 class UI::ExternalLinkComponent < ViewComponent::Base
   include ApplicationHelper
 
-  BASE_CLASSES = "inline-flex items-center gap-0.5"
+  BASE_CLASSES = "inline-flex items-center gap-0.5 underline"
 
-  def initialize(url:, show_icon: true, classes: "underline")
+  def initialize(url:, show_icon: true, classes: nil)
     @url = url
     @show_icon = show_icon
     @classes = classes

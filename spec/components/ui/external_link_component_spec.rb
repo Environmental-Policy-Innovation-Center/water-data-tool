@@ -24,7 +24,7 @@ RSpec.describe UI::ExternalLinkComponent, type: :component do
     expect(html.at_css("a")["class"]).to include("inline-flex", "items-center", "gap-0.5")
   end
 
-  it "is underlined by default" do
+  it "is always underlined" do
     render_inline(component) { "Example" }
     expect(html.at_css("a")["class"]).to include("underline")
   end
