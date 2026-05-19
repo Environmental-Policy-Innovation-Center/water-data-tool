@@ -137,6 +137,67 @@ jobs:
             --port 5432 \
             --source-group "$NODE_SG_ID" || true
 
+      - name: Wait until latest deployment is reachable
+        run: |
+          TARGET_IMAGE="${{ env.ECR_REPO_URI }}:pr-${{ env.PR_NUM }}-${{ github.sha }}"
+          PR_URL="https://water-data-tool-pr-${{ env.PR_NUM }}.policyinnovation.info/up"
+          MAX_ATTEMPTS=60
+          ATTEMPT=0
+          IMAGE_FOUND=false
+
+          echo "Resolving ECS service ARN for PR ${{ env.PR_NUM }}..."
+          SERVICE_ARN=$(aws ecs list-services \
+            --cluster "$ECS_CLUSTER" \
+            --output text \
+            | tr '\t' '\n' \
+            | grep "water_data_tool_pr_${{ env.PR_NUM }}")
+          echo "Service ARN: $SERVICE_ARN"
+
+          echo "Phase 1: waiting for ECS to run image $TARGET_IMAGE (up to 15 min)..."
+          while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
+            ATTEMPT=$((ATTEMPT + 1))
+            TASK_ARNS=$(aws ecs list-tasks \
+              --cluster "$ECS_CLUSTER" \
+              --service-name "$SERVICE_ARN" \
+              --desired-status RUNNING \
+              --query 'taskArns' --output json 2>/dev/null || echo "[]")
+            if [ "$(echo "$TASK_ARNS" | jq 'length')" -gt 0 ]; then
+              IMAGES=$(aws ecs describe-tasks \
+                --cluster "$ECS_CLUSTER" \
+                --tasks $(echo "$TASK_ARNS" | jq -r '.[]') \
+                --query 'tasks[*].containers[*].image' \
+                --output json)
+              if echo "$IMAGES" | jq -e --arg img "$TARGET_IMAGE" 'flatten | any(. == $img)' > /dev/null; then
+                echo "[$ATTEMPT/$MAX_ATTEMPTS] New image confirmed running."
+                IMAGE_FOUND=true
+                break
+              fi
+            else
+              echo "[$ATTEMPT/$MAX_ATTEMPTS] No running tasks yet, waiting..."
+            fi
+            sleep 15
+          done
+          if [ "$IMAGE_FOUND" != "true" ]; then
+            echo "ERROR: timed out after 15 minutes waiting for new image to start."
+            exit 1
+          fi
+
+          ATTEMPT=0
+          MAX_ATTEMPTS=20
+          echo "Phase 2: polling $PR_URL until HTTP 200 (up to 5 min)..."
+          while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
+            ATTEMPT=$((ATTEMPT + 1))
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" --connect-timeout 5 "$PR_URL" || echo "000")
+            echo "[$ATTEMPT/$MAX_ATTEMPTS] HTTP $STATUS"
+            if [ "$STATUS" = "200" ]; then
+              echo "Service is healthy."
+              exit 0
+            fi
+            sleep 15
+          done
+          echo "ERROR: new image is running but $PR_URL did not return 200 within 5 minutes."
+          exit 1
+
       - name: Comment URL on PR
         env:
           GH_TOKEN: ${{ github.token }}
