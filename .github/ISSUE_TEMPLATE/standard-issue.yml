@@ -10,52 +10,18 @@ body:
     attributes:
       value: | 
         ## ISSUE DETAILS
+        ## IMPORTANT
         
-  - type: dropdown
-    id: issue-type
-    attributes:
-      label: Issue Type
-      description: Select the type of issue.
-      options:
-        - Feature
-        - Bug
-        - Task
-    validations:
-      required: true
- 
-  - type: dropdown
-    id: priority
-    attributes:
-      label: Priority
-      description: Select the priority level.
-      options:
-        - P1 - High
-        - P2 - Medium
-        - P3 - Low
-    validations:
-      required: true
- 
-  - type: dropdown
-    id: level-of-effort
-    attributes:
-      label: Level of Effort
-      description: Select the estimated effort level.
-      options:
-        - "T-Shirt Size Small (smaller effort issues)"
-        - "T-Shirt Size Medium (mid-range effort issues)"
-        - "T-Shirt Size Large (larger, longer effort issues)"
-        - "T-Shirt Size XLarge (very high effort — a spike issue should be created to assess the path forward)"
-    validations:
-      required: true
- 
-  - type: input
-    id: assignee
-    attributes:
-      label: Owner / Assignee
-      description: "@mention the assignee or leave blank for triage."
-      placeholder: "@username"
-    validations:
-      required: true
+        ⚠️ Before submitting this issue, please scroll to the bottom of the GitHub issue page and use the sidebar options to select the following:
+        
+        - **Issue Type**
+        - **Assignee**
+        - **Appropriate Labels**
+          - Priority
+          - Level of Effort
+          - Any additional applicable labels
+        
+        These selections are required for workflow management.
  
   - type: dropdown
     id: team-area
