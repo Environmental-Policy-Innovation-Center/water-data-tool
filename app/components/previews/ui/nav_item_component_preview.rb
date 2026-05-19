@@ -23,4 +23,13 @@ class UI::NavItemComponentPreview < Lookbook::Preview
       external: true
     )
   end
+
+  # @label Link — mailto (Contact EPIC)
+  def mailto_link
+    render UI::NavItemComponent.new(
+      label: "Contact EPIC",
+      icon_name: "email",
+      href: "mailto:watertool@policyinnovation.org"
+    )
+  end
 end

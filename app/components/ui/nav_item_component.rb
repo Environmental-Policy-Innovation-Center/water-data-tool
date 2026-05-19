@@ -23,6 +23,10 @@ class UI::NavItemComponent < ViewComponent::Base
     class_names(NAV_ITEM_CLASSES, @active && "active")
   end
 
+  def link_classes
+    class_names(NAV_ITEM_CLASSES, @active && "active", !(@external || mailto?) && "no-underline")
+  end
+
   def accessible_label
     if @external
       "#{@label} (opens in new tab)"
@@ -35,5 +39,9 @@ class UI::NavItemComponent < ViewComponent::Base
 
   def link?
     @href.present?
+  end
+
+  def mailto?
+    @href.to_s.start_with?("mailto:")
   end
 end

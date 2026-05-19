@@ -59,10 +59,7 @@
         <%= render UI::ExternalLinkComponent.new(url: "https://docs.google.com/forms/d/e/1FAIpQLSdj-JcAmFNHnyEGoou74kyL_R1YOUtsFG4dKlYl0TWWwkUcrg/viewform") do %>Feedback<% end %>
       </p>
       <p>
-        <a href="mailto:watertool@policyinnovation.org"
-           class="inline-flex items-center gap-1">Contact EPIC
-          <%= icon "email", classes: "w-3.5 h-3.5 shrink-0" %>
-        </a>
+        <%= render UI::MailtoLinkComponent.new(email: "watertool@policyinnovation.org") do %>Contact EPIC<% end %>
       </p>
     </div>
     <% if @last_updated %>
