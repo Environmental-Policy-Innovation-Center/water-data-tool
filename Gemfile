@@ -49,7 +49,7 @@ gem "lograge", "~> 0.14.0"
 gem "lograge-sql", "~> 2.6.1"
 
 # Fast JSON parser with streaming/SAX support — used by ETL to process large GeoJSON without OOM
-gem "oj", "~> 3.17.0"
+gem "oj", "~> 3.17.1"
 
 # Pagination [https://github.com/ddnexus/pagy]
 gem "pagy", "~> 43.5.1"
