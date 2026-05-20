@@ -105,6 +105,19 @@ Use **Actions → Teardown PR Environments → Run workflow** to destroy one or 
 
 The stale sweep lists all ECS services matching `water_data_tool_pr_*`, checks each PR's last commit date via the GitHub API, and destroys any that haven't been updated within the threshold. PRs that are already closed or not found are also torn down.
 
+### List PR preview environments (AWS + ECR)
+
+Use **Actions → List PR Environments → Run workflow** for a read-only inventory sourced from ECS and ECR (no teardown). The job summary table includes:
+
+- PR number and title (from GitHub, when the PR still exists)
+- Preview URL
+- **Last image push** — `pr-<N>-latest` tag in ECR (`imagePushedAt`)
+- **ECS rollout** — most recent deployment on the ECS service
+- Running vs desired task count
+- PR state (`OPEN`, `CLOSED`, or `not found`)
+
+This complements the **Deployments** sidebar: that UI reflects GitHub deployment records; this workflow reflects what is actually provisioned in AWS.
+
 ---
 
 ## Checking what's currently deployed
