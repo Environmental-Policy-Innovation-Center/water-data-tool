@@ -23,7 +23,7 @@
 <% th_wide = "sticky top-0 z-20 bg-gray-100 border-b border-gray-200 px-3 py-2 font-medium text-left whitespace-nowrap min-w-[14rem]" %>
 <% th_sticky = "sticky left-0 top-0 z-30 bg-gray-100 border-b border-gray-200 px-3 py-2 font-medium text-left whitespace-nowrap min-w-[12rem]" %>
 <% td = "px-3 py-2 border-b border-gray-100 overflow-hidden max-w-48" %>
-<% td_sticky_base = "sticky left-0 z-10 font-normal text-left group-hover:bg-blue-50 transition-colors px-3 py-2 border-b border-gray-100 overflow-hidden max-w-xs" %>
+<% td_sticky_base = "sticky left-0 z-10 font-normal text-left md:group-hover:bg-blue-50 transition-colors px-3 py-2 border-b border-gray-100 overflow-hidden max-w-xs" %>
 <% td_num = "px-3 py-2 border-b border-gray-100 tabular-nums text-right overflow-hidden" %>
 
 <turbo-frame id="data-table">
@@ -152,7 +152,7 @@
           <% fs  = pws.funding_summary %>
           <% wh  = pws.watershed_hazard %>
           <% bws = pws.boil_water_summary %>
-          <tr class="group <%= row_stripe %> hover:bg-blue-50 transition-colors">
+          <tr class="group <%= row_stripe %> md:hover:bg-blue-50 transition-colors">
             <%# ── Core identity ─────────────────────────────────── %>
             <th class="<%= td_sticky %>" scope="row"><%= pws.pws_name %></th>
             <td class="<%= td %><%= col_highlight("pwsid") %>"><%= pws.pwsid %></td>
@@ -162,7 +162,7 @@
                     pws.detailed_facility_report,
                     target: "_blank",
                     rel: "noopener noreferrer",
-                    class: "text-blue-600 hover:underline focus:underline focus:outline-none",
+                    class: "text-blue-600 md:hover:underline focus:underline focus:outline-none",
                     aria: {label: "EPA facility report for #{pws.pws_name} (opens in new tab)"} %>
               <% end %>
             </td>
@@ -269,7 +269,7 @@
         <% if @pagy.page > 1 %>
           <%= link_to "«",
               url_for(request.query_parameters.merge("page" => 1)),
-              class: "border border-gray-300 rounded px-2 py-1 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-400",
+              class: "border border-gray-300 rounded px-2 py-1 md:hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-400",
               aria: {label: "Go to first page"} %>
         <% else %>
           <span class="border border-gray-200 rounded px-2 py-1 text-gray-300" aria-disabled="true">«</span>
@@ -279,7 +279,7 @@
         <% if @pagy.previous %>
           <%= link_to "‹",
               url_for(request.query_parameters.merge("page" => @pagy.previous)),
-              class: "border border-gray-300 rounded px-2 py-1 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-400",
+              class: "border border-gray-300 rounded px-2 py-1 md:hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-400",
               aria: {label: "Go to previous page"} %>
         <% else %>
           <span class="border border-gray-200 rounded px-2 py-1 text-gray-300" aria-disabled="true">‹</span>
@@ -307,7 +307,7 @@
         <% if @pagy.next %>
           <%= link_to "›",
               url_for(request.query_parameters.merge("page" => @pagy.next)),
-              class: "border border-gray-300 rounded px-2 py-1 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-400",
+              class: "border border-gray-300 rounded px-2 py-1 md:hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-400",
               aria: {label: "Go to next page"} %>
         <% else %>
           <span class="border border-gray-200 rounded px-2 py-1 text-gray-300" aria-disabled="true">›</span>
@@ -317,7 +317,7 @@
         <% if @pagy.page < @pagy.last %>
           <%= link_to "»",
               url_for(request.query_parameters.merge("page" => @pagy.last)),
-              class: "border border-gray-300 rounded px-2 py-1 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-400",
+              class: "border border-gray-300 rounded px-2 py-1 md:hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-400",
               aria: {label: "Go to last page"} %>
         <% else %>
           <span class="border border-gray-200 rounded px-2 py-1 text-gray-300" aria-disabled="true">»</span>
