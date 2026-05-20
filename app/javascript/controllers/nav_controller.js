@@ -1,16 +1,20 @@
 import { Controller } from "@hotwired/stimulus"
 
-// Handles section navigation.
+// Handles section navigation and mobile panel state.
 //
-// The map is always rendered as a background; #container-map is never hidden.
-// Map vs Table: toggles .table-mode on #container-map — CSS hides/shows #map
-// vs #container-table accordingly.
-// Non-map/table sections (datasets, documentation, downloads): toggles
-// .section-mode on #container-map (for overlay styling) and shows the matching
-// .container-main-content element.
+// #activePanel tracks which mobile overlay is open: null | "filters" | "stats"
+// All state changes go through #setActivePanel so FABs, dropdowns, and the
+// stats bar stay in sync. Only one panel can be active at a time.
 export default class extends Controller {
+  #activePanel = null
+
   connect() {
     this._tableContainer = document.getElementById("container-table")
+    this.#watchFilterPanelState()
+    // Re-apply stats visibility after Turbo reloads the stats frame
+    document.getElementById("stats-bar")?.addEventListener("turbo:frame-load", () => {
+      if (this.#activePanel === "stats") this.#applyStatsDisplay(true)
+    })
   }
 
   toggleMobile(event) {
@@ -86,34 +90,92 @@ export default class extends Controller {
     this.#closeMobileMenu()
   }
 
-  toggleMobileFilters() {
+  toggleMobileFilterPanel(event) {
     if (window.innerWidth >= 640) return
-    const el = document.getElementById("container-map-ui-top")
-    if (!el) return
-    const isHidden = window.getComputedStyle(el).display === "none"
-    if (isHidden) {
-      el.style.setProperty("display", "block")
-      el.style.setProperty("position", "absolute")
-      el.style.setProperty("top", "0")
-      el.style.setProperty("left", "0")
-      el.style.setProperty("right", "0")
-      el.style.setProperty("z-index", "10")
-    } else {
-      el.style.removeProperty("display")
-      el.style.removeProperty("position")
-      el.style.removeProperty("top")
-      el.style.removeProperty("left")
-      el.style.removeProperty("right")
-      el.style.removeProperty("z-index")
-    }
+    event.stopPropagation()
+    this.#setActivePanel(this.#activePanel === "filters" ? null : "filters")
   }
 
   toggleMobileStats() {
     if (window.innerWidth >= 640) return
-    const el = document.querySelector("turbo-frame#stats-bar > div")
+    this.#setActivePanel(this.#activePanel === "stats" ? null : "stats")
+  }
+
+  showMobileStats() {
+    if (window.innerWidth >= 640) return
+    this.#setActivePanel("stats")
+  }
+
+  #setActivePanel(panel) {
+    const prev = this.#activePanel
+    this.#activePanel = panel
+
+    if (prev === "filters" && panel !== "filters") this.#closeFilterDropdown()
+    if (panel === "filters" && prev !== "filters") this.#openFilterDropdown()
+
+    this.#applyStatsDisplay(panel === "stats")
+    this.#setFabActive("btn-mobile-filter", panel === "filters")
+    this.#setFabActive("btn-mobile-stats", panel === "stats")
+  }
+
+  #openFilterDropdown() {
+    const moreBtn = document.getElementById("container-menu-btn-10")
+    if (!moreBtn) return
+    const panel = document.getElementById("container-menu-10")
+    if (panel && !panel.classList.contains("hidden")) return
+    moreBtn.click()
+    // filter-menu#toggleMenu sets inline style.left via JS positioning — remove it on mobile
+    // so the CSS max-sm:left-2/right-2 constraints take over instead
+    if (panel && !panel.classList.contains("hidden")) panel.style.removeProperty("left")
+  }
+
+  #closeFilterDropdown() {
+    const moreBtn = document.getElementById("container-menu-btn-10")
+    if (!moreBtn) return
+    const panel = document.getElementById("container-menu-10")
+    if (!panel || panel.classList.contains("hidden")) return
+    moreBtn.click()
+  }
+
+  #applyStatsDisplay(show) {
+    const el = document.querySelector("turbo-frame#stats-bar > div") ||
+               document.getElementById("container-how-to-use")
     if (!el) return
-    const isHidden = window.getComputedStyle(el).display === "none"
-    el.style.setProperty("display", isHidden ? "block" : "none")
+    if (show) {
+      el.style.setProperty("display", "block")
+    } else {
+      el.style.removeProperty("display")
+    }
+  }
+
+  // Keeps #activePanel in sync when the filter dropdown is opened/closed by means
+  // other than the FAB (e.g. tapping a filter tab directly, or outside-click close).
+  #watchFilterPanelState() {
+    const moreBtn = document.getElementById("container-menu-btn-10")
+    if (!moreBtn) return
+    new MutationObserver(() => {
+      if (window.innerWidth >= 640) return
+      const isOpen = moreBtn.getAttribute("aria-expanded") === "true"
+      if (!isOpen && this.#activePanel === "filters") {
+        this.#activePanel = null
+        this.#setFabActive("btn-mobile-filter", false)
+      } else if (isOpen && this.#activePanel !== "filters") {
+        this.#activePanel = "filters"
+        this.#applyStatsDisplay(false)
+        this.#setFabActive("btn-mobile-filter", true)
+        this.#setFabActive("btn-mobile-stats", false)
+      }
+    }).observe(moreBtn, { attributes: true, attributeFilter: ["aria-expanded"] })
+  }
+
+  #setFabActive(id, active) {
+    const el = document.getElementById(id)
+    if (!el) return
+    if (active) {
+      el.dataset.active = ""
+    } else {
+      delete el.dataset.active
+    }
   }
 
   #closeMobileMenu() {
