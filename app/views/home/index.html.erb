@@ -102,14 +102,16 @@
 
   <%# Mobile floating action buttons — filter and stats %>
   <div id="container-mobile-map-actions" class="sm:hidden absolute right-[10px] bottom-12 z-[10] flex flex-col gap-3">
-    <%= render UI::CircleButtonComponent.new(
-          id: "btn-mobile-filter",
-          aria_label: "Toggle map filters",
-          data_action: "click->nav#toggleMobileFilterPanel",
-          classes: "!w-12 !h-12 shadow-sm data-[active]:bg-brand-primary data-[active]:border-brand-primary data-[active]:text-white"
-        ) do %>
-      <%= icon "filter", classes: "w-6 h-6" %>
-    <% end %>
+    <div class="group-[.table-mode]/map:hidden group-[.section-mode]/map:hidden">
+      <%= render UI::CircleButtonComponent.new(
+            id: "btn-mobile-filter",
+            aria_label: "Toggle map filters",
+            data_action: "click->nav#toggleMobileFilterPanel",
+            classes: "!w-12 !h-12 shadow-sm data-[active]:bg-brand-primary data-[active]:border-brand-primary data-[active]:text-white"
+          ) do %>
+        <%= icon "filter", classes: "w-6 h-6" %>
+      <% end %>
+    </div>
     <div class="group-[.table-mode]/map:hidden group-[.section-mode]/map:hidden">
       <%= render UI::CircleButtonComponent.new(
             id: "btn-mobile-stats",

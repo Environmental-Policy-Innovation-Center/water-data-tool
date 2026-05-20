@@ -70,6 +70,27 @@ RSpec.describe UI::FilterMenuTabComponent, type: :component do
     expect(span.text.strip).to eq("Source")
   end
 
+  context "with a mobile_label" do
+    subject do
+      render_inline described_class.new(menu_id: 10, label: "More", mobile_label: "Filters")
+    end
+
+    it "renders the desktop label hidden on mobile" do
+      subject
+      desktop_span = html.css("button span.flex-1").find { |s| s.text.strip == "More" }
+      expect(desktop_span).to be_present
+      expect(desktop_span["class"]).to include("hidden")
+      expect(desktop_span["class"]).to include("sm:inline")
+    end
+
+    it "renders the mobile label visible only below sm breakpoint" do
+      subject
+      mobile_span = html.css("button span.flex-1").find { |s| s.text.strip == "Filters" }
+      expect(mobile_span).to be_present
+      expect(mobile_span["class"]).to include("sm:hidden")
+    end
+  end
+
   it "includes focus-visible styles on the button" do
     subject
     expect(html.css("button").first["class"]).to include("focus-visible:outline")

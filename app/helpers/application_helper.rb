@@ -9,6 +9,8 @@ module ApplicationHelper
   FILTER_ROW_CLASSES = "px-[15px] py-1.5 [@media(hover:hover)]:hover:bg-neutral-50 [&_label]:align-middle [&_input]:mr-2 " \
     "[&_input]:inline-block [&_input]:align-middle [&_input:not(.rounded-checkbox)]:size-4".freeze
 
+  FILTER_INFO_BUTTON_CLASSES = "ml-1 text-neutral-400 [@media(hover:hover)]:hover:text-neutral-600".freeze
+
   DOWNLOAD_STATES = [
     %w[AL Alabama], %w[AK Alaska], %w[AZ Arizona], %w[AR Arkansas],
     %w[CA California], %w[CO Colorado], %w[CT Connecticut], %w[DE Delaware],
@@ -36,6 +38,7 @@ module ApplicationHelper
   end
 
   def filter_row_classes = FILTER_ROW_CLASSES
+  def filter_info_button_classes = FILTER_INFO_BUTTON_CLASSES
   def download_states = DOWNLOAD_STATES
 
   def icon(name, classes: nil, aria_hidden: true)

@@ -7,14 +7,28 @@ import { Controller } from "@hotwired/stimulus"
 // stats bar stay in sync. Only one panel can be active at a time.
 export default class extends Controller {
   #activePanel = null
+  #statsFrameListener = null
+  #statsBarEl = null
+  #filterObserver = null
 
   connect() {
     this._tableContainer = document.getElementById("container-table")
     this.#watchFilterPanelState()
     // Re-apply stats visibility after Turbo reloads the stats frame
-    document.getElementById("stats-bar")?.addEventListener("turbo:frame-load", () => {
-      if (this.#activePanel === "stats") this.#applyStatsDisplay(true)
-    })
+    this.#statsBarEl = document.getElementById("stats-bar")
+    if (this.#statsBarEl) {
+      this.#statsFrameListener = () => {
+        if (this.#activePanel === "stats") this.#applyStatsDisplay(true)
+      }
+      this.#statsBarEl.addEventListener("turbo:frame-load", this.#statsFrameListener)
+    }
+  }
+
+  disconnect() {
+    if (this.#statsBarEl && this.#statsFrameListener) {
+      this.#statsBarEl.removeEventListener("turbo:frame-load", this.#statsFrameListener)
+    }
+    this.#filterObserver?.disconnect()
   }
 
   toggleMobile(event) {
@@ -150,20 +164,17 @@ export default class extends Controller {
 
   // Keeps #activePanel in sync when the filter dropdown is opened/closed by means
   // other than the FAB (e.g. tapping a filter tab directly, or outside-click close).
+  // Observes container-menu-btn-10 / container-menu-10 — the "More" filter menu (menu_id: 10).
   #watchFilterPanelState() {
     const moreBtn = document.getElementById("container-menu-btn-10")
     if (!moreBtn) return
-    new MutationObserver(() => {
+    this.#filterObserver = new MutationObserver(() => {
       if (window.innerWidth >= 640) return
       const isOpen = moreBtn.getAttribute("aria-expanded") === "true"
       if (!isOpen && this.#activePanel === "filters") {
-        this.#activePanel = null
-        this.#setFabActive("btn-mobile-filter", false)
+        this.#setActivePanel(null)
       } else if (isOpen && this.#activePanel !== "filters") {
-        this.#activePanel = "filters"
-        this.#applyStatsDisplay(false)
-        this.#setFabActive("btn-mobile-filter", true)
-        this.#setFabActive("btn-mobile-stats", false)
+        this.#setActivePanel("filters")
       }
     }).observe(moreBtn, { attributes: true, attributeFilter: ["aria-expanded"] })
   }
