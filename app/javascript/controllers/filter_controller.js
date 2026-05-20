@@ -173,6 +173,7 @@ export default class extends Controller {
     this.#syncToUrl()
     this.#updateBadges()
     document.dispatchEvent(new CustomEvent("filters:changed"))
+    this.dispatch("applied")
     this.#reloadStatsFrame()
     this.#reloadTableFrame()
   }

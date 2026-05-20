@@ -24,6 +24,25 @@ While this application is primarily optimized for **desktop users**, styles must
 * **Responsive Layout Shifts**: Use grid or flex layouts that wrap or stack automatically when screen space shrinks (e.g., `flex flex-col md:flex-row`).
 * **Hover States Safeguard**: Always wrap hover effects in a media query variant or standard desktop prefix (`lg:hover:bg-brand-dark`) so touch-screen clicks on mobile do not cause sticky hover artifacts.
 
+### Breakpoint visibility patterns
+
+Tailwind breakpoints are **minimum-width** — the prefix activates at that width and above. This means the two common patterns are opposites:
+
+| Class | Renders on | Hidden on |
+|---|---|---|
+| `hidden sm:block` | tablets + desktop (640px+) | phones |
+| `hidden md:block` | desktop (768px+) | phones + small tablets |
+| `sm:hidden` | phones only (< 640px) | tablets + desktop |
+| `md:hidden` | phones + small tablets (< 768px) | desktop |
+
+**This app's breakpoints:**
+- `sm:` (640px) — sidebar appears; use for mobile/desktop toggle (nav bar, sidebar, mobile footer)
+- `md:` (768px) — primary desktop layout threshold; use for layout shifts (flex direction, sticky headers, showing/hiding layout panels)
+- `lg:` (1024px) — secondary desktop polish
+- `xl:` (1280px) — strictly-desktop-only structural elements (sidebar auto-collapse matches `AUTO_COLLAPSE_BELOW = 1280` in `sidebar_controller.js`)
+
+**JS-controlled visibility:** When JS removes a `hidden` class to show an element, a plain `hidden md:block` pattern will not protect mobile — JS wins. Use `max-md:!hidden` to force the element hidden below `md:` regardless of JS state.
+
 ---
 
 ## ♿ Accessibility (a11y) Standards

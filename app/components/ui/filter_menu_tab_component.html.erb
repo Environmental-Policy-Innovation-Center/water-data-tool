@@ -10,7 +10,12 @@
           class="<%= FILTER_TAB_BUTTON_CLASSES %>"
           id="container-menu-btn-<%= @menu_id %>"
           data-action="click->filter-menu#toggleMenu">
-    <span class="flex-1"><%= @label %></span>
+    <% if @mobile_label %>
+      <span class="sm:hidden flex-1"><%= @mobile_label %></span>
+      <span class="hidden sm:inline flex-1"><%= @label %></span>
+    <% else %>
+      <span class="flex-1"><%= @label %></span>
+    <% end %>
     <%= icon "nav-arrow-down", classes: "h-5 w-5 shrink-0 motion-safe:transition-transform [.active_&]:rotate-180" %>
   </button>
 </li>

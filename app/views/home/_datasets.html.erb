@@ -9,7 +9,7 @@
         <p class="m-0 mb-3" data-datasets-target="noFilters"><%= datasets.count %> datasets available</p>
         <div class="inline-flex items-center gap-4 mb-3" style="display:none;" data-datasets-target="showAllBar">
           <p class="m-0">Showing <span data-datasets-target="filteredCount"></span> of <%= datasets.count %> datasets available</p>
-          <button class="px-5 py-2.5 bg-white text-neutral-700 border border-neutral-400 rounded-full text-sm cursor-pointer hover:bg-neutral-200"
+          <button class="px-5 py-2.5 bg-white text-neutral-700 border border-neutral-400 rounded-full text-sm cursor-pointer md:hover:bg-neutral-200"
                   data-action="click->datasets#showAll">show all</button>
         </div>
         <p class="m-0 text-sm text-neutral-700">
@@ -41,7 +41,7 @@
                     data-panel="filter"
                     aria-expanded="false"
                     aria-controls="datasets-filter-panel"
-                    class="inline-flex items-center gap-2 px-5 py-2.5 bg-white text-neutral-700 border border-neutral-400 rounded-full text-sm hover:bg-neutral-200 cursor-pointer">
+                    class="inline-flex items-center gap-2 px-5 py-2.5 bg-white text-neutral-700 border border-neutral-400 rounded-full text-sm md:hover:bg-neutral-200 cursor-pointer">
               <%= icon "filter", classes: "w-4 h-4" %>
               Filter
             </button>
@@ -50,7 +50,7 @@
                     data-panel="sort"
                     aria-expanded="false"
                     aria-controls="datasets-sort-panel"
-                    class="inline-flex items-center px-5 py-2.5 bg-white text-neutral-700 border border-neutral-400 rounded-full text-sm hover:bg-neutral-200 cursor-pointer">
+                    class="inline-flex items-center px-5 py-2.5 bg-white text-neutral-700 border border-neutral-400 rounded-full text-sm md:hover:bg-neutral-200 cursor-pointer">
               Sort
             </button>
           </div>
@@ -97,13 +97,13 @@
           <p class="text-sm text-neutral-600 italic mb-2">Update frequency:</p>
           <div class="flex gap-2" data-filter-group="update-frequency">
             <button type="button" data-active="false"
-                    class="btn-filter px-5 py-2.5 bg-white text-neutral-700 border border-neutral-400 rounded-full text-sm cursor-pointer hover:bg-neutral-200 data-[active=true]:bg-brand-primary data-[active=true]:text-white data-[active=true]:border-brand-primary"
+                    class="btn-filter px-5 py-2.5 bg-white text-neutral-700 border border-neutral-400 rounded-full text-sm cursor-pointer md:hover:bg-neutral-200 data-[active=true]:bg-brand-primary data-[active=true]:text-white data-[active=true]:border-brand-primary"
                     data-action="click->datasets#filterByFrequency" data-frequency="annually" aria-pressed="false">Annually</button>
             <button type="button" data-active="false"
-                    class="btn-filter px-5 py-2.5 bg-white text-neutral-700 border border-neutral-400 rounded-full text-sm cursor-pointer hover:bg-neutral-200 data-[active=true]:bg-brand-primary data-[active=true]:text-white data-[active=true]:border-brand-primary"
+                    class="btn-filter px-5 py-2.5 bg-white text-neutral-700 border border-neutral-400 rounded-full text-sm cursor-pointer md:hover:bg-neutral-200 data-[active=true]:bg-brand-primary data-[active=true]:text-white data-[active=true]:border-brand-primary"
                     data-action="click->datasets#filterByFrequency" data-frequency="quarterly" aria-pressed="false">Quarterly</button>
             <button type="button" data-active="false"
-                    class="btn-filter px-5 py-2.5 bg-white text-neutral-700 border border-neutral-400 rounded-full text-sm cursor-pointer hover:bg-neutral-200 data-[active=true]:bg-brand-primary data-[active=true]:text-white data-[active=true]:border-brand-primary"
+                    class="btn-filter px-5 py-2.5 bg-white text-neutral-700 border border-neutral-400 rounded-full text-sm cursor-pointer md:hover:bg-neutral-200 data-[active=true]:bg-brand-primary data-[active=true]:text-white data-[active=true]:border-brand-primary"
                     data-action="click->datasets#filterByFrequency" data-frequency="static" aria-pressed="false">Static</button>
           </div>
         </div>
@@ -118,13 +118,13 @@
           <p class="text-sm text-neutral-600 italic mb-2">Last updated</p>
           <div class="flex gap-2 items-center">
             <button type="button" data-active="false"
-                    class="btn-sort px-5 py-2.5 bg-white text-neutral-700 border border-neutral-400 rounded-full text-sm cursor-pointer hover:bg-neutral-200 data-[active=true]:bg-brand-primary data-[active=true]:text-white data-[active=true]:border-brand-primary"
+                    class="btn-sort px-5 py-2.5 bg-white text-neutral-700 border border-neutral-400 rounded-full text-sm cursor-pointer md:hover:bg-neutral-200 data-[active=true]:bg-brand-primary data-[active=true]:text-white data-[active=true]:border-brand-primary"
                     data-action="click->datasets#sortByDate" data-direction="desc" aria-pressed="false">Newest</button>
             <button type="button" data-active="false"
-                    class="btn-sort px-5 py-2.5 bg-white text-neutral-700 border border-neutral-400 rounded-full text-sm cursor-pointer hover:bg-neutral-200 data-[active=true]:bg-brand-primary data-[active=true]:text-white data-[active=true]:border-brand-primary"
+                    class="btn-sort px-5 py-2.5 bg-white text-neutral-700 border border-neutral-400 rounded-full text-sm cursor-pointer md:hover:bg-neutral-200 data-[active=true]:bg-brand-primary data-[active=true]:text-white data-[active=true]:border-brand-primary"
                     data-action="click->datasets#sortByDate" data-direction="asc" aria-pressed="false">Oldest</button>
             <button type="button"
-                    class="ml-2 px-5 py-2.5 bg-white text-neutral-700 border border-neutral-400 rounded-full text-sm cursor-pointer hover:bg-neutral-200"
+                    class="ml-2 px-5 py-2.5 bg-white text-neutral-700 border border-neutral-400 rounded-full text-sm cursor-pointer md:hover:bg-neutral-200"
                     data-action="click->datasets#resetSort"
                     data-datasets-target="resetSort"
                     style="display:none;">reset order</button>

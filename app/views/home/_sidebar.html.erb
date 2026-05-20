@@ -1,5 +1,5 @@
 <aside id="container-sidebar"
-       class="group fixed top-3 left-4 bottom-8 bg-white rounded-xl shadow-md overflow-y-auto overflow-x-hidden z-[1000] hidden sm:flex sm:flex-col w-[250px]"
+       class="group fixed top-3 left-4 bottom-8 bg-white rounded-xl shadow-md overflow-hidden z-[1000] hidden sm:flex sm:flex-col w-[250px]"
        data-controller="sidebar"
        data-action="resize@window->sidebar#handleResize"
        aria-label="Drinking Water Explorer navigation">
@@ -13,10 +13,10 @@
     <%= icon "expand", classes: "h-4 w-4 group-[&:not([data-sidebar-collapsed])]:hidden" %>
   <% end %>
 
-  <div class="mt-10 flex justify-center px-3 group-data-[sidebar-collapsed]:invisible">
-    <%= icon "water", classes: "mx-auto block w-[85px] h-auto" %>
+  <div class="mt-10 flex justify-center px-3 group-data-[sidebar-collapsed]:px-0">
+    <%= icon "water", classes: "mx-auto block w-[85px] h-auto group-data-[sidebar-collapsed]:w-12" %>
   </div>
-  <div class="pl-5 pr-2.5 mt-6 min-w-[250px] group-data-[sidebar-collapsed]:invisible">
+  <div class="pl-5 pr-2.5 mt-6 min-w-[250px] group-data-[sidebar-collapsed]:hidden">
     <h2 id="sidebar-intro-title" class="text-base font-bold leading-none text-[#565656] m-0 p-0">Drinking Water Explorer</h2>
     <p class="text-base leading-snug text-[#102033] mt-2.5 mb-0">Use this tool to view and compare public water systems across the country.</p>
   </div>
@@ -43,32 +43,36 @@
     </ul>
   </nav>
 
-  <div class="mt-auto py-4 min-w-[250px] text-center text-[#565656] [&_a]:text-[#565656] group-data-[sidebar-collapsed]:invisible">
-    <div class="flex justify-center px-3 py-3">
-      <%= icon "epic", classes: "mx-auto block w-9 h-auto" %>
-    </div>
-    <p class="mt-2">
-      (<%= render UI::ExternalLinkComponent.new(url: "https://creativecommons.org/share-your-work/cclicenses/") do %><span class="sr-only">Creative Commons license</span><span aria-hidden="true">cc</span><% end %>)
-      <span>Environmental Policy<br>Center </span>(EPIC)
-    </p>
-    <div class="my-6 space-y-2">
-      <p>
-        <%= render UI::ExternalLinkComponent.new(url: "https://github.com/Environmental-Policy-Innovation-Center/national-dw-tool-public") do %>Github<% end %>
+  <div class="mt-auto text-center text-[#565656] [&_a]:text-[#565656]">
+    <div class="py-2">
+      <div class="flex justify-center px-3">
+        <%= icon "epic", classes: "mx-auto block w-9 h-auto" %>
+      </div>
+      <p class="mt-2 group-data-[sidebar-collapsed]:text-xs group-data-[sidebar-collapsed]:leading-snug group-data-[sidebar-collapsed]:mt-1">
+        (<%= render UI::ExternalLinkComponent.new(url: "https://creativecommons.org/share-your-work/cclicenses/", show_icon: false) do %><span class="sr-only">Creative Commons license</span><span aria-hidden="true">cc</span><% end %>)
+        <span>Environmental Policy<br>Center </span>(EPIC)
       </p>
-      <p>
-        <%= render UI::ExternalLinkComponent.new(url: "https://docs.google.com/forms/d/e/1FAIpQLSdj-JcAmFNHnyEGoou74kyL_R1YOUtsFG4dKlYl0TWWwkUcrg/viewform") do %>Feedback<% end %>
-      </p>
-      <p>
-        <%= render UI::MailtoLinkComponent.new(email: "watertool@policyinnovation.org") do %>Contact EPIC<% end %>
-      </p>
+      <div class="my-2 space-y-2 group-data-[sidebar-collapsed]:text-xs group-data-[sidebar-collapsed]:space-y-1">
+        <p>
+          <%= render UI::ExternalLinkComponent.new(url: "https://github.com/Environmental-Policy-Innovation-Center/national-dw-tool-public") do %>Github<% end %>
+        </p>
+        <p>
+          <%= render UI::ExternalLinkComponent.new(url: "https://docs.google.com/forms/d/e/1FAIpQLSdj-JcAmFNHnyEGoou74kyL_R1YOUtsFG4dKlYl0TWWwkUcrg/viewform") do %>Feedback<% end %>
+        </p>
+        <p>
+          <%= render UI::MailtoLinkComponent.new(email: "watertool@policyinnovation.org") do %>Contact EPIC<% end %>
+        </p>
+      </div>
     </div>
     <% if @last_updated %>
-      <p class="text-sm">
-        <strong>Latest data update on:</strong><br>
-        <span class="last-updated-date">
-          <%= @last_updated.in_time_zone("Eastern Time (US & Canada)").strftime("%m/%d/%Y at %I:%M %p %Z") %>
-        </span>
-      </p>
+      <div class="pt-3 pb-2 group-data-[sidebar-collapsed]:text-xs">
+        <p class="text-sm group-data-[sidebar-collapsed]:text-xs">
+          <strong>Latest data update on:</strong><br>
+          <span class="last-updated-date">
+            <%= @last_updated.in_time_zone("Eastern Time (US & Canada)").strftime("%m/%d/%Y at %I:%M %p %Z") %>
+          </span>
+        </p>
+      </div>
     <% end %>
   </div>
 </aside>

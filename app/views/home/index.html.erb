@@ -26,7 +26,7 @@
   <div class="float-left"><%= icon "water", classes: "w-9 h-auto inline-block" %></div>
   <h1 class="inline-block text-[1.2em] m-0 font-medium pt-1 text-brand-primary">Drinking Water Explorer</h1>
   <div class="float-right">
-    <button type="button" id="mobile-menu-toggle" class="mobile-btn closed cursor-pointer" aria-expanded="false" aria-label="Toggle navigation menu" data-action="click->nav#toggleMobile">
+    <button type="button" id="mobile-menu-toggle" class="mobile-btn closed cursor-pointer p-2.5" aria-expanded="false" aria-label="Toggle navigation menu" data-action="click->nav#toggleMobile">
       <%= icon "mobile-menu", classes: "mm-icon-bars" %>
       <%= icon "close", classes: "mm-icon-x hidden" %>
     </button>
@@ -55,13 +55,13 @@
 <%# =====================================================
     Map view (default section)
     ===================================================== %>
-<div id="container-map" class="container-main-content group/map bg-[#ccc] fixed inset-x-0 top-[60px] bottom-[70px] overflow-y-auto sm:absolute sm:inset-0 sm:overflow-visible"
+<div id="container-map" class="container-main-content group/map bg-[#ccc] fixed inset-x-0 top-[68px] bottom-[70px] overflow-y-auto sm:absolute sm:inset-0 sm:overflow-visible"
      data-controller="map filter filter-menu"
      data-map-tile-url-value="/tiles/{z}/{x}/{y}">
 
   <%# Filter tab bar — filter-layout controller lives here so its ResizeObserver measures the
       filter bar's actual usable width (viewport − sidebar offset), not the full container width. %>
-  <div id="container-map-ui-top" class="hidden sm:block sm:absolute sm:top-0 sm:left-0 sm:right-0 sm:z-[5] pointer-events-none"
+  <div id="container-map-ui-top" class="block absolute top-0 left-0 right-0 z-[10] sm:z-[5] pointer-events-none"
        data-controller="filter-layout">
     <ul id="filter-tabs" role="group" aria-label="Water System Filters" class="m-0 flex list-none flex-nowrap items-start justify-end gap-1.5 pt-3 pl-5 pr-5 pointer-events-none">
       <%= render UI::FilterMenuTabComponent.new(menu_id: 1, label: "Source") %>
@@ -69,7 +69,7 @@
       <%= render UI::FilterMenuTabComponent.new(menu_id: 3, label: "Boundaries") %>
       <%= render UI::FilterMenuTabComponent.new(menu_id: 4, label: "Compliance") %>
       <%= render UI::FilterMenuTabComponent.new(menu_id: 5, label: "Population") %>
-      <%= render UI::FilterMenuTabComponent.new(menu_id: 10, label: "More") %>
+      <%= render UI::FilterMenuTabComponent.new(menu_id: 10, label: "More", mobile_label: "Filters") %>
     </ul>
   </div>
 
@@ -92,7 +92,7 @@
 
   <%# Intro tooltip — bottom right of map canvas %>
   <div id="container-map-content-bottom" class="group-[.table-mode]/map:hidden group-[.section-mode]/map:hidden">
-    <div class="hidden absolute right-5 bottom-[100px] z-[9] max-w-[310px] sm:block bg-white border border-neutral-400 rounded-[20px] py-2.5 px-5">
+    <div id="container-how-to-use" class="hidden absolute left-4 right-[74px] bottom-12 z-[9] sm:left-auto sm:right-5 sm:bottom-[100px] sm:max-w-[310px] sm:block bg-white border border-neutral-400 rounded-[20px] py-2.5 px-5">
       <p class="text-[1.2em] leading-[1.4] m-0"><strong>How to use this tool:</strong></p>
       <p class="text-[1em] leading-[1.4] my-2.5 mx-0">Search or zoom into the map to see information about public drinking water systems in areas of interest. Use the filters to customize the display.</p>
     </div>
@@ -101,21 +101,27 @@
   <turbo-frame id="stats-bar"></turbo-frame>
 
   <%# Mobile floating action buttons — filter and stats %>
-  <div id="container-mobile-map-actions" class="sm:hidden group-[.table-mode]/map:hidden group-[.section-mode]/map:hidden absolute right-[10px] bottom-12 z-[10] flex flex-col gap-3">
-    <%= render UI::CircleButtonComponent.new(
-          aria_label: "Toggle map filters",
-          data_action: "click->nav#toggleMobileFilters",
-          classes: "!w-12 !h-12 shadow-sm"
-        ) do %>
-      <%= icon "map-filters", classes: "w-6 h-6" %>
-    <% end %>
-    <%= render UI::CircleButtonComponent.new(
-          aria_label: "Toggle statistics panel",
-          data_action: "click->nav#toggleMobileStats",
-          classes: "!w-12 !h-12 shadow-sm"
-        ) do %>
-      <%= icon "info", classes: "w-6 h-6" %>
-    <% end %>
+  <div id="container-mobile-map-actions" class="sm:hidden absolute right-[10px] bottom-12 z-[10] flex flex-col gap-3">
+    <div class="group-[.table-mode]/map:hidden group-[.section-mode]/map:hidden">
+      <%= render UI::CircleButtonComponent.new(
+            id: "btn-mobile-filter",
+            aria_label: "Toggle map filters",
+            data_action: "click->nav#toggleMobileFilterPanel",
+            classes: "!w-12 !h-12 shadow-sm data-[active]:bg-brand-primary data-[active]:border-brand-primary data-[active]:text-white"
+          ) do %>
+        <%= icon "filter", classes: "w-6 h-6" %>
+      <% end %>
+    </div>
+    <div class="group-[.table-mode]/map:hidden group-[.section-mode]/map:hidden">
+      <%= render UI::CircleButtonComponent.new(
+            id: "btn-mobile-stats",
+            aria_label: "Toggle statistics panel",
+            data_action: "click->nav#toggleMobileStats",
+            classes: "!w-12 !h-12 shadow-sm data-[active]:bg-brand-primary data-[active]:border-brand-primary data-[active]:text-white"
+          ) do %>
+        <%= icon "info", classes: "w-6 h-6" %>
+      <% end %>
+    </div>
   </div>
 
   <%# Detail data loaded via Mapbox popup on map click;
@@ -151,7 +157,7 @@
       bar stays visible when the user switches to it.
       Shown/hidden by nav_controller.js#show via classList.
       ===================================================== %>
-  <div id="container-table" class="hidden absolute bg-white z-[3] top-3 right-4 bottom-8 rounded-xl shadow-lg overflow-hidden">
+  <div id="container-table" class="hidden max-md:!hidden absolute bg-white z-[3] top-3 right-4 bottom-8 rounded-xl shadow-lg overflow-hidden">
     <div class="flex min-h-0 flex-1 flex-col px-5 pt-[52px]">
       <div class="flex min-w-0 flex-col gap-4 overflow-hidden py-5 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
         <div class="min-w-0 shrink">
@@ -266,7 +272,7 @@
 
 <%# Mobile menu overlay %>
 <div id="container-mobile-menu" class="hidden fixed inset-0 bg-white z-[999] overflow-y-scroll">
-  <div class="flex flex-col min-h-full py-[60px] px-5">
+  <div class="flex flex-col min-h-full pt-[60px] pb-36 px-5">
     <p class="pt-6 pb-2"><strong>How to use this tool:</strong></p>
     <p class="pb-6">Search or zoom into the map to see information about public drinking water systems in areas of interest. Use the filters to customize the display.</p>
     <ul class="list-none m-0 p-0">

@@ -2,7 +2,7 @@
 <html>
   <head>
     <title><%= content_for(:title) || "Water Data Tool" %></title>
-    <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="application-name" content="Water Data Tool">
     <meta name="mobile-web-app-capable" content="yes">
@@ -33,7 +33,7 @@
     <%= javascript_importmap_tags %>
   </head>
 
-  <body data-controller="nav">
+  <body data-controller="nav" data-action="filter:applied->nav#showMobileStats">
     <%= yield %>
   </body>
 </html>

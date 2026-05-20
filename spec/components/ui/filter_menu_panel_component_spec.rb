@@ -90,5 +90,14 @@ RSpec.describe UI::FilterMenuPanelComponent, type: :component do
       expect(reset["data-action"]).to eq("click->filter#resetAll")
       expect(reset.text.strip).to eq("Reset All")
     end
+
+    it "applies mobile positioning classes that override the desktop min-width" do
+      subject
+      cls = html.css("div#container-menu-10").first["class"]
+      expect(cls).to include("max-sm:!min-w-0")
+      expect(cls).to include("max-sm:left-2")
+      expect(cls).to include("max-sm:right-2")
+      expect(cls).to include("max-sm:w-auto")
+    end
   end
 end
