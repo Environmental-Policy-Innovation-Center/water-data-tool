@@ -57,11 +57,17 @@ When a PR is opened or updated against `main`:
 1. The image is built and pushed with `pr-<N>-<sha>` and `pr-<N>-latest` tags.
 2. Secrets Manager ARNs are looked up (`rails_master_key`, `mapbox_access_token`, `mapbox_style_url`, `database_url`).
 3. `service_builder` runs with `EP_ACTION=apply` — this provisions a full ECS service, ALB, Route53 DNS record, and ACM certificate unique to that PR. First provision takes ~5–10 minutes (ACM cert validation).
-4. The environment is available at `https://water-data-tool-pr-<N>.policyinnovation.info`.
+4. The workflow waits in two phases before posting the PR comment:
+   - **Phase 1** — polls ECS every 15 seconds (up to 15 min) until a running task is confirmed to be using the exact new image SHA. This ensures we are not checking the old container.
+   - **Phase 2** — polls the preview URL's `/up` health check every 15 seconds (up to 5 min) until it returns HTTP 200.
+5. Once both phases pass, the PR comment with the preview URL is posted and GitHub registers the deployment as active.
+6. GitHub registers a deployment against the shared `pr-previews` environment. The PR timeline shows a **View deployment** button linked to the preview URL. Clicking into `pr-previews` from the repository Deployments sidebar shows all PR deployments with individual URLs and statuses. When a PR is closed, `pr-teardown` marks that specific deployment inactive.
+
+> **Why the workflow takes a few minutes after `service_builder` finishes:** The workflow first confirms the new image is running in ECS (up to 15 min), then confirms the URL is returning HTTP 200 (up to 5 min), and only then posts the PR comment. If the job is still running, it is polling — not hung. First-time PR deploys can take 5–10 minutes due to ACM cert validation; subsequent pushes to the same PR typically resolve in 1–3 minutes. If Phase 1 times out, the ECS task failed to start — check CloudWatch logs. If Phase 2 times out, the container started but isn't passing its health check.
 
 When the PR is closed, `service_builder` runs with `EP_ACTION=destroy` and tears down all provisioned resources.
 
-> **Stale environments:** Teardown only fires on PR close. If teardown fails, the environment persists. Terraform state is preserved in S3 at `tf/water_data_tool_pr_<N>/water_data_tool_pr_<N>_pr-<N>.tfstate`. Re-run the teardown job in GitHub Actions, or run `terraform destroy` locally using that state file.
+> **Stale environments:** Teardown only fires on PR close. If teardown fails, the environment persists. Terraform state is preserved in S3 at `tf/water_data_tool_pr_<N>/water_data_tool_pr_<N>_pr-<N>.tfstate`. Use the **Teardown PR Environments** workflow to clean up manually, or run `terraform destroy` locally using that state file.
 
 ---
 
@@ -81,9 +87,46 @@ When the PR is closed, `service_builder` runs with `EP_ACTION=destroy` and tears
 
 Watch progress in the **Actions** tab. Both workflows write a summary table (image digest, URL, who triggered it) to the job summary on completion.
 
+### Tear down PR environments manually
+
+Use **Actions → Teardown PR Environments → Run workflow** to destroy one or more PR environments on demand. Two modes:
+
+**Specific** — destroy a single PR environment by number:
+1. Set **Mode** to `specific`
+2. Enter the PR number
+3. Type `teardown` in the confirmation field
+4. Click **Run workflow**
+
+**Stale** — sweep all PR environments whose last commit is older than N days:
+1. Set **Mode** to `stale`
+2. Optionally set **Days old** (default: 14)
+3. Type `teardown` in the confirmation field
+4. Click **Run workflow**
+
+The stale sweep lists all ECS services matching `water_data_tool_pr_*`, checks each PR's last commit date via the GitHub API, and destroys any that haven't been updated within the threshold. PRs that are already closed or not found are also torn down.
+
+### List PR preview environments (AWS + ECR)
+
+Use **Actions → List PR Environments → Run workflow** for a read-only inventory sourced from ECS and ECR (no teardown). The job summary table includes:
+
+- PR number and title (from GitHub, when the PR still exists)
+- Preview URL
+- **Last image push** — `pr-<N>-latest` tag in ECR (`imagePushedAt`)
+- **ECS rollout** — most recent deployment on the ECS service
+- Running vs desired task count
+- PR state (`OPEN`, `CLOSED`, or `not found`)
+
+This complements the **Deployments** sidebar: that UI reflects GitHub deployment records; this workflow reflects what is actually provisioned in AWS.
+
 ---
 
 ## Checking what's currently deployed
+
+### GitHub Environments UI
+
+The fastest way to see what PR environments are live: go to the repository home page on GitHub and click **Deployments** in the right sidebar. This shows `staging`, `production`, and `pr-previews`. Click into `pr-previews` to see every PR deployment — each entry shows its unique preview URL and whether it is currently active or has been torn down.
+
+For a full deployment history (timestamps, who triggered, how long it ran), go to **Settings → Environments** and click into any environment.
 
 ### Health check all environments
 
@@ -263,12 +306,6 @@ Neither strategy is wired up yet — both are day-two operational items before s
 
 ### Stale PR environment cleanup
 
-PR environments are torn down by the `pr-teardown` job when a PR is closed. If teardown fails, the environment persists indefinitely — there is no age-based sweep.
+PR environments are torn down automatically by the `pr-teardown` job when a PR is closed. If teardown fails, environments can be cleaned up manually using the **Teardown PR Environments** workflow (see [Tear down PR environments manually](#tear-down-pr-environments-manually) above).
 
-**Recommended:** add `.github/workflows/stale-pr-envs.yml` — a scheduled workflow (e.g. nightly) that:
-
-1. Lists all ECS services in the cluster matching `water_data_tool_pr_*`
-2. For each, checks whether the corresponding PR (`#N`) is still open via the GitHub API
-3. If the PR is merged or closed, runs `service_builder` with `EP_ACTION=destroy` to clean it up
-
-This follows the same pattern as the existing `pr-teardown` job and uses the same `AWS_PR_DEPLOY_ROLE_ARN` role — no new IAM permissions needed. It acts as a safety net, not a replacement for the primary teardown trigger.
+A scheduled automatic sweep (e.g. nightly cron) does not exist yet. If stale environments become a recurring problem, the `teardown-pr-envs.yml` workflow could be extended with a `schedule:` trigger using the existing `stale` mode logic.

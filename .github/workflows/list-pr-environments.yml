@@ -1,0 +1,150 @@
+name: List PR Environments
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: list-pr-environments
+  cancel-in-progress: true
+
+jobs:
+  list:
+    if: vars.AWS_DEPLOY_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    environment: pr-previews
+    permissions:
+      id-token: write
+      contents: read
+      pull-requests: read
+    env:
+      AWS_REGION:   ${{ vars.AWS_REGION }}
+      ECS_CLUSTER:  ${{ vars.ECS_CLUSTER }}
+      ECR_REPO_URI: ${{ vars.ECR_REPO_URI }}
+
+    steps:
+      - name: Configure AWS credentials (PR role)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_PR_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: List deployed PR environments
+        id: list
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          ECR_REPO_NAME="${ECR_REPO_URI##*/}"
+
+          # Collect all ECS service ARNs (paginated)
+          SERVICE_ARNS=""
+          NEXT_TOKEN=""
+          while true; do
+            if [[ -z "$NEXT_TOKEN" ]]; then
+              PAGE=$(aws ecs list-services --cluster "$ECS_CLUSTER" --output json)
+            else
+              PAGE=$(aws ecs list-services \
+                --cluster "$ECS_CLUSTER" \
+                --starting-token "$NEXT_TOKEN" \
+                --output json)
+            fi
+
+            ARNS=$(echo "$PAGE" | jq -r '.serviceArns[]?')
+            if [[ -n "$ARNS" ]]; then
+              SERVICE_ARNS+=$'\n'"$ARNS"
+            fi
+
+            NEXT_TOKEN=$(echo "$PAGE" | jq -r '.nextToken // empty')
+            [[ -z "$NEXT_TOKEN" ]] && break
+          done
+
+          PR_NUMS=$(echo "$SERVICE_ARNS" \
+            | tr '\t' '\n' \
+            | grep -E 'water_data_tool_pr_[0-9]+$' || true \
+            | sed 's|.*/water_data_tool_pr_||' \
+            | sort -n \
+            | uniq)
+
+          if [[ -z "$PR_NUMS" ]]; then
+            echo "count=0" >> "$GITHUB_OUTPUT"
+            echo "No PR preview environments found in ECS cluster \`$ECS_CLUSTER\`." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          # Describe ECS services in batches of 10
+          declare -A RUNNING DESIRED ECS_DEPLOYED
+          BATCH=()
+          flush_batch() {
+            [[ ${#BATCH[@]} -eq 0 ]] && return
+            readarray -t DESCRIBED < <(aws ecs describe-services \
+              --cluster "$ECS_CLUSTER" \
+              --services "${BATCH[@]}" \
+              --query 'services[*].{name:serviceName,running:runningCount,desired:desiredCount,deployed:deployments[0].createdAt}' \
+              --output json \
+              | jq -c '.[]')
+            for row in "${DESCRIBED[@]}"; do
+              name=$(echo "$row" | jq -r '.name')
+              n="${name#water_data_tool_pr_}"
+              RUNNING[$n]=$(echo "$row" | jq -r '.running')
+              DESIRED[$n]=$(echo "$row" | jq -r '.desired')
+              ECS_DEPLOYED[$n]=$(echo "$row" | jq -r '.deployed // empty')
+            done
+            BATCH=()
+          }
+
+          for PR_NUM in $PR_NUMS; do
+            BATCH+=("water_data_tool_pr_${PR_NUM}")
+            if [[ ${#BATCH[@]} -eq 10 ]]; then
+              flush_batch
+            fi
+          done
+          flush_batch
+
+          # Build markdown table
+          {
+            echo "## PR preview environments"
+            echo ""
+            echo "| PR | Title | URL | Last image push (UTC) | ECS rollout (UTC) | Tasks | PR state |"
+            echo "|---:|---|---|---|---|---:|---|"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          COUNT=0
+          for PR_NUM in $PR_NUMS; do
+            URL="https://water-data-tool-pr-${PR_NUM}.policyinnovation.info/"
+
+            PUSHED=$(aws ecr describe-images \
+              --repository-name "$ECR_REPO_NAME" \
+              --image-ids "imageTag=pr-${PR_NUM}-latest" \
+              --query 'imageDetails[0].imagePushedAt' \
+              --output text 2>/dev/null || echo "")
+            [[ "$PUSHED" == "None" || -z "$PUSHED" ]] && PUSHED="—"
+
+            ECS_AT="${ECS_DEPLOYED[$PR_NUM]:-—}"
+            RUN="${RUNNING[$PR_NUM]:-0}"
+            WANT="${DESIRED[$PR_NUM]:-0}"
+
+            TITLE="—"
+            STATE="—"
+            if PR_JSON=$(gh pr view "$PR_NUM" --json title,state 2>/dev/null); then
+              TITLE=$(echo "$PR_JSON" | jq -r '.title' | tr '|' '/')
+              STATE=$(echo "$PR_JSON" | jq -r '.state')
+            else
+              STATE="not found"
+            fi
+
+            echo "| #${PR_NUM} | ${TITLE} | [${URL}](${URL}) | ${PUSHED} | ${ECS_AT} | ${RUN}/${WANT} | ${STATE} |" \
+              >> "$GITHUB_STEP_SUMMARY"
+            COUNT=$((COUNT + 1))
+          done
+
+          {
+            echo ""
+            echo "| | |"
+            echo "|---|---|"
+            echo "| **Environments listed** | ${COUNT} |"
+            echo "| **Triggered by** | @${{ github.actor }} |"
+            echo "| **Time** | $(date -u '+%Y-%m-%d %H:%M UTC') |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          echo "count=${COUNT}" >> "$GITHUB_OUTPUT"
