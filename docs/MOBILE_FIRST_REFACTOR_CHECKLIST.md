@@ -58,14 +58,11 @@ This is a working checklist for the mobile-first CSS refactor. Items are ordered
 
 ## Pattern A — Table hover guards
 
-**Resume here next session.**
-
-- [ ] **`app/views/home/_table.html.erb`** — guard all remaining `hover:` states
-  - Line 26: `group-hover:bg-blue-50` on sticky `<td>` → `md:group-hover:bg-blue-50`
-  - Line 155: `hover:bg-blue-50` on `<tr>` → `md:hover:bg-blue-50`
-  - Line 165: `hover:underline` on PWS name link → `md:hover:underline`
-  - Lines 272, 282, 310, 320: `hover:bg-gray-50` on pagination/input buttons → `md:hover:bg-gray-50`
-  - Use `replace_all` for `hover:bg-gray-50` since there are 4 identical occurrences
+- [x] **`app/views/home/_table.html.erb`** — guard all remaining `hover:` states
+  - Line 26: `group-hover:bg-blue-50` → `md:group-hover:bg-blue-50` ✅
+  - Line 155: `hover:bg-blue-50` on `<tr>` → `md:hover:bg-blue-50` ✅
+  - Line 165: `hover:underline` on PWS name link → `md:hover:underline` ✅
+  - Lines 272, 282, 310, 320: `hover:bg-gray-50` → `md:hover:bg-gray-50` (replace_all, 4 occurrences) ✅
 
 ---
 
@@ -74,34 +71,31 @@ This is a working checklist for the mobile-first CSS refactor. Items are ordered
 The app's desktop layout starts at `md:` (768px). Several elements use `sm:` (640px) as a desktop breakpoint, which is too narrow and causes premature layout shifts.
 
 Files to audit:
-- [ ] `app/views/home/index.html.erb` — scan for `sm:` on layout-structural classes
-- [ ] `app/views/home/_datasets.html.erb` — `md:sticky`, `md:flex-row` look correct; verify `sm:` usage
-- [ ] `app/views/home/_table.html.erb` — scan for `sm:` on layout classes
+- [x] `app/views/home/index.html.erb` — all `sm:` usages are intentional (sidebar/mobile overlay pattern at 640px)
+- [x] `app/views/home/_datasets.html.erb` — no `sm:` usage
+- [x] `app/views/home/_table.html.erb` — no `sm:` usage
 
 ---
 
 ## Pattern C — Fixed pixel widths that break narrow viewports
 
-- [ ] Audit for hardcoded `w-[Xpx]` values that do not have a mobile-width fallback
-- Known safe exceptions: `w-[250px]` on sidebar (must match JS `FULL_WIDTH = 250`), `min-w-[450px]` on population filter panel (intentional scroll container)
+- [x] Audit for hardcoded `w-[Xpx]` values that do not have a mobile-width fallback
+  - All fixed widths are either safe exceptions or desktop-only elements. No changes needed.
 
 ---
 
 ## Pattern D — Touch target sizes
 
-- [ ] Confirm primary interactive controls (buttons, nav items) present ≥ 44×44px hit area on mobile
-- Nav items currently `py-2.5` = 10px top/bottom padding + ~20px line height = ~40px — borderline; consider `py-3` if visual budget allows
-- Filter tab buttons `py-2.5 px-5` — fine for desktop; on mobile these are in the hamburger overlay so less critical
+- [x] Confirm primary interactive controls (buttons, nav items) present ≥ 44×44px hit area on mobile
+  - Nav items `py-2.5` + `text-base` 24px line-height = 44px ✓
+  - Map/Table toggle pills (`sm:hidden`) — phone-only, not a target use case; skipped
+  - Hamburger button: added `p-2.5` → 10+24+10 = 44px tap area ✅
 
 ---
 
 ## Pattern E — Remaining `max-*` overrides to invert
 
-Run this to find remaining instances:
-```
-grep -rn "max-\[" app/views app/components --include="*.erb" --include="*.rb"
-```
-Each `max-[Xpx]:` occurrence should be evaluated — most should be inverted to a `min-width` equivalent.
+- [x] No `max-[Xpx]:` responsive overrides found in views or components. Only `max-w-[...]` width constraints and the intentional `max-sm:!hidden` / `max-md:!hidden` added in this refactor.
 
 ---
 
