@@ -55,13 +55,13 @@
 <%# =====================================================
     Map view (default section)
     ===================================================== %>
-<div id="container-map" class="container-main-content group/map bg-[#ccc] fixed inset-x-0 top-[60px] bottom-[70px] overflow-y-auto sm:absolute sm:inset-0 sm:overflow-visible"
+<div id="container-map" class="container-main-content group/map bg-[#ccc] fixed inset-x-0 top-[68px] bottom-[70px] overflow-y-auto sm:absolute sm:inset-0 sm:overflow-visible"
      data-controller="map filter filter-menu"
      data-map-tile-url-value="/tiles/{z}/{x}/{y}">
 
   <%# Filter tab bar — filter-layout controller lives here so its ResizeObserver measures the
       filter bar's actual usable width (viewport − sidebar offset), not the full container width. %>
-  <div id="container-map-ui-top" class="hidden max-sm:!hidden sm:block sm:absolute sm:top-0 sm:left-0 sm:right-0 sm:z-[5] pointer-events-none"
+  <div id="container-map-ui-top" class="block absolute top-0 left-0 right-0 z-[10] sm:z-[5] pointer-events-none"
        data-controller="filter-layout">
     <ul id="filter-tabs" role="group" aria-label="Water System Filters" class="m-0 flex list-none flex-nowrap items-start justify-end gap-1.5 pt-3 pl-5 pr-5 pointer-events-none">
       <%= render UI::FilterMenuTabComponent.new(menu_id: 1, label: "Source") %>
@@ -69,7 +69,7 @@
       <%= render UI::FilterMenuTabComponent.new(menu_id: 3, label: "Boundaries") %>
       <%= render UI::FilterMenuTabComponent.new(menu_id: 4, label: "Compliance") %>
       <%= render UI::FilterMenuTabComponent.new(menu_id: 5, label: "Population") %>
-      <%= render UI::FilterMenuTabComponent.new(menu_id: 10, label: "More") %>
+      <%= render UI::FilterMenuTabComponent.new(menu_id: 10, label: "More", mobile_label: "Filters") %>
     </ul>
   </div>
 
@@ -92,7 +92,7 @@
 
   <%# Intro tooltip — bottom right of map canvas %>
   <div id="container-map-content-bottom" class="group-[.table-mode]/map:hidden group-[.section-mode]/map:hidden">
-    <div class="hidden absolute right-5 bottom-[100px] z-[9] max-w-[310px] sm:block bg-white border border-neutral-400 rounded-[20px] py-2.5 px-5">
+    <div id="container-how-to-use" class="hidden absolute left-4 right-[74px] bottom-12 z-[9] sm:left-auto sm:right-5 sm:bottom-[100px] sm:max-w-[310px] sm:block bg-white border border-neutral-400 rounded-[20px] py-2.5 px-5">
       <p class="text-[1.2em] leading-[1.4] m-0"><strong>How to use this tool:</strong></p>
       <p class="text-[1em] leading-[1.4] my-2.5 mx-0">Search or zoom into the map to see information about public drinking water systems in areas of interest. Use the filters to customize the display.</p>
     </div>
@@ -101,21 +101,25 @@
   <turbo-frame id="stats-bar"></turbo-frame>
 
   <%# Mobile floating action buttons — filter and stats %>
-  <div id="container-mobile-map-actions" class="sm:hidden group-[.table-mode]/map:hidden group-[.section-mode]/map:hidden absolute right-[10px] bottom-12 z-[10] flex flex-col gap-3">
+  <div id="container-mobile-map-actions" class="sm:hidden absolute right-[10px] bottom-12 z-[10] flex flex-col gap-3">
     <%= render UI::CircleButtonComponent.new(
+          id: "btn-mobile-filter",
           aria_label: "Toggle map filters",
-          data_action: "click->nav#toggleMobileFilters",
-          classes: "!w-12 !h-12 shadow-sm"
+          data_action: "click->nav#toggleMobileFilterPanel",
+          classes: "!w-12 !h-12 shadow-sm data-[active]:bg-brand-primary data-[active]:border-brand-primary data-[active]:text-white"
         ) do %>
-      <%= icon "map-filters", classes: "w-6 h-6" %>
+      <%= icon "filter", classes: "w-6 h-6" %>
     <% end %>
-    <%= render UI::CircleButtonComponent.new(
-          aria_label: "Toggle statistics panel",
-          data_action: "click->nav#toggleMobileStats",
-          classes: "!w-12 !h-12 shadow-sm"
-        ) do %>
-      <%= icon "info", classes: "w-6 h-6" %>
-    <% end %>
+    <div class="group-[.table-mode]/map:hidden group-[.section-mode]/map:hidden">
+      <%= render UI::CircleButtonComponent.new(
+            id: "btn-mobile-stats",
+            aria_label: "Toggle statistics panel",
+            data_action: "click->nav#toggleMobileStats",
+            classes: "!w-12 !h-12 shadow-sm data-[active]:bg-brand-primary data-[active]:border-brand-primary data-[active]:text-white"
+          ) do %>
+        <%= icon "info", classes: "w-6 h-6" %>
+      <% end %>
+    </div>
   </div>
 
   <%# Detail data loaded via Mapbox popup on map click;

@@ -6,6 +6,8 @@ class UI::FilterMenuPanelComponent < ViewComponent::Base
     "shadow-[1px_4px_12px_rgba(51,51,51,0.3)] max-h-[calc(100vh-350px)] " \
     "overflow-y-auto hidden".freeze
 
+  MORE_MENU_MOBILE_CLASSES = "max-sm:!min-w-0 max-sm:left-2 max-sm:right-2 max-sm:w-auto max-sm:overflow-x-hidden max-sm:scrollbar-gutter-stable".freeze
+
   RESET_BUTTON_CLASSES = "inline-block cursor-pointer rounded-full border border-neutral-400 bg-white " \
     "px-7 py-2 text-sm text-neutral-800 no-underline mx-2 my-1.5 min-h-11 " \
     "hover:bg-neutral-200 hover:text-black #{FOCUS_RING_CLASSES}".freeze
@@ -22,6 +24,6 @@ class UI::FilterMenuPanelComponent < ViewComponent::Base
   end
 
   def container_classes
-    class_names(CONTAINER_BASE_CLASSES, @more_menu && "filter-dropdown-more")
+    class_names(CONTAINER_BASE_CLASSES, @more_menu && "filter-dropdown-more #{MORE_MENU_MOBILE_CLASSES}")
   end
 end
