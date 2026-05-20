@@ -61,7 +61,7 @@ gem "pg", "~> 1.6.3"
 gem "puma", "~> 7.2.0"
 
 # Add HTTP asset caching/compression and X-Sendfile acceleration to Puma [https://github.com/basecamp/thruster/]
-gem "thruster", "~> 0.1.20", require: false
+gem "thruster", "~> 0.1.21", require: false
 
 # ViewComponent — server-rendered UI components [https://viewcomponent.org]
 gem "view_component", "~> 4.10.0"
