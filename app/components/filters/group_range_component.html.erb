@@ -1,4 +1,4 @@
-<li class="px-[15px] py-1.5 [@media(hover:hover)]:hover:bg-neutral-50 [&_label]:align-middle [&_input]:mr-2 [&_input]:inline-block [&_input]:align-middle [&_input.rounded-checkbox]:h-[35px] [&_input.rounded-checkbox]:w-[35px] [&_input:not(.rounded-checkbox)]:size-4">
+<li class="<%= helpers.filter_row_classes %> [&_input.rounded-checkbox]:h-[35px] [&_input.rounded-checkbox]:w-[35px]">
   <% if @nested %>
     <div class="flex items-center justify-between">
       <div>
@@ -11,7 +11,7 @@
           <%= helpers.icon "info", classes: "h-3.5 w-3.5 inline align-middle" %>
         </span>
       </div>
-      <button type="button" class="ml-1 text-neutral-400 [@media(hover:hover)]:hover:text-neutral-600"
+      <button type="button" class="<%= helpers.filter_info_button_classes %>"
               data-action="click->filter#toggleSubcatPanel"
               data-panel-id="<%= @panel_id %>"
               aria-expanded="false"

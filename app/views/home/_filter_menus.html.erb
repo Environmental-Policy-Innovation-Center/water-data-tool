@@ -107,7 +107,7 @@
                  data-action="change->filter#toggleSubcat"
                  data-panel-id="subcat-health-5yr">
           <label for="viols-health-5yrs">Health violations in the last 5 years</label>
-          <button type="button" class="ml-1 text-neutral-400 [@media(hover:hover)]:hover:text-neutral-600"
+          <button type="button" class="<%= filter_info_button_classes %>"
                   data-action="click->filter#toggleSubcatPanel"
                   data-panel-id="subcat-health-5yr"
                   aria-expanded="false"
@@ -165,7 +165,7 @@
                  data-action="change->filter#toggleSubcat"
                  data-panel-id="subcat-health-10yr">
           <label for="viols-health">Health violations in the last 10 years</label>
-          <button type="button" class="ml-1 text-neutral-400 [@media(hover:hover)]:hover:text-neutral-600"
+          <button type="button" class="<%= filter_info_button_classes %>"
                   data-action="click->filter#toggleSubcatPanel"
                   data-panel-id="subcat-health-10yr"
                   aria-expanded="false"
@@ -223,7 +223,7 @@
                  data-action="change->filter#toggleSubcat"
                  data-panel-id="subcat-paperwork-5yr">
           <label for="viols-paperwork-5yrs">Non-health violations in the last 5 years</label>
-          <button type="button" class="ml-1 text-neutral-400 [@media(hover:hover)]:hover:text-neutral-600"
+          <button type="button" class="<%= filter_info_button_classes %>"
                   data-action="click->filter#toggleSubcatPanel"
                   data-panel-id="subcat-paperwork-5yr"
                   aria-expanded="false"
@@ -249,7 +249,7 @@
                  data-action="change->filter#toggleSubcat"
                  data-panel-id="subcat-paperwork-10yr">
           <label for="viols-paperwork">Non-health violations in the last 10 years</label>
-          <button type="button" class="ml-1 text-neutral-400 [@media(hover:hover)]:hover:text-neutral-600"
+          <button type="button" class="<%= filter_info_button_classes %>"
                   data-action="click->filter#toggleSubcatPanel"
                   data-panel-id="subcat-paperwork-10yr"
                   aria-expanded="false"
@@ -308,7 +308,7 @@
                 data-action="mouseenter->tooltip#show mouseleave->tooltip#hide">
             <%= icon "info", classes: "h-3.5 w-3.5 inline align-middle" %>
           </span>
-          <button type="button" class="ml-1 text-neutral-400 [@media(hover:hover)]:hover:text-neutral-600"
+          <button type="button" class="<%= filter_info_button_classes %>"
                   data-action="click->filter#toggleSubcatPanel"
                   data-panel-id="subcat-rate-tier"
                   aria-expanded="false" aria-controls="subcat-rate-tier">
@@ -328,7 +328,7 @@
                   <label for="rate-tier-750-999">$750&#8211;999</label></li>
               <li class="<%= filter_row_classes %>"><input type="checkbox" class="toggle default-checked" checked id="rate-tier-gt1000">
                   <label for="rate-tier-gt1000">Over $1,000</label></li>
-              <li class="px-[15px] py-1.5 [@media(hover:hover)]:hover:bg-neutral-50 [&_label]:align-middle [&_input]:mr-2 [&_input]:inline-block [&_input]:align-middle [&_input:not(.rounded-checkbox)]:size-4 mt-1 border-t border-neutral-300 pt-1">
+              <li class="<%= filter_row_classes %> mt-1 border-t border-neutral-300 pt-1">
                   <input type="checkbox" class="toggle" id="rate-tier-no-info">
                   <label for="rate-tier-no-info">No rate info available</label></li>
             </ul>
@@ -368,7 +368,7 @@
                 data-action="mouseenter->tooltip#show mouseleave->tooltip#hide">
             <%= icon "info", classes: "h-3.5 w-3.5 inline align-middle" %>
           </span>
-          <button type="button" class="ml-1 text-neutral-400 [@media(hover:hover)]:hover:text-neutral-600"
+          <button type="button" class="<%= filter_info_button_classes %>"
                   data-action="click->filter#toggleSubcatPanel"
                   data-panel-id="subcat-watershed-hazards"
                   aria-expanded="false" aria-controls="subcat-watershed-hazards">
