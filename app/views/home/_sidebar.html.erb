@@ -1,5 +1,5 @@
 <aside id="container-sidebar"
-       class="group fixed top-3 left-4 bottom-8 bg-white rounded-xl shadow-md overflow-y-auto overflow-x-hidden z-[1000] hidden sm:flex sm:flex-col w-[250px]"
+       class="group fixed top-3 left-4 bottom-8 bg-white rounded-xl shadow-md overflow-hidden z-[1000] hidden sm:flex sm:flex-col w-[250px]"
        data-controller="sidebar"
        data-action="resize@window->sidebar#handleResize"
        aria-label="Drinking Water Explorer navigation">
@@ -43,15 +43,15 @@
     </ul>
   </nav>
 
-  <div class="mt-auto py-4 min-w-[250px] text-center text-[#565656] [&_a]:text-[#565656] group-data-[sidebar-collapsed]:invisible">
-    <div class="flex justify-center px-3 py-3">
+  <div class="mt-auto py-2 min-w-[250px] text-center text-[#565656] [&_a]:text-[#565656] group-data-[sidebar-collapsed]:invisible">
+    <div class="flex justify-center px-3">
       <%= icon "epic", classes: "mx-auto block w-9 h-auto" %>
     </div>
     <p class="mt-2">
       (<%= render UI::ExternalLinkComponent.new(url: "https://creativecommons.org/share-your-work/cclicenses/") do %><span class="sr-only">Creative Commons license</span><span aria-hidden="true">cc</span><% end %>)
       <span>Environmental Policy<br>Center </span>(EPIC)
     </p>
-    <div class="my-6 space-y-2">
+    <div class="my-2 space-y-2">
       <p>
         <%= render UI::ExternalLinkComponent.new(url: "https://github.com/Environmental-Policy-Innovation-Center/national-dw-tool-public") do %>Github<% end %>
       </p>
@@ -63,7 +63,7 @@
       </p>
     </div>
     <% if @last_updated %>
-      <p class="text-sm">
+      <p class="text-sm mt-3">
         <strong>Latest data update on:</strong><br>
         <span class="last-updated-date">
           <%= @last_updated.in_time_zone("Eastern Time (US & Canada)").strftime("%m/%d/%Y at %I:%M %p %Z") %>

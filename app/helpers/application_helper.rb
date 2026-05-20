@@ -6,7 +6,7 @@ module ApplicationHelper
   FOCUS_RING_CLASSES = "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 " \
     "focus-visible:outline-blue-600 motion-reduce:transition-none".freeze
 
-  FILTER_ROW_CLASSES = "px-[15px] py-1.5 hover:bg-neutral-50 [&_label]:align-middle [&_input]:mr-2 " \
+  FILTER_ROW_CLASSES = "px-[15px] py-1.5 [@media(hover:hover)]:hover:bg-neutral-50 [&_label]:align-middle [&_input]:mr-2 " \
     "[&_input]:inline-block [&_input]:align-middle [&_input:not(.rounded-checkbox)]:size-4".freeze
 
   DOWNLOAD_STATES = [
