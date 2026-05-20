@@ -1,7 +1,7 @@
 import { Controller } from "@hotwired/stimulus"
 
 const FULL_WIDTH = 250
-const COLLAPSED_WIDTH = 80
+const COLLAPSED_WIDTH = 100
 const SIDEBAR_LEFT = 16      // matches left-4 (16px)
 const CONTROLS_GAP = 16      // gap between sidebar right edge and content — matches SIDEBAR_LEFT so all three outer gaps are equal
 const MAPBOX_CTRL_PAD = 10   // Mapbox adds padding:10px to .mapboxgl-ctrl-top-left
