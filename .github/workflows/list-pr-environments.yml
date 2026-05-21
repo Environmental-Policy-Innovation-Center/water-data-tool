@@ -59,12 +59,20 @@ jobs:
             [[ -z "$NEXT_TOKEN" ]] && break
           done
 
-          PR_NUMS=$(echo "$SERVICE_ARNS" \
-            | tr '\t' '\n' \
-            | grep -E 'water_data_tool_pr_[0-9]+$' || true \
-            | sed 's|.*/water_data_tool_pr_||' \
-            | sort -n \
-            | uniq)
+          # Build PR number list and ARN lookup map from collected service ARNs.
+          # Service names follow the pattern ep_app__water_data_tool_pr_<N>__<region>,
+          # so we extract the number with grep -oE rather than anchoring on end-of-string.
+          declare -A SERVICE_ARN_MAP
+          PR_NUMS=""
+          while IFS= read -r line; do
+            [[ -z "$line" ]] && continue
+            NUM=$(echo "$line" | grep -oE 'water_data_tool_pr_[0-9]+' | sed 's/water_data_tool_pr_//' || true)
+            if [[ -n "$NUM" ]]; then
+              SERVICE_ARN_MAP[$NUM]="$line"
+              PR_NUMS="$PR_NUMS $NUM"
+            fi
+          done <<< "$SERVICE_ARNS"
+          PR_NUMS=$(echo "$PR_NUMS" | tr ' ' '\n' | grep -v '^$' | sort -n | uniq)
 
           if [[ -z "$PR_NUMS" ]]; then
             echo "count=0" >> "$GITHUB_OUTPUT"
@@ -72,7 +80,7 @@ jobs:
             exit 0
           fi
 
-          # Describe ECS services in batches of 10
+          # Describe ECS services in batches of 10 using full ARNs.
           declare -A RUNNING DESIRED ECS_DEPLOYED
           BATCH=()
           flush_batch() {
@@ -85,7 +93,7 @@ jobs:
               | jq -c '.[]')
             for row in "${DESCRIBED[@]}"; do
               name=$(echo "$row" | jq -r '.name')
-              n="${name#water_data_tool_pr_}"
+              n=$(echo "$name" | grep -oE 'water_data_tool_pr_[0-9]+' | sed 's/water_data_tool_pr_//')
               RUNNING[$n]=$(echo "$row" | jq -r '.running')
               DESIRED[$n]=$(echo "$row" | jq -r '.desired')
               ECS_DEPLOYED[$n]=$(echo "$row" | jq -r '.deployed // empty')
@@ -94,7 +102,7 @@ jobs:
           }
 
           for PR_NUM in $PR_NUMS; do
-            BATCH+=("water_data_tool_pr_${PR_NUM}")
+            BATCH+=("${SERVICE_ARN_MAP[$PR_NUM]}")
             if [[ ${#BATCH[@]} -eq 10 ]]; then
               flush_batch
             fi
@@ -105,8 +113,8 @@ jobs:
           {
             echo "## PR preview environments"
             echo ""
-            echo "| PR | Title | URL | Last image push (UTC) | ECS rollout (UTC) | Tasks | PR state |"
-            echo "|---:|---|---|---|---|---:|---|"
+            echo "| PR | URL | Last image push (UTC) | ECS rollout (UTC) | Tasks | PR state |"
+            echo "|---:|---|---|---|---:|---|"
           } >> "$GITHUB_STEP_SUMMARY"
 
           COUNT=0
@@ -124,16 +132,14 @@ jobs:
             RUN="${RUNNING[$PR_NUM]:-0}"
             WANT="${DESIRED[$PR_NUM]:-0}"
 
-            TITLE="—"
             STATE="—"
-            if PR_JSON=$(gh pr view "$PR_NUM" --json title,state 2>/dev/null); then
-              TITLE=$(echo "$PR_JSON" | jq -r '.title' | tr '|' '/')
+            if PR_JSON=$(gh pr view "$PR_NUM" --json state --repo ${{ github.repository }} 2>/dev/null); then
               STATE=$(echo "$PR_JSON" | jq -r '.state')
             else
               STATE="not found"
             fi
 
-            echo "| #${PR_NUM} | ${TITLE} | [${URL}](${URL}) | ${PUSHED} | ${ECS_AT} | ${RUN}/${WANT} | ${STATE} |" \
+            echo "| #${PR_NUM} | [${URL}](${URL}) | ${PUSHED} | ${ECS_AT} | ${RUN}/${WANT} | ${STATE} |" \
               >> "$GITHUB_STEP_SUMMARY"
             COUNT=$((COUNT + 1))
           done
