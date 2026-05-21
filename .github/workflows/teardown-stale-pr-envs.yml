@@ -1,18 +1,10 @@
-name: Teardown PR Environments
+name: Teardown Stale PR Environments
 
 on:
   workflow_dispatch:
     inputs:
-      mode:
-        description: '"specific" to destroy one PR, "stale" to sweep by last-commit age'
-        required: true
-        type: choice
-        options: [specific, stale]
-      pr_number:
-        description: 'PR number to destroy (mode=specific only)'
-        required: false
       days_old:
-        description: 'Destroy PRs with no new commits in this many days (mode=stale only) - default: 14'
+        description: 'Destroy PRs with no new commits in this many days (default: 14)'
         required: false
         default: '14'
       confirm:
@@ -20,7 +12,7 @@ on:
         required: true
 
 concurrency:
-  group: teardown-pr-envs
+  group: teardown-stale-pr-envs
   cancel-in-progress: false
 
 jobs:
@@ -29,10 +21,11 @@ jobs:
       vars.AWS_DEPLOY_ENABLED == 'true' &&
       github.event.inputs.confirm == 'teardown'
     runs-on: ubuntu-latest
-    environment: pr-previews
+    environment: pr-teardowns
     permissions:
       id-token: write
       contents: read
+      pull-requests: write
       deployments: write
     env:
       AWS_REGION:            ${{ vars.AWS_REGION }}
@@ -40,67 +33,64 @@ jobs:
       SERVICE_BUILDER_IMAGE: ${{ vars.SERVICE_BUILDER_IMAGE_URI }}
 
     steps:
-      - name: Validate specific mode inputs
-        if: github.event.inputs.mode == 'specific' && github.event.inputs.pr_number == ''
-        run: |
-          echo "::error::pr_number is required when mode=specific"
-          exit 1
-
       - name: Configure AWS credentials (PR role)
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_PR_DEPLOY_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Resolve PR list
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Resolve stale PR list
         id: prs
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          if [[ "${{ github.event.inputs.mode }}" == "specific" ]]; then
-            echo "list=${{ github.event.inputs.pr_number }}" >> "$GITHUB_OUTPUT"
-          else
-            DAYS="${{ github.event.inputs.days_old }}"
-            CUTOFF=$(date -u -d "${DAYS} days ago" '+%Y-%m-%dT%H:%M:%SZ')
+          set -euo pipefail
 
-            SERVICES=$(aws ecs list-services \
-              --cluster "$ECS_CLUSTER" \
-              --output text \
-              | tr '\t' '\n' \
-              | grep "water_data_tool_pr_" \
-              | sed 's|.*/water_data_tool_pr_||')
+          DAYS="${{ github.event.inputs.days_old }}"
+          CUTOFF=$(date -u -d "${DAYS} days ago" '+%Y-%m-%dT%H:%M:%SZ')
 
-            STALE=""
-            for PR_NUM in $SERVICES; do
-              HEAD_SHA=$(gh pr view "$PR_NUM" \
-                --json headRefOid \
-                --jq '.headRefOid' 2>/dev/null || echo "")
-              LAST_COMMIT=""
-              if [[ -n "$HEAD_SHA" ]]; then
-                LAST_COMMIT=$(gh api "repos/$GITHUB_REPOSITORY/commits/$HEAD_SHA" \
-                  --jq '.commit.committer.date' 2>/dev/null || echo "")
-              fi
+          SERVICES=$(aws ecs list-services \
+            --cluster "$ECS_CLUSTER" \
+            --output text \
+            | tr '\t' '\n' \
+            | (grep -oE 'water_data_tool_pr_[0-9]+' || true) \
+            | sed 's/water_data_tool_pr_//')
 
-              if [[ -z "$LAST_COMMIT" ]]; then
-                echo "PR #$PR_NUM — not found or closed, marking stale"
-                STALE="$STALE $PR_NUM"
-              elif [[ "$LAST_COMMIT" < "$CUTOFF" ]]; then
-                echo "PR #$PR_NUM — last commit $LAST_COMMIT, stale"
-                STALE="$STALE $PR_NUM"
-              else
-                echo "PR #$PR_NUM — last commit $LAST_COMMIT, still active, skipping"
-              fi
-            done
+          STALE=""
+          for PR_NUM in $SERVICES; do
+            HEAD_SHA=$(gh pr view "$PR_NUM" \
+              --repo "$GITHUB_REPOSITORY" \
+              --json headRefOid \
+              --jq '.headRefOid' 2>/dev/null || echo "")
+            LAST_COMMIT=""
+            if [[ -n "$HEAD_SHA" ]]; then
+              LAST_COMMIT=$(gh api "repos/$GITHUB_REPOSITORY/commits/$HEAD_SHA" \
+                --jq '.commit.committer.date' 2>/dev/null || echo "")
+            fi
 
-            echo "list=$(echo "$STALE" | xargs)" >> "$GITHUB_OUTPUT"
-          fi
+            if [[ -z "$LAST_COMMIT" ]]; then
+              echo "PR #$PR_NUM — not found or closed, marking stale"
+              STALE="$STALE $PR_NUM"
+            elif [[ "$LAST_COMMIT" < "$CUTOFF" ]]; then
+              echo "PR #$PR_NUM — last commit $LAST_COMMIT, stale"
+              STALE="$STALE $PR_NUM"
+            else
+              echo "PR #$PR_NUM — last commit $LAST_COMMIT, still active, skipping"
+            fi
+          done
 
-      - name: Tear down PR environments
+          echo "list=$(echo "$STALE" | xargs)" >> "$GITHUB_OUTPUT"
+
+      - name: Tear down stale environments
         env:
           PR_LIST: ${{ steps.prs.outputs.list }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           if [[ -z "$PR_LIST" ]]; then
-            echo "No PR environments matched — nothing to tear down."
+            echo "No stale PR environments found — nothing to tear down."
             exit 0
           fi
 
@@ -139,6 +129,13 @@ jobs:
               -e AWS_REGION="$AWS_REGION" \
               "$SERVICE_BUILDER_IMAGE"
 
+            gh pr close "${PR_NUM}" \
+              --repo "$GITHUB_REPOSITORY" \
+              --comment "Preview environment torn down — PR closed due to inactivity (no commits in ${{ github.event.inputs.days_old }} days)." || \
+            gh pr comment "${PR_NUM}" \
+              --repo "$GITHUB_REPOSITORY" \
+              --body "Preview environment torn down — PR was already closed (no commits in ${{ github.event.inputs.days_old }} days)."
+
             echo "PR #${PR_NUM} torn down."
           done
 
@@ -147,12 +144,12 @@ jobs:
           PR_LIST: ${{ steps.prs.outputs.list }}
         run: |
           {
-            echo "## PR environment teardown complete"
+            echo "## Stale PR environment teardown"
             echo ""
             echo "| | |"
             echo "|---|---|"
-            echo "| **Mode** | ${{ github.event.inputs.mode }} |"
-            echo "| **PRs torn down** | \`$(echo "$PR_LIST" | tr ' ' ', ')\` |"
+            echo "| **Staleness threshold** | ${{ github.event.inputs.days_old }} days |"
+            echo "| **PRs torn down** | \`$(echo "$PR_LIST" | tr ' ' ',')\` |"
             echo "| **Triggered by** | @${{ github.actor }} |"
             echo "| **Time** | $(date -u '+%Y-%m-%d %H:%M UTC') |"
           } >> "$GITHUB_STEP_SUMMARY"
