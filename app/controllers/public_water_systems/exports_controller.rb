@@ -1,7 +1,11 @@
 module PublicWaterSystems
   class ExportsController < ApplicationController
     def show
-      base_scope = PublicWaterSystem.apply_filters(params)
+      base_scope = if params[:pwsids].present?
+        PublicWaterSystem.where(pwsid: params[:pwsids])
+      else
+        PublicWaterSystem.apply_filters(params)
+      end
 
       if params[:file_format] == "geojson"
         render_geojson_export(PublicWaterSystemExporter.new(base_scope))
