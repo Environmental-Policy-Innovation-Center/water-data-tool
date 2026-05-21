@@ -64,6 +64,28 @@ RSpec.describe "Exports", type: :request do
       end
     end
 
+    context "with specific IDs selected" do
+      it "exports only the specified records as CSV" do
+        pws1 = create(:public_water_system)
+        create(:public_water_system)
+
+        get export_path, params: {pwsids: [pws1.pwsid]}
+
+        rows = CSV.parse(response.body)
+        expect(rows.length).to eq(2) # 1 header + 1 data row
+      end
+
+      it "exports only the specified records as GeoJSON" do
+        pws1 = create(:public_water_system)
+        create(:public_water_system)
+
+        get export_path, params: {pwsids: [pws1.pwsid], file_format: "geojson"}
+
+        body = Zlib::GzipReader.new(StringIO.new(response.body)).read
+        expect(JSON.parse(body)["features"].length).to eq(1)
+      end
+    end
+
     context "GeoJSON export" do
       it "returns a response with correct content headers" do
         create(:public_water_system)

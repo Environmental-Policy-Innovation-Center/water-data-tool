@@ -1,28 +1,6 @@
-<%# TODO (Tier 3): Replace these ERB class-string variables with ViewComponents.
-    Current pattern works but is a stopgap — class strings are invisible to tooling,
-    scoped only to this partial, and mix presentation config into template logic.
-
-    Suggested components:
-      - TableHeaderComponent     renders <th scope="col"> with sort link and aria-sort
-          props: column:, label:, size: (:default | :sm | :wide | :sticky)
-          absorbs: table_sort_link(), aria_sort(), col_highlight() helper calls
-          template owns the Tailwind classes (no more ERB string variables)
-
-      - TableCellComponent       renders <td> or sticky <th scope="row">
-          props: sticky: false, numeric: false, highlight_column: nil, row_stripe: nil
-          absorbs: td / td_num / td_sticky_base class assembly + col_highlight()
-
-    The table_sort_link helper in home_helper.rb also generates HTML with embedded
-    Tailwind — that moves into TableHeaderComponent's template at the same time.
-
-    Reference: docs/frontend_refactor/DATA_TABLE.md — "Key Files and Patterns" section.
-    ViewComponent gem is already a candidate dependency for Tier 3 (see FE_Architecture_Plan.md). %>
-<%# Reusable class strings for header and data cells — see TODO above. %>
-<% th = "sticky top-0 z-20 bg-gray-100 border-b border-gray-200 px-3 py-2 font-medium text-left whitespace-nowrap min-w-[10rem]" %>
-<% th_sm = "sticky top-0 z-20 bg-gray-100 border-b border-gray-200 px-3 py-2 font-medium text-left whitespace-nowrap min-w-[8rem]" %>
-<% th_wide = "sticky top-0 z-20 bg-gray-100 border-b border-gray-200 px-3 py-2 font-medium text-left whitespace-nowrap min-w-[14rem]" %>
-<% th_sticky = "sticky left-0 top-0 z-30 bg-gray-100 border-b border-gray-200 px-3 py-2 font-medium text-left whitespace-nowrap min-w-[12rem]" %>
+<%# Reusable class strings for data cells. Header cells use UI::TableHeaderComponent. %>
 <% td = "px-3 py-2 border-b border-gray-100 overflow-hidden max-w-48" %>
+<% td_check_base = "px-2 py-2 border-b border-gray-100 w-10 text-center md:group-hover:bg-blue-50 transition-colors" %>
 <% td_sticky_base = "sticky left-0 z-10 font-normal text-left md:group-hover:bg-blue-50 transition-colors px-3 py-2 border-b border-gray-100 overflow-hidden max-w-xs" %>
 <% td_num = "px-3 py-2 border-b border-gray-100 tabular-nums text-right overflow-hidden" %>
 
@@ -35,116 +13,93 @@
       </caption>
       <thead>
         <tr>
+          <%# ── Row selection ──────────────────────────────────────── %>
+          <%= render UI::TableHeaderComponent.new(size: :check) %>
           <%# ── Core identity ─────────────────────────────────────── %>
-          <th scope="col" class="<%= th_sticky %>" aria-sort="<%= aria_sort("pws_name") %>">
-            <%= table_sort_link("pws_name", "Utility Name") %>
-          </th>
-          <th scope="col" class="<%= th %>" aria-sort="<%= aria_sort("pwsid") %>">
-            <%= table_sort_link("pwsid", "Utility ID") %>
-          </th>
-          <th scope="col" class="<%= th_sm %>">EPA Facility Report</th>
-          <th scope="col" class="<%= th_sm %>" aria-sort="<%= aria_sort("stusps") %>">
-            <%= table_sort_link("stusps", "State") %>
-          </th>
+          <%= render UI::TableHeaderComponent.new(label: "Utility Name", column: "pws_name", size: :sticky) %>
+          <%= render UI::TableHeaderComponent.new(label: "Utility ID", column: "pwsid") %>
+          <%= render UI::TableHeaderComponent.new(label: "EPA Facility Report", size: :sm) %>
+          <%= render UI::TableHeaderComponent.new(label: "State", column: "stusps", size: :sm) %>
           <%# ── Geography & system type ─────────────────────────── %>
-          <th scope="col" class="<%= th_wide %>" aria-sort="<%= aria_sort("counties") %>">
-            <%= table_sort_link("counties", "County") %>
-          </th>
-          <th scope="col" class="<%= th %>" aria-sort="<%= aria_sort("gw_sw_code") %>">
-            <%= table_sort_link("gw_sw_code", "Source type") %>
-          </th>
-          <th scope="col" class="<%= th %>" aria-sort="<%= aria_sort("source_water_protection_code") %>">
-            <%= table_sort_link("source_water_protection_code", "Source protection") %>
-          </th>
-          <th scope="col" class="<%= th %>" aria-sort="<%= aria_sort("owner_type") %>">
-            <%= table_sort_link("owner_type", "Ownership") %>
-          </th>
-          <th scope="col" class="<%= th %>" aria-sort="<%= aria_sort("primacy_type") %>">
-            <%= table_sort_link("primacy_type", "Authority") %>
-          </th>
-          <th scope="col" class="<%= th %>" aria-sort="<%= aria_sort("is_wholesaler") %>">
-            <%= table_sort_link("is_wholesaler", "Wholesaler") %>
-          </th>
-          <th scope="col" class="<%= th %>" aria-sort="<%= aria_sort("is_school_or_daycare") %>">
-            <%= table_sort_link("is_school_or_daycare", "Facility type (School or daycare)") %>
-          </th>
-          <th scope="col" class="<%= th %>" aria-sort="<%= aria_sort("symbology_field") %>">
-            <%= table_sort_link("symbology_field", "Boundary type") %>
-          </th>
-          <th scope="col" class="<%= th %>" aria-sort="<%= aria_sort("area_sq_miles") %>">
-            <%= table_sort_link("area_sq_miles", "Size (sq mi)") %>
-          </th>
-          <th scope="col" class="<%= th %>" aria-sort="<%= aria_sort("open_health_viol") %>">
-            <%= table_sort_link("open_health_viol", "Open violations") %>
-          </th>
+          <%= render UI::TableHeaderComponent.new(label: "County", column: "counties", size: :wide) %>
+          <%= render UI::TableHeaderComponent.new(label: "Source type", column: "gw_sw_code") %>
+          <%= render UI::TableHeaderComponent.new(label: "Source protection", column: "source_water_protection_code") %>
+          <%= render UI::TableHeaderComponent.new(label: "Ownership", column: "owner_type") %>
+          <%= render UI::TableHeaderComponent.new(label: "Authority", column: "primacy_type") %>
+          <%= render UI::TableHeaderComponent.new(label: "Wholesaler", column: "is_wholesaler") %>
+          <%= render UI::TableHeaderComponent.new(label: "Facility type (School or daycare)", column: "is_school_or_daycare") %>
+          <%= render UI::TableHeaderComponent.new(label: "Boundary type", column: "symbology_field") %>
+          <%= render UI::TableHeaderComponent.new(label: "Size (sq mi)", column: "area_sq_miles") %>
+          <%= render UI::TableHeaderComponent.new(label: "Open violations", column: "open_health_viol") %>
           <%# ── Violations — 5 year ─────────────────────────────── %>
-          <th scope="col" class="<%= th %>">Health violations (5yr)</th>
-          <th scope="col" class="<%= th %>">Groundwater rule violations (5yr)</th>
-          <th scope="col" class="<%= th %>">Surface water treatment violations (5yr)</th>
-          <th scope="col" class="<%= th %>">Lead & copper violations (5yr)</th>
-          <th scope="col" class="<%= th %>">Radionuclides violations (5yr)</th>
-          <th scope="col" class="<%= th %>">Inorganic chemicals violations (5yr)</th>
-          <th scope="col" class="<%= th %>">Synthetic organic chemicals violations (5yr)</th>
-          <th scope="col" class="<%= th %>">Volatile organic chemicals violations (5yr)</th>
-          <th scope="col" class="<%= th %>">Coliform violations (5yr)</th>
-          <th scope="col" class="<%= th %>">Stage 1 disinfectants violations (5yr)</th>
-          <th scope="col" class="<%= th %>">Stage 2 disinfectants violations (5yr)</th>
+          <%= render UI::TableHeaderComponent.new(label: "Health violations (5yr)") %>
+          <%= render UI::TableHeaderComponent.new(label: "Groundwater rule violations (5yr)") %>
+          <%= render UI::TableHeaderComponent.new(label: "Surface water treatment violations (5yr)") %>
+          <%= render UI::TableHeaderComponent.new(label: "Lead & copper violations (5yr)") %>
+          <%= render UI::TableHeaderComponent.new(label: "Radionuclides violations (5yr)") %>
+          <%= render UI::TableHeaderComponent.new(label: "Inorganic chemicals violations (5yr)") %>
+          <%= render UI::TableHeaderComponent.new(label: "Synthetic organic chemicals violations (5yr)") %>
+          <%= render UI::TableHeaderComponent.new(label: "Volatile organic chemicals violations (5yr)") %>
+          <%= render UI::TableHeaderComponent.new(label: "Coliform violations (5yr)") %>
+          <%= render UI::TableHeaderComponent.new(label: "Stage 1 disinfectants violations (5yr)") %>
+          <%= render UI::TableHeaderComponent.new(label: "Stage 2 disinfectants violations (5yr)") %>
           <%# ── Violations — 10 year ────────────────────────────── %>
-          <th scope="col" class="<%= th %>">Health violations (10yr)</th>
-          <th scope="col" class="<%= th %>">Groundwater rule violations (10yr)</th>
-          <th scope="col" class="<%= th %>">Surface water treatment violations (10yr)</th>
-          <th scope="col" class="<%= th %>">Lead & copper violations (10yr)</th>
-          <th scope="col" class="<%= th %>">Radionuclides violations (10yr)</th>
-          <th scope="col" class="<%= th %>">Inorganic chemicals violations (10yr)</th>
-          <th scope="col" class="<%= th %>">Synthetic organic chemicals violations (10yr)</th>
-          <th scope="col" class="<%= th %>">Volatile organic chemicals violations (10yr)</th>
-          <th scope="col" class="<%= th %>">Coliform violations (10yr)</th>
-          <th scope="col" class="<%= th %>">Stage 1 disinfectants violations (10yr)</th>
-          <th scope="col" class="<%= th %>">Stage 2 disinfectants violations (10yr)</th>
+          <%= render UI::TableHeaderComponent.new(label: "Health violations (10yr)") %>
+          <%= render UI::TableHeaderComponent.new(label: "Groundwater rule violations (10yr)") %>
+          <%= render UI::TableHeaderComponent.new(label: "Surface water treatment violations (10yr)") %>
+          <%= render UI::TableHeaderComponent.new(label: "Lead & copper violations (10yr)") %>
+          <%= render UI::TableHeaderComponent.new(label: "Radionuclides violations (10yr)") %>
+          <%= render UI::TableHeaderComponent.new(label: "Inorganic chemicals violations (10yr)") %>
+          <%= render UI::TableHeaderComponent.new(label: "Synthetic organic chemicals violations (10yr)") %>
+          <%= render UI::TableHeaderComponent.new(label: "Volatile organic chemicals violations (10yr)") %>
+          <%= render UI::TableHeaderComponent.new(label: "Coliform violations (10yr)") %>
+          <%= render UI::TableHeaderComponent.new(label: "Stage 1 disinfectants violations (10yr)") %>
+          <%= render UI::TableHeaderComponent.new(label: "Stage 2 disinfectants violations (10yr)") %>
           <%# ── Non-health violations ───────────────────────────── %>
-          <th scope="col" class="<%= th %>">Non-health violations (5yr)</th>
-          <th scope="col" class="<%= th %>">Non-health violations (10yr)</th>
+          <%= render UI::TableHeaderComponent.new(label: "Non-health violations (5yr)") %>
+          <%= render UI::TableHeaderComponent.new(label: "Non-health violations (10yr)") %>
           <%# ── Boil water ──────────────────────────────────────── %>
-          <th scope="col" class="<%= th %>">Boil water notices</th>
+          <%= render UI::TableHeaderComponent.new(label: "Boil water notices") %>
           <%# ── Demographics ────────────────────────────────────── %>
-          <th scope="col" class="<%= th %>">Population size</th>
-          <th scope="col" class="<%= th %>">Population density (per sq mi)</th>
-          <th scope="col" class="<%= th %>">Households below poverty line</th>
-          <th scope="col" class="<%= th %>">Unemployment</th>
-          <th scope="col" class="<%= th %>">Median household income</th>
-          <th scope="col" class="<%= th %>">Higher education attainment</th>
-          <th scope="col" class="<%= th %>">Children under 5</th>
-          <th scope="col" class="<%= th %>">Elderly over 61</th>
-          <th scope="col" class="<%= th %>">People of color</th>
-          <th scope="col" class="<%= th %>">White</th>
-          <th scope="col" class="<%= th %>">Black</th>
-          <th scope="col" class="<%= th %>">American Indian & Alaskan Native</th>
-          <th scope="col" class="<%= th %>">Native Hawaiian & Pacific Islander</th>
-          <th scope="col" class="<%= th %>">Asian</th>
-          <th scope="col" class="<%= th %>">Latino/a</th>
-          <th scope="col" class="<%= th %>">Other race</th>
-          <th scope="col" class="<%= th %>">Mixed race</th>
-          <th scope="col" class="<%= th %>">Annual water & sewer bill</th>
+          <%= render UI::TableHeaderComponent.new(label: "Population size") %>
+          <%= render UI::TableHeaderComponent.new(label: "Population density (per sq mi)") %>
+          <%= render UI::TableHeaderComponent.new(label: "Households below poverty line") %>
+          <%= render UI::TableHeaderComponent.new(label: "Unemployment") %>
+          <%= render UI::TableHeaderComponent.new(label: "Median household income") %>
+          <%= render UI::TableHeaderComponent.new(label: "Higher education attainment") %>
+          <%= render UI::TableHeaderComponent.new(label: "Children under 5") %>
+          <%= render UI::TableHeaderComponent.new(label: "Elderly over 61") %>
+          <%= render UI::TableHeaderComponent.new(label: "People of color") %>
+          <%= render UI::TableHeaderComponent.new(label: "White") %>
+          <%= render UI::TableHeaderComponent.new(label: "Black") %>
+          <%= render UI::TableHeaderComponent.new(label: "American Indian & Alaskan Native") %>
+          <%= render UI::TableHeaderComponent.new(label: "Native Hawaiian & Pacific Islander") %>
+          <%= render UI::TableHeaderComponent.new(label: "Asian") %>
+          <%= render UI::TableHeaderComponent.new(label: "Latino/a") %>
+          <%= render UI::TableHeaderComponent.new(label: "Other race") %>
+          <%= render UI::TableHeaderComponent.new(label: "Mixed race") %>
+          <%= render UI::TableHeaderComponent.new(label: "Annual water & sewer bill") %>
           <%# ── Environmental justice ───────────────────────────── %>
-          <th scope="col" class="<%= th %>">Disadvantaged area</th>
-          <th scope="col" class="<%= th %>">Social Vulnerability Index</th>
-          <th scope="col" class="<%= th %>">Climate Vulnerability Index</th>
+          <%= render UI::TableHeaderComponent.new(label: "Disadvantaged area") %>
+          <%= render UI::TableHeaderComponent.new(label: "Social Vulnerability Index") %>
+          <%= render UI::TableHeaderComponent.new(label: "Climate Vulnerability Index") %>
           <%# ── Funding ─────────────────────────────────────────── %>
-          <th scope="col" class="<%= th %>">SRF financing (2021–2025) — times received</th>
-          <th scope="col" class="<%= th %>">SRF assistance (2021–2025)</th>
-          <th scope="col" class="<%= th %>">SRF principal forgiveness (2021–2025)</th>
+          <%= render UI::TableHeaderComponent.new(label: "SRF financing (2021–2025) — times received") %>
+          <%= render UI::TableHeaderComponent.new(label: "SRF assistance (2021–2025)") %>
+          <%= render UI::TableHeaderComponent.new(label: "SRF principal forgiveness (2021–2025)") %>
           <%# ── Watershed hazards ───────────────────────────────── %>
-          <th scope="col" class="<%= th %>">Source water connections</th>
-          <th scope="col" class="<%= th %>">Pollution permits with breaches</th>
-          <th scope="col" class="<%= th %>">Underground storage tanks</th>
-          <th scope="col" class="<%= th %>">Risk management plan facilities</th>
-          <th scope="col" class="<%= th %>">Impaired or threatened streams</th>
+          <%= render UI::TableHeaderComponent.new(label: "Source water connections") %>
+          <%= render UI::TableHeaderComponent.new(label: "Pollution permits with breaches") %>
+          <%= render UI::TableHeaderComponent.new(label: "Underground storage tanks") %>
+          <%= render UI::TableHeaderComponent.new(label: "Risk management plan facilities") %>
+          <%= render UI::TableHeaderComponent.new(label: "Impaired or threatened streams") %>
         </tr>
       </thead>
       <tbody>
         <% sort_is_pws_name = params[:sort] == "pws_name" %>
         <% @systems.each_with_index do |pws, idx| %>
           <% row_stripe = idx.even? ? "bg-white" : "bg-gray-50" %>
+          <% td_check  = "#{td_check_base} #{sort_is_pws_name ? 'bg-blue-50' : row_stripe}" %>
           <% td_sticky = "#{td_sticky_base} #{sort_is_pws_name ? 'bg-blue-50' : row_stripe}" %>
           <% vs  = pws.violations_summary %>
           <% dm  = pws.demographic %>
@@ -153,6 +108,15 @@
           <% wh  = pws.watershed_hazard %>
           <% bws = pws.boil_water_summary %>
           <tr class="group <%= row_stripe %> md:hover:bg-blue-50 transition-colors">
+            <%# ── Row selection ───────────────────────────────── %>
+            <td class="<%= td_check %>">
+              <input type="checkbox"
+                     class="cursor-pointer"
+                     value="<%= pws.pwsid %>"
+                     aria-label="Select <%= pws.pws_name %>"
+                     data-row-selection-target="row"
+                     data-action="change->row-selection#toggle">
+            </td>
             <%# ── Core identity ─────────────────────────────────── %>
             <th class="<%= td_sticky %>" scope="row"><%= pws.pws_name %></th>
             <td class="<%= td %><%= col_highlight("pwsid") %>"><%= pws.pwsid %></td>
@@ -244,7 +208,7 @@
         <% end %>
         <% if @systems.empty? %>
           <tr>
-            <td colspan="68" class="px-3 py-8 text-center text-gray-500">No results match the current filters.</td>
+            <td colspan="69" class="px-3 py-8 text-center text-gray-500">No results match the current filters.</td>
           </tr>
         <% end %>
       </tbody>

@@ -1,5 +1,6 @@
 import { Controller } from "@hotwired/stimulus"
 import * as FilterState from "filter_state"
+import * as SelectionState from "selection_state"
 
 const POP_CAT_MAP = { "1": "<=500", "2": "501-3,300", "3": "3,301-10,000", "4": "10,001-100,000", "5": ">100,000" }
 const POP_CLASS_MAP = Object.fromEntries(Object.entries(POP_CAT_MAP).map(([k, v]) => [v, `pop-size-${k}`]))
@@ -170,6 +171,7 @@ export default class extends Controller {
     event.preventDefault()
     document.dispatchEvent(new CustomEvent("filter:close-all"))
     FilterState.set(this.#collectFilters())
+    SelectionState.clear()
     this.#syncToUrl()
     this.#updateBadges()
     document.dispatchEvent(new CustomEvent("filters:changed"))
