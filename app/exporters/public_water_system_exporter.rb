@@ -45,7 +45,7 @@ class PublicWaterSystemExporter
   CSV_HEADERS = [
     "Utility Name", "Utility ID", "EPA Facility Report", "State", "County",
     "Source type", "Source protection", "Ownership", "Authority",
-    "Wholesaler", "Facility type (School or daycare)", "Boundary type",
+    "Wholesaler", "Facility type (School or daycare)", "Grant eligible", "Boundary type",
     "Size (Area in square miles)", "Has open violations",
     "Health violations in the last 5 years",
     "Ground water rule violations in the last 5 years",
@@ -143,7 +143,7 @@ class PublicWaterSystemExporter
     [
       pws.pws_name, pws.pwsid, pws.detailed_facility_report,
       pws.stusps, pws.counties, pws.gw_sw_code, pws.source_water_protection_code,
-      pws.owner_type, pws.primacy_type, pws.is_wholesaler, pws.is_school_or_daycare,
+      pws.owner_type, pws.primacy_type, pws.is_wholesaler, pws.is_school_or_daycare, pws.is_grant_eligible,
       pws.service_area_type, pws.area_sq_miles, pws.open_health_viol,
       vs&.health_violations_5yr, vs&.groundwater_rule_5yr, vs&.surface_water_treatment_5yr,
       vs&.lead_and_copper_5yr, vs&.radionuclides_5yr, vs&.inorganic_chemicals_5yr,
