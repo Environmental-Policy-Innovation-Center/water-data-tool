@@ -160,39 +160,109 @@
   <div id="container-table" class="hidden max-md:!hidden absolute bg-white z-[3] top-3 right-4 bottom-8 rounded-xl shadow-lg overflow-hidden">
     <div class="flex min-h-0 flex-1 flex-col px-5 pt-[52px]"
          data-controller="row-selection">
-      <div class="flex min-w-0 flex-col gap-4 overflow-hidden py-5 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
-        <div class="min-w-0 shrink">
-          <p class="m-0 p-0 text-base">
+      <div class="flex items-center justify-between gap-4 py-5">
+        <%# Title + export controls: grouped left %>
+        <div class="flex min-w-0 flex-wrap items-center gap-3">
+          <p class="m-0 shrink-0 p-0 text-base">
             <strong>Public Water Utilities <span class="geo-filter"></span></strong>
           </p>
+          <div class="flex shrink-0 flex-nowrap items-center gap-3"
+               data-controller="export"
+               data-export-url-value="<%= export_path %>">
+            <button type="button"
+               class="relative inline-flex cursor-pointer flex-nowrap items-center whitespace-nowrap rounded-full border border-neutral-400 bg-[#67a25e] px-3 py-1.5 pl-9 text-sm font-normal leading-none text-white <%= focus_ring_classes %>"
+               data-action="click->export#download">
+              <%= icon "downloads", classes: "pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2" %>
+                Export
+              <span data-row-selection-target="countBadge"
+                    class="hidden ml-1.5 rounded-full bg-white/25 px-1.5 py-0.5 text-xs leading-none tabular-nums"
+                    aria-live="polite"
+                    aria-label="selected rows count"></span>
+            </button>
+            <span class="inline-flex flex-nowrap items-center gap-3">
+              <span class="inline-flex items-center gap-1.5 whitespace-nowrap">
+                <input type="radio" name="file-type" id="file-csv" value="csv" checked
+                       data-export-target="format"
+                       class="m-0">
+                <label for="file-csv">.csv</label>
+              </span>
+              <span class="inline-flex items-center gap-1.5 whitespace-nowrap">
+                <input type="radio" name="file-type" id="file-geojson" value="geojson"
+                       class="file-geojson m-0" data-export-target="format">
+                <label for="file-geojson" class="file-geojson">.geojson</label>
+              </span>
+            </span>
+          </div>
         </div>
-        <div class="flex min-w-0 shrink-0 flex-nowrap items-center justify-end gap-3 sm:gap-4"
-             data-controller="export"
-             data-export-url-value="<%= export_path %>">
+
+        <%# Manage Columns: far right with fixed-position disclosure panel %>
+        <div class="shrink-0" data-controller="manage-columns">
           <button type="button"
-             class="relative inline-flex cursor-pointer flex-nowrap items-center whitespace-nowrap rounded-full border border-neutral-400 bg-[#67a25e] px-3 py-1.5 pl-9 text-sm font-normal leading-none text-white <%= focus_ring_classes %>"
-             data-action="click->export#download">
-            <%= icon "downloads",
-                  classes: "pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2" %>
-            Export
-            <span data-row-selection-target="countBadge"
-                  class="hidden ml-1.5 rounded-full bg-white/25 px-1.5 py-0.5 text-xs leading-none tabular-nums"
-                  aria-live="polite"
-                  aria-label="selected rows count"></span>
+                  class="inline-flex min-h-11 cursor-pointer items-center gap-1.5 font-bold text-brand-primary hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 motion-reduce:transition-none"
+                  data-manage-columns-target="button"
+                  data-action="click->manage-columns#toggle"
+                  aria-expanded="false"
+                  aria-controls="manage-columns-panel">
+            Manage Columns
+            <%= icon "columns", classes: "size-4" %>
           </button>
-          <span class="inline-flex flex-nowrap items-center gap-3">
-            <span class="inline-flex items-center gap-1.5 whitespace-nowrap">
-              <input type="radio" name="file-type" id="file-csv" value="csv" checked
-                     data-export-target="format"
-                     class="m-0">
-              <label for="file-csv">.csv</label>
-            </span>
-            <span class="inline-flex items-center gap-1.5 whitespace-nowrap">
-              <input type="radio" name="file-type" id="file-geojson" value="geojson"
-                     class="file-geojson m-0" data-export-target="format">
-              <label for="file-geojson" class="file-geojson">.geojson</label>
-            </span>
-          </span>
+          <div id="manage-columns-panel"
+               data-manage-columns-target="dropdown"
+               class="hidden fixed w-80 flex-col overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-xl z-[100]">
+            <ul class="m-0 h-[280px] list-none overflow-y-auto px-2 pb-1 pt-3"
+                aria-label="Table columns">
+              <%# Locked column — always visible, no drag handle, checkbox intentionally disabled %>
+              <li class="flex items-center gap-2 rounded px-2 py-1.5">
+                <span class="size-3 shrink-0" aria-hidden="true"></span>
+                <span class="flex-1 text-sm text-neutral-400">Water System Name</span>
+                <input type="checkbox" checked
+                       disabled aria-disabled="true"
+                       aria-label="Show Water System Name column (always visible)"
+                       class="size-4 cursor-not-allowed rounded opacity-40">
+              </li>
+              <%# Draggable columns %>
+              <li class="flex items-center gap-2 rounded px-2 py-1.5 hover:bg-neutral-50">
+                <%= icon "drag", classes: "size-3 shrink-0 text-neutral-300" %>
+                <span class="flex-1 text-sm text-neutral-700">PWS ID</span>
+                <input type="checkbox" checked
+                       aria-label="Show PWS ID column"
+                       class="size-4 cursor-pointer rounded">
+              </li>
+              <li class="flex items-center gap-2 rounded px-2 py-1.5 hover:bg-neutral-50">
+                <%= icon "drag", classes: "size-3 shrink-0 text-neutral-300" %>
+                <span class="flex-1 text-sm text-neutral-700">State</span>
+                <input type="checkbox" checked
+                       aria-label="Show State column"
+                       class="size-4 cursor-pointer rounded">
+              </li>
+              <li class="flex items-center gap-2 rounded px-2 py-1.5 hover:bg-neutral-50">
+                <%= icon "drag", classes: "size-3 shrink-0 text-neutral-300" %>
+                <span class="flex-1 text-sm text-neutral-700">Population Served</span>
+                <input type="checkbox"
+                       aria-label="Show Population Served column"
+                       class="size-4 cursor-pointer rounded">
+              </li>
+              <li class="flex items-center gap-2 rounded px-2 py-1.5 hover:bg-neutral-50">
+                <%= icon "drag", classes: "size-3 shrink-0 text-neutral-300" %>
+                <span class="flex-1 text-sm text-neutral-700">Source Type</span>
+                <input type="checkbox" checked
+                       aria-label="Show Source Type column"
+                       class="size-4 cursor-pointer rounded">
+              </li>
+            </ul>
+            <div class="shrink-0 border-t border-neutral-100 bg-white pb-2.5 pt-1 text-center"
+                 role="group"
+                 aria-label="Column actions">
+              <button type="button"
+                      class="inline-block cursor-pointer rounded-full border border-neutral-400 bg-white mx-2 my-1.5 min-h-11 px-7 py-2 text-sm text-neutral-800 md:hover:bg-neutral-200 md:hover:text-black focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 motion-reduce:transition-none">
+                Reset
+              </button>
+              <button type="button"
+                      class="inline-block cursor-pointer rounded-full border border-brand-primary bg-brand-primary mx-2 my-1.5 min-h-11 px-7 py-2 text-sm text-white md:hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 motion-reduce:transition-none">
+                Show Columns
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
