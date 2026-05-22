@@ -15,9 +15,9 @@ RSpec.describe "Stats", type: :request do
     end
 
     it "renders all four stats when data is fully populated" do
-      pws1 = create(:public_water_system, population_served_count: 5_000, open_health_viol: "Yes")
+      pws1 = create(:public_water_system, population_served_count: 5_000, open_health_viol: true)
       create(:demographic, public_water_system: pws1, pwsid: pws1.pwsid, median_household_income: 62_000)
-      pws2 = create(:public_water_system, population_served_count: 3_500, open_health_viol: "No")
+      pws2 = create(:public_water_system, population_served_count: 3_500, open_health_viol: false)
       create(:demographic, public_water_system: pws2, pwsid: pws2.pwsid, median_household_income: 78_000)
 
       get stats_path
@@ -29,9 +29,9 @@ RSpec.describe "Stats", type: :request do
     end
 
     it "recalculates all stats to reflect the active filter" do
-      gw = create(:public_water_system, gw_sw_code: "Groundwater", population_served_count: 3_000, open_health_viol: "Yes")
+      gw = create(:public_water_system, gw_sw_code: "Groundwater", population_served_count: 3_000, open_health_viol: true)
       create(:demographic, public_water_system: gw, pwsid: gw.pwsid, median_household_income: 55_000)
-      create(:public_water_system, gw_sw_code: "Surface Water", population_served_count: 9_000, open_health_viol: "No")
+      create(:public_water_system, gw_sw_code: "Surface Water", population_served_count: 9_000, open_health_viol: false)
 
       get stats_path, params: {gw_sw_code: "Groundwater"}
 
@@ -51,7 +51,7 @@ RSpec.describe "Stats", type: :request do
       end
 
       it "renders 0 open health violations when no systems have violations" do
-        create(:public_water_system, open_health_viol: "No")
+        create(:public_water_system, open_health_viol: false)
 
         get stats_path
 

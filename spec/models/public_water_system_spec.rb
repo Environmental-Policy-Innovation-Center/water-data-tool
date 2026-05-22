@@ -11,7 +11,7 @@
 #  is_grant_eligible            :boolean
 #  is_school_or_daycare         :boolean
 #  is_wholesaler                :boolean
-#  open_health_viol             :string
+#  open_health_viol             :boolean
 #  owner_type                   :string
 #  phone_number                 :string
 #  pop_cat_5                    :string
@@ -169,8 +169,8 @@ RSpec.describe PublicWaterSystem, type: :model do
     end
 
     it "counts only systems with open health violations" do
-      create(:public_water_system, open_health_viol: "Yes")
-      create(:public_water_system, open_health_viol: "No")
+      create(:public_water_system, open_health_viol: true)
+      create(:public_water_system, open_health_viol: false)
       result = PublicWaterSystem.build_summary(PublicWaterSystem.all)
 
       expect(result[:systems_with_open_violations]).to eq(1)

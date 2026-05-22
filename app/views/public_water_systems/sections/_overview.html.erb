@@ -9,6 +9,6 @@
     {label: "Service Area Type", value: pws.service_area_type},
     {label: "Area (sq mi)", value: pws.area_sq_miles ? number_with_precision(pws.area_sq_miles, precision: 2) : "N/A"},
     {label: "Counties", value: pws.counties.presence || "N/A"},
-    {label: "Open Health Violations", value: pws.open_health_viol}
+    {label: "Has Open Health Violations", value: fmt_bool(pws.open_health_viol)}
   ]
 ) %>
