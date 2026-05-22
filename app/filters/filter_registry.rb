@@ -9,6 +9,8 @@ class FilterRegistry
   def self.reload!
     @config = nil
     @histogram_field_config = nil
+    @sortable_columns = nil
+    @sortable_table_joins = nil
     @client_payload_json = nil
     config
   end
@@ -16,6 +18,16 @@ class FilterRegistry
   # PublicWaterSystems::HistogramsController — field name => { model:, min_threshold?: } from config/filters.yml + HISTOGRAM_MODELS.
   def self.histogram_field_config
     @histogram_field_config ||= build_histogram_field_config
+  end
+
+  # HomeController — flat { "column" => "table_name" } hash derived from sortable_column_groups.
+  def self.sortable_columns
+    @sortable_columns ||= build_sortable_columns
+  end
+
+  # HomeController — { "table_name" => :association } for columns requiring a LEFT JOIN.
+  def self.sortable_table_joins
+    @sortable_table_joins ||= build_sortable_table_joins
   end
 
   # Arguments for ActionController::Parameters#permit (symbols + trailing array-shape hash).
@@ -143,4 +155,19 @@ class FilterRegistry
     end
   end
   private_class_method :build_histogram_field_config
+
+  def self.build_sortable_columns
+    config[:sortable_column_groups].each_with_object({}) do |(table, group), hash|
+      group[:columns].each { |col| hash[col] = table.to_s }
+    end
+  end
+  private_class_method :build_sortable_columns
+
+  def self.build_sortable_table_joins
+    config[:sortable_column_groups].each_with_object({}) do |(table, group), hash|
+      next unless group[:association]
+      hash[table.to_s] = group[:association].to_sym
+    end
+  end
+  private_class_method :build_sortable_table_joins
 end
