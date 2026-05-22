@@ -15,6 +15,7 @@ RSpec.describe Etl::Importers::SdwisViols do
     it "casts boolean indicators on pws_rows" do
       expect(rows[:pws_rows].first[:is_grant_eligible]).to be(true)
       expect(rows[:pws_rows].first[:is_wholesaler]).to be(false)
+      expect(rows[:pws_rows].first[:open_health_viol]).to be(false)
     end
 
     it "casts violation counts as integers" do

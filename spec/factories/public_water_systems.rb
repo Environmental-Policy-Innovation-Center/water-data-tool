@@ -11,7 +11,7 @@
 #  is_grant_eligible            :boolean
 #  is_school_or_daycare         :boolean
 #  is_wholesaler                :boolean
-#  open_health_viol             :string
+#  open_health_viol             :boolean
 #  owner_type                   :string
 #  phone_number                 :string
 #  pop_cat_5                    :string
@@ -59,7 +59,7 @@ FactoryBot.define do
     is_school_or_daycare { false }
     is_grant_eligible { true }
     source_water_protection_code { "Yes" }
-    open_health_viol { "No" }
+    open_health_viol { false }
     phone_number { "802-555-0100" }
     area_sq_miles { 12.5 }
     counties { "Washington" }

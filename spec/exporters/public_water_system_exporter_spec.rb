@@ -13,7 +13,7 @@ RSpec.describe PublicWaterSystemExporter do
 
     it "includes the expected column headers in the first row" do
       headers = CSV.parse(exporter.to_csv).first
-      expect(headers).to include("Utility Name", "Utility ID", "State", "Open violations", "Boil water notices")
+      expect(headers).to include("Utility Name", "Utility ID", "State", "Has open violations", "Grant eligible", "Boil water notices")
     end
 
     it "includes one data row per system in the scope" do

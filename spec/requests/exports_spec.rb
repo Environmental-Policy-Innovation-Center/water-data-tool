@@ -32,7 +32,7 @@ RSpec.describe "Exports", type: :request do
         get export_path
 
         headers = CSV.parse(response.body).first
-        expect(headers).to include("Utility Name", "Utility ID", "State", "Open violations", "Boil water notices")
+        expect(headers).to include("Utility Name", "Utility ID", "State", "Has open violations", "Boil water notices")
       end
 
       it "includes one data row per matching system" do

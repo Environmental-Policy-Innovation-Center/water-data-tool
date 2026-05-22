@@ -46,7 +46,7 @@ class PublicWaterSystemExporter
     "Utility Name", "Utility ID", "EPA Facility Report", "State", "County",
     "Source type", "Source protection", "Ownership", "Authority",
     "Wholesaler", "Facility type (School or daycare)", "Boundary type",
-    "Size (Area in square miles)", "Open violations",
+    "Size (Area in square miles)", "Has open violations",
     "Health violations in the last 5 years",
     "Ground water rule violations in the last 5 years",
     "Surface water treatment rules violations in the last 5 years",
