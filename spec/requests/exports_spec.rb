@@ -84,6 +84,26 @@ RSpec.describe "Exports", type: :request do
         body = Zlib::GzipReader.new(StringIO.new(response.body)).read
         expect(JSON.parse(body)["features"].length).to eq(1)
       end
+
+      it "silently ignores unknown pwsids and returns only matching records" do
+        pws = create(:public_water_system)
+
+        get export_path, params: {pwsids: [pws.pwsid, "NONEXISTENT"]}
+
+        rows = CSV.parse(response.body)
+        expect(rows.length).to eq(2) # 1 header + 1 data row for the valid ID
+      end
+
+      it "caps the query at 500 IDs" do
+        pws = create(:public_water_system)
+        ids = Array.new(501) { |i| "FAKE#{i.to_s.rjust(7, "0")}" }
+        ids[0] = pws.pwsid
+
+        get export_path, params: {pwsids: ids}
+
+        rows = CSV.parse(response.body)
+        expect(rows.length).to eq(2) # 1 header + 1 matching record; 501st ID was dropped
+      end
     end
 
     context "GeoJSON export" do

@@ -14,7 +14,7 @@ class UI::TableHeaderComponent < ViewComponent::Base
   end
 
   def th_classes
-    SIZES.fetch(@size)
+    SIZES.fetch(@size) { raise ArgumentError, "Unknown size #{@size.inspect}. Valid: #{SIZES.keys.join(", ")}" }
   end
 
   def sortable?

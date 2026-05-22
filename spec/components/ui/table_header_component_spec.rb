@@ -69,6 +69,13 @@ RSpec.describe UI::TableHeaderComponent, type: :component do
       end
     end
 
+    it "defaults to aria-sort=ascending when direction param is absent" do
+      with_request_url("/table?sort=pws_name") do
+        render_inline(component)
+        expect(html.at_css("th")["aria-sort"]).to eq("ascending")
+      end
+    end
+
     it "sort link advances to descending" do
       with_request_url("/table?sort=pws_name&direction=asc") do
         render_inline(component)
