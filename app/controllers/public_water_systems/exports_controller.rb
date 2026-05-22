@@ -4,7 +4,7 @@ module PublicWaterSystems
       base_scope = if params[:pwsids].present?
         PublicWaterSystem.where(pwsid: params[:pwsids])
       else
-        PublicWaterSystem.apply_filters(params)
+        PublicWaterSystem.apply_filters(FilterParams.permit(params))
       end
 
       if params[:file_format] == "geojson"

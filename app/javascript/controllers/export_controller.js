@@ -4,6 +4,7 @@ import * as SelectionState from "selection_state"
 
 export default class extends Controller {
   static targets = ["format"]
+  static values = { url: String }
 
   download(event) {
     event.preventDefault()
@@ -13,6 +14,6 @@ export default class extends Controller {
 
     SelectionState.getIds().forEach(id => params.append("pwsids[]", id))
 
-    window.location.href = `/public_water_systems/export?${params}`
+    window.location.href = `${this.urlValue}?${params}`
   }
 }
