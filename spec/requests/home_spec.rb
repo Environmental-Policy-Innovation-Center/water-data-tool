@@ -133,6 +133,7 @@ RSpec.describe "Home", type: :request do
       expect(response.body).to include("Utility Name")
       expect(response.body).to include("State")
       expect(response.body).to include("County")
+      expect(response.body).to include("Grant eligible")
     end
 
     it "renders pws_name in the table body" do
@@ -220,8 +221,157 @@ RSpec.describe "Home", type: :request do
       expect(response.body.index("Data System")).to be < response.body.index("Null System")
     end
 
+    context "sorting by violations_summaries columns" do
+      it "sorts by health_violations_5yr ascending" do
+        low = create(:public_water_system, pws_name: "Low Viols")
+        high = create(:public_water_system, pws_name: "High Viols")
+        create(:violations_summary, pwsid: low.pwsid, health_violations_5yr: 1)
+        create(:violations_summary, pwsid: high.pwsid, health_violations_5yr: 9)
+
+        get table_path, params: {sort: "health_violations_5yr", direction: "asc"}
+
+        expect(response.body.index("Low Viols")).to be < response.body.index("High Viols")
+      end
+
+      it "sorts by health_violations_5yr descending" do
+        low = create(:public_water_system, pws_name: "Low Viols")
+        high = create(:public_water_system, pws_name: "High Viols")
+        create(:violations_summary, pwsid: low.pwsid, health_violations_5yr: 1)
+        create(:violations_summary, pwsid: high.pwsid, health_violations_5yr: 9)
+
+        get table_path, params: {sort: "health_violations_5yr", direction: "desc"}
+
+        expect(response.body.index("High Viols")).to be < response.body.index("Low Viols")
+      end
+
+      it "sorts systems with no violations_summary last (null values last)" do
+        with_data = create(:public_water_system, pws_name: "Has Data")
+        create(:public_water_system, pws_name: "No Data")
+        create(:violations_summary, pwsid: with_data.pwsid, health_violations_5yr: 5)
+
+        get table_path, params: {sort: "health_violations_5yr", direction: "asc"}
+
+        expect(response.body.index("Has Data")).to be < response.body.index("No Data")
+      end
+
+      it "sorts by paperwork_violations_10yr" do
+        low = create(:public_water_system, pws_name: "Few Paperwork")
+        high = create(:public_water_system, pws_name: "Many Paperwork")
+        create(:violations_summary, pwsid: low.pwsid, paperwork_violations_10yr: 2)
+        create(:violations_summary, pwsid: high.pwsid, paperwork_violations_10yr: 20)
+
+        get table_path, params: {sort: "paperwork_violations_10yr", direction: "asc"}
+
+        expect(response.body.index("Few Paperwork")).to be < response.body.index("Many Paperwork")
+      end
+    end
+
+    context "sorting by boil_water_summaries columns" do
+      it "sorts by total_notices ascending" do
+        few = create(:public_water_system, pws_name: "Few Notices")
+        many = create(:public_water_system, pws_name: "Many Notices")
+        create(:boil_water_summary, pwsid: few.pwsid, total_notices: 1)
+        create(:boil_water_summary, pwsid: many.pwsid, total_notices: 10)
+
+        get table_path, params: {sort: "total_notices", direction: "asc"}
+
+        expect(response.body.index("Few Notices")).to be < response.body.index("Many Notices")
+      end
+
+      it "sorts systems with no boil_water_summary last (null values last)" do
+        with_data = create(:public_water_system, pws_name: "Has Notices")
+        create(:public_water_system, pws_name: "No Notices")
+        create(:boil_water_summary, pwsid: with_data.pwsid, total_notices: 3)
+
+        get table_path, params: {sort: "total_notices", direction: "asc"}
+
+        expect(response.body.index("Has Notices")).to be < response.body.index("No Notices")
+      end
+    end
+
+    context "sorting by demographics columns" do
+      it "sorts by total_population ascending" do
+        small = create(:public_water_system, pws_name: "Small Pop")
+        large = create(:public_water_system, pws_name: "Large Pop")
+        create(:demographic, pwsid: small.pwsid, total_population: 100)
+        create(:demographic, pwsid: large.pwsid, total_population: 99_999)
+
+        get table_path, params: {sort: "total_population", direction: "asc"}
+
+        expect(response.body.index("Small Pop")).to be < response.body.index("Large Pop")
+      end
+
+      it "sorts by median_household_income descending" do
+        low = create(:public_water_system, pws_name: "Low Income")
+        high = create(:public_water_system, pws_name: "High Income")
+        create(:demographic, pwsid: low.pwsid, median_household_income: 30_000)
+        create(:demographic, pwsid: high.pwsid, median_household_income: 120_000)
+
+        get table_path, params: {sort: "median_household_income", direction: "desc"}
+
+        expect(response.body.index("High Income")).to be < response.body.index("Low Income")
+      end
+
+      it "sorts systems with no demographic last (null values last)" do
+        with_data = create(:public_water_system, pws_name: "Has Demo")
+        create(:public_water_system, pws_name: "No Demo")
+        create(:demographic, pwsid: with_data.pwsid, total_population: 500)
+
+        get table_path, params: {sort: "total_population", direction: "asc"}
+
+        expect(response.body.index("Has Demo")).to be < response.body.index("No Demo")
+      end
+    end
+
+    context "sorting by environmental_justices columns" do
+      it "sorts by cejst_disadvantaged_pct ascending" do
+        low = create(:public_water_system, pws_name: "Low Disadvantaged")
+        high = create(:public_water_system, pws_name: "High Disadvantaged")
+        create(:environmental_justice, pwsid: low.pwsid, cejst_disadvantaged_pct: 10)
+        create(:environmental_justice, pwsid: high.pwsid, cejst_disadvantaged_pct: 90)
+
+        get table_path, params: {sort: "cejst_disadvantaged_pct", direction: "asc"}
+
+        expect(response.body.index("Low Disadvantaged")).to be < response.body.index("High Disadvantaged")
+      end
+    end
+
+    context "sorting by funding_summaries columns" do
+      it "sorts by times_funded ascending" do
+        less = create(:public_water_system, pws_name: "Less Funded")
+        more = create(:public_water_system, pws_name: "More Funded")
+        create(:funding_summary, pwsid: less.pwsid, times_funded: 1)
+        create(:funding_summary, pwsid: more.pwsid, times_funded: 5)
+
+        get table_path, params: {sort: "times_funded", direction: "asc"}
+
+        expect(response.body.index("Less Funded")).to be < response.body.index("More Funded")
+      end
+    end
+
+    context "sorting by watershed_hazards columns" do
+      it "sorts by num_facilities ascending" do
+        few = create(:public_water_system, pws_name: "Few Facilities")
+        many = create(:public_water_system, pws_name: "Many Facilities")
+        create(:watershed_hazard, pwsid: few.pwsid, num_facilities: 2)
+        create(:watershed_hazard, pwsid: many.pwsid, num_facilities: 50)
+
+        get table_path, params: {sort: "num_facilities", direction: "asc"}
+
+        expect(response.body.index("Few Facilities")).to be < response.body.index("Many Facilities")
+      end
+    end
+
+    it "filters by has_open_violations" do
+      create(:public_water_system, pws_name: "Open Violation System", open_health_viol: true)
+      create(:public_water_system, pws_name: "Clean System", open_health_viol: false)
+      get table_path, params: {has_open_violations: "true"}
+      expect(response.body).to include("Open Violation System")
+      expect(response.body).not_to include("Clean System")
+    end
+
     it "renders Yes for true boolean columns" do
-      create(:public_water_system, pws_name: "Test System", is_wholesaler: true)
+      create(:public_water_system, pws_name: "Test System", is_wholesaler: true, open_health_viol: true)
       get table_path
       expect(response.body).to include("Yes")
     end
