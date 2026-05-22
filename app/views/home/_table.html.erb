@@ -1,13 +1,13 @@
 <%# Reusable class strings for data cells. Header cells use UI::TableHeaderComponent. %>
 <% td = "px-3 py-2 border-b border-gray-100 overflow-hidden max-w-48" %>
-<% td_check_base = "px-2 py-2 border-b border-gray-100 w-10 text-center md:group-hover:bg-blue-50 transition-colors" %>
-<% td_sticky_base = "sticky left-0 z-10 font-normal text-left md:group-hover:bg-blue-50 transition-colors px-3 py-2 border-b border-gray-100 overflow-hidden max-w-xs" %>
+<% td_check_base = "sticky left-0 z-10 px-2 py-2 border-b border-gray-100 w-7 min-w-7 max-w-7 text-center md:group-hover:bg-blue-50 transition-colors" %>
+<% td_sticky_base = "sticky left-7 z-10 font-normal text-left md:group-hover:bg-blue-50 transition-colors px-3 py-2 border-b border-gray-100 overflow-hidden max-w-xs" %>
 <% td_num = "px-3 py-2 border-b border-gray-100 tabular-nums text-right overflow-hidden" %>
 
 <turbo-frame id="data-table">
   <%# Single scroll region handles both axes; sticky <th top-0> sticks within this container %>
   <div class="table-scroll overflow-auto flex-1 min-h-0" role="region" aria-label="Public water systems data" tabindex="0">
-    <table class="border-collapse text-sm">
+    <table class="border-separate border-spacing-0 text-sm">
       <caption class="sr-only">
         Public water systems — <%= @pagy.count %> total<%= params[:search].present? ? ", filtered by search: #{h params[:search]}" : "" %>
       </caption>
@@ -16,7 +16,7 @@
           <%# ── Row selection ──────────────────────────────────────── %>
           <%= render UI::TableHeaderComponent.new(size: :check) %>
           <%# ── Core identity ─────────────────────────────────────── %>
-          <%= render UI::TableHeaderComponent.new(label: "Utility Name", column: "pws_name", size: :sticky) %>
+          <%= render UI::TableHeaderComponent.new(label: "Utility Name", column: "pws_name", size: :pinned) %>
           <%= render UI::TableHeaderComponent.new(label: "Utility ID", column: "pwsid") %>
           <%= render UI::TableHeaderComponent.new(label: "EPA Facility Report", size: :sm) %>
           <%= render UI::TableHeaderComponent.new(label: "State", column: "stusps", size: :sm) %>

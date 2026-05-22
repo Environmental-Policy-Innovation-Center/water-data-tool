@@ -3,8 +3,8 @@ class UI::TableHeaderComponent < ViewComponent::Base
     default: "sticky top-0 z-20 bg-gray-100 border-b border-gray-200 px-3 py-2 font-medium text-left whitespace-nowrap min-w-[10rem]",
     sm: "sticky top-0 z-20 bg-gray-100 border-b border-gray-200 px-3 py-2 font-medium text-left whitespace-nowrap min-w-[8rem]",
     wide: "sticky top-0 z-20 bg-gray-100 border-b border-gray-200 px-3 py-2 font-medium text-left whitespace-nowrap min-w-[14rem]",
-    sticky: "sticky left-0 top-0 z-30 bg-gray-100 border-b border-gray-200 px-3 py-2 font-medium text-left whitespace-nowrap min-w-[12rem]",
-    check: "sticky top-0 z-20 bg-gray-100 border-b border-gray-200 px-2 py-2 w-10 text-center"
+    pinned: "sticky left-7 top-0 z-30 bg-gray-100 border-b border-gray-200 px-3 py-2 font-medium text-left whitespace-nowrap min-w-[12rem]",
+    check: "sticky left-0 top-0 z-30 bg-gray-100 border-b border-gray-200 px-2 py-2 w-7 min-w-7 max-w-7 text-center"
   }.freeze
 
   def initialize(label: nil, column: nil, size: :default)
