@@ -1,6 +1,7 @@
 class HomeController < ApplicationController
   SORTABLE_COLUMNS = FilterRegistry.sortable_columns.freeze
   TABLE_JOINS = FilterRegistry.sortable_table_joins.freeze
+  DEFAULT_SORT_COLUMN = "pws_name"
 
   def index
     @last_updated = DataImport.maximum(:imported_at)
@@ -18,6 +19,7 @@ class HomeController < ApplicationController
     preloads = [:violations_summary, :demographic, :environmental_justice,
       :funding_summary, :watershed_hazard, :boil_water_summary]
     @pagy, @systems = pagy(scope.preload(preloads).order(order_clause))
+    @columns = ColumnRegistry.columns
     render partial: "home/table"
   end
 
@@ -48,11 +50,11 @@ class HomeController < ApplicationController
     sort_table = SORTABLE_COLUMNS[sort_col]
     col_node = Arel::Table.new(sort_table)[sort_col]
     order_node = (params[:direction] == "desc") ? col_node.desc.nulls_last : col_node.asc.nulls_last
-    return order_node if sort_col == "pws_name"
-    [order_node, Arel::Table.new("public_water_systems")["pws_name"].asc]
+    return order_node if sort_col == DEFAULT_SORT_COLUMN
+    [order_node, Arel::Table.new("public_water_systems")[DEFAULT_SORT_COLUMN].asc]
   end
 
   def resolved_sort_col
-    @resolved_sort_col ||= SORTABLE_COLUMNS.key?(params[:sort]) ? params[:sort] : "pws_name"
+    @resolved_sort_col ||= SORTABLE_COLUMNS.key?(params[:sort]) ? params[:sort] : DEFAULT_SORT_COLUMN
   end
 end

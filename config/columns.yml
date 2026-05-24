@@ -1,0 +1,650 @@
+# Data table column definitions — loaded by ColumnRegistry at boot.
+#
+# The top-to-bottom order here IS the default column order shown to users.
+# Drag-and-drop reordering overrides this order via cols[] URL params.
+# :check and :pws_name are always rendered first regardless of order.
+
+columns:
+  # Row selection
+  - key: check
+    label: ~
+    sort: ~
+    format: check
+    format_opts: {}
+    size: check
+    sticky: false
+    association: ~
+
+  # Core identity
+  - key: pws_name
+    label: "Utility Name"
+    sort: pws_name
+    format: str
+    format_opts: {}
+    size: pinned
+    sticky: true
+    association: pws
+
+  - key: pwsid
+    label: "Utility ID"
+    sort: pwsid
+    format: str
+    format_opts: {}
+    size: default
+    sticky: false
+    association: pws
+
+  - key: epa_report
+    label: "EPA Facility Report"
+    sort: ~
+    format: link
+    format_opts: {}
+    size: sm
+    sticky: false
+    association: pws
+
+  - key: stusps
+    label: "State"
+    sort: stusps
+    format: str
+    format_opts: {}
+    size: sm
+    sticky: false
+    association: pws
+
+  # Geography & system type
+  - key: counties
+    label: "County"
+    sort: counties
+    format: str
+    format_opts: {}
+    size: wide
+    sticky: false
+    association: pws
+
+  - key: gw_sw_code
+    label: "Source type"
+    sort: gw_sw_code
+    format: str
+    format_opts: {}
+    size: default
+    sticky: false
+    association: pws
+
+  - key: source_water_protection_code
+    label: "Source protection"
+    sort: source_water_protection_code
+    format: str
+    format_opts: {}
+    size: default
+    sticky: false
+    association: pws
+
+  - key: owner_type
+    label: "Ownership"
+    sort: owner_type
+    format: str
+    format_opts: {}
+    size: default
+    sticky: false
+    association: pws
+
+  - key: primacy_type
+    label: "Authority"
+    sort: primacy_type
+    format: str
+    format_opts: {}
+    size: default
+    sticky: false
+    association: pws
+
+  - key: is_wholesaler
+    label: "Wholesaler"
+    sort: is_wholesaler
+    format: bool
+    format_opts: {}
+    size: default
+    sticky: false
+    association: pws
+
+  - key: is_school_or_daycare
+    label: "Facility type (School or daycare)"
+    sort: is_school_or_daycare
+    format: bool
+    format_opts: {}
+    size: default
+    sticky: false
+    association: pws
+
+  - key: is_grant_eligible
+    label: "Grant eligible"
+    sort: is_grant_eligible
+    format: bool
+    format_opts: {}
+    size: default
+    sticky: false
+    association: pws
+
+  - key: symbology_field
+    label: "Boundary type"
+    sort: symbology_field
+    format: str
+    format_opts: {}
+    size: default
+    sticky: false
+    association: pws
+
+  - key: area_sq_miles
+    label: "Size (sq mi)"
+    sort: area_sq_miles
+    format: dec
+    format_opts: {}
+    size: default
+    sticky: false
+    association: pws
+
+  - key: open_health_viol
+    label: "Has open violations"
+    sort: open_health_viol
+    format: bool
+    format_opts: {}
+    size: default
+    sticky: false
+    association: pws
+
+  # Violations — 5 year
+  - key: health_violations_5yr
+    label: "Health violations (5yr)"
+    sort: health_violations_5yr
+    format: num
+    format_opts: {}
+    size: default
+    sticky: false
+    association: violations_summary
+
+  - key: groundwater_rule_5yr
+    label: "Groundwater rule violations (5yr)"
+    sort: groundwater_rule_5yr
+    format: num
+    format_opts: {}
+    size: default
+    sticky: false
+    association: violations_summary
+
+  - key: surface_water_treatment_5yr
+    label: "Surface water treatment violations (5yr)"
+    sort: surface_water_treatment_5yr
+    format: num
+    format_opts: {}
+    size: default
+    sticky: false
+    association: violations_summary
+
+  - key: lead_and_copper_5yr
+    label: "Lead & copper violations (5yr)"
+    sort: lead_and_copper_5yr
+    format: num
+    format_opts: {}
+    size: default
+    sticky: false
+    association: violations_summary
+
+  - key: radionuclides_5yr
+    label: "Radionuclides violations (5yr)"
+    sort: radionuclides_5yr
+    format: num
+    format_opts: {}
+    size: default
+    sticky: false
+    association: violations_summary
+
+  - key: inorganic_chemicals_5yr
+    label: "Inorganic chemicals violations (5yr)"
+    sort: inorganic_chemicals_5yr
+    format: num
+    format_opts: {}
+    size: default
+    sticky: false
+    association: violations_summary
+
+  - key: synthetic_organic_chemicals_5yr
+    label: "Synthetic organic chemicals violations (5yr)"
+    sort: synthetic_organic_chemicals_5yr
+    format: num
+    format_opts: {}
+    size: default
+    sticky: false
+    association: violations_summary
+
+  - key: volatile_organic_chemicals_5yr
+    label: "Volatile organic chemicals violations (5yr)"
+    sort: volatile_organic_chemicals_5yr
+    format: num
+    format_opts: {}
+    size: default
+    sticky: false
+    association: violations_summary
+
+  - key: total_coliform_5yr
+    label: "Coliform violations (5yr)"
+    sort: total_coliform_5yr
+    format: num
+    format_opts: {}
+    size: default
+    sticky: false
+    association: violations_summary
+
+  - key: stage_1_disinfectants_5yr
+    label: "Stage 1 disinfectants violations (5yr)"
+    sort: stage_1_disinfectants_5yr
+    format: num
+    format_opts: {}
+    size: default
+    sticky: false
+    association: violations_summary
+
+  - key: stage_2_disinfectants_5yr
+    label: "Stage 2 disinfectants violations (5yr)"
+    sort: stage_2_disinfectants_5yr
+    format: num
+    format_opts: {}
+    size: default
+    sticky: false
+    association: violations_summary
+
+  # Violations — 10 year
+  - key: health_violations_10yr
+    label: "Health violations (10yr)"
+    sort: health_violations_10yr
+    format: num
+    format_opts: {}
+    size: default
+    sticky: false
+    association: violations_summary
+
+  - key: groundwater_rule_10yr
+    label: "Groundwater rule violations (10yr)"
+    sort: groundwater_rule_10yr
+    format: num
+    format_opts: {}
+    size: default
+    sticky: false
+    association: violations_summary
+
+  - key: surface_water_treatment_10yr
+    label: "Surface water treatment violations (10yr)"
+    sort: surface_water_treatment_10yr
+    format: num
+    format_opts: {}
+    size: default
+    sticky: false
+    association: violations_summary
+
+  - key: lead_and_copper_10yr
+    label: "Lead & copper violations (10yr)"
+    sort: lead_and_copper_10yr
+    format: num
+    format_opts: {}
+    size: default
+    sticky: false
+    association: violations_summary
+
+  - key: radionuclides_10yr
+    label: "Radionuclides violations (10yr)"
+    sort: radionuclides_10yr
+    format: num
+    format_opts: {}
+    size: default
+    sticky: false
+    association: violations_summary
+
+  - key: inorganic_chemicals_10yr
+    label: "Inorganic chemicals violations (10yr)"
+    sort: inorganic_chemicals_10yr
+    format: num
+    format_opts: {}
+    size: default
+    sticky: false
+    association: violations_summary
+
+  - key: synthetic_organic_chemicals_10yr
+    label: "Synthetic organic chemicals violations (10yr)"
+    sort: synthetic_organic_chemicals_10yr
+    format: num
+    format_opts: {}
+    size: default
+    sticky: false
+    association: violations_summary
+
+  - key: volatile_organic_chemicals_10yr
+    label: "Volatile organic chemicals violations (10yr)"
+    sort: volatile_organic_chemicals_10yr
+    format: num
+    format_opts: {}
+    size: default
+    sticky: false
+    association: violations_summary
+
+  - key: total_coliform_10yr
+    label: "Coliform violations (10yr)"
+    sort: total_coliform_10yr
+    format: num
+    format_opts: {}
+    size: default
+    sticky: false
+    association: violations_summary
+
+  - key: stage_1_disinfectants_10yr
+    label: "Stage 1 disinfectants violations (10yr)"
+    sort: stage_1_disinfectants_10yr
+    format: num
+    format_opts: {}
+    size: default
+    sticky: false
+    association: violations_summary
+
+  - key: stage_2_disinfectants_10yr
+    label: "Stage 2 disinfectants violations (10yr)"
+    sort: stage_2_disinfectants_10yr
+    format: num
+    format_opts: {}
+    size: default
+    sticky: false
+    association: violations_summary
+
+  # Non-health violations
+  - key: paperwork_violations_5yr
+    label: "Non-health violations (5yr)"
+    sort: paperwork_violations_5yr
+    format: num
+    format_opts: {}
+    size: default
+    sticky: false
+    association: violations_summary
+
+  - key: paperwork_violations_10yr
+    label: "Non-health violations (10yr)"
+    sort: paperwork_violations_10yr
+    format: num
+    format_opts: {}
+    size: default
+    sticky: false
+    association: violations_summary
+
+  # Boil water
+  - key: total_notices
+    label: "Boil water notices"
+    sort: total_notices
+    format: num
+    format_opts: {}
+    size: default
+    sticky: false
+    association: boil_water_summary
+
+  # Demographics
+  - key: total_population
+    label: "Population size"
+    sort: total_population
+    format: num
+    format_opts: {}
+    size: default
+    sticky: false
+    association: demographic
+
+  - key: population_density
+    label: "Population density (per sq mi)"
+    sort: population_density
+    format: dec
+    format_opts:
+      precision: 0
+    size: default
+    sticky: false
+    association: demographic
+
+  - key: poverty_rate
+    label: "Households below poverty line"
+    sort: poverty_rate
+    format: pct
+    format_opts: {}
+    size: default
+    sticky: false
+    association: demographic
+
+  - key: unemployment_rate
+    label: "Unemployment"
+    sort: unemployment_rate
+    format: pct
+    format_opts: {}
+    size: default
+    sticky: false
+    association: demographic
+
+  - key: median_household_income
+    label: "Median household income"
+    sort: median_household_income
+    format: cur
+    format_opts: {}
+    size: default
+    sticky: false
+    association: demographic
+
+  - key: bachelors_degree_rate
+    label: "Higher education attainment"
+    sort: bachelors_degree_rate
+    format: pct
+    format_opts: {}
+    size: default
+    sticky: false
+    association: demographic
+
+  - key: age_under_5_rate
+    label: "Children under 5"
+    sort: age_under_5_rate
+    format: pct
+    format_opts: {}
+    size: default
+    sticky: false
+    association: demographic
+
+  - key: age_over_61_rate
+    label: "Elderly over 61"
+    sort: age_over_61_rate
+    format: pct
+    format_opts: {}
+    size: default
+    sticky: false
+    association: demographic
+
+  - key: poc_rate
+    label: "People of color"
+    sort: poc_rate
+    format: pct
+    format_opts: {}
+    size: default
+    sticky: false
+    association: demographic
+
+  - key: white_rate
+    label: "White"
+    sort: white_rate
+    format: pct
+    format_opts: {}
+    size: default
+    sticky: false
+    association: demographic
+
+  - key: black_rate
+    label: "Black"
+    sort: black_rate
+    format: pct
+    format_opts: {}
+    size: default
+    sticky: false
+    association: demographic
+
+  - key: aian_rate
+    label: "American Indian & Alaskan Native"
+    sort: aian_rate
+    format: pct
+    format_opts: {}
+    size: default
+    sticky: false
+    association: demographic
+
+  - key: napi_rate
+    label: "Native Hawaiian & Pacific Islander"
+    sort: napi_rate
+    format: pct
+    format_opts: {}
+    size: default
+    sticky: false
+    association: demographic
+
+  - key: asian_rate
+    label: "Asian"
+    sort: asian_rate
+    format: pct
+    format_opts: {}
+    size: default
+    sticky: false
+    association: demographic
+
+  - key: hispanic_rate
+    label: "Latino/a"
+    sort: hispanic_rate
+    format: pct
+    format_opts: {}
+    size: default
+    sticky: false
+    association: demographic
+
+  - key: other_race_rate
+    label: "Other race"
+    sort: other_race_rate
+    format: pct
+    format_opts: {}
+    size: default
+    sticky: false
+    association: demographic
+
+  - key: mixed_race_rate
+    label: "Mixed race"
+    sort: mixed_race_rate
+    format: pct
+    format_opts: {}
+    size: default
+    sticky: false
+    association: demographic
+
+  - key: most_common_rate_tier
+    label: "Annual water & sewer bill"
+    sort: most_common_rate_tier
+    format: str
+    format_opts: {}
+    size: default
+    sticky: false
+    association: demographic
+
+  # Environmental justice
+  - key: cejst_disadvantaged_pct
+    label: "Disadvantaged area"
+    sort: cejst_disadvantaged_pct
+    format: pct
+    format_opts: {}
+    size: default
+    sticky: false
+    association: environmental_justice
+
+  - key: svi_overall_pctl
+    label: "Social Vulnerability Index"
+    sort: svi_overall_pctl
+    format: pct
+    format_opts: {}
+    size: default
+    sticky: false
+    association: environmental_justice
+
+  - key: cvi_overall_score
+    label: "Climate Vulnerability Index"
+    sort: cvi_overall_score
+    format: pct
+    format_opts: {}
+    size: default
+    sticky: false
+    association: environmental_justice
+
+  # Funding
+  - key: times_funded
+    label: "SRF financing (2021–2025) — times received"
+    sort: times_funded
+    format: num
+    format_opts: {}
+    size: default
+    sticky: false
+    association: funding_summary
+
+  - key: total_srf_assistance
+    label: "SRF assistance (2021–2025)"
+    sort: total_srf_assistance
+    format: cur
+    format_opts:
+      precision: 2
+    size: default
+    sticky: false
+    association: funding_summary
+
+  - key: total_principal_forgiveness
+    label: "SRF principal forgiveness (2021–2025)"
+    sort: total_principal_forgiveness
+    format: cur
+    format_opts:
+      precision: 2
+    size: default
+    sticky: false
+    association: funding_summary
+
+  # Watershed hazards
+  - key: num_facilities
+    label: "Source water connections"
+    sort: num_facilities
+    format: num
+    format_opts: {}
+    size: default
+    sticky: false
+    association: watershed_hazard
+
+  - key: permit_effluent_violations
+    label: "Pollution permits with breaches"
+    sort: permit_effluent_violations
+    format: num
+    format_opts: {}
+    size: default
+    sticky: false
+    association: watershed_hazard
+
+  - key: open_underground_storage_tanks
+    label: "Underground storage tanks"
+    sort: open_underground_storage_tanks
+    format: num
+    format_opts: {}
+    size: default
+    sticky: false
+    association: watershed_hazard
+
+  - key: risk_management_plan_facilities
+    label: "Risk management plan facilities"
+    sort: risk_management_plan_facilities
+    format: num
+    format_opts: {}
+    size: default
+    sticky: false
+    association: watershed_hazard
+
+  - key: impaired_streams_303d
+    label: "Impaired or threatened streams"
+    sort: impaired_streams_303d
+    format: num
+    format_opts: {}
+    size: default
+    sticky: false
+    association: watershed_hazard

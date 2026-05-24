@@ -26,7 +26,7 @@ RSpec.describe UI::TableHeaderComponent, type: :component do
   end
 
   describe "sortable column — unsorted" do
-    subject(:component) { described_class.new(label: "Utility Name", column: "pws_name", size: :sticky) }
+    subject(:component) { described_class.new(label: "Utility Name", column: "pws_name", size: :pinned) }
 
     it "has aria-sort=none" do
       with_request_url("/table") do
@@ -60,7 +60,7 @@ RSpec.describe UI::TableHeaderComponent, type: :component do
   end
 
   describe "sortable column — ascending" do
-    subject(:component) { described_class.new(label: "Utility Name", column: "pws_name", size: :sticky) }
+    subject(:component) { described_class.new(label: "Utility Name", column: "pws_name", size: :pinned) }
 
     it "has aria-sort=ascending" do
       with_request_url("/table?sort=pws_name&direction=asc") do
@@ -85,7 +85,7 @@ RSpec.describe UI::TableHeaderComponent, type: :component do
   end
 
   describe "sortable column — descending" do
-    subject(:component) { described_class.new(label: "Utility Name", column: "pws_name", size: :sticky) }
+    subject(:component) { described_class.new(label: "Utility Name", column: "pws_name", size: :pinned) }
 
     it "has aria-sort=descending" do
       with_request_url("/table?sort=pws_name&direction=desc") do
@@ -133,8 +133,8 @@ RSpec.describe UI::TableHeaderComponent, type: :component do
       default: "min-w-[10rem]",
       sm: "min-w-[8rem]",
       wide: "min-w-[14rem]",
-      sticky: "min-w-[12rem]",
-      check: "w-10"
+      pinned: "min-w-[12rem]",
+      check: "w-7"
     }.each do |size, expected_class|
       it "#{size} applies #{expected_class}" do
         render_inline(described_class.new(label: "Test", size: size))
@@ -142,9 +142,9 @@ RSpec.describe UI::TableHeaderComponent, type: :component do
       end
     end
 
-    it "sticky applies left-0 for horizontal sticking" do
-      render_inline(described_class.new(label: "Test", size: :sticky))
-      expect(html.at_css("th")["class"]).to include("left-0")
+    it "pinned applies left-7 for horizontal sticking" do
+      render_inline(described_class.new(label: "Test", size: :pinned))
+      expect(html.at_css("th")["class"]).to include("left-7")
     end
   end
 end
