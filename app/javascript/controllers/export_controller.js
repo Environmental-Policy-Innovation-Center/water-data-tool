@@ -9,10 +9,10 @@ export default class extends Controller {
   download(event) {
     event.preventDefault()
     const format = this.formatTargets.find(el => el.checked)?.value || "csv"
-    const params = FilterState.toUrlParams()
+    const ids = SelectionState.getIds()
+    const params = ids.length > 0 ? new URLSearchParams() : FilterState.toUrlParams()
     if (format !== "csv") params.set("file_format", format)
-
-    SelectionState.getIds().forEach(id => params.append("pwsids[]", id))
+    ids.forEach(id => params.append("pwsids[]", id))
 
     window.location.href = `${this.urlValue}?${params}`
   }

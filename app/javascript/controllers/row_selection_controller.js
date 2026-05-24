@@ -4,15 +4,28 @@ import * as SelectionState from "selection_state"
 export default class extends Controller {
   static targets = ["selectAll", "row", "countBadge"]
 
+  #syncPending = false
+  #lastBadgeCount = -1
+
   // Fires for each row checkbox as it enters the DOM, including after Turbo frame reloads.
   // This is how selection state persists across pagination without manual event listeners.
+  // Batched via microtask to avoid O(n²) work when all rows connect on page load.
   rowTargetConnected(element) {
     element.checked = SelectionState.has(element.value)
-    this.#syncSelectAll()
+    this.#scheduleSyncSelectAll()
   }
 
   rowTargetDisconnected() {
-    this.#syncSelectAll()
+    this.#scheduleSyncSelectAll()
+  }
+
+  #scheduleSyncSelectAll() {
+    if (this.#syncPending) return
+    this.#syncPending = true
+    queueMicrotask(() => {
+      this.#syncPending = false
+      this.#syncSelectAll()
+    })
   }
 
   toggle(event) {
@@ -49,6 +62,8 @@ export default class extends Controller {
   #updateBadge() {
     if (!this.hasCountBadgeTarget) return
     const n = SelectionState.count()
+    if (n === this.#lastBadgeCount) return
+    this.#lastBadgeCount = n
     if (n > 0) {
       this.countBadgeTarget.textContent = n
       this.countBadgeTarget.classList.remove("hidden")
