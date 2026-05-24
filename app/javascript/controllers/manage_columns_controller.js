@@ -7,12 +7,18 @@ export default class extends Controller {
     if (!this.element.contains(e.target)) this.#close()
   }
 
+  #onKeydown = (e) => {
+    if (e.key === "Escape") { this.#close(); this.buttonTarget.focus() }
+  }
+
   connect() {
     document.addEventListener("click", this.#outsideClick)
+    document.addEventListener("keydown", this.#onKeydown)
   }
 
   disconnect() {
     document.removeEventListener("click", this.#outsideClick)
+    document.removeEventListener("keydown", this.#onKeydown)
   }
 
   toggle() {

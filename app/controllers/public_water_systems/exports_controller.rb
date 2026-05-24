@@ -1,6 +1,6 @@
 module PublicWaterSystems
   class ExportsController < ApplicationController
-    def show
+      def show
       base_scope = if params[:pwsids].present?
         PublicWaterSystem.where(pwsid: params[:pwsids])
       else
