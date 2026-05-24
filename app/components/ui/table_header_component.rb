@@ -26,30 +26,35 @@ class UI::TableHeaderComponent < ViewComponent::Base
   end
 
   def aria_sort_value
-    return "none" unless helpers.params[:sort] == @column
-    (helpers.params[:direction] == "desc") ? "descending" : "ascending"
+    return "none" unless current_sort == @column
+    (current_direction == "desc") ? "descending" : "ascending"
   end
 
   def next_sort_url
-    query = helpers.request.query_parameters
-    is_sorted = query["sort"] == @column
+    is_sorted = current_query["sort"] == @column
 
-    new_query = if is_sorted && query["direction"] == "desc"
-      query.except("sort", "direction").merge("page" => 1)
+    new_query = if is_sorted && current_query["direction"] == "desc"
+      current_query.except("sort", "direction").merge("page" => 1)
     elsif is_sorted
-      query.merge("sort" => @column, "direction" => "desc", "page" => 1)
+      current_query.merge("sort" => @column, "direction" => "desc", "page" => 1)
     else
-      query.merge("sort" => @column, "direction" => "asc", "page" => 1)
+      current_query.merge("sort" => @column, "direction" => "asc", "page" => 1)
     end
 
     "#{helpers.request.path}?#{new_query.to_h.to_query}"
   end
 
   def sort_up_class
-    (helpers.params[:sort] == @column && helpers.params[:direction] == "desc") ? "text-gray-600" : "text-gray-300"
+    (current_sort == @column && current_direction != "desc") ? "text-gray-600" : "text-gray-300"
   end
 
   def sort_down_class
-    (helpers.params[:sort] == @column && helpers.params[:direction] != "desc") ? "text-gray-600" : "text-gray-300"
+    (current_sort == @column && current_direction == "desc") ? "text-gray-600" : "text-gray-300"
   end
+
+  private
+
+  def current_sort = @current_sort ||= helpers.params[:sort]
+  def current_direction = @current_direction ||= helpers.params[:direction]
+  def current_query = @current_query ||= helpers.request.query_parameters
 end

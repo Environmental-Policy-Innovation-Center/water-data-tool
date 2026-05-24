@@ -28,8 +28,9 @@ module WaterDataTool
     # Common ones are `templates`, `generators`, or `middleware`, for example.
     config.autoload_lib(ignore: %w[assets tasks])
 
-    # Custom app/filters/ is not on Rails' default autoload list
-    config.autoload_paths << Rails.root.join("app/filters")
+    # Rails 6+ / Zeitwerk automatically adds every immediate subdirectory of app/ as an
+    # autoload root — app/models, app/filters, app/columns, app/exporters, etc. need no
+    # explicit config.autoload_paths entries.
 
     # Lookbook preview files inherit from Lookbook::Preview, a development-only gem.
     # Ignore in non-development so Zeitwerk doesn't try to load Lookbook::Preview where the gem is unavailable.

@@ -1,216 +1,30 @@
-<%# Reusable class strings for data cells. Header cells use UI::TableHeaderComponent. %>
-<% td = "px-3 py-2 border-b border-gray-100 overflow-hidden max-w-48" %>
-<% td_check_base = "sticky left-0 z-10 px-2 py-2 border-b border-gray-100 w-7 min-w-7 max-w-7 text-center md:group-hover:bg-blue-50 transition-colors" %>
-<% td_sticky_base = "sticky left-7 z-10 font-normal text-left md:group-hover:bg-blue-50 transition-colors px-3 py-2 border-b border-gray-100 overflow-hidden max-w-xs" %>
-<% td_num = "px-3 py-2 border-b border-gray-100 tabular-nums text-right overflow-hidden" %>
-
 <turbo-frame id="data-table">
   <%# Single scroll region handles both axes; sticky <th top-0> sticks within this container %>
   <div class="table-scroll overflow-auto flex-1 min-h-0" role="region" aria-label="Public water systems data" tabindex="0">
+    <%# border-separate (not border-collapse) is required; border-collapse prevents sticky cells from painting over scrolled content %>
     <table class="border-separate border-spacing-0 text-sm">
       <caption class="sr-only">
         Public water systems — <%= @pagy.count %> total<%= params[:search].present? ? ", filtered by search: #{h params[:search]}" : "" %>
       </caption>
       <thead>
         <tr>
-          <%# ── Row selection ──────────────────────────────────────── %>
-          <%= render UI::TableHeaderComponent.new(size: :check) %>
-          <%# ── Core identity ─────────────────────────────────────── %>
-          <%= render UI::TableHeaderComponent.new(label: "Utility Name", column: "pws_name", size: :pinned) %>
-          <%= render UI::TableHeaderComponent.new(label: "Utility ID", column: "pwsid") %>
-          <%= render UI::TableHeaderComponent.new(label: "EPA Facility Report", size: :sm) %>
-          <%= render UI::TableHeaderComponent.new(label: "State", column: "stusps", size: :sm) %>
-          <%# ── Geography & system type ─────────────────────────── %>
-          <%= render UI::TableHeaderComponent.new(label: "County", column: "counties", size: :wide) %>
-          <%= render UI::TableHeaderComponent.new(label: "Source type", column: "gw_sw_code") %>
-          <%= render UI::TableHeaderComponent.new(label: "Source protection", column: "source_water_protection_code") %>
-          <%= render UI::TableHeaderComponent.new(label: "Ownership", column: "owner_type") %>
-          <%= render UI::TableHeaderComponent.new(label: "Authority", column: "primacy_type") %>
-          <%= render UI::TableHeaderComponent.new(label: "Wholesaler", column: "is_wholesaler") %>
-          <%= render UI::TableHeaderComponent.new(label: "Facility type (School or daycare)", column: "is_school_or_daycare") %>
-          <%= render UI::TableHeaderComponent.new(label: "Grant eligible", column: "is_grant_eligible") %>
-          <%= render UI::TableHeaderComponent.new(label: "Boundary type", column: "symbology_field") %>
-          <%= render UI::TableHeaderComponent.new(label: "Size (sq mi)", column: "area_sq_miles") %>
-          <%= render UI::TableHeaderComponent.new(label: "Has open violations", column: "open_health_viol") %>
-          <%# ── Violations — 5 year ─────────────────────────────── %>
-          <%= render UI::TableHeaderComponent.new(label: "Health violations (5yr)", column: "health_violations_5yr") %>
-          <%= render UI::TableHeaderComponent.new(label: "Groundwater rule violations (5yr)", column: "groundwater_rule_5yr") %>
-          <%= render UI::TableHeaderComponent.new(label: "Surface water treatment violations (5yr)", column: "surface_water_treatment_5yr") %>
-          <%= render UI::TableHeaderComponent.new(label: "Lead & copper violations (5yr)", column: "lead_and_copper_5yr") %>
-          <%= render UI::TableHeaderComponent.new(label: "Radionuclides violations (5yr)", column: "radionuclides_5yr") %>
-          <%= render UI::TableHeaderComponent.new(label: "Inorganic chemicals violations (5yr)", column: "inorganic_chemicals_5yr") %>
-          <%= render UI::TableHeaderComponent.new(label: "Synthetic organic chemicals violations (5yr)", column: "synthetic_organic_chemicals_5yr") %>
-          <%= render UI::TableHeaderComponent.new(label: "Volatile organic chemicals violations (5yr)", column: "volatile_organic_chemicals_5yr") %>
-          <%= render UI::TableHeaderComponent.new(label: "Coliform violations (5yr)", column: "total_coliform_5yr") %>
-          <%= render UI::TableHeaderComponent.new(label: "Stage 1 disinfectants violations (5yr)", column: "stage_1_disinfectants_5yr") %>
-          <%= render UI::TableHeaderComponent.new(label: "Stage 2 disinfectants violations (5yr)", column: "stage_2_disinfectants_5yr") %>
-          <%# ── Violations — 10 year ────────────────────────────── %>
-          <%= render UI::TableHeaderComponent.new(label: "Health violations (10yr)", column: "health_violations_10yr") %>
-          <%= render UI::TableHeaderComponent.new(label: "Groundwater rule violations (10yr)", column: "groundwater_rule_10yr") %>
-          <%= render UI::TableHeaderComponent.new(label: "Surface water treatment violations (10yr)", column: "surface_water_treatment_10yr") %>
-          <%= render UI::TableHeaderComponent.new(label: "Lead & copper violations (10yr)", column: "lead_and_copper_10yr") %>
-          <%= render UI::TableHeaderComponent.new(label: "Radionuclides violations (10yr)", column: "radionuclides_10yr") %>
-          <%= render UI::TableHeaderComponent.new(label: "Inorganic chemicals violations (10yr)", column: "inorganic_chemicals_10yr") %>
-          <%= render UI::TableHeaderComponent.new(label: "Synthetic organic chemicals violations (10yr)", column: "synthetic_organic_chemicals_10yr") %>
-          <%= render UI::TableHeaderComponent.new(label: "Volatile organic chemicals violations (10yr)", column: "volatile_organic_chemicals_10yr") %>
-          <%= render UI::TableHeaderComponent.new(label: "Coliform violations (10yr)", column: "total_coliform_10yr") %>
-          <%= render UI::TableHeaderComponent.new(label: "Stage 1 disinfectants violations (10yr)", column: "stage_1_disinfectants_10yr") %>
-          <%= render UI::TableHeaderComponent.new(label: "Stage 2 disinfectants violations (10yr)", column: "stage_2_disinfectants_10yr") %>
-          <%# ── Non-health violations ───────────────────────────── %>
-          <%= render UI::TableHeaderComponent.new(label: "Non-health violations (5yr)", column: "paperwork_violations_5yr") %>
-          <%= render UI::TableHeaderComponent.new(label: "Non-health violations (10yr)", column: "paperwork_violations_10yr") %>
-          <%# ── Boil water ──────────────────────────────────────── %>
-          <%= render UI::TableHeaderComponent.new(label: "Boil water notices", column: "total_notices") %>
-          <%# ── Demographics ────────────────────────────────────── %>
-          <%= render UI::TableHeaderComponent.new(label: "Population size", column: "total_population") %>
-          <%= render UI::TableHeaderComponent.new(label: "Population density (per sq mi)", column: "population_density") %>
-          <%= render UI::TableHeaderComponent.new(label: "Households below poverty line", column: "poverty_rate") %>
-          <%= render UI::TableHeaderComponent.new(label: "Unemployment", column: "unemployment_rate") %>
-          <%= render UI::TableHeaderComponent.new(label: "Median household income", column: "median_household_income") %>
-          <%= render UI::TableHeaderComponent.new(label: "Higher education attainment", column: "bachelors_degree_rate") %>
-          <%= render UI::TableHeaderComponent.new(label: "Children under 5", column: "age_under_5_rate") %>
-          <%= render UI::TableHeaderComponent.new(label: "Elderly over 61", column: "age_over_61_rate") %>
-          <%= render UI::TableHeaderComponent.new(label: "People of color", column: "poc_rate") %>
-          <%= render UI::TableHeaderComponent.new(label: "White", column: "white_rate") %>
-          <%= render UI::TableHeaderComponent.new(label: "Black", column: "black_rate") %>
-          <%= render UI::TableHeaderComponent.new(label: "American Indian & Alaskan Native", column: "aian_rate") %>
-          <%= render UI::TableHeaderComponent.new(label: "Native Hawaiian & Pacific Islander", column: "napi_rate") %>
-          <%= render UI::TableHeaderComponent.new(label: "Asian", column: "asian_rate") %>
-          <%= render UI::TableHeaderComponent.new(label: "Latino/a", column: "hispanic_rate") %>
-          <%= render UI::TableHeaderComponent.new(label: "Other race", column: "other_race_rate") %>
-          <%= render UI::TableHeaderComponent.new(label: "Mixed race", column: "mixed_race_rate") %>
-          <%= render UI::TableHeaderComponent.new(label: "Annual water & sewer bill", column: "most_common_rate_tier") %>
-          <%# ── Environmental justice ───────────────────────────── %>
-          <%= render UI::TableHeaderComponent.new(label: "Disadvantaged area", column: "cejst_disadvantaged_pct") %>
-          <%= render UI::TableHeaderComponent.new(label: "Social Vulnerability Index", column: "svi_overall_pctl") %>
-          <%= render UI::TableHeaderComponent.new(label: "Climate Vulnerability Index", column: "cvi_overall_score") %>
-          <%# ── Funding ─────────────────────────────────────────── %>
-          <%= render UI::TableHeaderComponent.new(label: "SRF financing (2021–2025) — times received", column: "times_funded") %>
-          <%= render UI::TableHeaderComponent.new(label: "SRF assistance (2021–2025)", column: "total_srf_assistance") %>
-          <%= render UI::TableHeaderComponent.new(label: "SRF principal forgiveness (2021–2025)", column: "total_principal_forgiveness") %>
-          <%# ── Watershed hazards ───────────────────────────────── %>
-          <%= render UI::TableHeaderComponent.new(label: "Source water connections", column: "num_facilities") %>
-          <%= render UI::TableHeaderComponent.new(label: "Pollution permits with breaches", column: "permit_effluent_violations") %>
-          <%= render UI::TableHeaderComponent.new(label: "Underground storage tanks", column: "open_underground_storage_tanks") %>
-          <%= render UI::TableHeaderComponent.new(label: "Risk management plan facilities", column: "risk_management_plan_facilities") %>
-          <%= render UI::TableHeaderComponent.new(label: "Impaired or threatened streams", column: "impaired_streams_303d") %>
+          <% @columns.each do |col| %>
+            <%= render UI::TableHeaderComponent.new(label: col.label, column: col.sort, size: col.size) %>
+          <% end %>
         </tr>
       </thead>
       <tbody>
-        <% sort_is_pws_name = params[:sort] == "pws_name" %>
         <% @systems.each_with_index do |pws, idx| %>
           <% row_stripe = idx.even? ? "bg-white" : "bg-gray-50" %>
-          <% td_check  = "#{td_check_base} #{sort_is_pws_name ? 'bg-blue-50' : row_stripe}" %>
-          <% td_sticky = "#{td_sticky_base} #{sort_is_pws_name ? 'bg-blue-50' : row_stripe}" %>
-          <% vs  = pws.violations_summary %>
-          <% dm  = pws.demographic %>
-          <% ej  = pws.environmental_justice %>
-          <% fs  = pws.funding_summary %>
-          <% wh  = pws.watershed_hazard %>
-          <% bws = pws.boil_water_summary %>
           <tr class="group <%= row_stripe %> md:hover:bg-blue-50 transition-colors">
-            <%# ── Row selection ───────────────────────────────── %>
-            <td class="<%= td_check %>">
-              <input type="checkbox"
-                     class="cursor-pointer"
-                     value="<%= pws.pwsid %>"
-                     aria-label="Select <%= pws.pws_name %>"
-                     data-row-selection-target="row"
-                     data-action="change->row-selection#toggle">
-            </td>
-            <%# ── Core identity ─────────────────────────────────── %>
-            <th class="<%= td_sticky %>" scope="row"><%= pws.pws_name %></th>
-            <td class="<%= td %><%= col_highlight("pwsid") %>"><%= pws.pwsid %></td>
-            <td class="<%= td %>">
-              <% if pws.detailed_facility_report.present? %>
-                <%= link_to "report",
-                    pws.detailed_facility_report,
-                    target: "_blank",
-                    rel: "noopener noreferrer",
-                    class: "text-blue-600 md:hover:underline focus:underline focus:outline-none",
-                    aria: {label: "EPA facility report for #{pws.pws_name} (opens in new tab)"} %>
-              <% end %>
-            </td>
-            <td class="<%= td %><%= col_highlight("stusps") %>"><%= fmt_str(pws.stusps) %></td>
-            <%# ── Geography & system type ─────────────────────── %>
-            <td class="<%= td %><%= col_highlight("counties") %>"><%= fmt_str(pws.counties) %></td>
-            <td class="<%= td %><%= col_highlight("gw_sw_code") %>"><%= fmt_str(pws.gw_sw_code) %></td>
-            <td class="<%= td %><%= col_highlight("source_water_protection_code") %>"><%= fmt_str(pws.source_water_protection_code) %></td>
-            <td class="<%= td %><%= col_highlight("owner_type") %>"><%= fmt_str(pws.owner_type) %></td>
-            <td class="<%= td %><%= col_highlight("primacy_type") %>"><%= fmt_str(pws.primacy_type) %></td>
-            <td class="<%= td %><%= col_highlight("is_wholesaler") %>"><%= fmt_bool(pws.is_wholesaler) %></td>
-            <td class="<%= td %><%= col_highlight("is_school_or_daycare") %>"><%= fmt_bool(pws.is_school_or_daycare) %></td>
-            <td class="<%= td %><%= col_highlight("is_grant_eligible") %>"><%= fmt_bool(pws.is_grant_eligible) %></td>
-            <td class="<%= td %><%= col_highlight("symbology_field") %>"><%= fmt_str(pws.symbology_field) %></td>
-            <td class="<%= td_num %><%= col_highlight("area_sq_miles") %>"><%= fmt_dec(pws.area_sq_miles) %></td>
-            <td class="<%= td %><%= col_highlight("open_health_viol") %>"><%= fmt_bool(pws.open_health_viol) %></td>
-            <%# ── Violations — 5 year ─────────────────────────── %>
-            <td class="<%= td_num %><%= col_highlight("health_violations_5yr") %>"><%= fmt_num(vs&.health_violations_5yr) %></td>
-            <td class="<%= td_num %><%= col_highlight("groundwater_rule_5yr") %>"><%= fmt_num(vs&.groundwater_rule_5yr) %></td>
-            <td class="<%= td_num %><%= col_highlight("surface_water_treatment_5yr") %>"><%= fmt_num(vs&.surface_water_treatment_5yr) %></td>
-            <td class="<%= td_num %><%= col_highlight("lead_and_copper_5yr") %>"><%= fmt_num(vs&.lead_and_copper_5yr) %></td>
-            <td class="<%= td_num %><%= col_highlight("radionuclides_5yr") %>"><%= fmt_num(vs&.radionuclides_5yr) %></td>
-            <td class="<%= td_num %><%= col_highlight("inorganic_chemicals_5yr") %>"><%= fmt_num(vs&.inorganic_chemicals_5yr) %></td>
-            <td class="<%= td_num %><%= col_highlight("synthetic_organic_chemicals_5yr") %>"><%= fmt_num(vs&.synthetic_organic_chemicals_5yr) %></td>
-            <td class="<%= td_num %><%= col_highlight("volatile_organic_chemicals_5yr") %>"><%= fmt_num(vs&.volatile_organic_chemicals_5yr) %></td>
-            <td class="<%= td_num %><%= col_highlight("total_coliform_5yr") %>"><%= fmt_num(vs&.total_coliform_5yr) %></td>
-            <td class="<%= td_num %><%= col_highlight("stage_1_disinfectants_5yr") %>"><%= fmt_num(vs&.stage_1_disinfectants_5yr) %></td>
-            <td class="<%= td_num %><%= col_highlight("stage_2_disinfectants_5yr") %>"><%= fmt_num(vs&.stage_2_disinfectants_5yr) %></td>
-            <%# ── Violations — 10 year ────────────────────────── %>
-            <td class="<%= td_num %><%= col_highlight("health_violations_10yr") %>"><%= fmt_num(vs&.health_violations_10yr) %></td>
-            <td class="<%= td_num %><%= col_highlight("groundwater_rule_10yr") %>"><%= fmt_num(vs&.groundwater_rule_10yr) %></td>
-            <td class="<%= td_num %><%= col_highlight("surface_water_treatment_10yr") %>"><%= fmt_num(vs&.surface_water_treatment_10yr) %></td>
-            <td class="<%= td_num %><%= col_highlight("lead_and_copper_10yr") %>"><%= fmt_num(vs&.lead_and_copper_10yr) %></td>
-            <td class="<%= td_num %><%= col_highlight("radionuclides_10yr") %>"><%= fmt_num(vs&.radionuclides_10yr) %></td>
-            <td class="<%= td_num %><%= col_highlight("inorganic_chemicals_10yr") %>"><%= fmt_num(vs&.inorganic_chemicals_10yr) %></td>
-            <td class="<%= td_num %><%= col_highlight("synthetic_organic_chemicals_10yr") %>"><%= fmt_num(vs&.synthetic_organic_chemicals_10yr) %></td>
-            <td class="<%= td_num %><%= col_highlight("volatile_organic_chemicals_10yr") %>"><%= fmt_num(vs&.volatile_organic_chemicals_10yr) %></td>
-            <td class="<%= td_num %><%= col_highlight("total_coliform_10yr") %>"><%= fmt_num(vs&.total_coliform_10yr) %></td>
-            <td class="<%= td_num %><%= col_highlight("stage_1_disinfectants_10yr") %>"><%= fmt_num(vs&.stage_1_disinfectants_10yr) %></td>
-            <td class="<%= td_num %><%= col_highlight("stage_2_disinfectants_10yr") %>"><%= fmt_num(vs&.stage_2_disinfectants_10yr) %></td>
-            <%# ── Non-health violations ───────────────────────── %>
-            <td class="<%= td_num %><%= col_highlight("paperwork_violations_5yr") %>"><%= fmt_num(vs&.paperwork_violations_5yr) %></td>
-            <td class="<%= td_num %><%= col_highlight("paperwork_violations_10yr") %>"><%= fmt_num(vs&.paperwork_violations_10yr) %></td>
-            <%# ── Boil water ──────────────────────────────────── %>
-            <td class="<%= td_num %><%= col_highlight("total_notices") %>"><%= fmt_num(bws&.total_notices) %></td>
-            <%# ── Demographics ────────────────────────────────── %>
-            <td class="<%= td_num %><%= col_highlight("total_population") %>"><%= fmt_num(dm&.total_population) %></td>
-            <td class="<%= td_num %><%= col_highlight("population_density") %>"><%= fmt_dec(dm&.population_density, precision: 0) %></td>
-            <td class="<%= td_num %><%= col_highlight("poverty_rate") %>"><%= fmt_pct(dm&.poverty_rate) %></td>
-            <td class="<%= td_num %><%= col_highlight("unemployment_rate") %>"><%= fmt_pct(dm&.unemployment_rate) %></td>
-            <td class="<%= td_num %><%= col_highlight("median_household_income") %>"><%= fmt_cur(dm&.median_household_income) %></td>
-            <td class="<%= td_num %><%= col_highlight("bachelors_degree_rate") %>"><%= fmt_pct(dm&.bachelors_degree_rate) %></td>
-            <td class="<%= td_num %><%= col_highlight("age_under_5_rate") %>"><%= fmt_pct(dm&.age_under_5_rate) %></td>
-            <td class="<%= td_num %><%= col_highlight("age_over_61_rate") %>"><%= fmt_pct(dm&.age_over_61_rate) %></td>
-            <td class="<%= td_num %><%= col_highlight("poc_rate") %>"><%= fmt_pct(dm&.poc_rate) %></td>
-            <td class="<%= td_num %><%= col_highlight("white_rate") %>"><%= fmt_pct(dm&.white_rate) %></td>
-            <td class="<%= td_num %><%= col_highlight("black_rate") %>"><%= fmt_pct(dm&.black_rate) %></td>
-            <td class="<%= td_num %><%= col_highlight("aian_rate") %>"><%= fmt_pct(dm&.aian_rate) %></td>
-            <td class="<%= td_num %><%= col_highlight("napi_rate") %>"><%= fmt_pct(dm&.napi_rate) %></td>
-            <td class="<%= td_num %><%= col_highlight("asian_rate") %>"><%= fmt_pct(dm&.asian_rate) %></td>
-            <td class="<%= td_num %><%= col_highlight("hispanic_rate") %>"><%= fmt_pct(dm&.hispanic_rate) %></td>
-            <td class="<%= td_num %><%= col_highlight("other_race_rate") %>"><%= fmt_pct(dm&.other_race_rate) %></td>
-            <td class="<%= td_num %><%= col_highlight("mixed_race_rate") %>"><%= fmt_pct(dm&.mixed_race_rate) %></td>
-            <td class="<%= td %><%= col_highlight("most_common_rate_tier") %>"><%= fmt_str(dm&.most_common_rate_tier) %></td>
-            <%# ── Environmental justice ───────────────────────── %>
-            <td class="<%= td_num %><%= col_highlight("cejst_disadvantaged_pct") %>"><%= fmt_pct(ej&.cejst_disadvantaged_pct) %></td>
-            <td class="<%= td_num %><%= col_highlight("svi_overall_pctl") %>"><%= fmt_pct(ej&.svi_overall_pctl) %></td>
-            <td class="<%= td_num %><%= col_highlight("cvi_overall_score") %>"><%= fmt_pct(ej&.cvi_overall_score) %></td>
-            <%# ── Funding ─────────────────────────────────────── %>
-            <td class="<%= td_num %><%= col_highlight("times_funded") %>"><%= fmt_num(fs&.times_funded) %></td>
-            <td class="<%= td_num %><%= col_highlight("total_srf_assistance") %>"><%= fmt_cur(fs&.total_srf_assistance, precision: 2) %></td>
-            <td class="<%= td_num %><%= col_highlight("total_principal_forgiveness") %>"><%= fmt_cur(fs&.total_principal_forgiveness, precision: 2) %></td>
-            <%# ── Watershed hazards ───────────────────────────── %>
-            <td class="<%= td_num %><%= col_highlight("num_facilities") %>"><%= fmt_num(wh&.num_facilities) %></td>
-            <td class="<%= td_num %><%= col_highlight("permit_effluent_violations") %>"><%= fmt_num(wh&.permit_effluent_violations) %></td>
-            <td class="<%= td_num %><%= col_highlight("open_underground_storage_tanks") %>"><%= fmt_num(wh&.open_underground_storage_tanks) %></td>
-            <td class="<%= td_num %><%= col_highlight("risk_management_plan_facilities") %>"><%= fmt_num(wh&.risk_management_plan_facilities) %></td>
-            <td class="<%= td_num %><%= col_highlight("impaired_streams_303d") %>"><%= fmt_num(wh&.impaired_streams_303d) %></td>
+            <% @columns.each do |col| %>
+              <%= render_table_cell(col, pws, row_stripe: row_stripe, sort_param: params[:sort]) %>
+            <% end %>
           </tr>
         <% end %>
         <% if @systems.empty? %>
           <tr>
-            <td colspan="69" class="px-3 py-8 text-center text-gray-500">No results match the current filters.</td>
+            <td colspan="<%= @columns.size %>" class="px-3 py-8 text-center text-gray-500">No results match the current filters.</td>
           </tr>
         <% end %>
       </tbody>
