@@ -26,16 +26,24 @@ export default class extends Controller {
   }
 
   serializeCols() {
-    const keys = Array.from(
-      this.formTarget.querySelectorAll('input[type="checkbox"][data-col-key]:checked')
-    ).map(cb => cb.dataset.colKey).join(",")
+    const allBoxes = this.formTarget.querySelectorAll('input[type="checkbox"][data-col-key]')
+    const checkedKeys = Array.from(allBoxes).filter(cb => cb.checked).map(cb => cb.dataset.colKey)
+    // All checked = default state; omit the cols param rather than listing every key
+    const keys = checkedKeys.length === allBoxes.length ? "" : checkedKeys.join(",")
     this.colsInputTarget.value = keys
+    this.#updateUrl(keys)
     this.#close()
   }
 
   reset() {
     this.formTarget.querySelectorAll('input[type="checkbox"][data-col-key]').forEach(cb => cb.checked = true)
     this.formTarget.requestSubmit()
+  }
+
+  #updateUrl(keys) {
+    const url = new URL(window.location)
+    keys ? url.searchParams.set("cols", keys) : url.searchParams.delete("cols")
+    history.replaceState({}, "", url)
   }
 
   #open() {
