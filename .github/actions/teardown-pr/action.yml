@@ -1,0 +1,51 @@
+name: Teardown PR Environment
+description: Revokes RDS access and destroys the ECS preview environment for a single PR.
+
+inputs:
+  pr_number:
+    description: 'PR number to tear down'
+    required: true
+  rds_sg_id:
+    description: 'RDS security group ID to revoke ingress from'
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Remove PR nodes from RDS allowlist
+      shell: bash
+      run: |
+        NODE_SG_ID=$(aws ec2 describe-security-groups \
+          --filters "Name=group-name,Values=epapp__nodes_water_data_tool_pr_${{ inputs.pr_number }}__dev_us-east-1" \
+          --query 'SecurityGroups[0].GroupId' --output text)
+        if [ -n "$NODE_SG_ID" ] && [ "$NODE_SG_ID" != "None" ]; then
+          aws ec2 revoke-security-group-ingress \
+            --group-id "${{ inputs.rds_sg_id }}" \
+            --protocol tcp \
+            --port 5432 \
+            --source-group "$NODE_SG_ID" || true
+        fi
+
+    - name: Destroy PR environment via service_builder
+      shell: bash
+      run: |
+        docker run --rm \
+          -e EP_ACTION=destroy \
+          -e EP_ENV="pr-${{ inputs.pr_number }}" \
+          -e EP_SERVICE_NAME="water_data_tool_pr_${{ inputs.pr_number }}" \
+          -e EP_SERVICE_SHORT_NAME="pr${{ inputs.pr_number }}" \
+          -e EP_ECS_CLUSTER_NAME="$ECS_CLUSTER" \
+          -e EP_TF_STATE_S3_BUCKET_NAME="ep-service-builder" \
+          -e EP_SERVICE_INSTANCE_TYPE="t3.small" \
+          -e EP_SERVICE_INSTANCE_COUNT="1" \
+          -e EP_SERVICE_CONTAINER_RAM_MB="1700" \
+          -e EP_SERVICE_DOMAIN="water-data-tool-pr-${{ inputs.pr_number }}.policyinnovation.info" \
+          -e EP_SERVICE_PORT="3000" \
+          -e EP_SERVICE_HEALTH_PORT="3000" \
+          -e EP_SERVICE_HEALTH_CHECK_PATH="/up" \
+          -e EP_CREATE_ECR_REPO="false" \
+          -e AWS_ACCESS_KEY_ID="$AWS_ACCESS_KEY_ID" \
+          -e AWS_SECRET_ACCESS_KEY="$AWS_SECRET_ACCESS_KEY" \
+          -e AWS_SESSION_TOKEN="$AWS_SESSION_TOKEN" \
+          -e AWS_REGION="$AWS_REGION" \
+          "$SERVICE_BUILDER_IMAGE"
