@@ -18,9 +18,9 @@ RSpec.describe ColumnRegistry do
     expect(ColumnRegistry.columns.first.key).to eq(:check)
   end
 
-  it "pws_name column has sticky: true" do
+  it "pws_name column has row_header: true" do
     col = ColumnRegistry.columns.find { |c| c.key == :pws_name }
-    expect(col.sticky).to be(true)
+    expect(col.row_header).to be(true)
   end
 
   it "population_density column has format_opts: { precision: 0 }" do

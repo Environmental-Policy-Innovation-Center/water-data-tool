@@ -20,7 +20,8 @@ class ColumnRegistry
         format: attrs[:format].to_sym,
         format_opts: (attrs[:format_opts] || {}).transform_keys(&:to_sym),
         size: attrs[:size].to_sym,
-        sticky: attrs[:sticky],
+        row_header: attrs[:row_header] || false,
+        pinned: attrs[:pinned] || false,
         association: attrs[:association]&.to_sym
       )
     end.freeze
