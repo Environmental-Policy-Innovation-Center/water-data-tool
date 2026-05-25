@@ -5,6 +5,7 @@ class HomeController < ApplicationController
 
   def index
     @last_updated = DataImport.maximum(:imported_at)
+    @visible_col_keys = params[:cols].blank? ? nil : params[:cols].split(",").map(&:to_sym).to_set
   end
 
   def map
@@ -19,11 +20,18 @@ class HomeController < ApplicationController
     preloads = [:violations_summary, :demographic, :environmental_justice,
       :funding_summary, :watershed_hazard, :boil_water_summary]
     @pagy, @systems = pagy(scope.preload(preloads).order(order_clause))
-    @columns = ColumnRegistry.columns
+    @columns = visible_columns
     render partial: "home/table"
   end
 
   private
+
+  def visible_columns
+    return ColumnRegistry.columns if params[:cols].blank?
+    selected = params[:cols].split(",").map(&:to_sym).to_set
+    pinned, selectable = ColumnRegistry.columns.partition(&:pinned)
+    pinned + selectable.select { |c| selected.include?(c.key) }
+  end
 
   def filter_params
     FilterParams.permit(params)

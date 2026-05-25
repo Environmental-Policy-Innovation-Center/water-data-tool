@@ -410,5 +410,38 @@ RSpec.describe "Home", type: :request do
       get table_path, params: {sort: "pws_name", direction: "desc"}
       expect(response.body).to include("text-gray-600")
     end
+
+    context "with cols= param (column visibility)" do
+      it "shows all columns when cols= is absent" do
+        get table_path
+        expect(response.body).to include("State")
+        expect(response.body).to include("County")
+        expect(response.body).to include("Grant eligible")
+      end
+
+      it "shows only the requested columns plus always-visible ones" do
+        get table_path, params: {cols: "stusps"}
+        expect(response.body).to include("State")
+        expect(response.body).not_to include("County")
+      end
+
+      it "always shows the pws_name column regardless of cols=" do
+        get table_path, params: {cols: "stusps"}
+        expect(response.body).to include("Utility Name")
+      end
+
+      it "ignores unknown column keys in cols=" do
+        get table_path, params: {cols: "stusps,nonexistent_column"}
+        expect(response.body).to include("State")
+        expect(response.body).not_to include("County")
+      end
+
+      it "shows multiple requested columns" do
+        get table_path, params: {cols: "stusps,counties"}
+        expect(response.body).to include("State")
+        expect(response.body).to include("County")
+        expect(response.body).not_to include("Grant eligible")
+      end
+    end
   end
 end

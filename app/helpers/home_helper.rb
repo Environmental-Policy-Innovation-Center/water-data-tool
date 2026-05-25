@@ -18,7 +18,18 @@ module HomeHelper
     FILTER_TOOLTIPS
   end
 
-  # Subtle semi-transparent tint for the active sort column; row stripe still shows through.
+  def hidden_inputs_for_params(except: [])
+    safe_join(
+      request.query_parameters.except(*except).flat_map do |k, v|
+        if v.is_a?(Array)
+          v.map { |item| tag.input(type: "hidden", name: "#{k}[]", value: item) }
+        else
+          [tag.input(type: "hidden", name: k, value: v)]
+        end
+      end
+    )
+  end
+
   def col_highlight(column)
     (params[:sort] == column) ? " bg-blue-100/30" : ""
   end
@@ -78,7 +89,7 @@ module HomeHelper
       formatted = format_cell_value(value, col.format, col.format_opts)
       highlight = col_highlight(col.sort)
 
-      if col.sticky
+      if col.row_header
         td_sticky = "sticky left-7 z-10 font-normal text-left md:group-hover:bg-blue-50 transition-colors px-3 py-2 border-b border-gray-100 overflow-hidden max-w-xs #{(sort_param == "pws_name") ? "bg-blue-50" : row_stripe}"
         content_tag(:th, formatted, class: td_sticky, scope: "row")
       elsif [:num, :dec, :pct, :cur].include?(col.format)
