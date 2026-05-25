@@ -1,7 +1,7 @@
 import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
-  static targets = ["button", "dropdown"]
+  static targets = ["button", "dropdown", "form", "colsInput"]
 
   #outsideClick = (e) => {
     if (!this.element.contains(e.target)) this.#close()
@@ -25,7 +25,21 @@ export default class extends Controller {
     this.dropdownTarget.classList.contains("hidden") ? this.#open() : this.#close()
   }
 
+  serializeCols() {
+    const keys = Array.from(
+      this.formTarget.querySelectorAll('input[type="checkbox"][data-col-key]:checked')
+    ).map(cb => cb.dataset.colKey).join(",")
+    this.colsInputTarget.value = keys
+    this.#close()
+  }
+
+  reset() {
+    this.formTarget.querySelectorAll('input[type="checkbox"][data-col-key]').forEach(cb => cb.checked = true)
+    this.formTarget.requestSubmit()
+  }
+
   #open() {
+    this.#syncCheckboxesFromUrl()
     const rect = this.buttonTarget.getBoundingClientRect()
     const dropdown = this.dropdownTarget
     dropdown.style.top = `${rect.bottom + 8}px`
@@ -33,6 +47,14 @@ export default class extends Controller {
     dropdown.classList.remove("hidden")
     dropdown.classList.add("flex")
     this.buttonTarget.setAttribute("aria-expanded", "true")
+  }
+
+  #syncCheckboxesFromUrl() {
+    const cols = new URLSearchParams(window.location.search).get("cols")
+    const visibleKeys = cols ? new Set(cols.split(",")) : null
+    this.formTarget.querySelectorAll('input[type="checkbox"][data-col-key]').forEach(cb => {
+      cb.checked = visibleKeys === null || visibleKeys.has(cb.dataset.colKey)
+    })
   }
 
   #close() {

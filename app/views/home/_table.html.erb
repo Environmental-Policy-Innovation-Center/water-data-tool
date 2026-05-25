@@ -67,13 +67,7 @@
 
         <%# Page input form — submits as a Turbo Frame navigation %>
         <form method="get" action="/table" data-turbo-frame="data-table" class="flex items-center gap-1.5">
-          <% request.query_parameters.except("page").each do |k, v| %>
-            <% if v.is_a?(Array) %>
-              <% v.each do |item| %><input type="hidden" name="<%= "#{k}[]" %>" value="<%= item %>"><% end %>
-            <% else %>
-              <input type="hidden" name="<%= k %>" value="<%= v %>">
-            <% end %>
-          <% end %>
+          <%= hidden_inputs_for_params(except: ["page"]) %>
           <input type="number" name="page" value="<%= @pagy.page %>"
                  min="1" max="<%= @pagy.last %>"
                  autocomplete="off"

@@ -1,12 +1,45 @@
 require "rails_helper"
 
 RSpec.describe HomeHelper, type: :helper do
+  describe "#hidden_inputs_for_params" do
+    before do
+      allow(helper).to receive(:request).and_return(
+        instance_double(ActionDispatch::Request,
+          query_parameters: {"sort" => "pws_name", "direction" => "asc", "cols" => "pwsid,stusps"})
+      )
+    end
+
+    it "renders a hidden input for each query param" do
+      html = helper.hidden_inputs_for_params
+      expect(html).to include('name="sort"')
+      expect(html).to include('value="pws_name"')
+      expect(html).to include('name="direction"')
+    end
+
+    it "excludes specified params" do
+      html = helper.hidden_inputs_for_params(except: ["cols"])
+      expect(html).not_to include('name="cols"')
+      expect(html).to include('name="sort"')
+    end
+
+    it "renders array params with [] suffix" do
+      allow(helper).to receive(:request).and_return(
+        instance_double(ActionDispatch::Request,
+          query_parameters: {"filters" => ["a", "b"]})
+      )
+      html = helper.hidden_inputs_for_params
+      expect(html).to include('name="filters[]"')
+      expect(html).to include('value="a"')
+      expect(html).to include('value="b"')
+    end
+  end
+
   describe "#cell_value" do
     let(:pws) { create(:public_water_system, pwsid: "TX1234567", pws_name: "Test Water") }
 
     it "reads a :pws association attribute directly from pws" do
       col = TableColumn.new(key: :pwsid, label: "Utility ID", sort: nil,
-        format: :str, format_opts: {}, size: :default, sticky: false, association: :pws)
+        format: :str, format_opts: {}, size: :default, row_header: false, pinned: false, association: :pws)
       expect(helper.cell_value(pws, col)).to eq("TX1234567")
     end
 
@@ -14,19 +47,19 @@ RSpec.describe HomeHelper, type: :helper do
       create(:demographic, pwsid: pws.pwsid, total_population: 5_000)
       pws_loaded = PublicWaterSystem.includes(:demographic).find(pws.id)
       col = TableColumn.new(key: :total_population, label: "Population", sort: nil,
-        format: :num, format_opts: {}, size: :default, sticky: false, association: :demographic)
+        format: :num, format_opts: {}, size: :default, row_header: false, pinned: false, association: :demographic)
       expect(helper.cell_value(pws_loaded, col)).to eq(5_000)
     end
 
     it "returns nil when association is nil (check/link columns)" do
       col = TableColumn.new(key: :check, label: nil, sort: nil,
-        format: :check, format_opts: {}, size: :check, sticky: false, association: nil)
+        format: :check, format_opts: {}, size: :check, row_header: false, pinned: false, association: nil)
       expect(helper.cell_value(pws, col)).to be_nil
     end
 
     it "returns nil when the associated record does not exist" do
       col = TableColumn.new(key: :total_population, label: "Population", sort: nil,
-        format: :num, format_opts: {}, size: :default, sticky: false, association: :demographic)
+        format: :num, format_opts: {}, size: :default, row_header: false, pinned: false, association: :demographic)
       expect(helper.cell_value(pws, col)).to be_nil
     end
   end
@@ -98,8 +131,8 @@ RSpec.describe HomeHelper, type: :helper do
       end
     end
 
-    context "with sticky: true column (pws_name)" do
-      let(:col) { ColumnRegistry.columns.find(&:sticky) }
+    context "with row_header: true column (pws_name)" do
+      let(:col) { ColumnRegistry.columns.find(&:row_header) }
 
       it "renders a <th scope='row'> element" do
         html = helper.render_table_cell(col, pws, row_stripe: "bg-white", sort_param: nil)

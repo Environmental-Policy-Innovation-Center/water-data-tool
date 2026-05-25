@@ -209,59 +209,56 @@
           <div id="manage-columns-panel"
                data-manage-columns-target="dropdown"
                class="hidden fixed w-80 flex-col overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-xl z-[100]">
-            <ul class="m-0 h-[280px] list-none overflow-y-auto px-2 pb-1 pt-3"
-                aria-label="Table columns">
-              <%# Locked column — always visible, no drag handle, checkbox intentionally disabled %>
-              <li class="flex items-center gap-2 rounded px-2 py-1.5">
-                <span class="size-3 shrink-0" aria-hidden="true"></span>
-                <span class="flex-1 text-sm text-neutral-400">Water System Name</span>
-                <input type="checkbox" checked
-                       disabled aria-disabled="true"
-                       aria-label="Show Water System Name column (always visible)"
-                       class="size-4 cursor-not-allowed rounded opacity-40">
-              </li>
-              <%# Draggable columns %>
-              <li class="flex items-center gap-2 rounded px-2 py-1.5 hover:bg-neutral-50">
-                <%= icon "drag", classes: "size-3 shrink-0 text-neutral-300" %>
-                <span class="flex-1 text-sm text-neutral-700">PWS ID</span>
-                <input type="checkbox" checked
-                       aria-label="Show PWS ID column"
-                       class="size-4 cursor-pointer rounded">
-              </li>
-              <li class="flex items-center gap-2 rounded px-2 py-1.5 hover:bg-neutral-50">
-                <%= icon "drag", classes: "size-3 shrink-0 text-neutral-300" %>
-                <span class="flex-1 text-sm text-neutral-700">State</span>
-                <input type="checkbox" checked
-                       aria-label="Show State column"
-                       class="size-4 cursor-pointer rounded">
-              </li>
-              <li class="flex items-center gap-2 rounded px-2 py-1.5 hover:bg-neutral-50">
-                <%= icon "drag", classes: "size-3 shrink-0 text-neutral-300" %>
-                <span class="flex-1 text-sm text-neutral-700">Population Served</span>
-                <input type="checkbox"
-                       aria-label="Show Population Served column"
-                       class="size-4 cursor-pointer rounded">
-              </li>
-              <li class="flex items-center gap-2 rounded px-2 py-1.5 hover:bg-neutral-50">
-                <%= icon "drag", classes: "size-3 shrink-0 text-neutral-300" %>
-                <span class="flex-1 text-sm text-neutral-700">Source Type</span>
-                <input type="checkbox" checked
-                       aria-label="Show Source Type column"
-                       class="size-4 cursor-pointer rounded">
-              </li>
-            </ul>
-            <div class="shrink-0 border-t border-neutral-100 bg-white pb-2.5 pt-1 text-center"
-                 role="group"
-                 aria-label="Column actions">
-              <button type="button"
-                      class="inline-block cursor-pointer rounded-full border border-neutral-400 bg-white mx-2 my-1.5 min-h-11 px-7 py-2 text-sm text-neutral-800 md:hover:bg-neutral-200 md:hover:text-black focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 motion-reduce:transition-none">
-                Reset
-              </button>
-              <button type="button"
-                      class="inline-block cursor-pointer rounded-full border border-brand-primary bg-brand-primary mx-2 my-1.5 min-h-11 px-7 py-2 text-sm text-white md:hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 motion-reduce:transition-none">
-                Show Columns
-              </button>
-            </div>
+            <form data-manage-columns-target="form"
+                  data-action="submit->manage-columns#serializeCols"
+                  data-turbo-frame="data-table"
+                  action="/table"
+                  method="get">
+              <%= hidden_inputs_for_params(except: ["cols"]) %>
+              <%# Populated by manage_columns_controller#serializeCols before submit %>
+              <input type="hidden" name="cols" data-manage-columns-target="colsInput">
+
+              <ul class="m-0 h-[280px] list-none overflow-y-auto px-2 pb-1 pt-3"
+                  aria-label="Table columns">
+                <%# Locked column — always visible %>
+                <li class="flex items-center gap-2 rounded px-2 py-1.5">
+                  <span class="size-3 shrink-0" aria-hidden="true"></span>
+                  <span class="flex-1 text-sm text-neutral-400">Utility Name</span>
+                  <input type="checkbox" checked disabled
+                         aria-label="Show Utility Name column (always visible)"
+                         class="size-4 cursor-not-allowed rounded opacity-40">
+                </li>
+                <%# Toggleable columns (skip pinned columns — always shown) %>
+                <% ColumnRegistry.columns.reject(&:pinned).each do |col| %>
+                  <% checked = @visible_col_keys.nil? || @visible_col_keys.include?(col.key) %>
+                  <li class="flex items-center gap-2 rounded px-2 py-1.5 hover:bg-neutral-50">
+                    <%= icon "drag", classes: "size-3 shrink-0 text-neutral-300" %>
+                    <label for="col_<%= col.key %>" class="flex-1 cursor-pointer text-sm text-neutral-700">
+                      <%= col.label %>
+                    </label>
+                    <input type="checkbox"
+                           id="col_<%= col.key %>"
+                           data-col-key="<%= col.key %>"
+                           <%= "checked" if checked %>
+                           aria-label="Show <%= col.label %> column"
+                           class="size-4 cursor-pointer rounded">
+                  </li>
+                <% end %>
+              </ul>
+              <div class="shrink-0 border-t border-neutral-100 bg-white pb-2.5 pt-1 text-center"
+                   role="group"
+                   aria-label="Column actions">
+                <button type="button"
+                        data-action="click->manage-columns#reset"
+                        class="inline-block cursor-pointer rounded-full border border-neutral-400 bg-white mx-2 my-1.5 min-h-11 px-7 py-2 text-sm text-neutral-800 md:hover:bg-neutral-200 md:hover:text-black focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 motion-reduce:transition-none">
+                  Reset
+                </button>
+                <button type="submit"
+                        class="inline-block cursor-pointer rounded-full border border-brand-primary bg-brand-primary mx-2 my-1.5 min-h-11 px-7 py-2 text-sm text-white md:hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 motion-reduce:transition-none">
+                  Show Columns
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       </div>
