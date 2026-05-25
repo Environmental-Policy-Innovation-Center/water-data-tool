@@ -1,8 +1,8 @@
 module PublicWaterSystems
   class ExportsController < ApplicationController
-      def show
-      base_scope = if params[:pwsids].present?
-        PublicWaterSystem.where(pwsid: params[:pwsids])
+    def show
+      base_scope = if export_params[:pwsids].present?
+        PublicWaterSystem.where(pwsid: export_params[:pwsids])
       else
         PublicWaterSystem.apply_filters(FilterParams.permit(params))
       end
@@ -15,6 +15,10 @@ module PublicWaterSystems
     end
 
     private
+
+    def export_params
+      params.permit(pwsids: [])
+    end
 
     def render_csv_export(exporter)
       send_data exporter.to_csv,

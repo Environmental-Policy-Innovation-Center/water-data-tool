@@ -94,15 +94,17 @@ RSpec.describe "Exports", type: :request do
         expect(rows.length).to eq(2) # 1 header + 1 data row for the valid ID
       end
 
-      it "caps the query at 500 IDs" do
-        pws = create(:public_water_system)
-        ids = Array.new(501) { |i| "FAKE#{i.to_s.rjust(7, "0")}" }
-        ids[0] = pws.pwsid
+      it "caps the query at 500 IDs, excluding the 501st even when it is a valid record" do
+        pws_included = create(:public_water_system)
+        pws_excluded = create(:public_water_system)
+        ids = Array.new(499) { |i| "FAKE#{i.to_s.rjust(7, "0")}" }
+        ids.unshift(pws_included.pwsid)
+        ids.push(pws_excluded.pwsid)
 
         get export_path, params: {pwsids: ids}
 
         rows = CSV.parse(response.body)
-        expect(rows.length).to eq(2) # 1 header + 1 matching record; 501st ID was dropped
+        expect(rows.length).to eq(2) # 1 header + 1 matching record; valid 501st ID was dropped
       end
     end
 
