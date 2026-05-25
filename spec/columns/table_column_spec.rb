@@ -9,7 +9,8 @@ RSpec.describe TableColumn do
       format: :str,
       format_opts: {},
       size: :default,
-      sticky: false,
+      row_header: false,
+      pinned: false,
       association: :pws
     )
   end
@@ -25,14 +26,15 @@ RSpec.describe TableColumn do
     expect(col.format).to eq(:str)
     expect(col.format_opts).to eq({})
     expect(col.size).to eq(:default)
-    expect(col.sticky).to be(false)
+    expect(col.row_header).to be(false)
+    expect(col.pinned).to be(false)
     expect(col.association).to eq(:pws)
   end
 
   it "allows nil label (for the checkbox column)" do
     check_col = TableColumn.new(
       key: :check, label: nil, sort: nil, format: :check,
-      format_opts: {}, size: :check, sticky: false, association: nil
+      format_opts: {}, size: :check, row_header: false, pinned: true, association: nil
     )
     expect(check_col.label).to be_nil
   end

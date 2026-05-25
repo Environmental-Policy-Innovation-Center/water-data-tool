@@ -5,6 +5,7 @@ TableColumn = Data.define(
   :format,      # Symbol — :str, :num, :dec, :pct, :cur, :bool, :check, :link
   :format_opts, # Hash   — extra opts passed to format helpers (e.g., { precision: 0 })
   :size,        # Symbol — :default, :sm, :wide, :pinned, :check
-  :sticky,      # Boolean — true only for pws_name (renders <th scope="row"> sticky left-7)
+  :row_header,  # Boolean — true only for pws_name (renders <th scope="row"> sticky left-7)
+  :pinned,      # Boolean — true means always visible regardless of cols= param
   :association  # Symbol or nil — association name on PublicWaterSystem
 )
