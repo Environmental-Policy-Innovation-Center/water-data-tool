@@ -150,7 +150,7 @@ jobs:
             echo "|---|---|"
             echo "| **Environments listed** | ${COUNT} |"
             echo "| **Triggered by** | @${{ github.actor }} |"
-            echo "| **Time** | $(date -u '+%Y-%m-%d %H:%M UTC') |"
+            echo "| **Time** | $(TZ='America/New_York' date '+%B %-d, %Y %-I:%M %p %Z') |"
           } >> "$GITHUB_STEP_SUMMARY"
 
           echo "count=${COUNT}" >> "$GITHUB_OUTPUT"
