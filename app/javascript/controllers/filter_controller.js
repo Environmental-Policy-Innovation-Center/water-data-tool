@@ -215,7 +215,7 @@ export default class extends Controller {
     this.apply(event)
   }
 
-  // On check: opens panel and checks all subcats + shows their histogram panels.
+  // On check: opens panel and checks all subcats; histogram panels stay collapsed until manually opened.
   // On uncheck: unchecks all subcats + hides/resets all their histogram panels.
   toggleSubcat(event) {
     const checkbox = event.currentTarget
@@ -232,7 +232,6 @@ export default class extends Controller {
         if (!s.sliderPanelId) return
         const sliderPanel = document.getElementById(s.sliderPanelId)
         if (!sliderPanel) return
-        sliderPanel.classList.remove("hidden")
         this.application.getControllerForElementAndIdentifier(sliderPanel, "slider")?.populateDefaultsIfEmpty()
       })
     } else {
