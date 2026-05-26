@@ -5,6 +5,8 @@ const CACHE = new Map()
 const SVG_W = 200
 const SVG_H = 80
 const HANDLE_R = 5
+const PAD = HANDLE_R  // track inset so handles don't overflow SVG edges
+const HANDLE_Y = SVG_H - HANDLE_R * 2  // handle center on the histogram baseline
 const BLUE = "#3B82F6"
 const GRAY = "#bfbfbf"
 const NS = "http://www.w3.org/2000/svg"
@@ -19,12 +21,26 @@ export default class extends Controller {
   #curMin = 0
   #curMax = 0
   #dragging = null
-  #tip = null
-  #rect = null
+  #tipMin = null
+  #tipMax = null
+  #tipText = { min: null, max: null }
+  #tipTextW = { min: 0, max: 0 }
+  #minHandle = null
+  #maxHandle = null
+  #svgW = SVG_W
+  #ro = null
 
   async connect() {
     const field = this.fieldValue
     if (!field) return
+
+    this.#ro = new ResizeObserver(entries => {
+      const w = Math.round(entries[0]?.contentRect.width ?? 0)
+      if (w <= 0 || w === this.#svgW) return
+      this.#svgW = w
+      if (this.#bins.length) this.#draw()
+    })
+    this.#ro.observe(this.chartTarget)
 
     if (!CACHE.has(field)) {
       CACHE.set(field,
@@ -40,8 +56,10 @@ export default class extends Controller {
   }
 
   disconnect() {
+    this.#ro?.disconnect()
     this.chartTarget.removeEventListener("pointerdown", this.#onDown)
     this.chartTarget.removeEventListener("pointermove", this.#onMove)
+    this.chartTarget.removeEventListener("pointerup", this.#onUp)
   }
 
   resetToFullRange() {
@@ -50,7 +68,11 @@ export default class extends Controller {
     this.#curMax = this.#domMax
     this.#moveHandle("min", this.#valToX(this.#domMin))
     this.#moveHandle("max", this.#valToX(this.#domMax))
+    this.#deactivateHandle("min")
+    this.#deactivateHandle("max")
     this.#colorBars()
+    if (this.#tipMin) this.#tipMin.style.display = "none"
+    if (this.#tipMax) this.#tipMax.style.display = "none"
     this.minInputTarget.value = ""
     this.maxInputTarget.value = ""
   }
@@ -100,21 +122,26 @@ export default class extends Controller {
 
   #draw() {
     const svg = this.chartTarget
-    svg.setAttribute("viewBox", `0 0 ${SVG_W} ${SVG_H}`)
+    svg.setAttribute("viewBox", `0 0 ${this.#svgW} ${SVG_H}`)
     svg.setAttribute("preserveAspectRatio", "none")
     svg.innerHTML = ""
-    this.#tip = null
+    this.#tipMin = null
+    this.#tipMax = null
+    this.#tipText = { min: null, max: null }
+    this.#tipTextW = { min: 0, max: 0 }
+    this.#minHandle = null
+    this.#maxHandle = null
 
     if (!this.#bins.length) return
 
     if (this.#domMin === this.#domMax) {
       svg.appendChild(this.#el("line", {
-        x1: 0, x2: SVG_W,
-        y1: SVG_H - HANDLE_R, y2: SVG_H - HANDLE_R,
+        x1: PAD, x2: this.#svgW - PAD,
+        y1: HANDLE_Y, y2: HANDLE_Y,
         stroke: BLUE, "stroke-width": 2
       }))
-      this.#addHandle("min", 0)
-      this.#addHandle("max", SVG_W)
+      this.#minHandle = this.#addHandle("min", PAD)
+      this.#maxHandle = this.#addHandle("max", this.#svgW - PAD)
       svg.removeEventListener("pointerdown", this.#onDown)
       svg.addEventListener("pointerdown", this.#onDown)
       return
@@ -123,38 +150,139 @@ export default class extends Controller {
     const maxCount = Math.max(...this.#bins.map(b => b.count))
     const sqrtMax = maxCount ? Math.sqrt(maxCount) : 1
     const barArea = SVG_H - HANDLE_R * 2 - 2
-    const barW = SVG_W / this.#bins.length
+    const trackW = this.#svgW - PAD * 2
+    const barW = trackW / this.#bins.length
     const gap = 1
     const drawW = Math.max(1, barW - gap)
-    
+
     // Using a square root scale for bar heights to give more visual distinction to smaller counts.
     this.#bins.forEach((bin, i) => {
-      const h = maxCount ? Math.max(1, (Math.sqrt(bin.count) / sqrtMax) * barArea) : 0
+      const h = bin.count > 0 && maxCount ? Math.max(1, (Math.sqrt(bin.count) / sqrtMax) * barArea) : 0
       svg.appendChild(this.#el("rect", {
-        x: i * barW + gap / 2, y: SVG_H - HANDLE_R * 2 - h - 1,
+        x: PAD + i * barW + gap / 2, y: SVG_H - HANDLE_R * 2 - h - 1,
         width: drawW, height: h, rx: 2, ry: 2,
         "data-bin-min": bin.min, "data-bin-max": bin.max
       }))
     })
 
-    this.#tip = this.#el("text", {
-      "text-anchor": "middle", "font-size": 10, fill: "#333", class: "slider-tip"
-    })
-    this.#tip.style.display = "none"
-    svg.appendChild(this.#tip)
+    this.#tipMin = this.#makeTip()
+    this.#tipMax = this.#makeTip()
+    svg.appendChild(this.#tipMin)
+    svg.appendChild(this.#tipMax)
 
-    this.#addHandle("min", this.#valToX(this.#curMin))
-    this.#addHandle("max", this.#valToX(this.#curMax))
+    this.#minHandle = this.#addHandle("min", this.#valToX(this.#curMin))
+    this.#maxHandle = this.#addHandle("max", this.#valToX(this.#curMax))
+    this.#setHandleActive("min")
+    this.#setHandleActive("max")
     this.#colorBars()
     svg.removeEventListener("pointerdown", this.#onDown)
     svg.addEventListener("pointerdown", this.#onDown)
   }
 
-  #addHandle(which, x) {
-    this.chartTarget.appendChild(this.#el("circle", {
-      cx: x, cy: SVG_H - HANDLE_R, r: HANDLE_R,
-      fill: "#000", style: "cursor:grab", "data-handle": which
+  #makeTip() {
+    const g = this.#el("g", { class: "slider-tip", "aria-hidden": "true" })
+    g.style.display = "none"
+    g.appendChild(this.#el("path", { fill: "white", stroke: "#d1d5db", "stroke-width": 1 }))
+    g.appendChild(this.#el("text", {
+      "text-anchor": "middle", "font-size": 12, fill: "#4b5563", "dominant-baseline": "middle"
     }))
+    return g
+  }
+
+  #addHandle(which, x) {
+    const val = which === "min" ? this.#curMin : this.#curMax
+    const label = which === "min" ? "Minimum" : "Maximum"
+    const g = this.#el("g", {
+      id: `${this.fieldValue}-${which}-handle`,
+      "data-handle": which,
+      role: "slider",
+      "aria-label": `${label} value`,
+      "aria-valuenow": String(val),
+      "aria-valuemin": String(this.#domMin),
+      "aria-valuemax": String(this.#domMax),
+      "aria-valuetext": this.#fmt(val),
+      "aria-orientation": "horizontal",
+      tabindex: "0"
+    })
+    g.style.cursor = "grab"
+    g.setAttribute("transform", `translate(${x}, ${HANDLE_Y})`)
+    g.appendChild(this.#el("circle", { cx: 0, cy: 0, r: HANDLE_R, fill: "#000" }))
+
+    g.addEventListener("pointerenter", () => {
+      if (this.#dragging) return
+      const curVal = which === "min" ? this.#curMin : this.#curMax
+      this.#showTip(curVal, this.#valToX(curVal), which)
+    })
+    g.addEventListener("pointerleave", () => {
+      if (this.#dragging) return
+      this.#hideTip(which)
+    })
+    g.addEventListener("keydown", (e) => {
+      const cur = which === "min" ? this.#curMin : this.#curMax
+      let newVal
+      if (e.key === "ArrowLeft" || e.key === "ArrowDown") newVal = cur - (e.shiftKey ? 10 : 1)
+      else if (e.key === "ArrowRight" || e.key === "ArrowUp") newVal = cur + (e.shiftKey ? 10 : 1)
+      else if (e.key === "Home") newVal = this.#domMin
+      else if (e.key === "End") newVal = this.#domMax
+      else return
+      e.preventDefault()
+      if (which === "min") {
+        this.#curMin = Math.min(Math.max(this.#domMin, newVal), this.#curMax)
+      } else {
+        this.#curMax = Math.max(Math.min(this.#domMax, newVal), this.#curMin)
+      }
+      const curVal = which === "min" ? this.#curMin : this.#curMax
+      this.#moveHandle(which, this.#valToX(curVal))
+      this.#updateAriaHandle(which)
+      this.#setHandleActive(which)
+      this.#colorBars()
+      this.minInputTarget.value = this.#curMin
+      this.maxInputTarget.value = this.#curMax
+    })
+
+    this.chartTarget.appendChild(g)
+    return g
+  }
+
+  #moveHandle(which, x) {
+    const h = which === "min" ? this.#minHandle : this.#maxHandle
+    if (h) h.setAttribute("transform", `translate(${x}, ${HANDLE_Y})`)
+  }
+
+  #activateHandle(which) {
+    const g = which === "min" ? this.#minHandle : this.#maxHandle
+    if (!g) return
+    g.innerHTML = ""
+    g.appendChild(this.#el("circle", { cx: 0, cy: 0, r: HANDLE_R + 3, fill: "#d1d5db" }))
+    g.appendChild(this.#el("circle", { cx: 0, cy: 0, r: HANDLE_R + 1.5, fill: "white" }))
+    g.appendChild(this.#el("circle", { cx: 0, cy: 0, r: HANDLE_R, fill: BLUE }))
+  }
+
+  #deactivateHandle(which) {
+    const g = which === "min" ? this.#minHandle : this.#maxHandle
+    if (!g) return
+    g.innerHTML = ""
+    g.appendChild(this.#el("circle", { cx: 0, cy: 0, r: HANDLE_R, fill: "#000" }))
+  }
+
+  #setHandleActive(which) {
+    const cur = which === "min" ? this.#curMin : this.#curMax
+    const dom = which === "min" ? this.#domMin : this.#domMax
+    if (cur !== dom) this.#activateHandle(which)
+    else this.#deactivateHandle(which)
+  }
+
+  #hideTip(which) {
+    const tip = which === "min" ? this.#tipMin : this.#tipMax
+    if (tip) tip.style.display = "none"
+  }
+
+  #updateAriaHandle(which) {
+    const g = which === "min" ? this.#minHandle : this.#maxHandle
+    if (!g) return
+    const val = which === "min" ? this.#curMin : this.#curMax
+    g.setAttribute("aria-valuenow", String(val))
+    g.setAttribute("aria-valuetext", this.#fmt(val))
   }
 
   #colorBars() {
@@ -169,7 +297,7 @@ export default class extends Controller {
     if (!handle) return
 
     this.#dragging = handle.dataset.handle
-    this.#rect = this.chartTarget.getBoundingClientRect()
+    this.#activateHandle(this.#dragging)
     this.chartTarget.setPointerCapture(event.pointerId)
     this.chartTarget.addEventListener("pointermove", this.#onMove)
     this.chartTarget.addEventListener("pointerup", this.#onUp, { once: true })
@@ -177,55 +305,101 @@ export default class extends Controller {
   }
 
   #onMove = (event) => {
-    const rect = this.#rect
-    const x = Math.max(0, Math.min(SVG_W, (event.clientX - rect.left) * (SVG_W / rect.width)))
+    const rect = this.chartTarget.getBoundingClientRect()
+    const x = Math.max(0, Math.min(this.#svgW, (event.clientX - rect.left) * (this.#svgW / rect.width)))
     const val = this.#xToVal(x)
 
     if (this.#dragging === "min") {
       this.#curMin = Math.min(val, this.#curMax)
       this.#moveHandle("min", this.#valToX(this.#curMin))
-      this.#showTip(this.#curMin, this.#valToX(this.#curMin))
+      this.#showTip(this.#curMin, this.#valToX(this.#curMin), "min")
+      this.#updateAriaHandle("min")
     } else {
       this.#curMax = Math.max(val, this.#curMin)
       this.#moveHandle("max", this.#valToX(this.#curMax))
-      this.#showTip(this.#curMax, this.#valToX(this.#curMax))
+      this.#showTip(this.#curMax, this.#valToX(this.#curMax), "max")
+      this.#updateAriaHandle("max")
     }
     this.#colorBars()
   }
 
   #onUp = () => {
+    const dragged = this.#dragging
     this.#dragging = null
-    this.#rect = null
     this.chartTarget.removeEventListener("pointermove", this.#onMove)
-    this.#hideTip()
     this.minInputTarget.value = this.#curMin
     this.maxInputTarget.value = this.#curMax
+    if (dragged) {
+      this.#hideTip(dragged)
+      this.#setHandleActive(dragged)
+    }
   }
 
-  #moveHandle(which, x) {
-    const h = this.chartTarget.querySelector(`[data-handle="${which}"]`)
-    if (h) h.setAttribute("cx", String(x))
-  }
+  #showTip(val, x, which) {
+    const tip = which === "min" ? this.#tipMin : this.#tipMax
+    if (!tip) return
 
-  #showTip(val, x) {
-    if (!this.#tip) return
-    this.#tip.textContent = this.#fmt(val)
-    this.#tip.setAttribute("x", String(x))
-    this.#tip.setAttribute("y", String(SVG_H - HANDLE_R * 2 - 4))
-    this.#tip.style.display = ""
-  }
+    const tipPath = tip.querySelector("path")
+    const text    = tip.querySelector("text")
+    const formatted = this.#fmt(val)
+    const textChanged = formatted !== this.#tipText[which]
+    if (textChanged) {
+      text.textContent = formatted
+      this.#tipText[which] = formatted
+    }
+    tip.style.display = ""
 
-  #hideTip() {
-    if (this.#tip) this.#tip.style.display = "none"
+    const pillH   = 20
+    const padX    = 6
+    const rx      = pillH / 2   // maximum rounding — full capsule ends
+    const arrowH  = 5
+    const arrowHW = 3
+    const gap     = 3
+
+    // Arrow tip clears the active handle's outer ring (HANDLE_R + 3).
+    const arrowTipY = HANDLE_Y - (HANDLE_R + 3) - gap
+    const pillTopY  = arrowTipY - arrowH - pillH
+    const pillBotY  = pillTopY + pillH
+
+    if (textChanged || this.#tipTextW[which] === 0) this.#tipTextW[which] = text.getComputedTextLength()
+    const textW = this.#tipTextW[which]
+    // Minimum width ensures the bottom always has a straight segment for the arrow.
+    const pillW    = Math.max(textW + padX * 2, 2 * (rx + arrowHW) + 2)
+    const pillX    = Math.max(0, Math.min(this.#svgW - pillW, x - pillW / 2))
+    // Clamp arrow x within the straight bottom segment between the two rounded caps.
+    const arrowXMin = pillX + rx + arrowHW
+    const arrowXMax = pillX + pillW - rx - arrowHW
+    const arrowX    = Math.max(arrowXMin, Math.min(arrowXMax, x))
+
+    // Single path: capsule (oval ends via arcs) + downward-pointing arrow, drawn clockwise.
+    const d = [
+      `M ${pillX + rx} ${pillTopY}`,
+      `L ${pillX + pillW - rx} ${pillTopY}`,
+      `A ${rx} ${rx} 0 0 1 ${pillX + pillW} ${pillTopY + rx}`,
+      `L ${pillX + pillW} ${pillBotY - rx}`,
+      `A ${rx} ${rx} 0 0 1 ${pillX + pillW - rx} ${pillBotY}`,
+      `L ${arrowX + arrowHW} ${pillBotY}`,
+      `L ${arrowX} ${arrowTipY}`,
+      `L ${arrowX - arrowHW} ${pillBotY}`,
+      `L ${pillX + rx} ${pillBotY}`,
+      `A ${rx} ${rx} 0 0 1 ${pillX} ${pillBotY - rx}`,
+      `L ${pillX} ${pillTopY + rx}`,
+      `A ${rx} ${rx} 0 0 1 ${pillX + rx} ${pillTopY}`,
+      "Z"
+    ].join(" ")
+
+    tipPath.setAttribute("d", d)
+    text.setAttribute("x", String(pillX + pillW / 2))
+    text.setAttribute("y", String(pillTopY + pillH / 2 + 2))
   }
 
   #valToX(val) {
-    if (this.#domMax === this.#domMin) return SVG_W / 2
-    return ((val - this.#domMin) / (this.#domMax - this.#domMin)) * SVG_W
+    if (this.#domMax === this.#domMin) return this.#svgW / 2
+    return PAD + ((val - this.#domMin) / (this.#domMax - this.#domMin)) * (this.#svgW - PAD * 2)
   }
 
   #xToVal(x) {
-    const raw = this.#domMin + (x / SVG_W) * (this.#domMax - this.#domMin)
+    const raw = this.#domMin + ((x - PAD) / (this.#svgW - PAD * 2)) * (this.#domMax - this.#domMin)
     return Math.round(Math.max(this.#domMin, Math.min(this.#domMax, raw)))
   }
 
