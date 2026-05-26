@@ -32,10 +32,14 @@ RSpec.describe "Histograms", type: :request do
 
         expect(response).to have_http_status(:ok)
         json = response.parsed_body
-        expect(json["domain_min"].to_f).to be_within(0.01).of(25.0)
+        # poverty_rate uses format: percent — fixed domain 0–100, 20 bins
+        expect(json["domain_min"]).to eq(0)
+        expect(json["domain_max"]).to eq(100)
+        expect(json["bins"].count).to eq(20)
+        expect(json["bins"].sum { |b| b["count"] }).to eq(1)
       end
 
-      it "routes trend fields to TrendDatum model with min_threshold nil (includes negatives)" do
+      it "routes trend fields to TrendDatum model with percent_change format covering ±200%" do
         pws = create(:public_water_system)
         create(:trend_datum, public_water_system: pws, pwsid: pws.pwsid, population_pct_change_capped: -3.5)
 
@@ -43,7 +47,9 @@ RSpec.describe "Histograms", type: :request do
 
         expect(response).to have_http_status(:ok)
         json = response.parsed_body
-        expect(json["domain_min"].to_f).to be <= -3.5
+        expect(json["domain_min"]).to eq(-200)
+        expect(json["domain_max"]).to eq(200)
+        expect(json["bins"].count).to eq(40)
       end
     end
 

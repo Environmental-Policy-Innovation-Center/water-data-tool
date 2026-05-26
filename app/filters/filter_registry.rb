@@ -135,9 +135,10 @@ class FilterRegistry
   def self.build_histogram_field_config
     config[:histogram_field_groups].each_with_object({}) do |(_group_key, group), fields|
       model = HISTOGRAM_MODELS.fetch(group[:model_key].to_sym)
-      extras = (group[:extras] || {}).dup
       group[:columns].each do |col|
-        fields[col.to_sym] = {model: model, **extras}
+        col_name = col[:name].to_sym
+        col_kwargs = col.except(:name)
+        fields[col_name] = {model: model, **col_kwargs}
       end
     end
   end

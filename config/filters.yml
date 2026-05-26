@@ -137,75 +137,73 @@ histogram_field_groups:
   demographics:
     model_key: demographics
     columns:
-      - age_over_61_rate
-      - age_under_5_rate
-      - aian_rate
-      - asian_rate
-      - bachelors_degree_rate
-      - black_rate
-      - hispanic_rate
-      - median_household_income
-      - mixed_race_rate
-      - napi_rate
-      - no_health_insurance_rate
-      - other_race_rate
-      - owner_rate
-      - poc_rate
-      - population_in_poverty_rate
-      - poverty_rate
-      - renter_rate
-      - total_population
-      - unemployment_rate
-      - white_rate
+      - {name: age_over_61_rate,           format: percent}
+      - {name: age_under_5_rate,           format: percent}
+      - {name: aian_rate,                  format: percent}
+      - {name: asian_rate,                 format: percent}
+      - {name: bachelors_degree_rate,      format: percent}
+      - {name: black_rate,                 format: percent}
+      - {name: hispanic_rate,              format: percent}
+      - {name: median_household_income,    format: currency}
+      - {name: mixed_race_rate,            format: percent}
+      - {name: napi_rate,                  format: percent}
+      - {name: no_health_insurance_rate,   format: percent}
+      - {name: other_race_rate,            format: percent}
+      - {name: owner_rate,                 format: percent}
+      - {name: poc_rate,                   format: percent}
+      - {name: population_in_poverty_rate, format: percent}
+      - {name: poverty_rate,               format: percent}
+      - {name: renter_rate,                format: percent}
+      - {name: total_population,           format: count}
+      - {name: unemployment_rate,          format: percent}
+      - {name: white_rate,                 format: percent}
   environmental_justice:
     model_key: environmental_justice
     columns:
-      - cejst_disadvantaged_pct
-      - cvi_overall_score
-      - svi_overall_pctl
+      - {name: cejst_disadvantaged_pct,   format: percent}
+      - {name: cvi_overall_score,         format: percent}
+      - {name: svi_overall_pctl,          format: percent}
   funding_summary:
     model_key: funding_summary
     columns:
-      - times_funded
-      - total_principal_forgiveness
-      - total_srf_assistance
+      - {name: times_funded,                format: count}
+      - {name: total_principal_forgiveness, format: currency}
+      - {name: total_srf_assistance,        format: currency}
   trend_datum:
     model_key: trend_datum
     columns:
-      - mhi_pct_change_capped
-      - population_pct_change_capped
-    extras:
-      min_threshold: null
+      - {name: mhi_pct_change_capped,        format: percent_change}
+      - {name: population_pct_change_capped, format: percent_change}
   violations:
     model_key: violations_summary
     columns:
-      - groundwater_rule_10yr
-      - groundwater_rule_5yr
-      - inorganic_chemicals_10yr
-      - inorganic_chemicals_5yr
-      - lead_and_copper_10yr
-      - lead_and_copper_5yr
-      - paperwork_violations_10yr
-      - paperwork_violations_5yr
-      - radionuclides_10yr
-      - radionuclides_5yr
-      - stage_1_disinfectants_10yr
-      - stage_1_disinfectants_5yr
-      - stage_2_disinfectants_10yr
-      - stage_2_disinfectants_5yr
-      - surface_water_treatment_10yr
-      - surface_water_treatment_5yr
-      - synthetic_organic_chemicals_10yr
-      - synthetic_organic_chemicals_5yr
-      - total_coliform_10yr
-      - total_coliform_5yr
-      - volatile_organic_chemicals_10yr
-      - volatile_organic_chemicals_5yr
+      - {name: groundwater_rule_10yr,            format: count}
+      - {name: groundwater_rule_5yr,             format: count}
+      - {name: inorganic_chemicals_10yr,         format: count}
+      - {name: inorganic_chemicals_5yr,          format: count}
+      - {name: lead_and_copper_10yr,             format: count}
+      - {name: lead_and_copper_5yr,              format: count}
+      - {name: paperwork_violations_10yr,        format: count}
+      - {name: paperwork_violations_5yr,         format: count}
+      - {name: radionuclides_10yr,               format: count}
+      - {name: radionuclides_5yr,                format: count}
+      - {name: stage_1_disinfectants_10yr,       format: count}
+      - {name: stage_1_disinfectants_5yr,        format: count}
+      - {name: stage_2_disinfectants_10yr,       format: count}
+      - {name: stage_2_disinfectants_5yr,        format: count}
+      - {name: surface_water_treatment_10yr,     format: count}
+      - {name: surface_water_treatment_5yr,      format: count}
+      - {name: synthetic_organic_chemicals_10yr, format: count}
+      - {name: synthetic_organic_chemicals_5yr,  format: count}
+      - {name: total_coliform_10yr,              format: count}
+      - {name: total_coliform_5yr,               format: count}
+      - {name: volatile_organic_chemicals_10yr,  format: count}
+      - {name: volatile_organic_chemicals_5yr,   format: count}
   watershed_hazard:
     model_key: watershed_hazard
     columns:
-      - impaired_streams_303d
-      - num_facilities
-      - open_underground_storage_tanks
-      - permit_effluent_violations
-      - risk_management_plan_facilities
+      - {name: impaired_streams_303d,            format: count}
+      - {name: num_facilities,                   format: count}
+      - {name: open_underground_storage_tanks,   format: count}
+      - {name: permit_effluent_violations,       format: count}
+      - {name: risk_management_plan_facilities,  format: count}
