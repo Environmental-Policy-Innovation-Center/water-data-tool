@@ -39,11 +39,12 @@ RSpec.describe FilterRegistry do
   end
 
   describe ".histogram_field_config" do
-    it "maps range columns from YAML to models and trend fields include min_threshold nil" do
+    it "maps columns to models, formats, and group-level extras" do
       cfg = described_class.histogram_field_config
-      expect(cfg[:poverty_rate]).to eq({model: Demographic})
-      expect(cfg[:population_pct_change_capped]).to eq({model: TrendDatum, min_threshold: nil})
-      expect(cfg[:paperwork_violations_5yr]).to eq({model: ViolationsSummary})
+      expect(cfg[:poverty_rate]).to eq({model: Demographic, format: "percent"})
+      expect(cfg[:median_household_income]).to eq({model: Demographic, format: "currency"})
+      expect(cfg[:population_pct_change_capped]).to eq({model: TrendDatum, format: "percent_change"})
+      expect(cfg[:paperwork_violations_5yr]).to eq({model: ViolationsSummary, format: "count"})
     end
 
     it "includes every demographic range column from config" do
