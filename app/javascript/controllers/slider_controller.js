@@ -3,12 +3,14 @@ import { Controller } from "@hotwired/stimulus"
 // Histogram data is global (not per-user or per-filter scope), so keying on field is stable.
 const CACHE = new Map()
 const SVG_W = 200
-const SVG_H = 80
+const SVG_H = 80        // bar + handle area
+const X_AXIS_H = 10     // tick lines below the handle baseline
 const HANDLE_R = 5
 const PAD = HANDLE_R  // track inset so handles don't overflow SVG edges
 const HANDLE_Y = SVG_H - HANDLE_R * 2  // handle center on the histogram baseline
 const BLUE = "#3B82F6"
 const GRAY = "#bfbfbf"
+const DARK = "#4b5563"  // neutral-600 — visually consistent as both stroke and filled circle
 const NS = "http://www.w3.org/2000/svg"
 
 export default class extends Controller {
@@ -93,11 +95,13 @@ export default class extends Controller {
       domain_min = 0
       domain_max = 100
     } else if (fmt === "percent_change") {
-      domain_min = Math.min(domain_min, -100)
-      domain_max = Math.max(domain_max, 100)
+      domain_min = Math.min(domain_min, -200)
+      domain_max = Math.max(domain_max, 200)
     } else {
       // count and currency: floor at 1 so scale always starts at 1 / $1
       domain_min = Math.min(domain_min, 1)
+      // Extend to the next nice round boundary so the axis always ends on a clean number.
+      domain_max = this.#niceMax(domain_min, domain_max)
     }
 
     this.#domMin = domain_min
@@ -115,14 +119,17 @@ export default class extends Controller {
     if (!maxVal) this.maxInputTarget.value = this.#curMax
 
     this.#draw()
+    // SR-only labels for screen readers — visual labels are rendered in the SVG x-axis.
     this.minLabelTarget.textContent = this.#fmt(domain_min)
     this.maxLabelTarget.textContent = this.#fmt(domain_max)
-    if (this.hasZeroLabelTarget) this.zeroLabelTarget.textContent = "0"
+    this.zeroLabelTarget.textContent = "0"
   }
 
   #draw() {
     const svg = this.chartTarget
-    svg.setAttribute("viewBox", `0 0 ${this.#svgW} ${SVG_H}`)
+    const totalH = SVG_H + X_AXIS_H
+    svg.setAttribute("viewBox", `0 0 ${this.#svgW} ${totalH}`)
+    svg.setAttribute("height", String(totalH))
     svg.setAttribute("preserveAspectRatio", "none")
     svg.innerHTML = ""
     this.#tipMin = null
@@ -140,6 +147,7 @@ export default class extends Controller {
         y1: HANDLE_Y, y2: HANDLE_Y,
         stroke: BLUE, "stroke-width": 2
       }))
+      this.#drawXAxis(svg)
       this.#minHandle = this.#addHandle("min", PAD)
       this.#maxHandle = this.#addHandle("max", this.#svgW - PAD)
       svg.removeEventListener("pointerdown", this.#onDown)
@@ -158,11 +166,15 @@ export default class extends Controller {
     // Using a square root scale for bar heights to give more visual distinction to smaller counts.
     this.#bins.forEach((bin, i) => {
       const h = bin.count > 0 && maxCount ? Math.max(1, (Math.sqrt(bin.count) / sqrtMax) * barArea) : 0
-      svg.appendChild(this.#el("rect", {
-        x: PAD + i * barW + gap / 2, y: SVG_H - HANDLE_R * 2 - h - 1,
-        width: drawW, height: h, rx: 2, ry: 2,
-        "data-bin-min": bin.min, "data-bin-max": bin.max
-      }))
+      const bx = PAD + i * barW + gap / 2
+      const by = SVG_H - HANDLE_R * 2 - h - 1
+      const bw = drawW
+      const r  = h > 0 ? Math.min(3, h / 2, bw / 2) : 0
+      // Path with rounded top corners only.
+      const d  = h > 0
+        ? `M ${bx} ${by + h} L ${bx} ${by + r} Q ${bx} ${by} ${bx + r} ${by} L ${bx + bw - r} ${by} Q ${bx + bw} ${by} ${bx + bw} ${by + r} L ${bx + bw} ${by + h} Z`
+        : ""
+      svg.appendChild(this.#el("path", { d, "data-bin-min": bin.min, "data-bin-max": bin.max }))
     })
 
     this.#tipMin = this.#makeTip()
@@ -170,6 +182,7 @@ export default class extends Controller {
     svg.appendChild(this.#tipMin)
     svg.appendChild(this.#tipMax)
 
+    this.#drawXAxis(svg)
     this.#minHandle = this.#addHandle("min", this.#valToX(this.#curMin))
     this.#maxHandle = this.#addHandle("max", this.#valToX(this.#curMax))
     this.#setHandleActive("min")
@@ -177,6 +190,95 @@ export default class extends Controller {
     this.#colorBars()
     svg.removeEventListener("pointerdown", this.#onDown)
     svg.addEventListener("pointerdown", this.#onDown)
+  }
+
+  #drawXAxis(svg) {
+    // Baseline sits flush at bar bottom; tick marks sit below the handles.
+    const baseY = SVG_H - HANDLE_R * 2 - 1
+    svg.appendChild(this.#el("line", {
+      x1: PAD, x2: this.#svgW - PAD,
+      y1: baseY, y2: baseY,
+      stroke: DARK, "stroke-width": 0.5
+    }))
+
+    const ticks = this.#xTicks()
+    const tickTop = baseY
+    const tickBot = tickTop + 4
+
+    ticks.forEach(({ value }) => {
+      svg.appendChild(this.#el("line", {
+        x1: this.#valToX(value), x2: this.#valToX(value),
+        y1: tickTop, y2: tickBot,
+        stroke: DARK, "stroke-width": 1
+      }))
+    })
+  }
+
+  // Returns tick positions and labels for the x-axis based on format and domain.
+  #xTicks() {
+    const fmt = this.formatValue
+
+    if (fmt === "percent") {
+      return [0, 20, 40, 60, 80, 100].map(v => ({ value: v, label: `${v}%` }))
+    }
+
+    if (fmt === "percent_change") {
+      return [
+        { value: -200, label: "≤−200%" },
+        { value: -100, label: "−100%" },
+        { value: 0,    label: "0" },
+        { value: 100,  label: "+100%" },
+        { value: 200,  label: "≥200%" }
+      ]
+    }
+
+    // count / currency: auto-select up to 5 evenly-spaced round ticks
+    return this.#autoTicks(this.#domMin, this.#domMax, 5)
+  }
+
+  // Computes up to maxCount nicely-rounded tick values spanning [min, max].
+  #autoTicks(min, max, maxCount) {
+    const range = max - min
+    if (range === 0) return [{ value: min, label: this.#fmtTick(min) }]
+
+    const step  = this.#niceStep(range, maxCount)
+    const ticks = []
+    const start = Math.ceil(min / step) * step
+    for (let v = start; v <= max + step * 0.001; v += step) {
+      const rounded = Math.round(v * 1e9) / 1e9
+      if (rounded >= min && rounded <= max) {
+        ticks.push({ value: rounded, label: this.#fmtTick(rounded) })
+      }
+    }
+
+    if (!ticks.length || Math.abs(ticks[0].value - min) > step * 0.01)
+      ticks.unshift({ value: min, label: this.#fmtTick(min) })
+    if (!ticks.length || Math.abs(ticks[ticks.length - 1].value - max) > step * 0.01)
+      ticks.push({ value: max, label: this.#fmtTick(max) })
+
+    return ticks
+  }
+
+  #niceStep(range, maxCount = 5) {
+    if (range <= 0) return 1
+    const rawStep  = range / (maxCount - 1)
+    const mag      = Math.pow(10, Math.floor(Math.log10(rawStep)))
+    const norm     = rawStep / mag
+    const niceNorm = norm < 1.5 ? 1 : norm < 3.5 ? 2 : norm < 7.5 ? 5 : 10
+    return niceNorm * mag
+  }
+
+  #niceMax(min, max) {
+    if (max <= min) return max
+    const step = this.#niceStep(max - min)
+    return Math.ceil(max / step) * step
+  }
+
+  #fmtTick(v) {
+    const r = Math.round(v)
+    return this.formatValue === "currency"
+      ? "$" + r.toLocaleString("en-US")
+      : r.toLocaleString("en-US")
   }
 
   #makeTip() {
@@ -206,7 +308,7 @@ export default class extends Controller {
     })
     g.style.cursor = "grab"
     g.setAttribute("transform", `translate(${x}, ${HANDLE_Y})`)
-    g.appendChild(this.#el("circle", { cx: 0, cy: 0, r: HANDLE_R, fill: "#000" }))
+    g.appendChild(this.#el("circle", { cx: 0, cy: 0, r: HANDLE_R, fill: DARK }))
 
     g.addEventListener("pointerenter", () => {
       if (this.#dragging) return
@@ -262,7 +364,7 @@ export default class extends Controller {
     const g = which === "min" ? this.#minHandle : this.#maxHandle
     if (!g) return
     g.innerHTML = ""
-    g.appendChild(this.#el("circle", { cx: 0, cy: 0, r: HANDLE_R, fill: "#000" }))
+    g.appendChild(this.#el("circle", { cx: 0, cy: 0, r: HANDLE_R, fill: DARK }))
   }
 
   #setHandleActive(which) {
@@ -286,8 +388,8 @@ export default class extends Controller {
   }
 
   #colorBars() {
-    this.chartTarget.querySelectorAll("rect[data-bin-min]").forEach(bar => {
-      const inside = +bar.dataset.binMax >= this.#curMin && +bar.dataset.binMin <= this.#curMax
+    this.chartTarget.querySelectorAll("[data-bin-min]").forEach(bar => {
+      const inside = +bar.dataset.binMax > this.#curMin && +bar.dataset.binMin <= this.#curMax
       bar.setAttribute("fill", inside ? BLUE : GRAY)
     })
   }

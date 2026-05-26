@@ -1,13 +1,12 @@
 <% slider_format = local_assigns.fetch(:format, nil) %>
-<div id="<%= panel_id %>" class="hidden px-2 pt-0 pb-1" data-controller="slider" data-slider-field-value="<%= field %>" data-slider-url-value="<%= histogram_path %>"<% if slider_format %> data-slider-format-value="<%= slider_format %>"<% end %>>
-  <p class="text-xs font-bold text-neutral-600 mb-0"><%= local_assigns.fetch(:label, "Number of violations") %></p>
-  <div class="border-t border-neutral-200 mt-1"></div>
-  <svg data-slider-target="chart" class="w-full" height="80"></svg>
-  <div class="flex justify-between text-xs mt-1">
+<div id="<%= panel_id %>" class="hidden px-2 pt-2 pb-1" data-controller="slider" data-slider-field-value="<%= field %>" data-slider-url-value="<%= histogram_path %>"<% if slider_format %> data-slider-format-value="<%= slider_format %>"<% end %>>
+  <p class="text-xs font-bold text-neutral-600 mb-2"><%= local_assigns.fetch(:label, "Number of violations") %></p>
+  <svg data-slider-target="chart" class="w-full" height="90"></svg>
+  <div class="flex justify-between text-xs mt-1 text-neutral-600">
     <span data-slider-target="minLabel"></span>
-    <% if slider_format == "percent_change" %><span data-slider-target="zeroLabel" class="text-neutral-400"></span><% end %>
     <span data-slider-target="maxLabel"></span>
   </div>
+  <span class="sr-only" data-slider-target="zeroLabel"></span>
   <input type="hidden" data-slider-target="minInput" id="<%= min_input_id %>">
   <input type="hidden" data-slider-target="maxInput" id="<%= max_input_id %>">
 </div>
