@@ -6,7 +6,7 @@ module Histogrammable
     #
     # format:        Controls domain clamping and bin count strategy.
     #                "percent"        → fixed domain 0–100, exactly 20 bins of 5pp each
-    #                "percent_change" → fixed domain −100–+100, exactly 20 bins of 10pp each
+    #                "percent_change" → fixed domain −200–+200, exactly 40 bins of 10pp each
     #                "count"          → adaptive: min(domain_max, 30) bins; good for small-range integers
     #                "currency" / nil → 30 equal-width bins
     # num_bins:      Explicit override; rarely needed — format drives this automatically.
@@ -28,9 +28,10 @@ module Histogrammable
         domain_max = 100
         num_bins = 20
         upper_bound = 100
-        scope = scope.where("#{quoted} > ?", min_threshold) if min_threshold
+        # Domain is fixed 0–100; 0% is a valid data point, so no min_threshold filter here.
       elsif format == "percent_change"
-        # Signed field — the zero-exclusion threshold doesn't apply.
+        # Signed field — default zero-exclusion doesn't apply; an explicit non-zero threshold is respected.
+        scope = scope.where("#{quoted} > ?", min_threshold) if min_threshold&.nonzero?
         domain_min = -200
         domain_max = 200
         num_bins = 40
@@ -41,11 +42,11 @@ module Histogrammable
         return {bins: [], domain_min: 0, domain_max: 0} if domain_min.nil?
 
         num_bins ||= if format == "count"
-          domain_max.to_i.clamp(1, 30)
+          (domain_max - domain_min + 1).to_i.clamp(1, 30)
         else
           30
         end
-        upper_bound = domain_max + 1
+        upper_bound = (format == "count") ? domain_min + num_bins : domain_max + 1
       end
 
       bin_width = (upper_bound.to_f - domain_min) / num_bins

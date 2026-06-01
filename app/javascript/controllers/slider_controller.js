@@ -5,17 +5,22 @@ const CACHE = new Map()
 const SVG_W = 200
 const SVG_H = 80        // bar + handle area
 const X_AXIS_H = 10     // tick lines below the handle baseline
+const BAR_TOP_PAD = 6   // clear pixels above tallest bar so y-axis label fits
+const HOVER_AREA_H = 26 // extra viewBox headroom above y=0 so hover pill clears the tallest bar
 const HANDLE_R = 5
-const PAD = HANDLE_R  // track inset so handles don't overflow SVG edges
+const Y_AXIS_W = 26     // pixels reserved on the left for y-axis label and tick marks
+const PAD_L = Y_AXIS_W + HANDLE_R  // left track inset (y-axis area + handle clearance)
+const PAD_R = HANDLE_R             // right track inset (handle clearance only)
 const HANDLE_Y = SVG_H - HANDLE_R * 2  // handle center on the histogram baseline
 const BLUE = "#3B82F6"
 const GRAY = "#bfbfbf"
-const DARK = "#4b5563"  // neutral-600 — visually consistent as both stroke and filled circle
+const DARK = "#4b5563"       // neutral-600 — visually consistent as both stroke and filled circle
+const LIGHT_GRAY = "#9ca3af" // neutral-400 — lighter tone for y-axis labels
 const NS = "http://www.w3.org/2000/svg"
 
 export default class extends Controller {
   static values = { field: String, url: String, format: String }
-  static targets = ["chart", "minLabel", "maxLabel", "minInput", "maxInput", "zeroLabel"]
+  static targets = ["chart", "minLabel", "maxLabel", "minInput", "maxInput", "zeroLabel", "minTextInput", "maxTextInput"]
 
   #bins = []
   #domMin = 0
@@ -25,12 +30,18 @@ export default class extends Controller {
   #dragging = null
   #tipMin = null
   #tipMax = null
-  #tipText = { min: null, max: null }
-  #tipTextW = { min: 0, max: 0 }
+  #tipHover = null
+  #tipText = { min: null, max: null, hover: null }
+  #tipTextW = { min: 0, max: 0, hover: 0 }
   #minHandle = null
   #maxHandle = null
+  #bars = []
+  #rect = null
   #svgW = SVG_W
   #ro = null
+  #needsDefaults = false
+  #minSet = false
+  #maxSet = false
 
   async connect() {
     const field = this.fieldValue
@@ -40,6 +51,7 @@ export default class extends Controller {
       const w = Math.round(entries[0]?.contentRect.width ?? 0)
       if (w <= 0 || w === this.#svgW) return
       this.#svgW = w
+      if (this.#dragging) this.#rect = this.chartTarget.getBoundingClientRect()
       if (this.#bins.length) this.#draw()
     })
     this.#ro.observe(this.chartTarget)
@@ -73,18 +85,33 @@ export default class extends Controller {
     this.#deactivateHandle("min")
     this.#deactivateHandle("max")
     this.#colorBars()
-    if (this.#tipMin) this.#tipMin.style.display = "none"
-    if (this.#tipMax) this.#tipMax.style.display = "none"
+    if (this.#tipMin) this.#tipMin.g.style.display = "none"
+    if (this.#tipMax) this.#tipMax.g.style.display = "none"
     this.minInputTarget.value = ""
     this.maxInputTarget.value = ""
+    this.#minSet = false
+    this.#maxSet = false
+    this.#syncTextInputs()
   }
 
   // Called by filter_controller when a health subcat slider panel is revealed.
   // Ensures inputs carry domain defaults so Apply always sends params for checked subcats.
+  // If histogram data hasn't loaded yet, sets a flag so #init applies defaults once fetch resolves.
   populateDefaultsIfEmpty() {
-    if (!this.#bins.length) return
+    if (!this.#bins.length) {
+      this.#needsDefaults = true
+      return
+    }
     if (!this.minInputTarget.value) this.minInputTarget.value = this.#domMin
     if (!this.maxInputTarget.value) this.maxInputTarget.value = this.#domMax
+  }
+
+  // Stimulus action: fired by data-action on the min/max text inputs (change + keydown.enter).
+  // keydown.enter must be prevented so it doesn't submit the filter form.
+  textInputChanged(event) {
+    if (event.type === "keydown") event.preventDefault()
+    const which = event.currentTarget === this.minTextInputTarget ? "min" : "max"
+    this.#onTextChange(which, event)
   }
 
   #init({ bins, domain_min, domain_max }) {
@@ -122,34 +149,42 @@ export default class extends Controller {
     // SR-only labels for screen readers — visual labels are rendered in the SVG x-axis.
     this.minLabelTarget.textContent = this.#fmt(domain_min)
     this.maxLabelTarget.textContent = this.#fmt(domain_max)
-    this.zeroLabelTarget.textContent = "0"
+    if (this.hasZeroLabelTarget) this.zeroLabelTarget.textContent = "0"
+    this.#syncTextInputs()
+    if (this.#needsDefaults) {
+      this.#needsDefaults = false
+      this.populateDefaultsIfEmpty()
+    }
   }
 
   #draw() {
     const svg = this.chartTarget
     const totalH = SVG_H + X_AXIS_H
-    svg.setAttribute("viewBox", `0 0 ${this.#svgW} ${totalH}`)
-    svg.setAttribute("height", String(totalH))
+    // Extend viewBox upward so the hover tooltip pill has room above tall bars.
+    svg.setAttribute("viewBox", `0 -${HOVER_AREA_H} ${this.#svgW} ${totalH + HOVER_AREA_H}`)
+    svg.setAttribute("height", String(totalH + HOVER_AREA_H))
     svg.setAttribute("preserveAspectRatio", "none")
     svg.innerHTML = ""
     this.#tipMin = null
     this.#tipMax = null
-    this.#tipText = { min: null, max: null }
-    this.#tipTextW = { min: 0, max: 0 }
+    this.#tipHover = null
+    this.#tipText = { min: null, max: null, hover: null }
+    this.#tipTextW = { min: 0, max: 0, hover: 0 }
     this.#minHandle = null
     this.#maxHandle = null
+    this.#bars = []
 
     if (!this.#bins.length) return
 
     if (this.#domMin === this.#domMax) {
       svg.appendChild(this.#el("line", {
-        x1: PAD, x2: this.#svgW - PAD,
+        x1: PAD_L, x2: this.#svgW - PAD_R,
         y1: HANDLE_Y, y2: HANDLE_Y,
         stroke: BLUE, "stroke-width": 2
       }))
       this.#drawXAxis(svg)
-      this.#minHandle = this.#addHandle("min", PAD)
-      this.#maxHandle = this.#addHandle("max", this.#svgW - PAD)
+      this.#minHandle = this.#addHandle("min", PAD_L)
+      this.#maxHandle = this.#addHandle("max", this.#svgW - PAD_R)
       svg.removeEventListener("pointerdown", this.#onDown)
       svg.addEventListener("pointerdown", this.#onDown)
       return
@@ -157,32 +192,59 @@ export default class extends Controller {
 
     const maxCount = Math.max(...this.#bins.map(b => b.count))
     const sqrtMax = maxCount ? Math.sqrt(maxCount) : 1
-    const barArea = SVG_H - HANDLE_R * 2 - 2
-    const trackW = this.#svgW - PAD * 2
+    const barArea = SVG_H - HANDLE_R * 2 - 2 - BAR_TOP_PAD
+    const trackW = this.#svgW - PAD_L - PAD_R
     const barW = trackW / this.#bins.length
     const gap = 1
     const drawW = Math.max(1, barW - gap)
 
-    // Using a square root scale for bar heights to give more visual distinction to smaller counts.
+    // Square root scale: water data is right-skewed — most systems cluster at low values with a
+    // long sparse tail. Sqrt lifts small bars enough to show the distribution shape without
+    // flattening them like linear would. Gentler than log, and safe for zero-count bins.
+    const hitRects = []
     this.#bins.forEach((bin, i) => {
       const h = bin.count > 0 && maxCount ? Math.max(1, (Math.sqrt(bin.count) / sqrtMax) * barArea) : 0
-      const bx = PAD + i * barW + gap / 2
+      const bx = PAD_L + i * barW + gap / 2
       const by = SVG_H - HANDLE_R * 2 - h - 1
       const bw = drawW
       const r  = h > 0 ? Math.min(3, h / 2, bw / 2) : 0
-      // Path with rounded top corners only.
       const d  = h > 0
         ? `M ${bx} ${by + h} L ${bx} ${by + r} Q ${bx} ${by} ${bx + r} ${by} L ${bx + bw - r} ${by} Q ${bx + bw} ${by} ${bx + bw} ${by + r} L ${bx + bw} ${by + h} Z`
         : ""
-      svg.appendChild(this.#el("path", { d, "data-bin-min": bin.min, "data-bin-max": bin.max }))
+      const bar = this.#el("path", { d, "data-bin-min": bin.min, "data-bin-max": bin.max, "aria-hidden": "true" })
+      svg.appendChild(bar)
+      this.#bars.push(bar)
+
+      if (bin.count > 0) {
+        const cx = PAD_L + i * barW + barW / 2
+        const label = bin.count === 1 ? "1 utility" : `${bin.count.toLocaleString("en-US")} utilities`
+        const baseline = SVG_H - HANDLE_R * 2 - 1
+        const hitH = Math.max(12, h)
+        const hit = this.#el("rect", {
+          x: bx, y: baseline - hitH, width: bw, height: hitH,
+          fill: "transparent", "pointer-events": "all", "aria-hidden": "true"
+        })
+        // Mouse: show on enter, hide on leave. Touch: show on press, hide on release —
+        // pointerleave is unreliable on touch pointerup (iOS Safari), so pointerup is explicit.
+        hit.addEventListener("pointerenter", () => this.#showHoverTip(label, cx, by))
+        hit.addEventListener("pointerleave", () => this.#hideTip("hover"))
+        hit.addEventListener("pointerup", (e) => { if (e.pointerType === "touch") this.#hideTip("hover") })
+        hitRects.push(hit)
+      }
     })
+    hitRects.forEach(r => svg.appendChild(r))
 
     this.#tipMin = this.#makeTip()
     this.#tipMax = this.#makeTip()
-    svg.appendChild(this.#tipMin)
-    svg.appendChild(this.#tipMax)
+    this.#tipHover = this.#makeTip("dark")
 
+    this.#drawYAxis(svg, maxCount, sqrtMax, barArea)
     this.#drawXAxis(svg)
+
+    svg.appendChild(this.#tipMin.g)
+    svg.appendChild(this.#tipMax.g)
+    svg.appendChild(this.#tipHover.g)
+
     this.#minHandle = this.#addHandle("min", this.#valToX(this.#curMin))
     this.#maxHandle = this.#addHandle("max", this.#valToX(this.#curMax))
     this.#setHandleActive("min")
@@ -196,7 +258,7 @@ export default class extends Controller {
     // Baseline sits flush at bar bottom; tick marks sit below the handles.
     const baseY = SVG_H - HANDLE_R * 2 - 1
     svg.appendChild(this.#el("line", {
-      x1: PAD, x2: this.#svgW - PAD,
+      x1: PAD_L, x2: this.#svgW - PAD_R,
       y1: baseY, y2: baseY,
       stroke: DARK, "stroke-width": 0.5
     }))
@@ -219,16 +281,16 @@ export default class extends Controller {
     const fmt = this.formatValue
 
     if (fmt === "percent") {
-      return [0, 20, 40, 60, 80, 100].map(v => ({ value: v, label: `${v}%` }))
+      return [0, 20, 40, 60, 80, 100].map(v => ({ value: v }))
     }
 
     if (fmt === "percent_change") {
       return [
-        { value: -200, label: "≤−200%" },
-        { value: -100, label: "−100%" },
-        { value: 0,    label: "0" },
-        { value: 100,  label: "+100%" },
-        { value: 200,  label: "≥200%" }
+        { value: -200 },
+        { value: -100 },
+        { value: 0 },
+        { value: 100 },
+        { value: 200 }
       ]
     }
 
@@ -239,7 +301,7 @@ export default class extends Controller {
   // Computes up to maxCount nicely-rounded tick values spanning [min, max].
   #autoTicks(min, max, maxCount) {
     const range = max - min
-    if (range === 0) return [{ value: min, label: this.#fmtTick(min) }]
+    if (range === 0) return [{ value: min }]
 
     const step  = this.#niceStep(range, maxCount)
     const ticks = []
@@ -247,14 +309,14 @@ export default class extends Controller {
     for (let v = start; v <= max + step * 0.001; v += step) {
       const rounded = Math.round(v * 1e9) / 1e9
       if (rounded >= min && rounded <= max) {
-        ticks.push({ value: rounded, label: this.#fmtTick(rounded) })
+        ticks.push({ value: rounded })
       }
     }
 
     if (!ticks.length || Math.abs(ticks[0].value - min) > step * 0.01)
-      ticks.unshift({ value: min, label: this.#fmtTick(min) })
-    if (!ticks.length || Math.abs(ticks[ticks.length - 1].value - max) > step * 0.01)
-      ticks.push({ value: max, label: this.#fmtTick(max) })
+      ticks.unshift({ value: min })
+    if (Math.abs(ticks[ticks.length - 1].value - max) > step * 0.01)
+      ticks.push({ value: max })
 
     return ticks
   }
@@ -274,21 +336,23 @@ export default class extends Controller {
     return Math.ceil(max / step) * step
   }
 
-  #fmtTick(v) {
-    const r = Math.round(v)
-    return this.formatValue === "currency"
-      ? "$" + r.toLocaleString("en-US")
-      : r.toLocaleString("en-US")
-  }
-
-  #makeTip() {
+  #makeTip(style = "light") {
     const g = this.#el("g", { class: "slider-tip", "aria-hidden": "true" })
     g.style.display = "none"
-    g.appendChild(this.#el("path", { fill: "white", stroke: "#d1d5db", "stroke-width": 1 }))
-    g.appendChild(this.#el("text", {
-      "text-anchor": "middle", "font-size": 12, fill: "#4b5563", "dominant-baseline": "middle"
-    }))
-    return g
+    const isDark = style === "dark"
+    const path = this.#el("path", {
+      fill: isDark ? BLUE : "white",
+      stroke: isDark ? BLUE : "#d1d5db",
+      "stroke-width": 1
+    })
+    const text = this.#el("text", {
+      "text-anchor": "middle", "font-size": 12,
+      fill: isDark ? "white" : "#4b5563",
+      "dominant-baseline": "middle"
+    })
+    g.appendChild(path)
+    g.appendChild(text)
+    return { g, path, text }
   }
 
   #addHandle(which, x) {
@@ -308,7 +372,6 @@ export default class extends Controller {
     })
     g.style.cursor = "grab"
     g.setAttribute("transform", `translate(${x}, ${HANDLE_Y})`)
-    g.appendChild(this.#el("circle", { cx: 0, cy: 0, r: HANDLE_R, fill: DARK }))
 
     g.addEventListener("pointerenter", () => {
       if (this.#dragging) return
@@ -340,6 +403,7 @@ export default class extends Controller {
       this.#colorBars()
       this.minInputTarget.value = this.#curMin
       this.maxInputTarget.value = this.#curMax
+      this.#syncTextInputs()
     })
 
     this.chartTarget.appendChild(g)
@@ -375,8 +439,8 @@ export default class extends Controller {
   }
 
   #hideTip(which) {
-    const tip = which === "min" ? this.#tipMin : this.#tipMax
-    if (tip) tip.style.display = "none"
+    const tip = which === "min" ? this.#tipMin : which === "max" ? this.#tipMax : this.#tipHover
+    if (tip) tip.g.style.display = "none"
   }
 
   #updateAriaHandle(which) {
@@ -388,7 +452,7 @@ export default class extends Controller {
   }
 
   #colorBars() {
-    this.chartTarget.querySelectorAll("[data-bin-min]").forEach(bar => {
+    this.#bars.forEach(bar => {
       const inside = +bar.dataset.binMax > this.#curMin && +bar.dataset.binMin <= this.#curMax
       bar.setAttribute("fill", inside ? BLUE : GRAY)
     })
@@ -399,6 +463,7 @@ export default class extends Controller {
     if (!handle) return
 
     this.#dragging = handle.dataset.handle
+    this.#rect = this.chartTarget.getBoundingClientRect()
     this.#activateHandle(this.#dragging)
     this.chartTarget.setPointerCapture(event.pointerId)
     this.chartTarget.addEventListener("pointermove", this.#onMove)
@@ -407,8 +472,8 @@ export default class extends Controller {
   }
 
   #onMove = (event) => {
-    const rect = this.chartTarget.getBoundingClientRect()
-    const x = Math.max(0, Math.min(this.#svgW, (event.clientX - rect.left) * (this.#svgW / rect.width)))
+    const rect = this.#rect
+    const x = Math.max(PAD_L, Math.min(this.#svgW - PAD_R, (event.clientX - rect.left) * (this.#svgW / rect.width)))
     const val = this.#xToVal(x)
 
     if (this.#dragging === "min") {
@@ -428,9 +493,11 @@ export default class extends Controller {
   #onUp = () => {
     const dragged = this.#dragging
     this.#dragging = null
+    this.#rect = null
     this.chartTarget.removeEventListener("pointermove", this.#onMove)
     this.minInputTarget.value = this.#curMin
     this.maxInputTarget.value = this.#curMax
+    this.#syncTextInputs()
     if (dragged) {
       this.#hideTip(dragged)
       this.#setHandleActive(dragged)
@@ -441,15 +508,15 @@ export default class extends Controller {
     const tip = which === "min" ? this.#tipMin : this.#tipMax
     if (!tip) return
 
-    const tipPath = tip.querySelector("path")
-    const text    = tip.querySelector("text")
+    const tipPath = tip.path
+    const text    = tip.text
     const formatted = this.#fmt(val)
     const textChanged = formatted !== this.#tipText[which]
     if (textChanged) {
       text.textContent = formatted
       this.#tipText[which] = formatted
     }
-    tip.style.display = ""
+    tip.g.style.display = ""
 
     const pillH   = 20
     const padX    = 6
@@ -467,8 +534,7 @@ export default class extends Controller {
     const textW = this.#tipTextW[which]
     // Minimum width ensures the bottom always has a straight segment for the arrow.
     const pillW    = Math.max(textW + padX * 2, 2 * (rx + arrowHW) + 2)
-    const pillX    = Math.max(0, Math.min(this.#svgW - pillW, x - pillW / 2))
-    // Clamp arrow x within the straight bottom segment between the two rounded caps.
+    const pillX    = Math.max(PAD_L - rx - arrowHW, Math.min(this.#svgW - PAD_R - pillW, x - pillW / 2))
     const arrowXMin = pillX + rx + arrowHW
     const arrowXMax = pillX + pillW - rx - arrowHW
     const arrowX    = Math.max(arrowXMin, Math.min(arrowXMax, x))
@@ -495,13 +561,110 @@ export default class extends Controller {
     text.setAttribute("y", String(pillTopY + pillH / 2 + 2))
   }
 
+  #drawYAxis(svg, maxCount, sqrtMax, barArea) {
+    // Entire y-axis is decorative — wrapped in aria-hidden so AT uses the handle ARIA instead.
+    const g = this.#el("g", { "aria-hidden": "true" })
+    const baseY = SVG_H - HANDLE_R * 2 - 1
+    const midY = baseY / 2
+
+    const axisLabel = this.#el("text", {
+      "text-anchor": "middle", "dominant-baseline": "middle",
+      "font-size": 10, fill: LIGHT_GRAY,
+      transform: `translate(6, ${midY}) rotate(-90)`
+    })
+    axisLabel.textContent = "# of utilities"
+    g.appendChild(axisLabel)
+
+    if (maxCount) {
+      // Center each tick midway between the axis label right edge (~x=10) and the bar area.
+      const tickCX = (10 + PAD_L) / 2
+      this.#yTicks(maxCount).forEach(count => {
+        const tickY = count === 0 ? baseY : baseY - (Math.sqrt(count) / sqrtMax) * barArea
+        g.appendChild(this.#el("line", {
+          x1: tickCX - 2, x2: tickCX + 2,
+          y1: tickY, y2: tickY,
+          stroke: LIGHT_GRAY, "stroke-width": 0.5
+        }))
+      })
+    }
+
+    svg.appendChild(g)
+  }
+
+  #yTicks(maxCount) {
+    if (maxCount <= 0) return [0]
+    const step = this.#niceStep(maxCount, 4)
+    const top = Math.ceil(maxCount / step) * step
+    const ticks = []
+    for (let v = 0; v <= top + step * 0.001; v += step) {
+      ticks.push(Math.round(v))
+    }
+    return ticks
+  }
+
+  #showHoverTip(label, cx, barTopY) {
+    const tip = this.#tipHover
+    if (!tip) return
+
+    const textChanged = label !== this.#tipText.hover
+    if (textChanged) {
+      tip.text.textContent = label
+      this.#tipText.hover = label
+    }
+    tip.g.style.display = ""
+
+    const pillH   = 20
+    const padX    = 6
+    const rx      = 4
+    const arrowH  = 5
+    const arrowHW = 2
+    const gap     = 4
+
+    const arrowTipY = barTopY - gap
+    const pillTopY  = arrowTipY - arrowH - pillH
+    const pillBotY  = pillTopY + pillH
+
+    if (textChanged || this.#tipTextW.hover === 0) this.#tipTextW.hover = tip.text.getComputedTextLength()
+    const textW = this.#tipTextW.hover
+    const pillW = Math.max(textW + padX * 2, 2 * (rx + arrowHW) + 2)
+    // Pill stays within the chart area; arrow tracks bar center as closely as geometry allows.
+    const pillX     = Math.max(PAD_L, Math.min(this.#svgW - PAD_R - pillW, cx - pillW / 2))
+    const arrowXMin = pillX + rx + arrowHW
+    const arrowXMax = pillX + pillW - rx - arrowHW
+    const arrowX    = Math.max(arrowXMin, Math.min(arrowXMax, cx))
+
+    const d = [
+      `M ${pillX + rx} ${pillTopY}`,
+      `L ${pillX + pillW - rx} ${pillTopY}`,
+      `A ${rx} ${rx} 0 0 1 ${pillX + pillW} ${pillTopY + rx}`,
+      `L ${pillX + pillW} ${pillBotY - rx}`,
+      `A ${rx} ${rx} 0 0 1 ${pillX + pillW - rx} ${pillBotY}`,
+      `L ${arrowX + arrowHW} ${pillBotY}`,
+      `L ${arrowX} ${arrowTipY}`,
+      `L ${arrowX - arrowHW} ${pillBotY}`,
+      `L ${pillX + rx} ${pillBotY}`,
+      `A ${rx} ${rx} 0 0 1 ${pillX} ${pillBotY - rx}`,
+      `L ${pillX} ${pillTopY + rx}`,
+      `A ${rx} ${rx} 0 0 1 ${pillX + rx} ${pillTopY}`,
+      "Z"
+    ].join(" ")
+
+    tip.path.setAttribute("d", d)
+    tip.text.setAttribute("x", String(pillX + pillW / 2))
+    tip.text.setAttribute("y", String(pillTopY + pillH / 2 + 2))
+  }
+
   #valToX(val) {
     if (this.#domMax === this.#domMin) return this.#svgW / 2
-    return PAD + ((val - this.#domMin) / (this.#domMax - this.#domMin)) * (this.#svgW - PAD * 2)
+    const trackW = this.#svgW - PAD_L - PAD_R
+    if (trackW <= 0) return PAD_L
+    return PAD_L + ((val - this.#domMin) / (this.#domMax - this.#domMin)) * trackW
   }
 
   #xToVal(x) {
-    const raw = this.#domMin + ((x - PAD) / (this.#svgW - PAD * 2)) * (this.#domMax - this.#domMin)
+    const trackW = this.#svgW - PAD_L - PAD_R
+    if (trackW <= 0) return this.#domMin
+    const raw = this.#domMin + ((x - PAD_L) / trackW) * (this.#domMax - this.#domMin)
     return Math.round(Math.max(this.#domMin, Math.min(this.#domMax, raw)))
   }
 
@@ -509,6 +672,79 @@ export default class extends Controller {
     const el = document.createElementNS(NS, tag)
     for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, String(v))
     return el
+  }
+
+  #fmtTextInput(val) {
+    const r = Math.round(val)
+    const fmt = this.formatValue
+    if (fmt === "percent") return `${r}%`
+    if (fmt === "percent_change") return `${r > 0 ? "+" : ""}${r}%`
+    if (fmt === "currency") return `$${r.toLocaleString("en-US")}`
+    return r.toLocaleString("en-US")
+  }
+
+  // Shows the formatted value when the user has explicitly typed into an input (#minSet / #maxSet),
+  // otherwise shows empty so the placeholder appears when the slider is at the domain boundary.
+  #syncTextInputs() {
+    if (this.hasMinTextInputTarget) {
+      this.minTextInputTarget.value = (this.#minSet || this.#curMin !== this.#domMin) ? this.#fmtTextInput(this.#curMin) : ""
+    }
+    if (this.hasMaxTextInputTarget) {
+      this.maxTextInputTarget.value = (this.#maxSet || this.#curMax !== this.#domMax) ? this.#fmtTextInput(this.#curMax) : ""
+    }
+  }
+
+  #onTextChange(which, event) {
+    const raw = event.currentTarget.value.trim()
+
+    if (!raw) {
+      // Leave input empty so the placeholder reappears; clear the explicit-set flag.
+      if (which === "min") {
+        this.#curMin = this.#domMin
+        this.minInputTarget.value = this.#curMin
+        this.#minSet = false
+      } else {
+        this.#curMax = this.#domMax
+        this.maxInputTarget.value = this.#curMax
+        this.#maxSet = false
+      }
+      const val = which === "min" ? this.#curMin : this.#curMax
+      this.#moveHandle(which, this.#valToX(val))
+      this.#updateAriaHandle(which)
+      this.#setHandleActive(which)
+      this.#colorBars()
+      return
+    }
+
+    // Strip formatting including + (displayed in percent_change values like "+75%").
+    const parsed = parseFloat(raw.replace(/[$%,\s+]/g, ""))
+    if (isNaN(parsed)) {
+      event.currentTarget.value = ""
+      return
+    }
+
+    let clamped
+    if (which === "min") {
+      // Min may not exceed the current max handle position.
+      clamped = Math.round(Math.max(this.#domMin, Math.min(this.#curMax, parsed)))
+      this.#curMin = clamped
+      this.minInputTarget.value = clamped
+      this.#minSet = true
+    } else {
+      // Max may not go below the current min handle position.
+      clamped = Math.round(Math.min(this.#domMax, Math.max(this.#curMin, parsed)))
+      this.#curMax = clamped
+      this.maxInputTarget.value = clamped
+      this.#maxSet = true
+    }
+
+    event.currentTarget.value = this.#fmtTextInput(clamped)
+
+    this.#moveHandle(which, this.#valToX(clamped))
+    this.#updateAriaHandle(which)
+    this.#setHandleActive(which)
+    this.#colorBars()
+    this.#syncTextInputs()
   }
 
   #fmt(n) {

@@ -1,12 +1,37 @@
 <% slider_format = local_assigns.fetch(:format, nil) %>
 <div id="<%= panel_id %>" class="hidden px-2 pt-2 pb-1" data-controller="slider" data-slider-field-value="<%= field %>" data-slider-url-value="<%= histogram_path %>"<% if slider_format %> data-slider-format-value="<%= slider_format %>"<% end %>>
   <p class="text-xs font-bold text-neutral-600 mb-2"><%= local_assigns.fetch(:label, "Number of violations") %></p>
-  <svg data-slider-target="chart" class="w-full" height="90"></svg>
-  <div class="flex justify-between text-xs mt-1 text-neutral-600">
+  <svg data-slider-target="chart" class="w-full overflow-visible" height="90"></svg>
+  <div id="<%= panel_id %>-range-axis" aria-hidden="true" class="flex justify-between text-xs mt-1 text-neutral-600">
     <span data-slider-target="minLabel"></span>
     <span data-slider-target="maxLabel"></span>
   </div>
   <span class="sr-only" data-slider-target="zeroLabel"></span>
+  <div class="flex items-center gap-1 mt-2 text-xs text-neutral-600">
+    <div class="flex flex-col flex-1 min-w-0">
+      <input type="text"
+             id="<%= panel_id %>-min-text"
+             data-slider-target="minTextInput"
+             data-action="change->slider#textInputChanged keydown.enter->slider#textInputChanged"
+             placeholder="<%= slider_format&.start_with?("percent") ? "Enter Min %" : (slider_format == "currency" ? "Enter Min $" : "Enter Min") %>"
+             inputmode="numeric"
+             autocomplete="off"
+             aria-label="Minimum filter value"
+             class="w-full text-xs font-bold bg-neutral-50 border border-neutral-300 rounded px-1.5 py-1 text-neutral-700">
+    </div>
+    <span aria-hidden="true">-</span>
+    <div class="flex flex-col flex-1 min-w-0">
+      <input type="text"
+             id="<%= panel_id %>-max-text"
+             data-slider-target="maxTextInput"
+             data-action="change->slider#textInputChanged keydown.enter->slider#textInputChanged"
+             placeholder="<%= slider_format&.start_with?("percent") ? "Enter Max %" : (slider_format == "currency" ? "Enter Max $" : "Enter Max") %>"
+             inputmode="numeric"
+             autocomplete="off"
+             aria-label="Maximum filter value"
+             class="w-full text-xs font-bold bg-neutral-50 border border-neutral-300 rounded px-1.5 py-1 text-neutral-700 text-right">
+    </div>
+  </div>
   <input type="hidden" data-slider-target="minInput" id="<%= min_input_id %>">
   <input type="hidden" data-slider-target="maxInput" id="<%= max_input_id %>">
 </div>

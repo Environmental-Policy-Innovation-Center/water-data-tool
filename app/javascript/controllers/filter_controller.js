@@ -314,6 +314,11 @@ export default class extends Controller {
         if (s.sliderPanelId) this.#hideAndResetSlider(document.getElementById(s.sliderPanelId))
       })
     })
+    RANGE_FILTERS.forEach(f => {
+      const el = document.getElementById(f.panelId)
+      if (!el || !menu.contains(el)) return
+      this.#hideAndResetSlider(el)
+    })
     menu.querySelectorAll("button[data-panel-id]").forEach(btn => {
       btn.setAttribute("aria-expanded", "false")
       btn.querySelector("svg")?.classList.remove("rotate-180")
