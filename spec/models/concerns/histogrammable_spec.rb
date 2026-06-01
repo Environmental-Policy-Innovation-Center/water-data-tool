@@ -104,6 +104,15 @@ RSpec.describe Histogrammable, type: :model do
         expect(result[:bins].first[:min]).to be_within(0.0001).of(0)
         expect(result[:bins].last[:max]).to be_within(0.0001).of(100)
       end
+
+      it "counts systems with exactly 0% — consistent with the filter query which applies >= 0" do
+        pws_zero = create(:public_water_system)
+        create(:demographic, public_water_system: pws_zero, pwsid: pws_zero.pwsid, poverty_rate: 0)
+
+        result = Demographic.histogram_bins(:poverty_rate, format: "percent")
+        zero_bin = result[:bins].first  # 0.0–5.0 bin
+        expect(zero_bin[:count]).to be >= 1
+      end
     end
 
     describe "format: percent_change" do
@@ -138,6 +147,16 @@ RSpec.describe Histogrammable, type: :model do
         expect(bin_containing_150[:count]).to eq(1)
       end
 
+      it "applies a non-zero min_threshold when explicitly passed" do
+        pws_new = create(:public_water_system)
+        create(:trend_datum, public_water_system: pws_new, pwsid: pws_new.pwsid,
+          population_pct_change_capped: 10)
+
+        # value 10 is <= 50, so it should be excluded; value 150 (from before) is > 50
+        result = TrendDatum.histogram_bins(:population_pct_change_capped, format: "percent_change", min_threshold: 50)
+        expect(result[:bins].sum { |b| b[:count] }).to eq(1)
+      end
+
       it "counts negative values without a min_threshold filter" do
         pws_h = create(:public_water_system)
         create(:trend_datum, public_water_system: pws_h, pwsid: pws_h.pwsid,
@@ -149,18 +168,39 @@ RSpec.describe Histogrammable, type: :model do
     end
 
     describe "format: count" do
-      it "uses 1 bin per integer when domain_max <= 30" do
+      it "handles single-value data with a single bin covering that value" do
+        pws_s = create(:public_water_system)
+        create(:violations_summary, public_water_system: pws_s, pwsid: pws_s.pwsid,
+          paperwork_violations_5yr: 3)
+
+        result = ViolationsSummary.histogram_bins(:paperwork_violations_5yr, format: "count")
+        expect(result[:bins].length).to eq(1)
+        expect(result[:bins].first[:count]).to eq(1)
+        expect(result[:bins].first[:min]).to be_within(0.0001).of(3)
+        expect(result[:bins].first[:max]).to be_within(0.0001).of(4)
+      end
+
+      it "uses 1 bin per integer when range <= 30" do
         pws_h = create(:public_water_system)
+        pws_h2 = create(:public_water_system)
         create(:violations_summary, public_water_system: pws_h, pwsid: pws_h.pwsid,
+          paperwork_violations_5yr: 3)
+        create(:violations_summary, public_water_system: pws_h2, pwsid: pws_h2.pwsid,
           paperwork_violations_5yr: 5)
 
         result = ViolationsSummary.histogram_bins(:paperwork_violations_5yr, format: "count")
-        expect(result[:bins].length).to eq(5)
+        expect(result[:bins].length).to eq(3)
+        result[:bins].each do |bin|
+          expect(bin[:max] - bin[:min]).to be_within(0.0001).of(1.0)
+        end
       end
 
-      it "caps at 30 bins when domain_max exceeds 30" do
+      it "caps at 30 bins when integer range exceeds 30" do
         pws_i = create(:public_water_system)
+        pws_i2 = create(:public_water_system)
         create(:violations_summary, public_water_system: pws_i, pwsid: pws_i.pwsid,
+          paperwork_violations_5yr: 1)
+        create(:violations_summary, public_water_system: pws_i2, pwsid: pws_i2.pwsid,
           paperwork_violations_5yr: 50)
 
         result = ViolationsSummary.histogram_bins(:paperwork_violations_5yr, format: "count")
