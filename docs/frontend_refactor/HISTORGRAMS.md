@@ -90,14 +90,14 @@ Equal-width, 30 bins. The `min_threshold: 0` already excludes zero-valued rows f
 
 ## Bar Positioning
 
-Bars are positioned by **array index** — `x = PAD_L + i * barW` — which is equivalent to value-axis positioning because the backend always returns exactly `numBins` entries with uniform theoretical boundaries. The two approaches give identical results; index-based is simpler and is what the code uses.
+Bars are positioned by **value** — each bar's left and right pixel edges are computed via `#valToX(bin.min)` and `#valToX(bin.max)`. This ensures bars and handles share the same coordinate system regardless of any frontend domain extension (e.g. `niceMax`). An earlier index-based approach (`x = PAD_L + i * barW`) was equivalent only when `domMax` exactly matched the backend's bin upper boundary; value-based positioning removes that hidden dependency.
 
-The track is inset asymmetrically: `PAD_L` on the left (reserves space for the y-axis label and tick marks) and `PAD_R` on the right (handle clearance only). Bar width is `trackW / numBins` where `trackW = svgW - PAD_L - PAD_R`.
+The track is inset asymmetrically: `PAD_L` on the left (reserves space for the y-axis label and tick marks) and `PAD_R` on the right (handle clearance only).
 
 Empty bins (`count: 0`) render as zero-height paths — genuine visual gaps in the distribution.
 
 ### Handle-to-bar alignment
-The min handle at `domMin` sits at the left edge of the first bar. The max handle at `domMax` sits at the right edge of the last bar. Handles at intermediate values land somewhere within the bar that contains that value (not necessarily centered — this is expected and correct). The floating tooltip above the handle shows the precise value; bar coloring is approximate visual context.
+The min handle at `domMin` sits at the left edge of the first bar. The max handle at `domMax` (the `niceMax`-extended boundary) sits at the right edge of the track, leaving a small visual gap between the last bar and the track edge for readability. Handles at intermediate values land somewhere within the bar that contains that value (not necessarily centered — this is expected and correct). The floating tooltip above the handle shows the precise value; bar coloring is approximate visual context.
 
 ### Bar coloring
 A bar is colored blue (inside the selected range) or gray (outside) using its theoretical boundaries:

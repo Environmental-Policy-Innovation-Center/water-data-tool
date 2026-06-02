@@ -46,7 +46,7 @@ module Histogrammable
         else
           30
         end
-        upper_bound = (format == "count") ? domain_min + num_bins : domain_max + 1
+        upper_bound = domain_max + 1
       end
 
       bin_width = (upper_bound.to_f - domain_min) / num_bins
