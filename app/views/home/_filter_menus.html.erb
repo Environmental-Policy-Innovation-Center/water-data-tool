@@ -114,9 +114,9 @@
                   aria-controls="subcat-health-5yr">
             <%= icon("arrow-down", classes: "h-3 w-3 transition-transform duration-150") %>
           </button>
-          <div id="subcat-health-5yr" class="hidden pl-4 pb-1" data-subcat-panel
+          <div id="subcat-health-5yr" class="hidden pl-2 pb-1" data-subcat-panel
                data-action="change->filter#syncParentFromSubcat">
-          <ul class="space-y-1 mt-1 list-none px-1">
+          <ul class="mt-1 list-none px-1">
             <%= render Filters::GroupRangeComponent.new(
                   checkbox_id: "viols-groundwater-5yr", panel_id: "slider-groundwater-5yr",
                   label: "Ground water rule", tooltip_text: filter_tooltips["groundwater_rule"],
@@ -172,9 +172,9 @@
                   aria-controls="subcat-health-10yr">
             <%= icon("arrow-down", classes: "h-3 w-3 transition-transform duration-150") %>
           </button>
-          <div id="subcat-health-10yr" class="hidden pl-4 pb-1" data-subcat-panel
+          <div id="subcat-health-10yr" class="hidden pl-2 pb-1" data-subcat-panel
                data-action="change->filter#syncParentFromSubcat">
-          <ul class="space-y-1 mt-1 list-none px-1">
+          <ul class="mt-1 list-none px-1">
             <%= render Filters::GroupRangeComponent.new(
                   checkbox_id: "viols-groundwater-10yr", panel_id: "slider-groundwater-10yr",
                   label: "Ground water rule", tooltip_text: filter_tooltips["groundwater_rule"],
@@ -230,7 +230,7 @@
                   aria-controls="subcat-paperwork-5yr">
             <%= icon("arrow-down", classes: "h-3 w-3 transition-transform duration-150") %>
           </button>
-          <div id="subcat-paperwork-5yr" class="hidden px-4 py-2" data-subcat-panel
+          <div id="subcat-paperwork-5yr" class="hidden px-2 py-2" data-subcat-panel
                data-controller="slider"
                data-slider-field-value="paperwork_violations_5yr"
                data-slider-url-value="<%= histogram_path %>">
@@ -256,7 +256,7 @@
                   aria-controls="subcat-paperwork-10yr">
             <%= icon("arrow-down", classes: "h-3 w-3 transition-transform duration-150") %>
           </button>
-          <div id="subcat-paperwork-10yr" class="hidden px-4 py-2" data-subcat-panel
+          <div id="subcat-paperwork-10yr" class="hidden px-2 py-2" data-subcat-panel
                data-controller="slider"
                data-slider-field-value="paperwork_violations_10yr"
                data-slider-url-value="<%= histogram_path %>">
@@ -314,7 +314,7 @@
                   aria-expanded="false" aria-controls="subcat-rate-tier">
             <%= icon("arrow-down", classes: "h-3 w-3 transition-transform duration-150") %>
           </button>
-          <div id="subcat-rate-tier" class="hidden pl-4 pb-2" data-subcat-panel>
+          <div id="subcat-rate-tier" class="hidden pl-2 pb-2" data-subcat-panel>
             <ul class="space-y-0.5 mt-1 list-none px-1">
               <li class="<%= filter_row_classes %>"><input type="checkbox" class="toggle default-checked" checked id="rate-tier-lt125">
                   <label for="rate-tier-lt125">Under $125</label></li>
@@ -374,9 +374,9 @@
                   aria-expanded="false" aria-controls="subcat-watershed-hazards">
             <%= icon("arrow-down", classes: "h-3 w-3 transition-transform duration-150") %>
           </button>
-          <div id="subcat-watershed-hazards" class="hidden pl-4 pb-1" data-subcat-panel
+          <div id="subcat-watershed-hazards" class="hidden pl-2 pb-1" data-subcat-panel
                data-action="change->filter#syncParentFromSubcat">
-            <ul class="space-y-1 mt-1 list-none px-1">
+            <ul class="mt-1 list-none px-1">
               <%= render Filters::GroupRangeComponent.new(
                     checkbox_id: "more-num-facilities", panel_id: "slider-num-facilities",
                     label: "Source water connections", tooltip_text: filter_tooltips["source_water_connections"],

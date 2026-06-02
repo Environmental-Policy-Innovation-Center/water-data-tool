@@ -2,20 +2,18 @@ import { Controller } from "@hotwired/stimulus"
 
 // Histogram data is global (not per-user or per-filter scope), so keying on field is stable.
 const CACHE = new Map()
-const SVG_W = 200
-const SVG_H = 80        // bar + handle area
-const X_AXIS_H = 10     // tick lines below the handle baseline
-const BAR_TOP_PAD = 6   // clear pixels above tallest bar so y-axis label fits
-const HOVER_AREA_H = 26 // extra viewBox headroom above y=0 so hover pill clears the tallest bar
+const SVG_H = 100       // bar + handle area
+const X_AXIS_H = 12     // tick lines below the handle baseline
+const BAR_TOP_PAD = 4   // clear pixels above tallest bar so y-axis label fits
+const HOVER_AREA_H = 16 // extra viewBox headroom above y=0 so hover pill clears the tallest bar
 const HANDLE_R = 5
 const Y_AXIS_W = 26     // pixels reserved on the left for y-axis label and tick marks
 const PAD_L = Y_AXIS_W + HANDLE_R  // left track inset (y-axis area + handle clearance)
 const PAD_R = HANDLE_R             // right track inset (handle clearance only)
 const HANDLE_Y = SVG_H - HANDLE_R * 2  // handle center on the histogram baseline
-const BLUE = "#3B82F6"
-const GRAY = "#bfbfbf"
-const DARK = "#4b5563"       // neutral-600 — visually consistent as both stroke and filled circle
-const LIGHT_GRAY = "#9ca3af" // neutral-400 — lighter tone for y-axis labels
+const BLUE         = "#3B82F6" // blue-500 — highlighted bars, active handles
+const NEUTRAL_400  = "#bfbfbf" // --color-neutral-400 in @theme — unselected bars
+const NEUTRAL_700  = "#565656" // --color-neutral-700 in @theme — axes, tick marks, labels, inactive handles
 const NS = "http://www.w3.org/2000/svg"
 
 export default class extends Controller {
@@ -37,7 +35,7 @@ export default class extends Controller {
   #maxHandle = null
   #bars = []
   #rect = null
-  #svgW = SVG_W
+  #svgW = 0
   #ro = null
   #needsDefaults = false
   #minSet = false
@@ -204,10 +202,10 @@ export default class extends Controller {
       // Value-based positioning: use the bin's theoretical boundaries via #valToX so bars
       // stay aligned with handle positions regardless of domain extension (e.g. niceMax).
       const binLeft  = this.#valToX(bin.min)
-      const binRight = this.#valToX(bin.max)
+      const binRight = Math.min(this.#valToX(bin.max), this.#svgW - PAD_R)
       const bx = binLeft + gap / 2
       const bw = Math.max(1, binRight - binLeft - gap)
-      const by = SVG_H - HANDLE_R * 2 - h - 1
+      const by = HANDLE_Y - h
       const r  = h > 0 ? Math.min(3, h / 2, bw / 2) : 0
       const d  = h > 0
         ? `M ${bx} ${by + h} L ${bx} ${by + r} Q ${bx} ${by} ${bx + r} ${by} L ${bx + bw - r} ${by} Q ${bx + bw} ${by} ${bx + bw} ${by + r} L ${bx + bw} ${by + h} Z`
@@ -219,7 +217,7 @@ export default class extends Controller {
       if (bin.count > 0) {
         const cx = (binLeft + binRight) / 2
         const label = bin.count === 1 ? "1 utility" : `${bin.count.toLocaleString("en-US")} utilities`
-        const baseline = SVG_H - HANDLE_R * 2 - 1
+        const baseline = HANDLE_Y
         const hitH = Math.max(12, h)
         const hit = this.#el("rect", {
           x: bx, y: baseline - hitH, width: bw, height: hitH,
@@ -257,22 +255,22 @@ export default class extends Controller {
 
   #drawXAxis(svg) {
     // Baseline sits flush at bar bottom; tick marks sit below the handles.
-    const baseY = SVG_H - HANDLE_R * 2 - 1
+    const baseY = HANDLE_Y
     svg.appendChild(this.#el("line", {
       x1: PAD_L, x2: this.#svgW - PAD_R,
       y1: baseY, y2: baseY,
-      stroke: DARK, "stroke-width": 0.5
+      stroke: NEUTRAL_700, "stroke-width": 1, "shape-rendering": "crispEdges"
     }))
 
     const ticks = this.#xTicks()
     const tickTop = baseY
-    const tickBot = tickTop + 4
+    const tickBot = tickTop + 6
 
     ticks.forEach(({ value }) => {
       svg.appendChild(this.#el("line", {
         x1: this.#valToX(value), x2: this.#valToX(value),
         y1: tickTop, y2: tickBot,
-        stroke: DARK, "stroke-width": 1
+        stroke: NEUTRAL_700, "stroke-width": 1.5
       }))
     })
   }
@@ -350,7 +348,7 @@ export default class extends Controller {
       "stroke-width": 1
     })
     const text = this.#el("text", {
-      "text-anchor": "middle", "font-size": 12,
+      "text-anchor": "middle", "font-size": 14,
       fill: isDark ? "white" : "#4b5563",
       "dominant-baseline": "middle"
     })
@@ -432,7 +430,7 @@ export default class extends Controller {
     const g = which === "min" ? this.#minHandle : this.#maxHandle
     if (!g) return
     g.innerHTML = ""
-    g.appendChild(this.#el("circle", { cx: 0, cy: 0, r: HANDLE_R, fill: DARK }))
+    g.appendChild(this.#el("circle", { cx: 0, cy: 0, r: HANDLE_R, fill: NEUTRAL_700 }))
   }
 
   #setHandleActive(which) {
@@ -458,7 +456,7 @@ export default class extends Controller {
   #colorBars() {
     this.#bars.forEach(bar => {
       const inside = +bar.dataset.binMax > this.#curMin && +bar.dataset.binMin <= this.#curMax
-      bar.setAttribute("fill", inside ? BLUE : GRAY)
+      bar.setAttribute("fill", inside ? BLUE : NEUTRAL_400)
     })
   }
 
@@ -537,11 +535,9 @@ export default class extends Controller {
     if (textChanged || this.#tipTextW[which] === 0) this.#tipTextW[which] = text.getComputedTextLength()
     const textW = this.#tipTextW[which]
     // Minimum width ensures the bottom always has a straight segment for the arrow.
-    const pillW    = Math.max(textW + padX * 2, 2 * (rx + arrowHW) + 2)
-    const pillX    = Math.max(PAD_L - rx - arrowHW, Math.min(this.#svgW - PAD_R - pillW, x - pillW / 2))
-    const arrowXMin = pillX + rx + arrowHW
-    const arrowXMax = pillX + pillW - rx - arrowHW
-    const arrowX    = Math.max(arrowXMin, Math.min(arrowXMax, x))
+    const pillW  = Math.max(textW + padX * 2, 2 * (rx + arrowHW) + 2)
+    const pillX  = x - pillW / 2
+    const arrowX = x
 
     // Single path: capsule (oval ends via arcs) + downward-pointing arrow, drawn clockwise.
     const d = [
@@ -568,12 +564,12 @@ export default class extends Controller {
   #drawYAxis(svg, maxCount, sqrtMax, barArea) {
     // Entire y-axis is decorative — wrapped in aria-hidden so AT uses the handle ARIA instead.
     const g = this.#el("g", { "aria-hidden": "true" })
-    const baseY = SVG_H - HANDLE_R * 2 - 1
+    const baseY = HANDLE_Y
     const midY = baseY / 2
 
     const axisLabel = this.#el("text", {
       "text-anchor": "middle", "dominant-baseline": "middle",
-      "font-size": 10, fill: LIGHT_GRAY,
+      "font-size": 14, fill: NEUTRAL_700,
       transform: `translate(6, ${midY}) rotate(-90)`
     })
     axisLabel.textContent = "# of utilities"
@@ -585,9 +581,9 @@ export default class extends Controller {
       this.#yTicks(maxCount).forEach(count => {
         const tickY = count === 0 ? baseY : baseY - (Math.sqrt(count) / sqrtMax) * barArea
         g.appendChild(this.#el("line", {
-          x1: tickCX - 2, x2: tickCX + 2,
+          x1: tickCX - 3, x2: tickCX + 3,
           y1: tickY, y2: tickY,
-          stroke: LIGHT_GRAY, "stroke-width": 0.5
+          stroke: NEUTRAL_700, "stroke-width": 1
         }))
       })
     }
