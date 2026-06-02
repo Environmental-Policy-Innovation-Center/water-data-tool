@@ -127,7 +127,7 @@ export default class extends Controller {
     } else {
       // count and currency: floor at 1 so scale always starts at 1 / $1
       domain_min = Math.min(domain_min, 1)
-      // Extend to the next nice round boundary so the axis always ends on a clean number.
+      // Extend past data max so bars end with visual breathing room before the track edge.
       domain_max = this.#niceMax(domain_min, domain_max)
     }
 
@@ -193,20 +193,21 @@ export default class extends Controller {
     const maxCount = Math.max(...this.#bins.map(b => b.count))
     const sqrtMax = maxCount ? Math.sqrt(maxCount) : 1
     const barArea = SVG_H - HANDLE_R * 2 - 2 - BAR_TOP_PAD
-    const trackW = this.#svgW - PAD_L - PAD_R
-    const barW = trackW / this.#bins.length
     const gap = 1
-    const drawW = Math.max(1, barW - gap)
 
     // Square root scale: water data is right-skewed — most systems cluster at low values with a
     // long sparse tail. Sqrt lifts small bars enough to show the distribution shape without
     // flattening them like linear would. Gentler than log, and safe for zero-count bins.
     const hitRects = []
-    this.#bins.forEach((bin, i) => {
+    this.#bins.forEach((bin) => {
       const h = bin.count > 0 && maxCount ? Math.max(1, (Math.sqrt(bin.count) / sqrtMax) * barArea) : 0
-      const bx = PAD_L + i * barW + gap / 2
+      // Value-based positioning: use the bin's theoretical boundaries via #valToX so bars
+      // stay aligned with handle positions regardless of domain extension (e.g. niceMax).
+      const binLeft  = this.#valToX(bin.min)
+      const binRight = this.#valToX(bin.max)
+      const bx = binLeft + gap / 2
+      const bw = Math.max(1, binRight - binLeft - gap)
       const by = SVG_H - HANDLE_R * 2 - h - 1
-      const bw = drawW
       const r  = h > 0 ? Math.min(3, h / 2, bw / 2) : 0
       const d  = h > 0
         ? `M ${bx} ${by + h} L ${bx} ${by + r} Q ${bx} ${by} ${bx + r} ${by} L ${bx + bw - r} ${by} Q ${bx + bw} ${by} ${bx + bw} ${by + r} L ${bx + bw} ${by + h} Z`
@@ -216,7 +217,7 @@ export default class extends Controller {
       this.#bars.push(bar)
 
       if (bin.count > 0) {
-        const cx = PAD_L + i * barW + barW / 2
+        const cx = (binLeft + binRight) / 2
         const label = bin.count === 1 ? "1 utility" : `${bin.count.toLocaleString("en-US")} utilities`
         const baseline = SVG_H - HANDLE_R * 2 - 1
         const hitH = Math.max(12, h)
@@ -333,7 +334,10 @@ export default class extends Controller {
   #niceMax(min, max) {
     if (max <= min) return max
     const step = this.#niceStep(max - min)
-    return Math.ceil(max / step) * step
+    const candidate = Math.ceil(max / step) * step
+    // Must be strictly > max so the last bin (theoretical max = domain_max + 1)
+    // always lands within the track when using value-based bar positioning.
+    return candidate > max ? candidate : candidate + step
   }
 
   #makeTip(style = "light") {

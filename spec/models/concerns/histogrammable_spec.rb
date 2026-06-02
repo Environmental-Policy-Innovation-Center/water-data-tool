@@ -206,6 +206,19 @@ RSpec.describe Histogrammable, type: :model do
         result = ViolationsSummary.histogram_bins(:paperwork_violations_5yr, format: "count")
         expect(result[:bins].length).to eq(30)
       end
+
+      it "spans the full data domain when integer range is capped at 30 bins" do
+        pws_i = create(:public_water_system)
+        pws_i2 = create(:public_water_system)
+        create(:violations_summary, public_water_system: pws_i, pwsid: pws_i.pwsid,
+          paperwork_violations_5yr: 1)
+        create(:violations_summary, public_water_system: pws_i2, pwsid: pws_i2.pwsid,
+          paperwork_violations_5yr: 50)
+
+        result = ViolationsSummary.histogram_bins(:paperwork_violations_5yr, format: "count")
+        expect(result[:bins].first[:min]).to be_within(0.0001).of(1)
+        expect(result[:bins].last[:max]).to be_within(0.0001).of(51)
+      end
     end
   end
 end
