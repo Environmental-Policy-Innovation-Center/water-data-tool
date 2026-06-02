@@ -32,7 +32,7 @@ jobs:
       PR_NUM:          ${{ github.event.number }}
       SERVICE_BUILDER_IMAGE: ${{ vars.SERVICE_BUILDER_IMAGE_URI }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Configure AWS credentials (PR role)
         uses: aws-actions/configure-aws-credentials@v4
@@ -235,7 +235,7 @@ jobs:
       PR_NUM:                ${{ github.event.number }}
       SERVICE_BUILDER_IMAGE: ${{ vars.SERVICE_BUILDER_IMAGE_URI }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Configure AWS credentials (PR role)
         uses: aws-actions/configure-aws-credentials@v4
