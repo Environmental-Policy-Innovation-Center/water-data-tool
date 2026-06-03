@@ -124,8 +124,7 @@
     </div>
   </div>
 
-  <%# Detail data loaded via Mapbox popup on map click;
-      full report loaded into report-body Turbo Frame below %>
+  <%# Map click popup: map_controller.js. Report overlay below is map-only (not used for direct URL visits). %>
 
   <%# Map/Table view toggle — bottom right of map canvas %>
   <div id="container-map-ui-bottom"
@@ -230,11 +229,16 @@
 </div>
 
 <%# =====================================================
-    PWS Report overlay (hidden, toggled on map click)
+    Map-only shell: normal "View Full Report" click from popup (see map_controller.js).
+    User stays on /; print + close (X). Not used when opening the report URL directly.
     ===================================================== %>
 <div id="container-report"
      class="hidden fixed inset-0 z-[9999] bg-white overflow-y-auto print:static print:h-auto print:overflow-visible"
-     data-controller="report" data-report-target="overlay">
+     role="dialog"
+     aria-modal="true"
+     aria-label="Utility report"
+     data-controller="report"
+     data-report-target="overlay">
   <%= render UI::CircleButtonComponent.new(
         id: "tt-print-report",
         aria_label: "Print report",
@@ -250,9 +254,9 @@
         classes: "fixed top-[30px] right-5 print:hidden"
       ) do %><%= icon "close", classes: "h-4 w-4" %><% end %>
 
-  <div class="mx-auto max-w-[1200px] border border-[#eee] bg-white p-10 mt-[30px] mb-[50px] print:border-0 print:p-0 print:mt-0 print:mb-0">
+  <div class="mx-auto max-w-[1200px] border border-[#eee] bg-white p-4 mt-4 mb-8 sm:p-10 sm:mt-[30px] sm:mb-[50px] print:border-0 print:p-0 print:mt-0 print:mb-0">
+    <%# Turbo Frame target: report HTML loaded here on in-app click (Turbo.visit from map_controller). %>
     <turbo-frame id="report-body" data-report-target="frame">
-      <%# Report content loaded via Turbo Frame from ReportsController %>
     </turbo-frame>
   </div>
 </div>

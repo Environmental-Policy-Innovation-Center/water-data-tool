@@ -1,0 +1,5 @@
+<%# Shared report body — same HTML for in-app map overlay and direct URL visit. %>
+<div class="report-content">
+  <%= render Report::HeaderComponent.new(pws: pws) %>
+  <%= render "public_water_systems/sections/all", pws: pws %>
+</div>

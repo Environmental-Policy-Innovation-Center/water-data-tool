@@ -1,16 +1,5 @@
 <div class="report-section my-6">
-  <% if @column_labels %>
-    <div class="flex items-baseline mb-2">
-      <h3 class="text-sm font-semibold uppercase tracking-wide text-gray-500 w-1/2"><%= @title %></h3>
-      <div class="flex w-1/2" aria-hidden="true">
-        <% @column_labels.each do |col| %>
-          <span class="flex-1 text-left text-xs font-semibold text-gray-500"><%= col %></span>
-        <% end %>
-      </div>
-    </div>
-  <% else %>
-    <h3 class="text-sm font-semibold uppercase tracking-wide text-gray-500 mb-2"><%= @title %></h3>
-  <% end %>
+  <%= render Report::SectionHeadingComponent.new(title: @title, column_labels: @column_labels) %>
   <% if !@data_available %>
     <p class="text-sm text-gray-400 italic">Data not available</p>
   <% elsif rows? %>
