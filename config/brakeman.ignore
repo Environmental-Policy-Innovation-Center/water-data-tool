@@ -1,0 +1,8 @@
+{
+  "ignored_warnings": [
+    {
+      "fingerprint": "f05306156f615c94740940841a2243116ea4b8a6ee371826c57b1c2eedec0c0b",
+      "note": "False positive. The interpolated values are: (1) properties_sql — built entirely from the GEOJSON_PROPERTY_COLUMNS constant, zero user input; (2) filtered_ids_sql — produced by ActiveRecord's parameterised query builder from apply_filters, which sanitises all user-supplied params before emitting SQL; (3) quoted — escaped via connection.quote(); (4) BATCH_SIZE — a Ruby integer constant."
+    }
+  ]
+}
