@@ -12,14 +12,33 @@
       </ul>
     <% end %>
     <%= render Filters::CategoryComponent.new(label: "Place") do %>
-      <div data-controller="place-autocomplete" class="relative mb-2.5">
-        <input type="text" class="js-place-search w-full px-2.5 py-1.5 border border-[#ccc] rounded text-[0.95em]"
+      <div data-controller="place-autocomplete"
+           data-action="focusout->place-autocomplete#focusOut"
+           class="relative mb-2.5">
+        <input type="text" class="js-place-search w-full bg-white px-2.5 py-1.5 border border-[#ccc] rounded text-[0.95em] transition-colors duration-200 data-[pulse]:bg-neutral-100 <%= focus_ring_classes %>"
                placeholder="Search for a city or town..."
+               role="combobox"
+               aria-autocomplete="list"
+               aria-expanded="false"
+               aria-controls="place-search-results"
                data-place-autocomplete-target="input"
-               data-action="input->place-autocomplete#search blur->place-autocomplete#blur"
+               data-action="input->place-autocomplete#search keydown->place-autocomplete#keydown"
                autocomplete="off">
         <input type="hidden" id="place-geoid" data-place-autocomplete-target="geoid">
-        <ul data-place-autocomplete-target="results" class="hidden list-none m-0 p-0 absolute inset-x-0 top-full bg-white border border-[#ccc] rounded max-h-[200px] overflow-y-auto z-[200] shadow-[0_2px_6px_rgba(0,0,0,0.15)]"></ul>
+        <ul id="place-search-results"
+            role="listbox"
+            data-place-autocomplete-target="results"
+            class="hidden list-none m-0 p-0 absolute inset-x-0 top-full z-[1000] max-h-48 overflow-y-auto bg-white border border-[#ccc] rounded shadow-[0_2px_6px_rgba(0,0,0,0.15)]"></ul>
+        <template data-place-autocomplete-target="optionTemplate">
+          <li>
+            <button type="button"
+                    role="option"
+                    tabindex="-1"
+                    aria-selected="false"
+                    class="block w-full cursor-pointer border-0 bg-transparent px-2.5 py-1.5 text-left text-[0.95em] text-[#333] hover:bg-neutral-100 aria-selected:bg-neutral-100 <%= focus_ring_classes %>"
+                    data-action="click->place-autocomplete#select"></button>
+          </li>
+        </template>
       </div>
     <% end %>
     <%= render Filters::CategoryComponent.new(label: "Protection") do %>
