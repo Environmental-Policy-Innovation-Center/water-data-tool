@@ -210,7 +210,19 @@ Active only at zoom ≥ 5 (below that, systems are too small to distinguish).
 - Type (symbology_field)
 - Service connections
 - Customers served
-- "View Full Report" link → loads report in Turbo Frame overlay (`#report-body`), opens `#container-report`
+- "View Full Report" — real link to `/public_water_systems/{pwsid}/report` (URL-encoded `pwsid`; copyable from popup)
+
+**View Full Report (from click popup)**
+
+Wired in `map_controller.js` (popup DOM is outside Stimulus). Same report URL for overlay and standalone page; behavior depends on how the link is opened:
+
+| How the link is opened | Result |
+|---|---|
+| Normal left click | `preventDefault`; `#container-report` overlay shown; report fetched into `turbo-frame#report-body` via `Turbo.visit` (map page stays on `/`, filters and zoom unchanged) |
+| Cmd/Ctrl+click, middle-click, or open in new tab | Browser follows the URL → full report page (`layouts/report.html.erb`) with print and back-to-map |
+| Copy link and paste in browser | Same as new tab — standalone report page |
+
+Overlay (`#container-report`): print and close (X) buttons; report body inside the turbo frame. Standalone report page: print and back-to-map link (no close button).
 
 When the click popup is closed: `selected_pws` layer hidden, popup reference cleared.
 

@@ -371,11 +371,16 @@ export default class extends Controller {
       const reportLink = this.clickPopup.getElement().querySelector(".js-view-report")
       if (reportLink) {
         reportLink.addEventListener("click", (evt) => {
+          if (this.#shouldFollowLink(evt)) return
+
           evt.preventDefault()
-          const frame = document.getElementById("report-body")
-          if (frame) frame.src = `/public_water_systems/${props.pwsid}/report`
           const overlay = document.getElementById("container-report")
           if (overlay) overlay.classList.remove("hidden")
+
+          if (document.querySelector("turbo-frame#report-body")) {
+            Turbo.visit(reportLink.href, {frame: "report-body"})
+          }
+
           if (this.clickPopup) this.clickPopup.remove()
         })
       }
@@ -494,9 +499,10 @@ export default class extends Controller {
         <p ${pAttr}><strong ${strongAttr}>Service connections:</strong> ${connections}</p>
         <p ${pAttr}><strong ${strongAttr}>Customers served:</strong> ${pop}</p>`
     if (showReport) {
+      const reportPath = this.#reportPath(props.pwsid)
       body += `
         <p class="text-center mt-[10px]">
-          <a href="javascript:void(0);" class="js-view-report text-[#444] no-underline border border-[#ccc] rounded-[15px] px-6 py-1.5 inline-block text-[0.95em]">View Full Report</a>
+          <a href="${e(reportPath)}" class="js-view-report inline-block min-h-11 rounded-[15px] border border-[#ccc] px-6 py-2.5 text-center text-[0.95em] text-[#444] no-underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600">View Full Report</a>
         </p>`
     }
 
@@ -514,6 +520,14 @@ export default class extends Controller {
     const div = document.createElement("div")
     div.textContent = str
     return div.innerHTML
+  }
+
+  #reportPath(pwsid) {
+    return `/public_water_systems/${encodeURIComponent(pwsid)}/report`
+  }
+
+  #shouldFollowLink(evt) {
+    return evt.button !== 0 || evt.metaKey || evt.ctrlKey || evt.shiftKey || evt.altKey
   }
 
   #firstLineLayerId() {

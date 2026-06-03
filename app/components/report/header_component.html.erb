@@ -1,0 +1,19 @@
+<div class="report-header grid grid-cols-1 gap-4 items-start pb-4 md:grid-cols-[1fr_2fr_1fr] md:gap-0">
+  <div class="flex items-center gap-2 md:justify-start">
+    <%= icon "water", classes: "w-[85px] h-auto shrink-0" %>
+    <div class="block text-xs font-semibold leading-tight text-gray-700" aria-hidden="true">
+      <p>Drinking</p>
+      <p>Water</p>
+      <p>Explorer</p>
+    </div>
+  </div>
+  <div class="text-sm text-center">
+    <p class="font-semibold text-gray-600 mb-2">Utility Report</p>
+    <p><strong>Utility Name:</strong> <%= @pws.pws_name %></p>
+    <p><strong>System ID:</strong> <%= @pws.pwsid %></p>
+  </div>
+  <div class="text-xs text-gray-600 leading-snug text-center md:text-right">
+    <p class="m-0"><%= date_label %></p>
+    <p class="m-0"><%= time_label %></p>
+  </div>
+</div>

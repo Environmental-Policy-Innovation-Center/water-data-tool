@@ -1,0 +1,47 @@
+<%# Direct URL visit only: pasted link, new tab, Cmd/Ctrl+click. Not used for in-app map overlay.
+    Print + back-to-map. Yields reports/show (same template as map Turbo Frame load). %>
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title><%= content_for(:title) || "Utility Report — Water Data Tool" %></title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="application-name" content="Water Data Tool">
+    <%= csrf_meta_tags %>
+    <%= csp_meta_tag %>
+
+    <link rel="icon" href="/icon.png" type="image/png">
+    <link rel="icon" href="/icon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="/icon.png">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Public+Sans:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+
+    <%= stylesheet_link_tag "tailwind", "data-turbo-track": "reload" %>
+  </head>
+
+  <body class="bg-white font-sans text-gray-800" data-controller="report">
+    <%= render UI::CircleButtonComponent.new(
+          id: "tt-print-report",
+          aria_label: "Print report",
+          data_action: "click->report#print",
+          classes: "fixed top-[30px] right-20 print:hidden"
+        ) do %>
+      <%= icon "print", classes: "h-4 w-4" %>
+    <% end %>
+    <%= link_to root_path,
+          class: class_names(
+            UI::CircleButtonComponent::BASE_CLASSES,
+            "fixed top-[30px] right-5 print:hidden no-underline"
+          ),
+          aria: {label: "Back to map"},
+          data: {turbo: false} do %>
+      <%= icon "explore", classes: "h-4 w-4" %>
+    <% end %>
+
+    <%# Page content shell for standalone visits (direct URL only). %>
+    <main class="mx-auto max-w-[1200px] border border-[#eee] bg-white p-4 my-4 mb-8 sm:p-10 sm:my-[30px] sm:mb-[50px] print:border-0 print:p-0 print:my-0">
+      <%= yield %>
+    </main>
+  </body>
+</html>

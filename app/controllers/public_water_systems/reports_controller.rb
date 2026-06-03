@@ -6,7 +6,7 @@ module PublicWaterSystems
         .find_by(pwsid: params[:pwsid])
 
       if @pws
-        render layout: false
+        render layout: (turbo_frame_request? ? false : "report")
       else
         render plain: "Not found", status: :not_found
       end
