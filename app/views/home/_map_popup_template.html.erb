@@ -1,0 +1,18 @@
+<%# Mapbox popup markup — cloned by map_controller.js; styling lives here, not in JS strings. %>
+<template data-map-target="popupTemplate">
+  <div>
+    <div class="py-[15px] pl-[30px] pr-[55px] rounded-t-[20px] bg-[#ececec]">
+      <p class="text-[1.2em] leading-[1.4] font-normal m-0 mb-[2px] p-0"><strong class="font-medium">Utility Name:</strong> <span data-popup-field="pws_name"></span></p>
+      <p class="text-[1.2em] leading-[1.4] font-normal m-0 mb-[2px] p-0"><strong class="font-medium">System ID:</strong> <span data-popup-field="pwsid"></span></p>
+    </div>
+    <div class="px-[30px] py-[10px]">
+      <p class="text-[1.2em] leading-[1.4] font-normal m-0 mb-[2px] p-0"><strong class="font-medium">State:</strong> <span data-popup-field="stusps"></span></p>
+      <p data-popup-section="type" class="hidden text-[1.2em] leading-[1.4] font-normal m-0 mb-[2px] p-0"><strong class="font-medium">Type:</strong> <span data-popup-field="symbology_field"></span></p>
+      <p class="text-[1.2em] leading-[1.4] font-normal m-0 mb-[2px] p-0"><strong class="font-medium">Service connections:</strong> <span data-popup-field="service_connections_count"></span></p>
+      <p class="text-[1.2em] leading-[1.4] font-normal m-0 mb-[2px] p-0"><strong class="font-medium">Customers served:</strong> <span data-popup-field="population_served_count"></span></p>
+      <p data-popup-section="report" class="hidden text-center mt-[10px]">
+        <a href="#" class="js-view-report inline-block min-h-11 rounded-[15px] border border-[#ccc] px-6 py-2.5 text-center text-[0.95em] text-[#444] no-underline <%= focus_ring_classes %>">View Full Report</a>
+      </p>
+    </div>
+  </div>
+</template>

@@ -39,6 +39,7 @@ module ApplicationHelper
 
   def filter_row_classes = FILTER_ROW_CLASSES
   def filter_info_button_classes = FILTER_INFO_BUTTON_CLASSES
+  def focus_ring_classes = FOCUS_RING_CLASSES
   def download_states = DOWNLOAD_STATES
 
   def icon(name, classes: nil, aria_hidden: true)

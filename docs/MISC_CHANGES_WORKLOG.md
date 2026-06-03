@@ -59,13 +59,73 @@ Implementation uses Turbo Frame in the overlay (same pattern as stats/table), no
 
 ---
 
-## Flagged follow-ups (not done yet)
+## A11y — filters & table export
 
-| Location | Issue | Recommended fix |
-|---|---|---|
-| `app/javascript/controllers/place_autocomplete_controller.js:66` | `javascript:void(0)` on dropdown items | `<button type="button">` — selection action, not navigation |
-| `app/views/home/index.html.erb:170` | Export uses `<a href="#">` | `<button type="button">` — triggers download, not navigation |
+**Status:** Done on this branch (manual QA complete). Independent of Report slice; safe to review/merge separately in a multi-PR split.
 
-`javascript:void(0)` is not needed anywhere in active app code; use real `href` or `<button>`.
+**Summary:** Replace fake navigation (`href="#"`, `javascript:void(0)`) with real controls where the UI runs an action, not a route. Table **Export** is a `<button>`. Source filter **Place** search is an accessible combobox with keyboard support and strict selection semantics. Dynamic markup uses ERB `<template>` + clone (HTML-first); focus ring via `focus_ring_classes` helper.
+
+**Added**
+- `app/views/home/_map_popup_template.html.erb` — Mapbox PWS popup shell (`data-map-target="popupTemplate"`)
+
+**Changed**
+- `app/helpers/application_helper.rb` — `focus_ring_classes` helper (ERB access to `FOCUS_RING_CLASSES`)
+- `app/views/home/index.html.erb` — Export `<button>` + `focus_ring_classes`; renders `map_popup_template` partial inside `#container-map`
+- `app/views/home/_filter_menus.html.erb` — Place combobox ARIA; option row `<template>`; list `max-h-48 overflow-y-auto z-[1000]`; input `data-[pulse]:bg-neutral-100`
+- `app/javascript/controllers/place_autocomplete_controller.js` — combobox behavior (see Notes); clones option template; no styling constants in JS
+- `app/javascript/controllers/map_controller.js` — clones popup template; fills fields with `textContent`; toggles optional sections (type, report link)
+- `docs/ARCHITECTURE.md` — `place_autocomplete_controller` blurb updated (was stale: wrong menu, debounce, responsibilities)
+
+**Removed / not used**
+- `href="#"` and `javascript:void(0)` in active `app/` UI (none remain)
+- Duplicated `FOCUS_RING_CLASSES` / `OPTION_CLASSES` in `place_autocomplete_controller.js`
+- Inline popup HTML strings and `#escapeHtml` in `map_controller.js`
+- JS `#updateResultsMaxHeight` (replaced by fixed Tailwind `max-h-48` — conventional combobox pattern)
+
+**How to test**
+
+Manual (`PORT=3001 bin/dev` if the main worktree uses 3000):
+
+*Export*
+1. Table view → choose `.csv` or `.geojson` → **Export** → download from `/public_water_systems/export?…`
+2. Hover Export → no status-bar URL (expected for buttons)
+3. Tab to Export → Enter still triggers download
+
+*Place combobox (Source → Place)*
+1. Type ≥2 chars → list opens (`max-h-48`, scrollable); stacks above Reset/Apply (`z-[1000]`)
+2. Mouse: pick a row → input + `#place-geoid` set → Apply filters by place
+3. Keyboard: ↓/↑ highlights row (list scrolls); Enter selects; Escape closes; Tab skips options → next control
+4. ↑ from first highlight → no row selected; brief gray input pulse (`data-pulse`, 200ms)
+5. Type without picking (e.g. `Tamp`) → click outside or Apply → input clears; no `place_geoid` in filters
+6. Pick a place → edit text → `place_geoid` clears until a new pick
+
+*Map popup (template refactor — styling unchanged)*
+1. Zoom to PWS → hover popup shows state / connections / population
+2. Click PWS → popup includes type + “View Full Report” link with focus ring
+3. Normal click report link → overlay; Cmd/Ctrl+click → new tab (Report section)
+
+**Notes**
+- **Semantics:** Actions use `<button>`; navigation uses real `href` (see Report section). Matches `docs/A11Y_AND_MOBILE_GUIDE.md`.
+- **Place combobox implementation:**
+  - `mousedown` `preventDefault` on results list — prevents input blur **before** click completes (selection still closes list via `select()` → `#hideResults()`).
+  - `focusout` + deferred check — closes list when focus leaves widget (Tab outside, click outside); not meant to keep list open after a pick.
+  - `filters:changed` listener — clears orphan input text on Apply when no `place_geoid`.
+  - Debounce **250ms**; API returns max **10** places (`PlacesController#search`).
+- **Place pulse:** Optional UX; `data-[pulse]:bg-neutral-100` in ERB + 200ms toggle in JS (same pattern as `data-[active]` elsewhere).
+- **Dropdown height:** Fixed `max-h-48` + internal scroll (not JS-measured). List may overlap sticky footer visually when Place field is low; close list before Apply if needed.
+- **Markup pattern:** `<template>` in views; Stimulus sets text, `data-*`, ARIA only (`TAILWINDS_CSS_GUIDE.md`).
+- No new automated specs — manual only.
+- Requires Tailwind build/watch so `data-[pulse]:bg-neutral-100` is in the bundle.
+
+**PR notes** (a11y slice — paste/adapt for multi-domain PR)
+
+Closes flagged follow-ups for fake links on table Export and place autocomplete dropdown rows. Export remains a Stimulus download (`export#download`); only the element type and focus ring change. Place search is an accessible combobox: options are `<button>` elements cloned from an ERB template; keyboard navigation uses `aria-activedescendant`; Tab skips the list; partial text without a valid `place_geoid` clears on dismiss or Apply. Map PWS popup markup moved to `_map_popup_template.html.erb` (same UX, fields via `textContent`). Dropdown: fixed `max-h-48`, scroll, `z-[1000]` above sticky footer.
+
+**Reviewer focus:** Export download with filters; place filter only when a row was chosen; keyboard/mouse combobox paths; map hover/click popups + report link. No automated coverage added.
+
+**Out of scope / follow-ups (not on this branch)**
+- Stimulus specs for place autocomplete or export
+- Shared JS module for focus ring (ERB helper + templates preferred)
+- `tooltip_controller.js` still sets one `className` string for floating tips (acceptable one-off)
 
 ---

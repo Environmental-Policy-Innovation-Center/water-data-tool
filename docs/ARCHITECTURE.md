@@ -300,12 +300,15 @@ Wires DataTables server-side processing to `GET /table.json`.
 
 ### `place_autocomplete_controller.js`
 
-Debounced place search used inside the Boundaries filter menu.
+Debounced place search in the **Source** filter menu (menu 1).
 
 **Responsibilities:**
-- Fetch `/places/search?q=...` with 300ms debounce
-- Render XSS-safe dropdown of results
-- On selection: populate hidden `place_geoid` field, dispatch `filters:changed`
+- Fetch `/places/search?q=...` with 250ms debounce
+- Clone `<template>` rows from `_filter_menus.html.erb` (markup in ERB, not JS)
+- Accessible combobox: keyboard (↑/↓/Enter/Escape), `aria-activedescendant`, strict selection (`place_geoid` cleared on edit; partial text cleared on dismiss/Apply)
+- On selection: populate hidden `#place-geoid` and visible `.js-place-search` (filter apply via existing `filter_controller` — does not dispatch `filters:changed` itself)
+
+See `docs/MISC_CHANGES_WORKLOG.md` § A11y for manual test steps.
 
 ### `report_controller.js`
 

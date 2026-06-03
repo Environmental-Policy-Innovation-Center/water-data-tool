@@ -2,6 +2,8 @@ import { Controller } from "@hotwired/stimulus"
 import * as FilterState from "filter_state"
 
 export default class extends Controller {
+  static targets = ["popupTemplate"]
+
   static values = {
     tileUrl: String
   }
@@ -470,56 +472,40 @@ export default class extends Controller {
   }
 
   #buildClickHtml(props) {
-    return this.#buildPopupBase(props, { showType: true, showReport: true })
+    return this.#buildPopupHtml(props, { showType: true, showReport: true })
   }
 
   #buildHoverHtml(props) {
-    return this.#buildPopupBase(props)
+    return this.#buildPopupHtml(props)
   }
 
-  #buildPopupBase(props, { showType = false, showReport = false } = {}) {
-    const e = this.#escapeHtml
-    const pop = props.population_served_count
-      ? Number(props.population_served_count).toLocaleString("en-US")
-      : "—"
-    const connections = props.service_connections_count
-      ? Number(props.service_connections_count).toLocaleString("en-US")
-      : "—"
+  #buildPopupHtml(props, { showType = false, showReport = false } = {}) {
+    const root = this.popupTemplateTarget.content.firstElementChild.cloneNode(true)
 
-    const pAttr = `class="text-[1.2em] leading-[1.4] font-normal m-0 mb-[2px] p-0"`
-    const strongAttr = `class="font-medium"`
+    root.querySelectorAll("[data-popup-field]").forEach(el => {
+      const field = el.dataset.popupField
+      let value = props[field]
 
-    let body = `
-        <p ${pAttr}><strong ${strongAttr}>State:</strong> ${e(props.stusps || "—")}</p>`
+      if (field === "population_served_count" || field === "service_connections_count") {
+        value = value ? Number(value).toLocaleString("en-US") : "—"
+      } else {
+        value = value || "—"
+      }
+
+      el.textContent = value
+    })
+
     if (showType) {
-      body += `
-        <p ${pAttr}><strong ${strongAttr}>Type:</strong> ${e(props.symbology_field || "—")}</p>`
+      root.querySelector('[data-popup-section="type"]')?.classList.remove("hidden")
     }
-    body += `
-        <p ${pAttr}><strong ${strongAttr}>Service connections:</strong> ${connections}</p>
-        <p ${pAttr}><strong ${strongAttr}>Customers served:</strong> ${pop}</p>`
+
     if (showReport) {
-      const reportPath = this.#reportPath(props.pwsid)
-      body += `
-        <p class="text-center mt-[10px]">
-          <a href="${e(reportPath)}" class="js-view-report inline-block min-h-11 rounded-[15px] border border-[#ccc] px-6 py-2.5 text-center text-[0.95em] text-[#444] no-underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600">View Full Report</a>
-        </p>`
+      root.querySelector('[data-popup-section="report"]')?.classList.remove("hidden")
+      const link = root.querySelector(".js-view-report")
+      if (link && props.pwsid) link.href = this.#reportPath(props.pwsid)
     }
 
-    return `
-      <div class="py-[15px] pl-[30px] pr-[55px] rounded-t-[20px] bg-[#ececec]">
-        <p ${pAttr}><strong ${strongAttr}>Utility Name:</strong> ${e(props.pws_name || "—")}</p>
-        <p ${pAttr}><strong ${strongAttr}>System ID:</strong> ${e(props.pwsid || "—")}</p>
-      </div>
-      <div class="px-[30px] py-[10px]">${body}
-      </div>
-    `
-  }
-
-  #escapeHtml(str) {
-    const div = document.createElement("div")
-    div.textContent = str
-    return div.innerHTML
+    return root.outerHTML
   }
 
   #reportPath(pwsid) {
