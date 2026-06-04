@@ -1,8 +1,20 @@
 # Data table column definitions — loaded by ColumnRegistry at boot.
 #
 # The top-to-bottom order here IS the default column order shown to users.
-# Drag-and-drop reordering overrides this order via cols[] URL params.
+# Drag-and-drop reordering overrides this via cols[] URL params.
 # :check and :pws_name are always rendered first regardless of order.
+#
+# Keys:
+#   key          — unique symbol; matches the DB column or method called to read the value
+#   label        — <th> header text and CSV column header; nil for non-display columns (e.g. check)
+#   sort         — sort param value passed in the URL; nil = non-sortable
+#   format       — how the cell value is rendered: str, num, dec, pct, cur, bool, check, link
+#   format_opts  — extra options passed to format helpers (e.g. { precision: 2 })
+#   size         — column width: default, sm, wide, pinned, check
+#   row_header   — true only for pws_name; renders <th scope="row"> sticky at left-7
+#   pinned       — always visible; cannot be hidden via the column picker
+#   source       — where cell data lives: pws = directly on PublicWaterSystem;
+#                  any AR association name = traverse it first; ~ = no model data (:check, :link)
 
 columns:
   # Row selection
@@ -13,7 +25,7 @@ columns:
     format_opts: {}
     size: check
     pinned: true
-    association: ~
+    source: ~
 
   # Core identity
   - key: pws_name
@@ -24,7 +36,7 @@ columns:
     size: pinned
     row_header: true
     pinned: true
-    association: pws
+    source: pws
 
   - key: pwsid
     label: "Utility ID"
@@ -32,7 +44,7 @@ columns:
     format: str
     format_opts: {}
     size: default
-    association: pws
+    source: pws
 
   - key: epa_report
     label: "EPA Facility Report"
@@ -40,7 +52,7 @@ columns:
     format: link
     format_opts: {}
     size: sm
-    association: pws
+    source: ~
 
   - key: stusps
     label: "State"
@@ -48,7 +60,7 @@ columns:
     format: str
     format_opts: {}
     size: sm
-    association: pws
+    source: pws
 
   # Geography & system type
   - key: counties
@@ -57,7 +69,7 @@ columns:
     format: str
     format_opts: {}
     size: wide
-    association: pws
+    source: pws
 
   - key: gw_sw_code
     label: "Source type"
@@ -65,7 +77,7 @@ columns:
     format: str
     format_opts: {}
     size: default
-    association: pws
+    source: pws
 
   - key: source_water_protection_code
     label: "Source protection"
@@ -73,7 +85,7 @@ columns:
     format: str
     format_opts: {}
     size: default
-    association: pws
+    source: pws
 
   - key: owner_type
     label: "Ownership"
@@ -81,7 +93,7 @@ columns:
     format: str
     format_opts: {}
     size: default
-    association: pws
+    source: pws
 
   - key: primacy_type
     label: "Authority"
@@ -89,7 +101,7 @@ columns:
     format: str
     format_opts: {}
     size: default
-    association: pws
+    source: pws
 
   - key: is_wholesaler
     label: "Wholesaler"
@@ -97,7 +109,7 @@ columns:
     format: bool
     format_opts: {}
     size: default
-    association: pws
+    source: pws
 
   - key: is_school_or_daycare
     label: "Facility type (School or daycare)"
@@ -105,7 +117,7 @@ columns:
     format: bool
     format_opts: {}
     size: default
-    association: pws
+    source: pws
 
   - key: is_grant_eligible
     label: "Grant eligible"
@@ -113,7 +125,7 @@ columns:
     format: bool
     format_opts: {}
     size: default
-    association: pws
+    source: pws
 
   - key: symbology_field
     label: "Boundary type"
@@ -121,7 +133,7 @@ columns:
     format: str
     format_opts: {}
     size: default
-    association: pws
+    source: pws
 
   - key: area_sq_miles
     label: "Size (sq mi)"
@@ -129,7 +141,7 @@ columns:
     format: dec
     format_opts: {}
     size: default
-    association: pws
+    source: pws
 
   - key: open_health_viol
     label: "Has open violations"
@@ -137,7 +149,7 @@ columns:
     format: bool
     format_opts: {}
     size: default
-    association: pws
+    source: pws
 
   # Violations — 5 year
   - key: health_violations_5yr
@@ -146,7 +158,7 @@ columns:
     format: num
     format_opts: {}
     size: default
-    association: violations_summary
+    source: violations_summary
 
   - key: groundwater_rule_5yr
     label: "Groundwater rule violations (5yr)"
@@ -154,7 +166,7 @@ columns:
     format: num
     format_opts: {}
     size: default
-    association: violations_summary
+    source: violations_summary
 
   - key: surface_water_treatment_5yr
     label: "Surface water treatment violations (5yr)"
@@ -162,7 +174,7 @@ columns:
     format: num
     format_opts: {}
     size: default
-    association: violations_summary
+    source: violations_summary
 
   - key: lead_and_copper_5yr
     label: "Lead & copper violations (5yr)"
@@ -170,7 +182,7 @@ columns:
     format: num
     format_opts: {}
     size: default
-    association: violations_summary
+    source: violations_summary
 
   - key: radionuclides_5yr
     label: "Radionuclides violations (5yr)"
@@ -178,7 +190,7 @@ columns:
     format: num
     format_opts: {}
     size: default
-    association: violations_summary
+    source: violations_summary
 
   - key: inorganic_chemicals_5yr
     label: "Inorganic chemicals violations (5yr)"
@@ -186,7 +198,7 @@ columns:
     format: num
     format_opts: {}
     size: default
-    association: violations_summary
+    source: violations_summary
 
   - key: synthetic_organic_chemicals_5yr
     label: "Synthetic organic chemicals violations (5yr)"
@@ -194,7 +206,7 @@ columns:
     format: num
     format_opts: {}
     size: default
-    association: violations_summary
+    source: violations_summary
 
   - key: volatile_organic_chemicals_5yr
     label: "Volatile organic chemicals violations (5yr)"
@@ -202,7 +214,7 @@ columns:
     format: num
     format_opts: {}
     size: default
-    association: violations_summary
+    source: violations_summary
 
   - key: total_coliform_5yr
     label: "Coliform violations (5yr)"
@@ -210,7 +222,7 @@ columns:
     format: num
     format_opts: {}
     size: default
-    association: violations_summary
+    source: violations_summary
 
   - key: stage_1_disinfectants_5yr
     label: "Stage 1 disinfectants violations (5yr)"
@@ -218,7 +230,7 @@ columns:
     format: num
     format_opts: {}
     size: default
-    association: violations_summary
+    source: violations_summary
 
   - key: stage_2_disinfectants_5yr
     label: "Stage 2 disinfectants violations (5yr)"
@@ -226,7 +238,7 @@ columns:
     format: num
     format_opts: {}
     size: default
-    association: violations_summary
+    source: violations_summary
 
   # Violations — 10 year
   - key: health_violations_10yr
@@ -235,7 +247,7 @@ columns:
     format: num
     format_opts: {}
     size: default
-    association: violations_summary
+    source: violations_summary
 
   - key: groundwater_rule_10yr
     label: "Groundwater rule violations (10yr)"
@@ -243,7 +255,7 @@ columns:
     format: num
     format_opts: {}
     size: default
-    association: violations_summary
+    source: violations_summary
 
   - key: surface_water_treatment_10yr
     label: "Surface water treatment violations (10yr)"
@@ -251,7 +263,7 @@ columns:
     format: num
     format_opts: {}
     size: default
-    association: violations_summary
+    source: violations_summary
 
   - key: lead_and_copper_10yr
     label: "Lead & copper violations (10yr)"
@@ -259,7 +271,7 @@ columns:
     format: num
     format_opts: {}
     size: default
-    association: violations_summary
+    source: violations_summary
 
   - key: radionuclides_10yr
     label: "Radionuclides violations (10yr)"
@@ -267,7 +279,7 @@ columns:
     format: num
     format_opts: {}
     size: default
-    association: violations_summary
+    source: violations_summary
 
   - key: inorganic_chemicals_10yr
     label: "Inorganic chemicals violations (10yr)"
@@ -275,7 +287,7 @@ columns:
     format: num
     format_opts: {}
     size: default
-    association: violations_summary
+    source: violations_summary
 
   - key: synthetic_organic_chemicals_10yr
     label: "Synthetic organic chemicals violations (10yr)"
@@ -283,7 +295,7 @@ columns:
     format: num
     format_opts: {}
     size: default
-    association: violations_summary
+    source: violations_summary
 
   - key: volatile_organic_chemicals_10yr
     label: "Volatile organic chemicals violations (10yr)"
@@ -291,7 +303,7 @@ columns:
     format: num
     format_opts: {}
     size: default
-    association: violations_summary
+    source: violations_summary
 
   - key: total_coliform_10yr
     label: "Coliform violations (10yr)"
@@ -299,7 +311,7 @@ columns:
     format: num
     format_opts: {}
     size: default
-    association: violations_summary
+    source: violations_summary
 
   - key: stage_1_disinfectants_10yr
     label: "Stage 1 disinfectants violations (10yr)"
@@ -307,7 +319,7 @@ columns:
     format: num
     format_opts: {}
     size: default
-    association: violations_summary
+    source: violations_summary
 
   - key: stage_2_disinfectants_10yr
     label: "Stage 2 disinfectants violations (10yr)"
@@ -315,7 +327,7 @@ columns:
     format: num
     format_opts: {}
     size: default
-    association: violations_summary
+    source: violations_summary
 
   # Non-health violations
   - key: paperwork_violations_5yr
@@ -324,7 +336,7 @@ columns:
     format: num
     format_opts: {}
     size: default
-    association: violations_summary
+    source: violations_summary
 
   - key: paperwork_violations_10yr
     label: "Non-health violations (10yr)"
@@ -332,7 +344,7 @@ columns:
     format: num
     format_opts: {}
     size: default
-    association: violations_summary
+    source: violations_summary
 
   # Boil water
   - key: total_notices
@@ -341,7 +353,7 @@ columns:
     format: num
     format_opts: {}
     size: default
-    association: boil_water_summary
+    source: boil_water_summary
 
   # Demographics
   - key: total_population
@@ -350,7 +362,7 @@ columns:
     format: num
     format_opts: {}
     size: default
-    association: demographic
+    source: demographic
 
   - key: population_density
     label: "Population density (per sq mi)"
@@ -359,7 +371,7 @@ columns:
     format_opts:
       precision: 0
     size: default
-    association: demographic
+    source: demographic
 
   - key: poverty_rate
     label: "Households below poverty line"
@@ -367,7 +379,7 @@ columns:
     format: pct
     format_opts: {}
     size: default
-    association: demographic
+    source: demographic
 
   - key: unemployment_rate
     label: "Unemployment"
@@ -375,7 +387,7 @@ columns:
     format: pct
     format_opts: {}
     size: default
-    association: demographic
+    source: demographic
 
   - key: median_household_income
     label: "Median household income"
@@ -383,7 +395,7 @@ columns:
     format: cur
     format_opts: {}
     size: default
-    association: demographic
+    source: demographic
 
   - key: bachelors_degree_rate
     label: "Higher education attainment"
@@ -391,7 +403,7 @@ columns:
     format: pct
     format_opts: {}
     size: default
-    association: demographic
+    source: demographic
 
   - key: age_under_5_rate
     label: "Children under 5"
@@ -399,7 +411,7 @@ columns:
     format: pct
     format_opts: {}
     size: default
-    association: demographic
+    source: demographic
 
   - key: age_over_61_rate
     label: "Elderly over 61"
@@ -407,7 +419,7 @@ columns:
     format: pct
     format_opts: {}
     size: default
-    association: demographic
+    source: demographic
 
   - key: poc_rate
     label: "People of color"
@@ -415,7 +427,7 @@ columns:
     format: pct
     format_opts: {}
     size: default
-    association: demographic
+    source: demographic
 
   - key: white_rate
     label: "White"
@@ -423,7 +435,7 @@ columns:
     format: pct
     format_opts: {}
     size: default
-    association: demographic
+    source: demographic
 
   - key: black_rate
     label: "Black"
@@ -431,7 +443,7 @@ columns:
     format: pct
     format_opts: {}
     size: default
-    association: demographic
+    source: demographic
 
   - key: aian_rate
     label: "American Indian & Alaskan Native"
@@ -439,7 +451,7 @@ columns:
     format: pct
     format_opts: {}
     size: default
-    association: demographic
+    source: demographic
 
   - key: napi_rate
     label: "Native Hawaiian & Pacific Islander"
@@ -447,7 +459,7 @@ columns:
     format: pct
     format_opts: {}
     size: default
-    association: demographic
+    source: demographic
 
   - key: asian_rate
     label: "Asian"
@@ -455,7 +467,7 @@ columns:
     format: pct
     format_opts: {}
     size: default
-    association: demographic
+    source: demographic
 
   - key: hispanic_rate
     label: "Latino/a"
@@ -463,7 +475,7 @@ columns:
     format: pct
     format_opts: {}
     size: default
-    association: demographic
+    source: demographic
 
   - key: other_race_rate
     label: "Other race"
@@ -471,7 +483,7 @@ columns:
     format: pct
     format_opts: {}
     size: default
-    association: demographic
+    source: demographic
 
   - key: mixed_race_rate
     label: "Mixed race"
@@ -479,7 +491,7 @@ columns:
     format: pct
     format_opts: {}
     size: default
-    association: demographic
+    source: demographic
 
   - key: most_common_rate_tier
     label: "Annual water & sewer bill"
@@ -487,7 +499,7 @@ columns:
     format: str
     format_opts: {}
     size: default
-    association: demographic
+    source: demographic
 
   # Environmental justice
   - key: cejst_disadvantaged_pct
@@ -496,7 +508,7 @@ columns:
     format: pct
     format_opts: {}
     size: default
-    association: environmental_justice
+    source: environmental_justice
 
   - key: svi_overall_pctl
     label: "Social Vulnerability Index"
@@ -504,7 +516,7 @@ columns:
     format: pct
     format_opts: {}
     size: default
-    association: environmental_justice
+    source: environmental_justice
 
   - key: cvi_overall_score
     label: "Climate Vulnerability Index"
@@ -512,7 +524,7 @@ columns:
     format: pct
     format_opts: {}
     size: default
-    association: environmental_justice
+    source: environmental_justice
 
   # Funding
   - key: times_funded
@@ -521,7 +533,7 @@ columns:
     format: num
     format_opts: {}
     size: default
-    association: funding_summary
+    source: funding_summary
 
   - key: total_srf_assistance
     label: "SRF assistance (2021–2025)"
@@ -530,7 +542,7 @@ columns:
     format_opts:
       precision: 2
     size: default
-    association: funding_summary
+    source: funding_summary
 
   - key: total_principal_forgiveness
     label: "SRF principal forgiveness (2021–2025)"
@@ -539,7 +551,7 @@ columns:
     format_opts:
       precision: 2
     size: default
-    association: funding_summary
+    source: funding_summary
 
   # Watershed hazards
   - key: num_facilities
@@ -548,7 +560,7 @@ columns:
     format: num
     format_opts: {}
     size: default
-    association: watershed_hazard
+    source: watershed_hazard
 
   - key: permit_effluent_violations
     label: "Pollution permits with breaches"
@@ -556,7 +568,7 @@ columns:
     format: num
     format_opts: {}
     size: default
-    association: watershed_hazard
+    source: watershed_hazard
 
   - key: open_underground_storage_tanks
     label: "Underground storage tanks"
@@ -564,7 +576,7 @@ columns:
     format: num
     format_opts: {}
     size: default
-    association: watershed_hazard
+    source: watershed_hazard
 
   - key: risk_management_plan_facilities
     label: "Risk management plan facilities"
@@ -572,7 +584,7 @@ columns:
     format: num
     format_opts: {}
     size: default
-    association: watershed_hazard
+    source: watershed_hazard
 
   - key: impaired_streams_303d
     label: "Impaired or threatened streams"
@@ -580,4 +592,4 @@ columns:
     format: num
     format_opts: {}
     size: default
-    association: watershed_hazard
+    source: watershed_hazard

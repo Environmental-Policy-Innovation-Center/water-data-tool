@@ -7,5 +7,7 @@ TableColumn = Data.define(
   :size,        # Symbol — :default, :sm, :wide, :pinned, :check
   :row_header,  # Boolean — true only for pws_name (renders <th scope="row"> sticky left-7)
   :pinned,      # Boolean — true means always visible regardless of cols= param
-  :association  # Symbol or nil — association name on PublicWaterSystem
+  :source       # Symbol or nil — where cell data lives: :pws = directly on PublicWaterSystem;
+  #   any AR association name (e.g. :violations_summary) = traverse that association first;
+  #   nil = no model data needed (column renders without reading a value)
 )
