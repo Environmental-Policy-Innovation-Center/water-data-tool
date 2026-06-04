@@ -107,19 +107,9 @@ RSpec.describe UI::TableHeaderComponent, type: :component do
   describe "check column" do
     subject(:component) { described_class.new(size: :check) }
 
-    it "renders a checkbox input" do
+    it "renders an empty th with no checkbox (Select All lives above the table)" do
       render_inline(component)
-      expect(html.at_css("input[type=checkbox]")).to be_present
-    end
-
-    it "has the selectAll Stimulus target" do
-      render_inline(component)
-      expect(html.at_css("input")["data-row-selection-target"]).to eq("selectAll")
-    end
-
-    it "has an accessible label on the checkbox" do
-      render_inline(component)
-      expect(html.at_css("input")["aria-label"]).to eq("Select all rows on this page")
+      expect(html.at_css("input[type=checkbox]")).to be_nil
     end
 
     it "does not have aria-sort on the th" do
@@ -145,6 +135,11 @@ RSpec.describe UI::TableHeaderComponent, type: :component do
     it "pinned applies left-7 for horizontal sticking" do
       render_inline(described_class.new(label: "Test", size: :pinned))
       expect(html.at_css("th")["class"]).to include("left-7")
+    end
+
+    it "check applies left-0 for horizontal sticking" do
+      render_inline(described_class.new(label: "Test", size: :check))
+      expect(html.at_css("th")["class"]).to include("left-0")
     end
   end
 end

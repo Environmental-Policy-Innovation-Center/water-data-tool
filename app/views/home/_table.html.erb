@@ -1,4 +1,8 @@
 <turbo-frame id="data-table">
+  <span class="sr-only"
+        data-row-selection-target="totalCount"
+        data-count="<%= @pagy.count %>"></span>
+
   <%# Single scroll region handles both axes; sticky <th top-0> sticks within this container %>
   <div class="table-scroll overflow-auto flex-1 min-h-0" role="region" aria-label="Public water systems data" tabindex="0">
     <%# border-separate (not border-collapse) is required; border-collapse prevents sticky cells from painting over scrolled content %>

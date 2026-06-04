@@ -47,9 +47,8 @@ class HomeController < ApplicationController
   end
 
   def apply_sort_join(scope)
-    sort_table = SORTABLE_COLUMNS[resolved_sort_col]
-    return scope if sort_table == "public_water_systems"
-    assoc = TABLE_JOINS[sort_table]
+    # public_water_systems columns return nil here — they're on the primary model so no join is needed.
+    assoc = TABLE_JOINS[SORTABLE_COLUMNS[resolved_sort_col]]
     assoc ? scope.left_joins(assoc) : scope
   end
 

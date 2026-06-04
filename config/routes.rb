@@ -16,9 +16,9 @@ Rails.application.routes.draw do
   resources :public_water_systems, param: :pwsid, only: [],
     constraints: {pwsid: /[A-Z0-9;%]+/} do
     collection do
-      resource :stats, only: :show, module: :public_water_systems
-      resource :export, only: :show, module: :public_water_systems
+      resource :export, only: :create, module: :public_water_systems
       resource :histogram, only: :show, module: :public_water_systems
+      resource :stats, only: :show, module: :public_water_systems
     end
     member do
       resource :report, only: :show, module: :public_water_systems
