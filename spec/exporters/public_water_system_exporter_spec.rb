@@ -33,32 +33,42 @@ RSpec.describe PublicWaterSystemExporter do
     end
   end
 
-  describe "#to_geojson" do
-    it "returns a FeatureCollection hash" do
-      result = exporter.to_geojson
-      expect(result[:type]).to eq("FeatureCollection")
-      expect(result[:features]).to be_an(Array)
+  describe "#to_geojson_stream" do
+    # joins all streamed chunks and parses the result
+    subject(:geojson) { JSON.parse(exporter.to_geojson_stream.to_a.join) }
+
+    it "returns a FeatureCollection" do
+      expect(geojson["type"]).to eq("FeatureCollection")
+      expect(geojson["features"]).to be_an(Array)
     end
 
     it "includes one feature per system in the scope" do
-      create(:public_water_system)
-      scope = PublicWaterSystem.with_details
-      result = described_class.new(scope).to_geojson
-      expect(result[:features].length).to eq(2)
+      other = create(:public_water_system)
+      scope = PublicWaterSystem.where(pwsid: [pws.pwsid, other.pwsid])
+      result = JSON.parse(described_class.new(scope).to_geojson_stream.to_a.join)
+      expect(result["features"].length).to eq(2)
+    end
+
+    it "continues fetching across batch boundaries" do
+      stub_const("PublicWaterSystemExporter::BATCH_SIZE", 1)
+      other = create(:public_water_system)
+      scope = PublicWaterSystem.where(pwsid: [pws.pwsid, other.pwsid])
+      result = JSON.parse(described_class.new(scope).to_geojson_stream.to_a.join)
+      expect(result["features"].length).to eq(2)
     end
 
     it "includes pwsid in feature properties" do
-      feature = exporter.to_geojson[:features].first
-      expect(feature[:properties][:pwsid]).to eq(pws.pwsid)
+      feature = geojson["features"].first
+      expect(feature["properties"]["pwsid"]).to eq(pws.pwsid)
     end
 
     it "sets geometry to nil when service_area_geometry is not present" do
-      feature = exporter.to_geojson[:features].first
-      expect(feature[:geometry]).to be_nil
+      feature = geojson["features"].first
+      expect(feature["geometry"]).to be_nil
     end
 
     it "does not raise when associations are nil" do
-      expect { exporter.to_geojson }.not_to raise_error
+      expect { exporter.to_geojson_stream.to_a }.not_to raise_error
     end
   end
 end

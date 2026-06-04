@@ -1,16 +1,12 @@
 module PublicWaterSystems
   class ExportsController < ApplicationController
     def show
-      scope = PublicWaterSystem
-        .apply_filters(params)
-        .with_details
-
-      exporter = PublicWaterSystemExporter.new(scope)
+      base_scope = PublicWaterSystem.apply_filters(params)
 
       if params[:file_format] == "geojson"
-        render_geojson_export(exporter)
+        render_geojson_export(PublicWaterSystemExporter.new(base_scope))
       else
-        render_csv_export(exporter)
+        render_csv_export(PublicWaterSystemExporter.new(base_scope.with_details))
       end
     end
 
@@ -23,14 +19,10 @@ module PublicWaterSystems
     end
 
     def render_geojson_export(exporter)
-      compressed = ActiveSupport::Gzip.compress(exporter.to_geojson.to_json)
-
-      # Content-Encoding: gzip tells the browser to decompress before saving.
-      # Rack::Deflater is NOT in the middleware stack, so there is no double-compression risk.
-      response.headers["Content-Encoding"] = "gzip"
-      send_data compressed,
-        type: "application/json",
-        disposition: 'attachment; filename="export.geojson"'
+      response.content_type = "application/json; charset=utf-8"
+      response.headers["Content-Disposition"] = 'attachment; filename="export.geojson"'
+      # Content-Length is intentionally absent — the streamed response size is unknown in advance.
+      self.response_body = exporter.to_geojson_stream
     end
   end
 end

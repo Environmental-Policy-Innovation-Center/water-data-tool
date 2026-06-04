@@ -1,6 +1,5 @@
 require "rails_helper"
 require "csv"
-require "zlib"
 
 RSpec.describe "Exports", type: :request do
   describe "GET /export" do
@@ -66,25 +65,23 @@ RSpec.describe "Exports", type: :request do
     end
 
     context "GeoJSON export" do
-      it "returns a gzip-compressed response with correct content headers" do
+      it "returns a response with correct content headers" do
         create(:public_water_system)
 
         get export_path, params: {file_format: "geojson"}
 
         expect(response).to have_http_status(:ok)
-        expect(response.headers["Content-Encoding"]).to eq("gzip")
-        expect(response.content_type).to eq("application/json")
+        expect(response.content_type).to include("application/json")
         expect(response.headers["Content-Disposition"]).to include("attachment")
         expect(response.headers["Content-Disposition"]).to include(".geojson")
       end
 
-      it "decompresses to a valid GeoJSON FeatureCollection" do
+      it "returns a valid GeoJSON FeatureCollection" do
         create(:public_water_system)
 
         get export_path, params: {file_format: "geojson"}
 
-        body = Zlib::GzipReader.new(StringIO.new(response.body)).read
-        geojson = JSON.parse(body)
+        geojson = JSON.parse(response.body)
         expect(geojson["type"]).to eq("FeatureCollection")
         expect(geojson["features"]).to be_an(Array)
         expect(geojson["features"].length).to eq(1)
@@ -95,8 +92,7 @@ RSpec.describe "Exports", type: :request do
 
         get export_path, params: {file_format: "geojson"}
 
-        body = Zlib::GzipReader.new(StringIO.new(response.body)).read
-        feature = JSON.parse(body)["features"].first
+        feature = JSON.parse(response.body)["features"].first
         expect(feature["properties"]["pwsid"]).to eq(pws.pwsid)
       end
 
@@ -106,8 +102,7 @@ RSpec.describe "Exports", type: :request do
 
         get export_path, params: {file_format: "geojson", state: "VT"}
 
-        body = Zlib::GzipReader.new(StringIO.new(response.body)).read
-        geojson = JSON.parse(body)
+        geojson = JSON.parse(response.body)
         expect(geojson["features"].length).to eq(1)
       end
     end
