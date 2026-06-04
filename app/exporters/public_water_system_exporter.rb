@@ -107,8 +107,8 @@ class PublicWaterSystemExporter
   # PostgreSQL via ST_AsGeoJSON + json_build_object; records are fetched in
   # cursor-based batches to keep memory usage flat regardless of result size.
   def to_geojson_stream
-    Enumerator.new do |y|
-      y << '{"type":"FeatureCollection","features":['
+    Enumerator.new do |stream|
+      stream << '{"type":"FeatureCollection","features":['
       first = true
       # Empty string is a valid sentinel: all EPA pwsids are non-empty, so
       # WHERE pws.pwsid > '' matches every row on the first iteration.
@@ -117,14 +117,14 @@ class PublicWaterSystemExporter
         rows = fetch_feature_batch(last_pwsid)
         break if rows.ntuples.zero?
         rows.each do |row|
-          y << "," unless first
+          stream << "," unless first
           first = false
-          y << row["feature"]
+          stream << row["feature"]
           last_pwsid = row["pwsid"]
         end
         break if rows.ntuples < BATCH_SIZE
       end
-      y << "]}"
+      stream << "]}"
     end
   end
 
