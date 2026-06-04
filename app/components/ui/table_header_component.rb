@@ -21,10 +21,6 @@ class UI::TableHeaderComponent < ViewComponent::Base
     @column.present?
   end
 
-  def check?
-    @size == :check
-  end
-
   def aria_sort_value
     return "none" unless current_sort == @column
     (current_direction == "desc") ? "descending" : "ascending"
@@ -44,15 +40,14 @@ class UI::TableHeaderComponent < ViewComponent::Base
     "#{helpers.request.path}?#{new_query.to_h.to_query}"
   end
 
-  def sort_up_class
-    (current_sort == @column && current_direction != "desc") ? "text-gray-600" : "text-gray-300"
-  end
-
-  def sort_down_class
-    (current_sort == @column && current_direction == "desc") ? "text-gray-600" : "text-gray-300"
-  end
+  def sort_up_class = sort_direction_class(current_direction != "desc")
+  def sort_down_class = sort_direction_class(current_direction == "desc")
 
   private
+
+  def sort_direction_class(active_direction)
+    (current_sort == @column && active_direction) ? "text-gray-600" : "text-gray-300"
+  end
 
   def current_sort = @current_sort ||= helpers.params[:sort]
   def current_direction = @current_direction ||= helpers.params[:direction]
