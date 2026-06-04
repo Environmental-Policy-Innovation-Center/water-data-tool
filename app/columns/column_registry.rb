@@ -22,7 +22,7 @@ class ColumnRegistry
         size: attrs[:size].to_sym,
         row_header: attrs[:row_header] || false,
         pinned: attrs[:pinned] || false,
-        association: attrs[:association]&.to_sym
+        source: attrs[:source]&.to_sym
       )
     end.freeze
   end
