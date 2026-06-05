@@ -1,5 +1,7 @@
 # Drinking Water Explorer — Discovery & Transition Notes
 
+> **TODO:** Temporary documentation — delete once the rewrite is wrapped up.
+
 > Reference document for the Rails 8 rewrite. Captures what the current app does, how it works, what's broken, and how the new version should be structured.
 
 ---

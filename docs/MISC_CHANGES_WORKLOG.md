@@ -129,3 +129,19 @@ Closes flagged follow-ups for fake links on table Export and place autocomplete 
 - `tooltip_controller.js` still sets one `className` string for floating tips (acceptable one-off)
 
 ---
+
+## Dead JSON API + serializer cleanup
+
+**Summary:** Removed unused `PublicWaterSystemsController` (`index`/`show`), all three PWS serializers, and associated specs/views. Routes now expose only the live nested endpoints (`stats`, `export`, `histogram`, `report`). Documentation updated to reflect Hotwire as the decided architecture.
+
+**Removed**
+- `app/controllers/public_water_systems_controller.rb`
+- `app/serializers/public_water_system_{,detail_,table_}serializer.rb`
+- `app/views/public_water_systems/show.html.erb`
+- `spec/requests/public_water_systems_spec.rb`, `spec/serializers/*`
+
+**Docs updated**
+- `docs/FRONTEND_DECISION.md` — rewritten as decision record (what/why/done), not an implementation guide
+- `docs/API.md`, `docs/ARCHITECTURE.md`, `ROADMAP.md`, `docs/TRANSITION.md`
+
+---

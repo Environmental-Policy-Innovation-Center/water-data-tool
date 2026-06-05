@@ -1,5 +1,7 @@
 # Transition Plan: PHP to Rails 8
 
+> **TODO:** Temporary documentation — delete once the rewrite is wrapped up.
+
 > Maps every table and column from the legacy PHP app to the new Rails schema. Serves as the definitive reference for "where did X go?" during the rewrite.
 
 ---
