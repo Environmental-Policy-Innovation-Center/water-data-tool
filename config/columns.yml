@@ -80,9 +80,9 @@ columns:
     source: pws
 
   - key: source_water_protection_code
-    label: "Source protection"
+    label: "Has source water protection"
     sort: source_water_protection_code
-    format: str
+    format: bool
     format_opts: {}
     size: default
     source: pws

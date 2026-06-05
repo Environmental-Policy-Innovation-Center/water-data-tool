@@ -23,7 +23,7 @@
 #  pwsid                        :string           not null, primary key
 #  service_area_type            :string
 #  service_connections_count    :integer
-#  source_water_protection_code :string
+#  source_water_protection_code :boolean
 #  stusps                       :string(2)
 #  symbology_field              :string
 #  years_operating              :integer
@@ -137,8 +137,8 @@ RSpec.describe PublicWaterSystem, type: :model do
     end
 
     it "aliases source_protection to source_water_protection_code" do
-      pws = create(:public_water_system, source_water_protection_code: "SPC123")
-      expect(pws.source_protection).to eq("SPC123")
+      pws = create(:public_water_system, source_water_protection_code: true)
+      expect(pws.source_protection).to be(true)
     end
   end
 
