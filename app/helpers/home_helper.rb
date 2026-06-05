@@ -63,9 +63,9 @@ module HomeHelper
   end
 
   def render_table_cell(col, pws, row_stripe:, sort_param:)
-    sticky_bg = (sort_param == HomeController::DEFAULT_SORT_COLUMN) ? "bg-blue-50" : row_stripe
     case col.format
     when :check
+      sticky_bg = (sort_param == Sortable::DEFAULT_SORT_COLUMN) ? "bg-blue-50" : row_stripe
       td_check = "sticky left-0 z-10 px-2 py-2 border-b border-gray-100 w-7 min-w-7 max-w-7 text-center md:group-hover:bg-blue-50 transition-colors #{sticky_bg}"
       content_tag(:td, class: td_check) do
         tag.input(type: "checkbox",
@@ -91,6 +91,7 @@ module HomeHelper
       highlight = col_highlight(col.sort)
 
       if col.row_header
+        sticky_bg = (sort_param == Sortable::DEFAULT_SORT_COLUMN) ? "bg-blue-50" : row_stripe
         td_sticky = "sticky left-7 z-10 font-normal text-left md:group-hover:bg-blue-50 transition-colors px-3 py-2 border-b border-gray-100 overflow-hidden max-w-xs #{sticky_bg}"
         content_tag(:th, formatted, class: td_sticky, scope: "row")
       elsif [:num, :dec, :pct, :cur].include?(col.format)

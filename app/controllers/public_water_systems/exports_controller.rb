@@ -1,12 +1,17 @@
 module PublicWaterSystems
   class ExportsController < ApplicationController
+    include Sortable
+
     def create
       base_scope = if export_params[:pwsids].present?
         PublicWaterSystem.where(pwsid: export_params[:pwsids])
       else
         base = PublicWaterSystem.apply_filters(FilterParams.permit(params))
+        base = apply_search(base, params[:search].to_s.strip) if params[:search].present?
         export_params[:exclude_pwsids].present? ? base.where.not(pwsid: export_params[:exclude_pwsids]) : base
       end
+
+      base_scope = apply_sort_join(base_scope).order(order_clause)
 
       if params[:file_format] == "geojson"
         render_geojson_export(PublicWaterSystemExporter.new(base_scope))
