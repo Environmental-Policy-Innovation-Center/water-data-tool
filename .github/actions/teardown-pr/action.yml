@@ -26,6 +26,44 @@ runs:
             --source-group "$NODE_SG_ID" || true
         fi
 
+    - name: Pre-drain ECS service before Terraform destroy
+      shell: bash
+      run: |
+        CLUSTER="ep_core__dev_us-east-1"
+        SERVICE="ep_app__water_data_tool_pr_${{ inputs.pr_number }}__dev_us-east-1"
+
+        STATUS=$(aws ecs describe-services \
+          --cluster "$CLUSTER" --services "$SERVICE" \
+          --query 'services[0].status' --output text 2>/dev/null || echo "MISSING")
+
+        if [ "$STATUS" != "ACTIVE" ]; then
+          echo "Service not ACTIVE (status: $STATUS) — skipping pre-drain."
+          exit 0
+        fi
+
+        echo "Setting desired count to 0..."
+        aws ecs update-service --cluster "$CLUSTER" --service "$SERVICE" \
+          --desired-count 0 > /dev/null
+
+        echo "Force-stopping all running tasks..."
+        TASKS=$(aws ecs list-tasks --cluster "$CLUSTER" \
+          --service-name "$SERVICE" --query 'taskArns[]' --output text)
+        for TASK in $TASKS; do
+          echo "  Stopping: $TASK"
+          aws ecs stop-task --cluster "$CLUSTER" --task "$TASK" \
+            --reason "PR teardown pre-drain" > /dev/null || true
+        done
+
+        echo "Waiting for running count to reach 0 (max 2 min)..."
+        for i in $(seq 1 24); do
+          RUNNING=$(aws ecs describe-services \
+            --cluster "$CLUSTER" --services "$SERVICE" \
+            --query 'services[0].runningCount' --output text)
+          [ "$RUNNING" = "0" ] && echo "All tasks stopped." && break
+          echo "  running: $RUNNING — waiting 5s ($i/24)..."
+          sleep 5
+        done
+
     - name: Destroy PR environment via service_builder
       shell: bash
       run: |
