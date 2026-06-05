@@ -23,10 +23,9 @@
 ```
 app/
 ├── controllers/
-│   ├── home_controller.rb                   # root HTML page (GET /) + DataTables SSP (GET /table)
-│   ├── public_water_systems_controller.rb   # REST API: index (filter), show, export
+│   ├── home_controller.rb                   # root page (GET /), map filter JSON (GET /map), table (GET /table)
+│   ├── public_water_systems/                # stats, export, histogram, report (nested under /public_water_systems)
 │   ├── tiles_controller.rb                  # MVT tile endpoint
-│   ├── reports_controller.rb                # printable system report
 │   ├── places_controller.rb                 # place autocomplete search (GET /places/search)
 │   └── [pages_controller.rb]                # planned for M12: datasets, downloads, static pages
 ├── models/
@@ -56,7 +55,6 @@ app/
 │       ├── map_controller.js                # Mapbox GL JS init, tile loading, click
 │       ├── filter_controller.js             # filter form submit/reset, URL sync
 │       ├── slider_controller.js             # range slider with histogram
-│       ├── table_controller.js              # DataTables SSP wiring, pagination, sorting
 │       ├── export_controller.js             # CSV/GeoJSON download trigger
 │       ├── nav_controller.js                # map/table/section view toggle
 │       ├── place_autocomplete_controller.js # debounced place search dropdown
@@ -67,8 +65,9 @@ app/
 │   │   ├── _filter_menus.html.erb           # filter dropdown menus partial
 │   │   └── _sidebar.html.erb               # left sidebar partial
 │   ├── public_water_systems/
-│   │   ├── show.html.erb                    # system detail panel (HTML format)
-│   │   └── sections/                        # 8 partials for detail sections
+│   │   ├── reports/                           # printable report (show + shared partial)
+│   │   ├── stats/                             # stats bar Turbo Frame partial
+│   │   └── sections/                          # 8 partials shared by report
 │   │       ├── _overview.html.erb
 │   │       ├── _demographics.html.erb
 │   │       ├── _environmental_justice.html.erb
@@ -77,8 +76,6 @@ app/
 │   │       ├── _watershed_hazards.html.erb
 │   │       ├── _boil_water.html.erb
 │   │       └── _trends.html.erb
-│   ├── reports/
-│   │   └── show.html.erb                   # printable report
 │   └── layouts/
 │       └── application.html.erb
 └── assets/
@@ -149,42 +146,30 @@ end
 
 ### `HomeController`
 
-Serves the root page and the DataTables SSP endpoint. These are unrelated responsibilities that
-share a controller because neither belongs cleanly elsewhere.
+Primary data surface for the Hotwire UI. See `docs/FRONTEND_DECISION.md` for the frontend architecture decision.
 
 - **`index`** — renders `home/index.html.erb`, the main app page (map, filter bar, table, all UI).
   Also queries `DataImport.maximum(:imported_at)` for the "last updated" display.
-- **`table`** — `GET /table.json`. DataTables server-side processing endpoint. Accepts DataTables
-  protocol params (`draw`, `start`, `length`, `order[0][column]`, `order[0][dir]`). Applies the
-  same `Filterable#apply_filters` logic and returns the DataTables response envelope
-  (`draw`, `recordsTotal`, `recordsFiltered`, `data`).
+- **`map`** — `GET /map`. Returns `{ pwsids: [...] }` for the filtered set. Used by `map_controller.js`
+  to apply Mapbox polygon filters.
+- **`table`** — `GET /table`. Renders `home/_table.html.erb` inside `<turbo-frame id="data-table">`.
+  Applies `Filterable#apply_filters`, optional search, Pagy pagination, and server-side sort
+  (`sort`, `direction` params).
 
-> Note: `HomeController` was not in the original architecture plan — the plan assumed
-> `PublicWaterSystemsController#index` would dual-respond to HTML and JSON. In practice, the
-> root view and the DataTables SSP protocol both needed a home, so `HomeController` emerged
-> organically. Both approaches are valid Rails; `HomeController` is idiomatic for a root page.
+### `PublicWaterSystems::*` (nested controllers)
 
-### `PublicWaterSystemsController`
+Utility endpoints namespaced under `/public_water_systems/`. The top-level `PublicWaterSystemsController`
+(JSON `index`/`show`) was removed in June 2026 — it was never wired to the frontend.
 
-REST API for filter, detail, and export. Does not serve the root HTML page.
-
-- **`index`** — accepts filter params, applies scopes via `Filterable` concern, returns JSON with
-  `{total_count, page, per_page, results, summary}`. The `summary` key includes aggregate stats
-  (systems count, total population, open violations, average MHI) computed in one SQL query.
-- **`show`** — loads a single system with all associations. Returns JSON or HTML (the detail panel
-  rendered in a Turbo Frame on map click, or as a standalone page).
-- **`export`** — same filter logic as `index`, returns CSV or GeoJSON file download.
-- **`stats`** — returns aggregate summary stats as a Turbo Frame HTML partial for the stats bar overlay.
+- **`ExportsController#show`** — `GET /public_water_systems/export`. CSV or gzipped GeoJSON download.
+- **`StatsController#show`** — `GET /public_water_systems/stats`. Turbo Frame HTML partial for the stats bar.
+- **`HistogramsController#show`** — `GET /public_water_systems/histogram?field=`. JSON histogram bins for sliders.
+- **`ReportsController#show`** — `GET /public_water_systems/:pwsid/report`. Printable report (overlay or full page).
 
 ### `TilesController`
 
 - **`show`** — receives `z/x/y` params, checks `TileCache`, generates MVT via PostGIS `ST_AsMVT`
   on cache miss, returns binary protobuf with `Content-Type: application/x-protobuf`.
-
-### `ReportsController`
-
-- **`show`** — printable report for a single system. Full-page HTML layout optimized for print.
-  Loads into a full-screen overlay via Turbo Frame on "View Full Report" click.
 
 ### `PlacesController`
 
@@ -282,16 +267,7 @@ Handles view switching between Map and Table modes, and sidebar navigation.
 **Responsibilities:**
 - Show/hide `#container-map`, `#container-table`, `#container-datasets`, etc.
 - Toggle active state on nav items
-- Dispatch `table:show` event when Table view is activated (triggers DataTables init)
-
-### `table_controller.js`
-
-Wires DataTables server-side processing to `GET /table.json`.
-
-**Responsibilities:**
-- Initialize DataTables with SSP config on `table:show` event
-- Pass current `FilterState` params on each AJAX request
-- Reload DataTables (and stats bar) on `filters:changed`
+- Dispatch view-change events when switching between map and table modes
 
 ### `export_controller.js`
 
@@ -318,18 +294,18 @@ See `docs/MISC_CHANGES_WORKLOG.md` § A11y for manual test steps.
 
 ### `slider_controller.js`
 
-Range slider with optional histogram overlay (planned for area/density filters — deferred from M6).
+Dual-handle range slider with inline SVG histogram.
 
 **Responsibilities:**
-- Render dual-handle min/max range inputs
-- Display histogram of data distribution
-- Update hidden form fields with selected range
+- Fetch histogram bins from `GET /public_water_systems/histogram?field=`
+- Render dual-handle min/max range inputs with distribution overlay
+- Update hidden form fields with selected range (committed on pointer-up)
 
 ---
 
 ## Turbo Patterns
 
-The main app page (`public_water_systems/index`) uses Turbo Frames to update independent sections without full page reloads.
+The main app page (`home/index`) uses Turbo Frames to update independent sections without full page reloads.
 
 ```
 ┌─────────────────────────────────────────────────────┐
@@ -440,19 +416,23 @@ Use FactoryBot factories with realistic data from a small state subset. Shoulda 
 # config/routes.rb
 Rails.application.routes.draw do
   root "home#index"
-  get "/table", to: "home#table", as: :table          # DataTables SSP
+  get "/table", to: "home#table", as: :table
+  get "/map", to: "home#map", as: :map
 
   get "/tiles/:z/:x/:y", to: "tiles#show", as: :tile,
       constraints: {z: /\d+/, x: /\d+/, y: /\d+/}
 
-  get "/places/search", to: "places#search"            # place autocomplete
+  get "/places/search", to: "places#search"
 
-  resources :reports, param: :pwsid, only: [:show]    # printable report
-
-  resources :public_water_systems, param: :pwsid, only: %i[index show] do
+  resources :public_water_systems, param: :pwsid, only: [],
+      constraints: {pwsid: /[A-Z0-9;%]+/} do
     collection do
-      get :export
-      get :stats  # planned M7: aggregate stats for stats bar Turbo Frame
+      resource :stats, only: :show, module: :public_water_systems
+      resource :export, only: :show, module: :public_water_systems
+      resource :histogram, only: :show, module: :public_water_systems
+    end
+    member do
+      resource :report, only: :show, module: :public_water_systems
     end
   end
 

@@ -1,5 +1,7 @@
 # Roadmap
 
+> **TODO:** Temporary documentation — delete once the rewrite is wrapped up.
+
 ## Drinking Water Explorer — Full App
 
 The data model layer is complete (schema, models, Filterable concern, factories, specs, seed data).

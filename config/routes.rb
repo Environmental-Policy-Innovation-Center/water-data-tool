@@ -13,7 +13,7 @@ Rails.application.routes.draw do
 
   get "/places/search", to: "places#search"
 
-  resources :public_water_systems, param: :pwsid, only: %i[index show],
+  resources :public_water_systems, param: :pwsid, only: [],
     constraints: {pwsid: /[A-Z0-9;%]+/} do
     collection do
       resource :stats, only: :show, module: :public_water_systems
