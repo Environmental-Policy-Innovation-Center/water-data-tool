@@ -40,7 +40,7 @@ class UI::TableHeaderComponent < ViewComponent::Base
     "#{helpers.request.path}?#{new_query.to_h.to_query}"
   end
 
-  def sort_up_class = sort_direction_class(current_direction != "desc")
+  def sort_up_class = sort_direction_class(current_direction == "asc")
   def sort_down_class = sort_direction_class(current_direction == "desc")
 
   private

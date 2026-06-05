@@ -1,5 +1,6 @@
 // Tracks which rows are selected across paginated table navigation.
-// row_selection_controller writes here; export_controller reads here.
+// Writers: row_selection_controller (toggle/select/deselect), filter_controller (clear on filter change)
+// Readers: export_controller (determines what to include in the export)
 const excluded = new Set()
 const included = new Set()
 let mode = "all"

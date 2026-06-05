@@ -2,6 +2,10 @@
   <span class="sr-only"
         data-row-selection-target="totalCount"
         data-count="<%= @pagy.count %>"></span>
+  <span id="table-query-state"
+        data-sort="<%= params[:sort] %>"
+        data-direction="<%= params[:direction] %>"
+        data-search="<%= params[:search] %>"></span>
 
   <%# Single scroll region handles both axes; sticky <th top-0> sticks within this container %>
   <div class="table-scroll overflow-auto flex-1 min-h-0" role="region" aria-label="Public water systems data" tabindex="0">
@@ -18,11 +22,12 @@
         </tr>
       </thead>
       <tbody>
+        <% sort_param = params[:sort] %>
         <% @systems.each_with_index do |pws, idx| %>
           <% row_stripe = idx.even? ? "bg-white" : "bg-gray-50" %>
           <tr class="group <%= row_stripe %> md:hover:bg-blue-50 transition-colors">
             <% @columns.each do |col| %>
-              <%= render_table_cell(col, pws, row_stripe: row_stripe, sort_param: params[:sort]) %>
+              <%= render_table_cell(col, pws, row_stripe: row_stripe, sort_param: sort_param) %>
             <% end %>
           </tr>
         <% end %>

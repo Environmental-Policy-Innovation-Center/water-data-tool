@@ -50,6 +50,44 @@ RSpec.describe "Exports", type: :request do
         rows = CSV.parse(response.body)
         expect(rows.length).to eq(76) # 1 header + 75 data rows
       end
+
+      it "respects the search param" do
+        create(:public_water_system, pws_name: "Milwaukee Water Works")
+        create(:public_water_system, pws_name: "Chicago Water System")
+        post export_path, params: {search: "Milwaukee"}
+        rows = CSV.parse(response.body)
+        expect(rows.length).to eq(2) # 1 header + 1 match
+        expect(rows[1][0]).to eq("Milwaukee Water Works")
+      end
+    end
+
+    context "sort ordering" do
+      it "orders by pws_name ascending by default" do
+        create(:public_water_system, pws_name: "Zeta Water")
+        create(:public_water_system, pws_name: "Alpha Water")
+        post export_path
+        rows = CSV.parse(response.body)
+        expect(rows[1][0]).to eq("Alpha Water")
+        expect(rows[2][0]).to eq("Zeta Water")
+      end
+
+      it "respects sort and direction params" do
+        create(:public_water_system, pws_name: "Alpha Water", stusps: "VT")
+        create(:public_water_system, pws_name: "Beta Water", stusps: "AL")
+        post export_path, params: {sort: "stusps", direction: "asc"}
+        rows = CSV.parse(response.body)
+        expect(rows[1][0]).to eq("Beta Water")  # AL before VT
+        expect(rows[2][0]).to eq("Alpha Water")
+      end
+
+      it "orders explicit pwsids by pws_name ascending (default)" do
+        b = create(:public_water_system, pws_name: "Zeta Water")
+        a = create(:public_water_system, pws_name: "Alpha Water")
+        post export_path, params: {pwsids: [b.pwsid, a.pwsid]}
+        rows = CSV.parse(response.body)
+        expect(rows[1][0]).to eq("Alpha Water")
+        expect(rows[2][0]).to eq("Zeta Water")
+      end
     end
 
     context "with specific IDs selected" do
