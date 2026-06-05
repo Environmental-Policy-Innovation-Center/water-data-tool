@@ -8,14 +8,26 @@ RSpec.describe Etl::Importers::SdwisViols do
     subject(:rows) { importer.parse(csv_content) }
 
     it "returns one pws_row and one viol_row per CSV line" do
-      expect(rows[:pws_rows].length).to eq(3)
-      expect(rows[:viol_rows].length).to eq(3)
+      expect(rows[:pws_rows].length).to eq(4)
+      expect(rows[:viol_rows].length).to eq(4)
     end
 
     it "casts boolean indicators on pws_rows" do
       expect(rows[:pws_rows].first[:is_grant_eligible]).to be(true)
       expect(rows[:pws_rows].first[:is_wholesaler]).to be(false)
       expect(rows[:pws_rows].first[:open_health_viol]).to be(false)
+    end
+
+    it "casts source_water_protection_code Yes as true" do
+      expect(rows[:pws_rows].first[:source_water_protection_code]).to be(true)
+    end
+
+    it "casts source_water_protection_code No as false" do
+      expect(rows[:pws_rows][1][:source_water_protection_code]).to be(false)
+    end
+
+    it "casts source_water_protection_code No Information as nil" do
+      expect(rows[:pws_rows][2][:source_water_protection_code]).to be_nil
     end
 
     it "casts violation counts as integers" do
@@ -72,11 +84,12 @@ RSpec.describe Etl::Importers::SdwisViols do
       create(:public_water_system, pwsid: "VT0000001")
       create(:public_water_system, pwsid: "VT0000002")
       create(:public_water_system, pwsid: "VT0000003")
+      create(:public_water_system, pwsid: "VT0000004")
     end
 
     it "upserts pws attribute columns and creates violations_summaries" do
       rows = importer.parse(csv_content)
-      expect { importer.import!(rows) }.to change(ViolationsSummary, :count).by(3)
+      expect { importer.import!(rows) }.to change(ViolationsSummary, :count).by(4)
     end
 
     it "sets boolean fields on PublicWaterSystem" do
@@ -85,12 +98,20 @@ RSpec.describe Etl::Importers::SdwisViols do
       pws = PublicWaterSystem.find("VT0000001")
       expect(pws.is_grant_eligible).to be(true)
       expect(pws.is_wholesaler).to be(false)
+      expect(pws.source_water_protection_code).to be(true)
+    end
+
+    it "stores nil for No Information source_water_protection_code" do
+      rows = importer.parse(csv_content)
+      importer.import!(rows)
+      pws = PublicWaterSystem.find("VT0000003")
+      expect(pws.source_water_protection_code).to be_nil
     end
 
     it "stores nil (not NA string) for NA string columns" do
       rows = importer.parse(csv_content)
       importer.import!(rows)
-      pws = PublicWaterSystem.find("VT0000003")
+      pws = PublicWaterSystem.find("VT0000004")
       expect(pws.gw_sw_code).to be_nil
       expect(pws.owner_type).to be_nil
       expect(pws.primacy_type).to be_nil

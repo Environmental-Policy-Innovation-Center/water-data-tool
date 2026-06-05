@@ -89,6 +89,15 @@ RSpec.describe Filterable, type: :model do
         expect(results).to include(with_viol)
         expect(results).not_to include(without_viol)
       end
+
+      it "filters systems with source water protection" do
+        with_protection = create(:public_water_system, source_water_protection_code: true)
+        without_protection = create(:public_water_system, source_water_protection_code: false)
+
+        results = PublicWaterSystem.apply_filters(has_source_protection: "true")
+        expect(results).to include(with_protection)
+        expect(results).not_to include(without_protection)
+      end
     end
 
     context "range filters" do

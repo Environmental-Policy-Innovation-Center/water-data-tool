@@ -93,6 +93,15 @@ RSpec.describe Etl::TypeCaster do
     it "returns nil for nil" do
       expect(caster.cast_bool(nil)).to be_nil
     end
+
+    it "returns nil for No Information" do
+      expect(caster.cast_bool("No Information")).to be_nil
+    end
+
+    it "returns nil for case-variant No Information" do
+      expect(caster.cast_bool("no information")).to be_nil
+      expect(caster.cast_bool("NO INFORMATION")).to be_nil
+    end
   end
 
   describe "#cast_string" do

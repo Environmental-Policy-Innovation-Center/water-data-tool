@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_21_000001) do
+ActiveRecord::Schema[8.1].define(version: 2026_06_05_000001) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "postgis"
@@ -171,7 +171,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_21_000001) do
     t.string "pws_name"
     t.string "service_area_type"
     t.integer "service_connections_count"
-    t.string "source_water_protection_code"
+    t.boolean "source_water_protection_code"
     t.string "stusps", limit: 2
     t.string "symbology_field"
     t.datetime "updated_at", null: false

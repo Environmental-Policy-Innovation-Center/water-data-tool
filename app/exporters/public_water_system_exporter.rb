@@ -44,7 +44,7 @@ class PublicWaterSystemExporter
   # Order matters — must stay in sync with #csv_row below.
   CSV_HEADERS = [
     "Utility Name", "Utility ID", "EPA Facility Report", "State", "County",
-    "Source type", "Source protection", "Ownership", "Authority",
+    "Source type", "Has source water protection", "Ownership", "Authority",
     "Wholesaler", "Facility type (School or daycare)", "Grant eligible", "Boundary type",
     "Size (Area in square miles)", "Has open violations",
     "Health violations in the last 5 years",

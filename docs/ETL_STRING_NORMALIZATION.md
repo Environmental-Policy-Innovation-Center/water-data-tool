@@ -38,7 +38,7 @@ Real categorical values (`"Territory"`, `"State"`, `"Tribal"`, `"Yes"`, `"No"`, 
 | Importer | Columns changed to `cast_string` | Table |
 |---|---|---|
 | `epa_sabs.rb` | `pws_name`, `primacy_agency`, `pop_cat_5`, `service_area_type`, `symbology_field`, `detailed_facility_report`, `ewg_report_link` | `public_water_systems` |
-| `sdwis_viols.rb` | `gw_sw_code`, `primary_source_code`, `first_reported_date`, `owner_type`, `primacy_type`, `source_water_protection_code`, `phone_number`, `open_health_viol` | `public_water_systems` |
+| `sdwis_viols.rb` | `gw_sw_code`, `primary_source_code`, `first_reported_date`, `owner_type`, `primacy_type`, `phone_number`, `open_health_viol` | `public_water_systems` |
 | `xwalk_pct_change_10yr.rb` | `income_change_flag`, `population_change_flag` | `trend_data` |
 | `national_bwn_highlevel_summary.rb` | `first_advisory_date`, `last_advisory_date`, `state_reporting_year_min`, `state_reporting_year_max`, `state`, `tooltip_text`, `download_url`, `date_range_display` | `boil_water_summaries` |
 
@@ -69,7 +69,8 @@ The rule: **normalize machine-generated sentinels to NULL; preserve publisher-st
 | Category | Example values | DB storage | UI renders | Why |
 |---|---|---|---|---|
 | True missing-value sentinel | `"NA"`, `""`, `"  "` | `NULL` | `—` | Machine-generated placeholder with no semantic meaning; normalizing to NULL is conventional |
-| Descriptive absence phrase | `"No Information"`, `"No Information on annual water & sewer rates"`, `"Not Enough Data - Operating < 10 years"` | Stored as-is | String as-is (or `—` if EPIC decides) | Publisher made an explicit statement; the distinction between "no record" and "stated no info" has value |
+| Descriptive absence phrase — categorical | `"No Information on annual water & sewer rates"`, `"Not Enough Data - Operating < 10 years"` | Stored as-is | String as-is (or `—` if EPIC decides) | Publisher made an explicit statement; the distinction between "no record" and "stated no info" has value |
+| Descriptive absence phrase — boolean | `"No Information"` on a yes/no column | `NULL` via `cast_bool` | `—` | On a binary question "No Information" is semantically identical to nil/unknown; collapsing to NULL is correct and consistent with all other boolean fields |
 
 ### Contact fields (e.g. `phone_number`)
 
@@ -77,17 +78,17 @@ Contact fields follow the same rule as descriptive strings: store as-is, render 
 
 ### DB query implications
 
-Queries against columns that may contain descriptive absence phrases must account for **both** `NULL` and the phrase string:
+Queries against categorical columns that may contain descriptive absence phrases must account for **both** `NULL` and the phrase string:
 
 ```ruby
 # Wrong — misses "No Information" rows
-PublicWaterSystem.where(source_water_protection_code: nil)
+PublicWaterSystem.where(gw_sw_code: nil)
 
 # Correct
-PublicWaterSystem.where("source_water_protection_code IS NULL OR source_water_protection_code = 'No Information'")
+PublicWaterSystem.where("gw_sw_code IS NULL OR gw_sw_code = 'No Information'")
 ```
 
-This is expected and conventional — the alternative (converting every descriptive phrase to NULL) would silently discard publisher intent and make the data less auditable.
+Boolean columns do not have this issue — `"No Information"` is normalized to `NULL` by `cast_bool`, so a simple `WHERE col IS NULL` is correct and complete.
 
 ### Export behavior
 
@@ -268,10 +269,10 @@ If suppressed: add the phrase to `cast_string`'s normalization list. If shortene
 
 Columns confirmed as unambiguous real categories (no `NULL`/`NA` coexistence) — safe to store and display as-is:
 
-| CSV | Column | Descriptive phrase | Count |
-|---|---|---|---|
-| `sdwis_viols.csv` | `gw_sw_code` | `"No Information"` | 13 |
-| `sdwis_viols.csv` | `primary_source_code` | `"No Information"` | 13 |
-| `sdwis_viols.csv` | `source_water_protection_code` | `"No Information"` | 15,171 |
-| `sdwis_viols.csv` | `phone_number` | `"No Information"` | 5,321 |
-| `epa_sabs_xwalk.csv` | `most_common_rate_tidy` | `"No Information on annual water & sewer rates"` | 833 |
+| CSV | Column | Descriptive phrase | Count | Handling |
+|---|---|---|---|---|
+| `sdwis_viols.csv` | `gw_sw_code` | `"No Information"` | 13 | Stored as-is (categorical) |
+| `sdwis_viols.csv` | `primary_source_code` | `"No Information"` | 13 | Stored as-is (categorical) |
+| `sdwis_viols.csv` | `source_water_protection_code` | `"No Information"` | 15,171 | `→ NULL` via `cast_bool` (boolean column — unknown = nil) |
+| `sdwis_viols.csv` | `phone_number` | `"No Information"` | 5,321 | Stored as-is (contact string) |
+| `epa_sabs_xwalk.csv` | `most_common_rate_tidy` | `"No Information on annual water & sewer rates"` | 833 | Stored as-is (categorical) |

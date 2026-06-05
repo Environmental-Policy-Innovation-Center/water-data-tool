@@ -23,7 +23,7 @@
 #  pwsid                        :string           not null, primary key
 #  service_area_type            :string
 #  service_connections_count    :integer
-#  source_water_protection_code :string
+#  source_water_protection_code :boolean
 #  stusps                       :string(2)
 #  symbology_field              :string
 #  years_operating              :integer

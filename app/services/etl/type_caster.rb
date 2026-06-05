@@ -7,6 +7,7 @@ module Etl
     def cast_bool(val)
       normalized = normalize(val)
       return nil if normalized.nil?
+      return nil if normalized.upcase == "NO INFORMATION"
       %w[Y YES].include?(normalized.upcase)
     end
 
