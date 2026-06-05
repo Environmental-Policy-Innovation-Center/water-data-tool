@@ -14,6 +14,11 @@ class UI::NavItemComponentPreview < Lookbook::Preview
     render UI::NavItemComponent.new(section: "downloads", label: "Downloads", icon_name: "downloads")
   end
 
+  # @label Button — table section
+  def table
+    render UI::NavItemComponent.new(section: "table", label: "Explore the Table", icon_name: "table")
+  end
+
   # @label Link — external (Documentation)
   def external_link
     render UI::NavItemComponent.new(

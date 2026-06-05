@@ -1,0 +1,26 @@
+<%# Shared main-section nav items for desktop sidebar and mobile menu overlay.
+    locals: list_item_class (required), include_table (optional, default true) %>
+<% include_table = local_assigns.fetch(:include_table, true) %>
+
+<li class="<%= list_item_class %>">
+  <%= render UI::NavItemComponent.new(section: "map", label: "Explore the Map", icon_name: "explore", active: true) %>
+</li>
+<% if include_table %>
+  <li class="<%= list_item_class %>">
+    <%= render UI::NavItemComponent.new(section: "table", label: "Explore the Table", icon_name: "table") %>
+  </li>
+<% end %>
+<li class="<%= list_item_class %>">
+  <%= render UI::NavItemComponent.new(section: "datasets", label: "Datasets", icon_name: "data") %>
+</li>
+<li class="<%= list_item_class %>">
+  <%= render UI::NavItemComponent.new(
+        label: "Documentation",
+        icon_name: "documentation",
+        href: "https://tech-team-data.s3.us-east-1.amazonaws.com/national-dw-tool/public-data-downloads/EPIC's+Drinking+Water+Explorer+Tool+-+Methodology.pdf",
+        external: true
+      ) %>
+</li>
+<li class="<%= list_item_class %>">
+  <%= render UI::NavItemComponent.new(section: "downloads", label: "Downloads", icon_name: "downloads") %>
+</li>
