@@ -10,7 +10,7 @@ The data table is a core feature of the app. This document captures design decis
 - **3-state cycle:** unsorted (↕) → ascending (↑) → descending (↓) → unsorted. Third click drops `sort`/`direction` params entirely, restoring default `pws_name ASC` order.
 - **`NULLS LAST` always** — on both ASC and DESC. PostgreSQL defaults to `NULLS FIRST` for DESC, which puts missing data at the top. Users expect missing data out of the way regardless of sort direction.
 - **Tiebreaker:** `pws_name ASC` appended to every `ORDER BY` (skipped when `pws_name` is the primary sort column). Matches legacy behavior where the DataTables array was pre-sorted by name before client-side sorting.
-- **SQL injection guard:** `SORTABLE_COLUMNS` allowlist in `HomeController` — only these column names are permitted in `ORDER BY`. Does not control display order.
+- **SQL injection guard:** `SORTABLE_COLUMNS` allowlist in the `Sortable` concern (`app/controllers/concerns/sortable.rb`) — only these column names are permitted in `ORDER BY`. Does not control display order.
 
 ### Nil display
 - All nil DB values render as `"—"` (em dash) in every cell. Never `"NA"`, `"N/A"`, `0`, or empty string.
@@ -36,12 +36,14 @@ Badge and export behavior:
 
 | State | Badge | Export sends |
 |---|---|---|
-| All mode, nothing excluded | `All` | Filter params only |
-| All mode, some excluded | `total − excluded.size` | Filter params + `exclude_pwsids[]` |
-| None mode, some included | `included.size` | `pwsids[]` |
+| All mode, nothing excluded | `All` | Filter params + search + sort/direction |
+| All mode, some excluded | `total − excluded.size` | Filter params + search + sort/direction + `exclude_pwsids[]` |
+| None mode, some included | `included.size` | `pwsids[]` + sort/direction |
 | None mode, nothing included | `0` + button grayed out | no-op |
 
-Export always uses POST (CSRF token, avoids URL length limits). The server has two paths: `apply_filters + where.not(pwsid: excluded)` vs `where(pwsid: included)`. The exclusion model was chosen because it keeps payloads small at every realistic threshold — a user unchecking 3 of 5,000 rows sends 3 IDs, not 4,997.
+Export always uses POST (CSRF token, avoids URL length limits). The server has two paths: `apply_filters + apply_search + where.not(pwsid: excluded)` vs `where(pwsid: included)`. Both paths apply the current sort order. The exclusion model was chosen because it keeps payloads small at every realistic threshold — a user unchecking 3 of 5,000 rows sends 3 IDs, not 4,997.
+
+**Sort/search state in the DOM.** Sort header clicks and the search form navigate the `data-table` Turbo Frame only — they do not update `window.location`, and `FilterState` only tracks filter panel state. The server renders current sort/direction/search into a `#table-query-state` span inside the frame (re-rendered on every frame navigation). `export_controller.js` reads from this span so exports always match what the user sees in the table.
 
 ---
 
@@ -62,17 +64,18 @@ Export always uses POST (CSRF token, avoids URL length limits). The server has t
 ## Key Files
 
 ```
-app/views/home/_table.html.erb           ← table partial (Turbo Frame + all table HTML)
-app/helpers/home_helper.rb               ← table_sort_link, col_highlight, aria_sort, fmt_* helpers
-app/controllers/home_controller.rb       ← #table action, SORTABLE_COLUMNS, ORDER BY logic
+app/views/home/_table.html.erb              ← table partial (Turbo Frame + all table HTML)
+app/helpers/home_helper.rb                  ← table_sort_link, col_highlight, aria_sort, fmt_* helpers
+app/controllers/home_controller.rb          ← #table action
+app/controllers/concerns/sortable.rb        ← SORTABLE_COLUMNS, TABLE_JOINS, sort/search logic (shared by Home + Exports)
 app/javascript/controllers/
-  table_frame_controller.js              ← preserves horizontal scroll across Turbo Frame reloads
-  filter_controller.js                   ← reloads data-table Turbo Frame on filter change
-  export_controller.js                   ← builds and submits POST form on export
-  row_selection_controller.js            ← checkbox state, badge, export button disabled state
-  selection_state.js                     ← shared selection state module (mode, excluded/included Sets)
-spec/requests/home_spec.rb               ← request specs for the table action
-docs/table_reboot.md                     ← row selection & export architecture
+  table_frame_controller.js                 ← preserves horizontal scroll across Turbo Frame reloads
+  filter_controller.js                      ← reloads data-table Turbo Frame on filter change
+  export_controller.js                      ← builds and submits POST form on export
+  row_selection_controller.js               ← checkbox state, badge, export button disabled state
+  selection_state.js                        ← shared selection state module (mode, excluded/included Sets)
+spec/requests/home_spec.rb                  ← request specs for the table action
+docs/table_reboot.md                        ← row selection & export architecture
 ```
 
 ---
@@ -82,14 +85,8 @@ docs/table_reboot.md                     ← row selection & export architecture
 ### Sort link (`home_helper.rb`)
 Cycles unsorted → asc → desc → unsorted. Third click drops `sort`/`direction` params. Icon is stacked ▲▼ triangles — active direction is `text-gray-600`, inactive is `text-gray-300`. Only the label underlines on hover via Tailwind `group`/`group-hover:underline` (not the icon).
 
-### SORTABLE_COLUMNS (`home_controller.rb`)
-```ruby
-SORTABLE_COLUMNS = %w[
-  pws_name pwsid stusps counties gw_sw_code source_water_protection_code
-  owner_type primacy_type is_wholesaler is_school_or_daycare symbology_field
-  area_sq_miles open_health_viol
-].freeze
-```
+### SORTABLE_COLUMNS (`app/controllers/concerns/sortable.rb`)
+Derived from `FilterRegistry.sortable_columns` — a hash of `column_name → table_name`. Both `HomeController` and `ExportsController` include `Sortable` to share this allowlist and the `order_clause` / `apply_sort_join` / `apply_search` methods.
 
 ### Turbo Frame loading
 The table renders inside `<turbo-frame id="data-table">`. `filter_controller.js` calls `Turbo.visit("/table?#{FilterState.toUrlParams()}", { frame: "data-table" })` on filter change or view toggle. The `/table` route hits `HomeController#table`, which renders `_table.html.erb`.
@@ -112,6 +109,8 @@ All live in `home_helper.rb` and return `"—"` for nil:
 
 ## Open Items
 
+- **Column reordering** — drag-and-drop will be server-side via `cols=` param (consistent with visibility). `visible_columns` in `HomeController` currently respects `cols=` for filtering only; it will need updating to also respect the param's key order rather than always deferring to YAML order.
+- **Preload optimization** — `HomeController#table` hardcodes all 6 association preloads regardless of which columns are visible. Fix is `@columns.filter_map(&:source).reject { |s| s == :pws }.uniq`. Low-priority cleanup; actual gain is small because preloads cover only 25 rows and PostgreSQL's buffer cache serves repeated queries from memory. See `docs/table_reboot.md` for full context.
 - **Remaining sortable columns** — violation counts, demographics, EJ, funding, watershed require joins; not yet in `SORTABLE_COLUMNS`
 - **"Public Water Utilities in [Place]" dynamic title** — `filter_controller.js` already holds `params.place_name`; `.geo-filter` spans exist in `index.html.erb` and `_filter_menus.html.erb` but nothing writes to them yet. Preferred approach: add a Stimulus value + callback to `filter_controller.js` that updates all `.geo-filter` spans on place filter change
 - **Spec gaps** — nil numeric/string render as `"—"` not fully covered; full column-header sweep spec not written

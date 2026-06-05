@@ -20,10 +20,6 @@ Known issues that have been discovered, which we know we need to come back to an
   - Add Boil Water Summary filtering functionality
   
 ### Historgrams
-  - get confirmation on expected behavior for histogram sliders for Health Violation sub Categories
-    - When do they open, when do they close, what should things look like on first load (range)
-
-  - OVERALL Styline Needed -> buckets, scaling, hover feedback, etc. (see mock)
    
 ### Data Table
   - Add remaining sort options
