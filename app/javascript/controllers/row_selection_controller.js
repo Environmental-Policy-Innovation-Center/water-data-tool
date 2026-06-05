@@ -82,7 +82,7 @@ export default class extends Controller {
     const empty = !SelectionState.isAllMode() && SelectionState.count() === 0
     const btn = this.exportButtonTarget
 
-    btn.classList.toggle("bg-brand-primary", !empty)
+    btn.classList.toggle("bg-[#67a25e]", !empty)
     btn.classList.toggle("bg-neutral-400", empty)
     btn.classList.toggle("cursor-not-allowed", empty)
     btn.setAttribute("aria-disabled", String(empty))
