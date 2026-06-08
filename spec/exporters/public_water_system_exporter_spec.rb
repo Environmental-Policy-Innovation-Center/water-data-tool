@@ -3,33 +3,47 @@ require "csv"
 
 RSpec.describe PublicWaterSystemExporter do
   let!(:pws) { create(:public_water_system, pws_name: "Test Water Co", stusps: "VT") }
-  let(:scope) { PublicWaterSystem.with_details.where(pwsid: pws.pwsid) }
+  let(:scope) { PublicWaterSystem.where(pwsid: pws.pwsid) }
   let(:exporter) { described_class.new(scope) }
 
-  describe "#to_csv" do
-    it "returns a string" do
-      expect(exporter.to_csv).to be_a(String)
+  describe "#to_csv_stream" do
+    subject(:rows) { CSV.parse(exporter.to_csv_stream.to_a.join) }
+
+    it "returns an Enumerator" do
+      expect(exporter.to_csv_stream).to be_an(Enumerator)
     end
 
     it "includes the expected column headers in the first row" do
-      headers = CSV.parse(exporter.to_csv).first
-      expect(headers).to include("Utility Name", "Utility ID", "State", "Has open violations", "Grant eligible", "Boil water notices")
+      expect(rows.first).to include("Utility Name", "Utility ID", "State", "Has open violations", "Grant eligible", "Boil water notices")
     end
 
     it "includes one data row per system in the scope" do
       create(:public_water_system)
-      scope = PublicWaterSystem.with_details
-      rows = CSV.parse(described_class.new(scope).to_csv)
-      expect(rows.length).to eq(3) # 1 header + 2 data rows
+      all_rows = CSV.parse(described_class.new(PublicWaterSystem.all).to_csv_stream.to_a.join)
+      expect(all_rows.length).to eq(3) # 1 header + 2 data rows
     end
 
     it "includes the system name in the data row" do
-      rows = CSV.parse(exporter.to_csv)
       expect(rows[1]).to include("Test Water Co")
     end
 
+    it "preserves sort order from the scope" do
+      create(:public_water_system, pws_name: "Alpha Water")
+      scope = PublicWaterSystem.order(pws_name: :asc)
+      result = CSV.parse(described_class.new(scope).to_csv_stream.to_a.join)
+      expect(result[1][0]).to eq("Alpha Water")
+      expect(result[2][0]).to eq("Test Water Co")
+    end
+
     it "does not raise when associations are nil" do
-      expect { exporter.to_csv }.not_to raise_error
+      expect { exporter.to_csv_stream.to_a }.not_to raise_error
+    end
+
+    it "continues fetching across batch boundaries" do
+      stub_const("PublicWaterSystemExporter::BATCH_SIZE", 1)
+      create(:public_water_system)
+      all_rows = CSV.parse(described_class.new(PublicWaterSystem.all).to_csv_stream.to_a.join)
+      expect(all_rows.length).to eq(3) # 1 header + 2 data rows
     end
   end
 

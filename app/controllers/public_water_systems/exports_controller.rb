@@ -3,39 +3,39 @@ module PublicWaterSystems
     include Sortable
 
     def create
-      base_scope = if export_params[:pwsids].present?
-        PublicWaterSystem.where(pwsid: export_params[:pwsids])
-      else
-        base = PublicWaterSystem.apply_filters(FilterParams.permit(params))
-        base = apply_search(base, params[:search].to_s.strip) if params[:search].present?
-        export_params[:exclude_pwsids].present? ? base.where.not(pwsid: export_params[:exclude_pwsids]) : base
-      end
-
-      base_scope = apply_sort_join(base_scope).order(order_clause)
-
-      if params[:file_format] == "geojson"
-        render_geojson_export(PublicWaterSystemExporter.new(base_scope))
-      else
-        render_csv_export(PublicWaterSystemExporter.new(base_scope.with_details))
-      end
+      exporter = PublicWaterSystemExporter.new(build_export_scope)
+      (params[:file_format] == "geojson") ? render_geojson_export(exporter) : render_csv_export(exporter)
     end
 
     private
+
+    def build_export_scope
+      apply_sort_join(filtered_scope).order(order_clause)
+    end
+
+    def filtered_scope
+      ep = export_params
+      return PublicWaterSystem.where(pwsid: ep[:pwsids]) if ep[:pwsids].present?
+
+      scope = PublicWaterSystem.apply_filters(FilterParams.permit(params))
+      scope = apply_search(scope, params[:search].to_s.strip) if params[:search].present?
+      scope = scope.where.not(pwsid: ep[:exclude_pwsids]) if ep[:exclude_pwsids].present?
+      scope
+    end
 
     def export_params
       params.permit(pwsids: [], exclude_pwsids: [])
     end
 
     def render_csv_export(exporter)
-      send_data exporter.to_csv,
-        type: "text/csv",
-        disposition: 'attachment; filename="drinking_water_explorer_export.csv"'
+      response.content_type = "text/csv"
+      response.headers["Content-Disposition"] = 'attachment; filename="drinking_water_explorer_export.csv"'
+      self.response_body = exporter.to_csv_stream
     end
 
     def render_geojson_export(exporter)
       response.content_type = "application/json; charset=utf-8"
       response.headers["Content-Disposition"] = 'attachment; filename="export.geojson"'
-      # Content-Length is intentionally absent — the streamed response size is unknown in advance.
       self.response_body = exporter.to_geojson_stream
     end
   end
