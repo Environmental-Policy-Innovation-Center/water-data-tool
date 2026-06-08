@@ -6,7 +6,7 @@ class Report::HeaderComponent < ViewComponent::Base
   end
 
   def generated_at
-    Time.current
+    @generated_at ||= Time.current
   end
 
   def date_label

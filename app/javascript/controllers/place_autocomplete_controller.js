@@ -91,6 +91,7 @@ export default class extends Controller {
   async #fetch(q) {
     try {
       const resp = await fetch(`/places/search?q=${encodeURIComponent(q)}`)
+      if (!resp.ok) { this.#hideResults(); return }
       const places = await resp.json()
       this.#render(places)
     } catch {
