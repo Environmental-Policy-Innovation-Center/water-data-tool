@@ -40,7 +40,11 @@
 .mapboxgl-popup-close-button:hover { background-color: #ececec; }
 .mapboxgl-popup-content { padding: 0; border-radius: 20px; }
 
-/* Navigation control (zoom +/−) */
+/* Navigation control (zoom +/−) — desktop only; mobile uses pinch-to-zoom */
+.mapboxgl-ctrl-top-left .mapboxgl-ctrl-group { display: none; }
+@media (min-width: 640px) {
+  .mapboxgl-ctrl-top-left .mapboxgl-ctrl-group { display: block; }
+}
 .mapboxgl-ctrl-top-left .mapboxgl-ctrl { background-color: transparent; box-shadow: none; }
 .mapboxgl-ctrl-group button:only-child { border-radius: 20px; border: 1px solid #bfbfbf; background-color: #fff; }
 .mapboxgl-ctrl-group button:first-child,

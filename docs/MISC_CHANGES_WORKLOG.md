@@ -142,6 +142,104 @@ Closes flagged follow-ups for fake links on table Export and place autocomplete 
 
 **Docs updated**
 - `docs/FRONTEND_DECISION.md` — rewritten as decision record (what/why/done), not an implementation guide
-- `docs/API.md`, `docs/ARCHITECTURE.md`, `ROADMAP.md`, `docs/TRANSITION.md`
+- `docs/API.md`, `docs/ARCHITECTURE.md`, `docs/DISCOVERY.md`, `ROADMAP.md`, `docs/TRANSITION.md`
+
+---
+
+## Sidebar — Explore the Table nav item
+
+**Status:** In progress on this branch (uncommitted).
+
+**Summary:** Adds **Explore the Table** to the desktop sidebar (`#sidebar-nav`), directly below **Explore the Map**. Reuses existing `nav#show` / `section: "table"` wiring and `table.svg` via `UI::NavItemComponent`. Table view remains desktop-only (`#container-table` is `max-md:!hidden`); the mobile menu overlay omits this item so users are not offered a control with no visible result on small screens.
+
+**Added**
+- `app/views/home/_core_section_nav.html.erb` — shared section nav items (Map, optional Table, Datasets, Documentation, Downloads) for sidebar + mobile menu
+
+**Changed**
+- `app/views/home/_sidebar.html.erb` — renders `_core_section_nav` (includes table)
+- `app/views/home/index.html.erb` — mobile menu renders `_core_section_nav` with `include_table: false`
+- `app/javascript/controllers/nav_controller.js` — sync `aria-current="page"` on all `nav#show` section buttons (sidebar, mobile menu, map/table FABs), not sidebar-only
+
+**Removed / not used**
+- Duplicated inline nav item markup in `_sidebar.html.erb` and mobile menu
+
+**How to test**
+
+Manual (`PORT=3001 bin/dev` if the main worktree uses 3000):
+
+*Desktop sidebar (`sm+`)*
+1. Sidebar → **Explore the Table** (below **Explore the Map**) → table panel opens over map; filter bar stays visible
+2. Bottom-right Map/Table FABs stay in sync (active state matches sidebar)
+3. Tab to sidebar table button → Enter/Space activates; focus ring visible
+4. Collapsed sidebar → table icon-only button still works (`aria-label` on button)
+
+*Mobile menu (`< sm`)*
+1. Hamburger → menu lists Map, Datasets, Documentation, Downloads — **no** Explore the Table entry
+2. Section switches still close the overlay
+
+**Notes**
+- **Pattern:** Same `UI::NavItemComponent` as other section buttons (`<button>`, `data-section`, `focus_ring_classes`, visible label + `aria-hidden` icon).
+- **DRY:** `_core_section_nav` keeps sidebar and mobile core nav in sync; mobile-only footer links (Github, Feedback, Contact) stay inline in `index.html.erb`.
+- **A11y fix:** `aria-current` now updates on map/table FAB toggles too (previously only sidebar buttons).
+- No new automated specs — manual only.
+- **Out of scope:** Enabling table view on mobile (`max-md:!hidden` on `#container-table` unchanged).
+
+**PR notes** (sidebar table slice — paste/adapt for multi-domain PR)
+
+Restores table discovery in the left nav (legacy PHP had a Table item) using the existing table section switcher — no new routes or Stimulus actions. Shared partial reduces drift between desktop sidebar and mobile menu; table is omitted from mobile because the table panel is desktop-only.
+
+**Reviewer focus:** Sidebar table button on `sm+`; FAB/sidebar active-state sync; mobile menu does not show table; keyboard activation.
+
+---
+
+## Map — initial viewport & mobile chrome
+
+**Status:** Done on this branch (manual QA complete). Independent of other slices; safe to review separately.
+
+**Summary:** Fix initial map framing when the floating sidebar covers the left edge on desktop. Mobile gets a dedicated center/zoom (legacy-style national view) instead of `fitBounds`, which fought portrait aspect ratio. Hide desktop-only map controls on phones (zoom +/−, region fly-to shortcuts).
+
+**Changed**
+- `app/javascript/controllers/map_controller.js` — `#fitDefaultView`, `#desktopMapLayout`, `#desktopPadding`, `#sidebarLeftInset`; layout-specific `minZoom`; `zoom48()` delegates to `#fitDefaultView`
+- `app/views/home/index.html.erb` — `#container-region-nav` adds `hidden sm:block`
+- `app/assets/tailwind/application.css` — hide `.mapboxgl-ctrl-group` below 640px (mobile-first: hidden by default, `min-width: 640px` shows)
+- `docs/MAPPING.md` — **Initial Viewport** section; `zoom48()` row updated
+
+**Removed / not used**
+- Uniform `fitBounds` + `padding: 20` for all viewports
+- `matchMedia` breakpoint checks for layout
+- Per-corner overlay measurement for `fitBounds` padding (Mapbox applies padding per full edge, not per control)
+
+**How to test**
+
+Manual (`PORT=3001 bin/dev` if the main worktree uses 3000):
+
+*Desktop (`sm+`, sidebar open)*
+1. Hard-refresh `/` → continental US visible; west and east coasts clear of sidebar
+2. Collapse sidebar → **48** → same national framing with less left inset
+3. **48** / AK / HI shortcuts still work; zoom +/− visible top-left
+
+*Mobile (`< 640px` width)*
+1. Hard-refresh → national view at zoom 2 (`mapDebug.getZoom()` on localhost)
+2. No zoom +/− buttons; no 48/AK/HI region column (pinch-to-zoom OK)
+3. Tweak `MOBILE_DEFAULT_ZOOM` in `map_controller.js` → visible after refresh (requires `MOBILE_MIN_ZOOM` ≤ zoom)
+
+**Notes**
+- **Layout detection:** `#container-sidebar` `getBoundingClientRect().width > 0` mirrors `hidden sm:flex` in markup (`docs/TAILWINDS_CSS_GUIDE.md` — DOM truth, not JS breakpoints).
+- **Desktop vs mobile camera:** Desktop `fitBounds` + sidebar left padding; mobile `center`/`zoom` (not different geographic bounds — different framing strategy).
+- **`minZoom` trap:** Global `minZoom: 3` silently clamped mobile zoom; split into `DESKTOP_MIN_ZOOM` (3) and `MOBILE_MIN_ZOOM` (2).
+- **Initial load** uses `#fitDefaultView({ duration: 0 })`; **48** button uses animated default.
+- Geolocation auto-center deferred (out of scope).
+- No new automated specs — manual only.
+
+**PR notes** (map viewport slice — paste/adapt for multi-domain PR)
+
+Corrects default map framing now that the sidebar floats over the canvas on desktop. Uses measured sidebar inset for `fitBounds` left padding only (not corner controls — full-edge padding was zooming out/shifting center incorrectly). Mobile uses explicit center/zoom with a lower `minZoom` so tuning constants actually apply. Hides Mapbox zoom buttons and region shortcuts on small screens per mobile-first visibility patterns.
+
+**Reviewer focus:** Desktop west coast visible beside open sidebar; mobile national zoom; hidden zoom/region controls on phone; **48** reset on both layouts.
+
+**Out of scope / follow-ups (not on this branch)**
+- Refit on sidebar toggle or orientation change
+- Hide Mapbox geocoder on mobile (filter panel has place search)
+- Geolocation “near me” initial view
 
 ---

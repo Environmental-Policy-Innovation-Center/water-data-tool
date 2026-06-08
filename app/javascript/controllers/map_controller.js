@@ -1,6 +1,16 @@
 import { Controller } from "@hotwired/stimulus"
 import * as FilterState from "filter_state"
 
+const DESKTOP_US_BOUNDS = [[-125.5, 23.5], [-65.5, 49.5]]
+const VIEWPORT_PADDING = 20
+// Gap after sidebar right edge — keep in sync with sidebar_controller.js CONTROLS_GAP
+const SIDEBAR_CONTENT_GAP = 16
+// Portrait mobile: fitBounds + edge padding fights the aspect ratio; use center/zoom instead.
+const MOBILE_DEFAULT_CENTER = [-97.6, 38.5]
+const MOBILE_DEFAULT_ZOOM = 2
+const DESKTOP_MIN_ZOOM = 3
+const MOBILE_MIN_ZOOM = 2
+
 export default class extends Controller {
   static targets = ["popupTemplate"]
 
@@ -18,15 +28,24 @@ export default class extends Controller {
 
     window.mapboxgl.accessToken = token
 
-    this.map = new window.mapboxgl.Map({
+    const desktopLayout = this.#desktopMapLayout()
+    const mapOptions = {
       container: "map",
       style: document.head.querySelector('meta[name="mapbox-style"]')?.content,
-      bounds: [[-125.5, 23.5], [-65.5, 49.5]],
-      fitBoundsOptions: { padding: 20 },
-      minZoom: 3,
+      minZoom: desktopLayout ? DESKTOP_MIN_ZOOM : MOBILE_MIN_ZOOM,
       projection: "mercator",
       renderWorldCopies: false
-    })
+    }
+
+    if (desktopLayout) {
+      mapOptions.bounds = DESKTOP_US_BOUNDS
+      mapOptions.fitBoundsOptions = { padding: this.#desktopPadding() }
+    } else {
+      mapOptions.center = MOBILE_DEFAULT_CENTER
+      mapOptions.zoom = MOBILE_DEFAULT_ZOOM
+    }
+
+    this.map = new window.mapboxgl.Map(mapOptions)
 
     this.map.dragRotate.disable()
     // Dev convenience: mapDebug.getZoom(), mapDebug.getCenter(), etc. in browser console.
@@ -51,6 +70,56 @@ export default class extends Controller {
 
   // ── Private ────────────────────────────────────────────────────────────────
 
+  // Sidebar uses hidden sm:flex — width > 0 means desktop chrome is active (no breakpoint checks).
+  #desktopMapLayout() {
+    const sidebar = document.getElementById("container-sidebar")
+    return !!sidebar && sidebar.getBoundingClientRect().width > 0
+  }
+
+  #desktopPadding() {
+    const leftInset = this.#sidebarLeftInset()
+    if (!leftInset) return VIEWPORT_PADDING
+
+    return {
+      top: VIEWPORT_PADDING,
+      bottom: VIEWPORT_PADDING,
+      left: leftInset + VIEWPORT_PADDING,
+      right: VIEWPORT_PADDING
+    }
+  }
+
+  #sidebarLeftInset() {
+    const mapEl = document.getElementById("map")
+    const sidebar = document.getElementById("container-sidebar")
+    if (!mapEl || !sidebar) return 0
+
+    const mapRect = mapEl.getBoundingClientRect()
+    const { width, right } = sidebar.getBoundingClientRect()
+    if (width <= 0) return 0
+
+    return Math.ceil(Math.max(0, right - mapRect.left)) + SIDEBAR_CONTENT_GAP
+  }
+
+  #fitDefaultView(options = {}) {
+    const { duration, ...fitOptions } = options
+
+    if (this.#desktopMapLayout()) {
+      this.map.fitBounds(DESKTOP_US_BOUNDS, {
+        padding: this.#desktopPadding(),
+        ...fitOptions,
+        ...(duration !== undefined ? { duration } : {})
+      })
+      return
+    }
+
+    const camera = { center: MOBILE_DEFAULT_CENTER, zoom: MOBILE_DEFAULT_ZOOM }
+    if (duration === 0) {
+      this.map.jumpTo(camera)
+    } else {
+      this.map.flyTo({ ...camera, ...(duration !== undefined ? { duration } : {}) })
+    }
+  }
+
   #onLoad() {
     this.#addControls()
     this.#addSource()
@@ -64,6 +133,8 @@ export default class extends Controller {
     if (Object.keys(FilterState.get()).length > 0) {
       this.#onFiltersChanged()
     }
+
+    this.#fitDefaultView({ duration: 0 })
 
     this.map.once("idle", () => this.#hideLoadingMask())
   }
@@ -398,7 +469,7 @@ export default class extends Controller {
   zoom48() {
     const input = document.querySelector(".mapboxgl-ctrl-geocoder--input")
     if (input) input.value = ""
-    this.map.fitBounds([[-125.5, 23.5], [-65.5, 49.5]], { padding: 20 })
+    this.#fitDefaultView()
   }
 
   zoomAk() {

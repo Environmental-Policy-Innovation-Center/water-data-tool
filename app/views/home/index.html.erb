@@ -80,7 +80,7 @@
   <div id="map" class="w-full h-full"></div>
 
   <%# Map region shortcuts (48 / AK / HI / territories) — below +/− zoom controls %>
-  <div id="container-region-nav" class="absolute left-[10px] top-[135px] z-[1] group-[.table-mode]/map:hidden">
+  <div id="container-region-nav" class="hidden sm:block absolute left-[10px] top-[135px] z-[1] group-[.table-mode]/map:hidden">
     <%= render UI::MapRegionShortcutButtonComponent.new(label: "48", aria_label: "Zoom to 48 states", map_action: "zoom48") %>
     <%= render UI::MapRegionShortcutButtonComponent.new(label: "AK", aria_label: "Zoom to Alaska", map_action: "zoomAk") %>
     <%= render UI::MapRegionShortcutButtonComponent.new(label: "HI", aria_label: "Zoom to Hawaii", map_action: "zoomHi") %>
