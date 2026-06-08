@@ -1,8 +1,12 @@
 {
   "ignored_warnings": [
     {
-      "fingerprint": "f05306156f615c94740940841a2243116ea4b8a6ee371826c57b1c2eedec0c0b",
-      "note": "False positive. The interpolated values are: (1) properties_sql — built entirely from the GEOJSON_PROPERTY_COLUMNS constant, zero user input; (2) filtered_ids_sql — produced by ActiveRecord's parameterised query builder from apply_filters, which sanitises all user-supplied params before emitting SQL; (3) quoted — escaped via connection.quote(); (4) BATCH_SIZE — a Ruby integer constant."
+      "fingerprint": "24b3f5829f502d88df4e0d255d992afef200b519b858a2375630b2ec71207e3b",
+      "note": "False positive. Interpolated values in fetch_feature_batch: (1) properties_sql — built from GEOJSON_PROPERTY_COLUMNS frozen constant; all keys via conn.quote(), columns via conn.quote_column_name(); (2) filtered_ids_sql — AR scope .to_sql, all user filter values parameterised by AR before SQL is emitted; (3) quoted — conn.quote(last_pwsid); (4) ASSOCIATION_JOINS — frozen constant; (5) BATCH_SIZE — integer constant."
+    },
+    {
+      "fingerprint": "cdec29c5e98cdeabad3041af330d713434cbade327785db46c9ebc238ca58ad7",
+      "note": "False positive. Interpolated values in fetch_csv_batch: (1) CSV_COLUMN_MAP.values — hardcoded SQL column expressions from a frozen constant, no user input; (2) ASSOCIATION_JOINS — frozen constant; (3) quoted_ids — pwsids from @scope.pluck(:pwsid) then each passed through conn.quote()."
     }
   ]
 }

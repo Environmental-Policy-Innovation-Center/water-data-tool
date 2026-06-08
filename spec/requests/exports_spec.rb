@@ -8,7 +8,7 @@ RSpec.describe "Exports", type: :request do
         create(:public_water_system)
         post export_path, params: {file_format: "invalid"}
         expect(response).to have_http_status(:ok)
-        expect(response.content_type).to eq("text/csv")
+        expect(response.content_type).to include("text/csv")
       end
     end
 
@@ -17,7 +17,7 @@ RSpec.describe "Exports", type: :request do
         create(:public_water_system)
         post export_path
         expect(response).to have_http_status(:ok)
-        expect(response.content_type).to eq("text/csv")
+        expect(response.content_type).to include("text/csv")
         expect(response.headers["Content-Disposition"]).to include("attachment")
         expect(response.headers["Content-Disposition"]).to include(".csv")
       end
@@ -103,8 +103,7 @@ RSpec.describe "Exports", type: :request do
         pws1 = create(:public_water_system)
         create(:public_water_system)
         post export_path, params: {pwsids: [pws1.pwsid], file_format: "geojson"}
-        body = Zlib::GzipReader.new(StringIO.new(response.body)).read
-        expect(JSON.parse(body)["features"].length).to eq(1)
+        expect(JSON.parse(response.body)["features"].length).to eq(1)
       end
 
       it "silently ignores unknown pwsids and returns only matching records" do

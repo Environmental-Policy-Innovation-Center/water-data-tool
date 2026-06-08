@@ -64,7 +64,12 @@ Known issues that have been discovered, which we know we need to come back to an
 ### Other
   - with a large set of filters, our URLs can get very long - determine a potential strategy for solving this
     - already tried, a messy mapping strategy, but could otentially try again
-    
+  - Remove unused PublicWaterSystemsController and routes
+
+### Performance
+  - server side cache the initial request: The default table state (no filters, default sort, page 1) is identical for every user and only changes when a new data import runs. Cache the `HomeController#table` response keyed on `[filter_params, sort/direction/page, DataImport.maximum(:imported_at)]`. Cache is free to be long-lived — it self-invalidates on the next import. Solid Cache is already configured in production; no infrastructure work needed.
+
+
 ### Documentation
   - EVENTUALLY - remove temporary docs
   - update docs that will persist, ensuring accuracy
