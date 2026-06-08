@@ -241,13 +241,32 @@ The geocoder is rendered into the filter bar (`#geocoder-li`) rather than as a f
 
 ---
 
+## Initial Viewport
+
+On page load and when the user clicks **48**, `map_controller.js` calls `#fitDefaultView`. Layout is inferred from whether `#container-sidebar` is visible (`hidden sm:flex` → zero width on phones) — no `matchMedia` branches.
+
+| Layout | Signal | Camera | `minZoom` |
+|---|---|---|---|
+| Desktop | Sidebar `width > 0` | `fitBounds` on continental US (`[-125.5, 23.5]` → `[-65.5, 49.5]`) with left padding for the floating sidebar | 3 |
+| Mobile | Sidebar hidden | `center: [-97.6, 38.5]`, `zoom: 2` | 2 |
+
+Left padding on desktop matches `sidebar_controller.js` (`sidebar right edge + 16px CONTROLS_GAP + 20px margin`). Mobile uses center/zoom instead of `fitBounds` because portrait aspect ratio plus full-edge padding produced poor framing.
+
+**Desktop-only map chrome** (hidden below `sm` / 640px):
+- Mapbox zoom +/− (`.mapboxgl-ctrl-group` in `application.css`)
+- Region shortcuts (`#container-region-nav` — 48 / AK / HI / PR / GU / MP)
+
+Tuning constants live at the top of `map_controller.js` (`MOBILE_DEFAULT_ZOOM`, `DESKTOP_US_BOUNDS`, etc.). `MOBILE_MIN_ZOOM` must be ≤ `MOBILE_DEFAULT_ZOOM` or Mapbox clamps the requested zoom.
+
+---
+
 ## Programmatic Zoom Methods
 
 These are called by nav/button elements outside the map canvas:
 
 | Method | Behavior |
 |---|---|
-| `zoom48()` | Clears geocoder input; flies to continental US center (`-97.6, 40.27`, zoom 3.5) |
+| `zoom48()` | Clears geocoder input; calls `#fitDefaultView` (same framing as initial load) |
 | `zoomAk()` | Flies to Alaska (`-149.504, 61.342`, zoom ~5) |
 | `zoomHi()` | Flies to Hawaii (`-157.856, 21.305`, zoom ~6) |
 | `zoomPr()` | Flies to Puerto Rico (`-66.590, 18.220`, zoom 8) |
