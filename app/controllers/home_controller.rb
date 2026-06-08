@@ -4,6 +4,7 @@ class HomeController < ApplicationController
   def index
     @last_updated = DataImport.maximum(:imported_at)
     @visible_col_keys = params[:cols].blank? ? nil : params[:cols].split(",").map(&:to_sym).to_set
+    @pinned_cols, @toggleable_cols = ColumnRegistry.columns.partition(&:pinned)
   end
 
   def map
@@ -15,7 +16,7 @@ class HomeController < ApplicationController
     scope = PublicWaterSystem.apply_filters(filter_params)
     scope = apply_search(scope, params[:search].to_s.strip) if params[:search].present?
     scope = apply_sort_join(scope)
-    preloads = [:violations_summary, :demographic, :environmental_justice,
+    preloads = [:violations_summary, :demographic, :trend_datum, :environmental_justice,
       :funding_summary, :watershed_hazard, :boil_water_summary]
     @pagy, @systems = pagy(scope.preload(preloads).order(order_clause))
     @columns = visible_columns
@@ -25,10 +26,8 @@ class HomeController < ApplicationController
   private
 
   def visible_columns
-    return ColumnRegistry.columns if params[:cols].blank?
-    selected = params[:cols].split(",").map(&:to_sym).to_set
-    pinned, selectable = ColumnRegistry.columns.partition(&:pinned)
-    pinned + selectable.select { |c| selected.include?(c.key) }
+    keys = params[:cols].blank? ? nil : params[:cols].split(",").map(&:to_sym).to_set
+    ColumnRegistry.visible(keys: keys)
   end
 
   def filter_params
