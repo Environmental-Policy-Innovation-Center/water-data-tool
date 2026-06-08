@@ -29,11 +29,7 @@ export const toggle = (id) => {
 }
 
 // Called when filters change — reset to "all selected" for the fresh result set
-export const clear = () => {
-  excluded.clear()
-  included.clear()
-  mode = "all"
-}
+export const clear = selectAll
 
 export const has            = (id) => mode === "all" ? !excluded.has(id) : included.has(id)
 export const excludedCount  = ()   => excluded.size

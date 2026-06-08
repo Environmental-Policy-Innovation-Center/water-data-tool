@@ -38,22 +38,19 @@ export default class extends Controller {
     this.#updateBadge()
   }
 
-  selectAll() {
-    SelectionState.selectAll()
-    this.rowTargets.forEach(c => { c.checked = true })
-    this.#updateBadge()
-  }
+  selectAll()   { this.#setAllRows(true) }
+  deselectAll() { this.#setAllRows(false) }
 
-  deselectAll() {
-    SelectionState.deselectAll()
-    this.rowTargets.forEach(c => { c.checked = false })
+  #setAllRows(checked) {
+    checked ? SelectionState.selectAll() : SelectionState.deselectAll()
+    this.rowTargets.forEach(c => { c.checked = checked })
     this.#updateBadge()
   }
 
   #updateBadge() {
     if (!this.hasCountBadgeTarget) return
 
-    let text = null
+    let text
 
     if (SelectionState.isAllChecked()) {
       text = "All"
@@ -66,7 +63,7 @@ export default class extends Controller {
       text = SelectionState.count().toLocaleString()
     }
 
-    if (text) {
+    if (text !== undefined) {
       this.countBadgeTarget.textContent = text
       this.countBadgeTarget.classList.remove("hidden")
     } else {

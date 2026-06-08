@@ -33,19 +33,14 @@ export default class extends Controller {
     const direction = queryState?.dataset.direction
     const search = queryState?.dataset.search
 
-    if (SelectionState.isAllChecked()) {
-      // All rows selected — export everything matching the current filters and search
+    if (SelectionState.isAllMode()) {
       for (const [key, value] of new URLSearchParams(FilterState.toUrlParams())) {
         append(key, value)
       }
       if (search) append("search", search)
-    } else if (SelectionState.isAllMode()) {
-      // All mode with some unchecked — export filter results minus the excluded IDs
-      for (const [key, value] of new URLSearchParams(FilterState.toUrlParams())) {
-        append(key, value)
+      if (!SelectionState.isAllChecked()) {
+        SelectionState.getExcludedIds().forEach(id => append("exclude_pwsids[]", id))
       }
-      if (search) append("search", search)
-      SelectionState.getExcludedIds().forEach(id => append("exclude_pwsids[]", id))
     } else {
       // Explicit mode — export only the manually checked IDs
       const ids = SelectionState.getIds()
