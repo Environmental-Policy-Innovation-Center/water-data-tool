@@ -13,7 +13,8 @@ RSpec.describe TableColumn do
       pinned: false,
       source: :pws,
       csv_label: "Utility ID",
-      sql_expr: "pws.pwsid"
+      sql_expr: "pws.pwsid",
+      category: nil
     )
   end
 
@@ -42,7 +43,7 @@ RSpec.describe TableColumn do
     check_col = TableColumn.new(
       key: :check, label: nil, sort: nil, format: :check,
       format_opts: {}, size: :check, row_header: false, pinned: true, source: nil,
-      csv_label: nil, sql_expr: nil
+      csv_label: nil, sql_expr: nil, category: nil
     )
     expect(check_col.label).to be_nil
     expect(check_col.csv_label).to be_nil

@@ -34,6 +34,53 @@ RSpec.describe ColumnRegistry do
     expect(ColumnRegistry.columns).not_to be(original)
   end
 
+  describe ".categories" do
+    it "returns an Array of CategoryDef" do
+      expect(ColumnRegistry.categories).to be_an(Array)
+      expect(ColumnRegistry.categories.first).to be_a(CategoryDef)
+    end
+
+    it "includes expected category keys in order" do
+      keys = ColumnRegistry.categories.map(&:key)
+      expect(keys).to eq([:utility_details, :violations, :demographics, :environmental_justice, :funding, :watershed_hazards])
+    end
+
+    it "each category has a label" do
+      expect(ColumnRegistry.categories.map(&:label)).to all(be_a(String))
+    end
+  end
+
+  describe ".columns_by_category" do
+    subject(:result) { ColumnRegistry.columns_by_category }
+
+    it "returns a Hash" do
+      expect(result).to be_a(Hash)
+    end
+
+    it "does not include any pinned columns" do
+      pinned_keys = ColumnRegistry.columns.select(&:pinned).map(&:key)
+      all_returned_keys = result.values.flatten.map(&:key)
+      expect(all_returned_keys).not_to include(*pinned_keys)
+    end
+
+    it "groups ungrouped non-pinned columns under the nil key" do
+      ungrouped = ColumnRegistry.columns.reject(&:pinned).select { |c| c.category.nil? }
+      if ungrouped.any?
+        expect(result[nil]).to match_array(ungrouped)
+      else
+        expect(result.key?(nil)).to be(false)
+      end
+    end
+
+    it "maps each category key to its expected columns" do
+      ColumnRegistry.categories.each do |cat|
+        expected = ColumnRegistry.columns.reject(&:pinned).select { |c| c.category == cat.key }
+        next if expected.empty?
+        expect(result[cat.key]).to match_array(expected)
+      end
+    end
+  end
+
   describe ".visible" do
     it "returns all columns when keys is nil" do
       expect(ColumnRegistry.visible(keys: nil)).to eq(ColumnRegistry.columns)
