@@ -1,0 +1,23 @@
+<li>
+  <div class="flex items-center gap-2 rounded px-2 py-1.5 mt-1 bg-neutral-50">
+    <button type="button"
+            data-action="click->manage-columns#toggleCategoryCollapse"
+            aria-expanded="true"
+            aria-controls="cat-body-<%= @cat.key %>"
+            class="flex flex-1 cursor-pointer items-center gap-2 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600">
+      <span class="flex-1 text-xs font-semibold uppercase tracking-wide text-neutral-500">
+        <%= @cat.label %>
+      </span>
+      <%= icon "arrow-down", classes: "size-3 shrink-0 text-neutral-400 transition-transform duration-150" %>
+    </button>
+    <input type="checkbox"
+           id="cat_<%= @cat.key %>"
+           data-category="<%= @cat.key %>"
+           data-action="change->manage-columns#toggleCategory"
+           aria-label="Toggle all <%= @cat.label %> columns"
+           class="size-4 cursor-pointer rounded">
+  </div>
+  <ul id="cat-body-<%= @cat.key %>" class="list-none m-0 p-0">
+    <%= content %>
+  </ul>
+</li>
