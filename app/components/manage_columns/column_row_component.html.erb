@@ -1,0 +1,16 @@
+<li class="flex items-center gap-2 rounded <%= @indented ? 'pl-6 pr-2' : 'px-2' %> py-1.5 hover:bg-neutral-50">
+  <%= icon "drag", classes: "size-3 shrink-0 text-neutral-300" %>
+  <label for="col_<%= @col.key %>" class="flex-1 cursor-pointer text-sm text-neutral-700">
+    <%= @col.label %>
+  </label>
+  <input type="checkbox"
+         id="col_<%= @col.key %>"
+         data-col-key="<%= @col.key %>"
+         <% if @col.category %>
+           data-category="<%= @col.category %>"
+           data-action="change->manage-columns#syncCategoryState"
+         <% end %>
+         <%= "checked" if @checked %>
+         aria-label="Show <%= @col.label %> column"
+         class="size-4 cursor-pointer rounded">
+</li>
