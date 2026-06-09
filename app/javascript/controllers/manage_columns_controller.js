@@ -25,12 +25,32 @@ export default class extends Controller {
     this.dropdownTarget.classList.contains("hidden") ? this.#open() : this.#close()
   }
 
+  toggleCategoryCollapse(event) {
+    const btn = event.currentTarget
+    const expanded = btn.getAttribute("aria-expanded") === "true"
+    btn.setAttribute("aria-expanded", String(!expanded))
+    document.getElementById(btn.getAttribute("aria-controls"))?.classList.toggle("hidden", expanded)
+    btn.querySelector("svg")?.classList.toggle("-rotate-90", expanded)
+  }
+
+  toggleCategory(event) {
+    const { category } = event.target.dataset
+    this.formTarget.querySelectorAll(`input[data-col-key][data-category="${category}"]`)
+      .forEach(cb => { cb.checked = event.target.checked })
+    this.#setCategoryExpanded(category, event.target.checked)
+  }
+
+  syncCategoryState(event) {
+    this.#updateCategoryState(event.target.dataset.category)
+  }
+
   serializeCols() {
     const allBoxes = this.formTarget.querySelectorAll('input[type="checkbox"][data-col-key]')
     const checkedKeys = Array.from(allBoxes).filter(cb => cb.checked).map(cb => cb.dataset.colKey)
-    // All checked = default state; omit the cols param rather than listing every key
-    const keys = checkedKeys.length === allBoxes.length ? "" : checkedKeys.join(",")
-    this.colsInputTarget.value = keys
+    // null = all checked (omit param = default); "" = none checked (pinned only); "a,b" = explicit selection
+    const keys = checkedKeys.length === allBoxes.length ? null : checkedKeys.join(",")
+    this.colsInputTarget.disabled = keys === null
+    this.colsInputTarget.value = keys ?? ""
     this.#updateUrl(keys)
     this.#close()
   }
@@ -42,7 +62,7 @@ export default class extends Controller {
 
   #updateUrl(keys) {
     const url = new URL(window.location)
-    keys ? url.searchParams.set("cols", keys) : url.searchParams.delete("cols")
+    keys === null ? url.searchParams.delete("cols") : url.searchParams.set("cols", keys)
     history.replaceState({}, "", url)
   }
 
@@ -59,10 +79,31 @@ export default class extends Controller {
 
   #syncCheckboxesFromUrl() {
     const cols = new URLSearchParams(window.location.search).get("cols")
-    const visibleKeys = cols ? new Set(cols.split(",")) : null
+    // null = param absent (show all); "" = explicitly empty (pinned only); "a,b" = specific keys
+    const visibleKeys = cols !== null ? new Set(cols.split(",").filter(Boolean)) : null
+    const categoryKeys = new Set()
     this.formTarget.querySelectorAll('input[type="checkbox"][data-col-key]').forEach(cb => {
       cb.checked = visibleKeys === null || visibleKeys.has(cb.dataset.colKey)
+      if (cb.dataset.category) categoryKeys.add(cb.dataset.category)
     })
+    categoryKeys.forEach(key => this.#updateCategoryState(key))
+  }
+
+  #setCategoryExpanded(categoryKey, expanded) {
+    const btn = this.formTarget.querySelector(`button[aria-controls="cat-body-${categoryKey}"]`)
+    if (!btn) return
+    btn.setAttribute("aria-expanded", String(expanded))
+    document.getElementById(`cat-body-${categoryKey}`)?.classList.toggle("hidden", !expanded)
+    btn.querySelector("svg")?.classList.toggle("-rotate-90", !expanded)
+  }
+
+  #updateCategoryState(categoryKey) {
+    const header = this.formTarget.querySelector(`input[data-category="${categoryKey}"]:not([data-col-key])`)
+    if (!header) return
+    const children = Array.from(this.formTarget.querySelectorAll(`input[data-col-key][data-category="${categoryKey}"]`))
+    const checkedCount = children.filter(cb => cb.checked).length
+    header.checked = checkedCount === children.length
+    header.indeterminate = checkedCount > 0 && checkedCount < children.length
   }
 
   #close() {
