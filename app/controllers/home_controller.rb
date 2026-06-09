@@ -3,8 +3,10 @@ class HomeController < ApplicationController
 
   def index
     @last_updated = DataImport.maximum(:imported_at)
-    @visible_col_keys = params[:cols].blank? ? nil : params[:cols].split(",").map(&:to_sym).to_set
+    @visible_col_keys = parse_cols_param
     @pinned_cols, @toggleable_cols = ColumnRegistry.columns.partition(&:pinned)
+    @column_categories = ColumnRegistry.categories
+    @cols_by_category = ColumnRegistry.columns_by_category
   end
 
   def map
@@ -26,8 +28,11 @@ class HomeController < ApplicationController
   private
 
   def visible_columns
-    keys = params[:cols].blank? ? nil : params[:cols].split(",").map(&:to_sym).to_set
-    ColumnRegistry.visible(keys: keys)
+    ColumnRegistry.visible(keys: parse_cols_param)
+  end
+
+  def parse_cols_param
+    params[:cols].nil? ? nil : params[:cols].strip.split(",").map(&:to_sym).to_set
   end
 
   def filter_params
