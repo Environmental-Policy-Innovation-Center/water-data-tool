@@ -6,6 +6,7 @@
   /* Brand colors — confirm hex values against Figma before shipping */
   --color-brand-primary: #1054A8;  /* nav active, buttons, focus rings */
   --color-brand-accent:  #4EA324;  /* map bar indicators */
+  --color-brand-action:  #67a25e;  /* export / selection action buttons */
   --color-brand-dark:    #13171F;  /* checkbox checked, filter controls */
 
   /* Neutrals — replace with Figma named scale when available */
