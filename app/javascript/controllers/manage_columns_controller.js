@@ -55,9 +55,28 @@ export default class extends Controller {
     this.#close()
   }
 
+  selectAllColumns()   { this.#setAllColumns(true) }
+  deselectAllColumns() { this.#setAllColumns(false) }
+
   reset() {
     this.formTarget.querySelectorAll('input[type="checkbox"][data-col-key]').forEach(cb => cb.checked = true)
+    this.#collapseAllCategories()
     this.formTarget.requestSubmit()
+  }
+
+  #collapseAllCategories() {
+    this.formTarget.querySelectorAll('button[aria-controls^="cat-body-"]').forEach(btn => {
+      this.#setCategoryExpanded(btn.getAttribute("aria-controls").replace("cat-body-", ""), false)
+    })
+  }
+
+  #setAllColumns(checked) {
+    const categoryKeys = new Set()
+    this.formTarget.querySelectorAll('input[type="checkbox"][data-col-key]').forEach(cb => {
+      cb.checked = checked
+      if (cb.dataset.category) categoryKeys.add(cb.dataset.category)
+    })
+    categoryKeys.forEach(key => this.#updateCategoryState(key))
   }
 
   #updateUrl(keys) {

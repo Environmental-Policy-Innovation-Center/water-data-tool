@@ -11,6 +11,9 @@ module ApplicationHelper
 
   FILTER_INFO_BUTTON_CLASSES = "ml-1 text-neutral-400 [@media(hover:hover)]:hover:text-neutral-600".freeze
 
+  GHOST_PILL_CLASSES = "cursor-pointer rounded-full border border-neutral-400 bg-white px-3 py-1 text-sm " \
+    "text-neutral-700 md:hover:bg-neutral-100 md:hover:text-neutral-900 #{FOCUS_RING_CLASSES}".freeze
+
   DOWNLOAD_STATES = [
     %w[AL Alabama], %w[AK Alaska], %w[AZ Arizona], %w[AR Arkansas],
     %w[CA California], %w[CO Colorado], %w[CT Connecticut], %w[DE Delaware],
@@ -40,6 +43,7 @@ module ApplicationHelper
   def filter_row_classes = FILTER_ROW_CLASSES
   def filter_info_button_classes = FILTER_INFO_BUTTON_CLASSES
   def focus_ring_classes = FOCUS_RING_CLASSES
+  def ghost_pill_classes = GHOST_PILL_CLASSES
   def download_states = DOWNLOAD_STATES
 
   def icon(name, classes: nil, aria_hidden: true)

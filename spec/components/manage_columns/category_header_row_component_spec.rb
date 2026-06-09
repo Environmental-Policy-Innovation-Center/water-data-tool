@@ -15,10 +15,10 @@ RSpec.describe ManageColumns::CategoryHeaderRowComponent, type: :component do
     expect(html.text).to include("Violations")
   end
 
-  it "renders a collapse toggle button with aria-expanded true" do
+  it "renders a collapse toggle button with aria-expanded false (collapsed by default)" do
     btn = html.at_css("button[data-action='click->manage-columns#toggleCategoryCollapse']")
     expect(btn).to be_present
-    expect(btn["aria-expanded"]).to eq("true")
+    expect(btn["aria-expanded"]).to eq("false")
     expect(btn["aria-controls"]).to eq("cat-body-violations")
   end
 
@@ -34,8 +34,8 @@ RSpec.describe ManageColumns::CategoryHeaderRowComponent, type: :component do
     expect(body.text).to include("child")
   end
 
-  it "renders the body ul without a hidden class (open by default)" do
+  it "renders the body ul with hidden class (collapsed by default)" do
     body = html.at_css("ul#cat-body-violations")
-    expect(body["class"]).not_to include("hidden")
+    expect(body["class"]).to include("hidden")
   end
 end
