@@ -15,9 +15,24 @@
 #   pinned       — always visible; cannot be hidden via the column picker
 #   source       — where cell data lives: pws = directly on PublicWaterSystem;
 #                  any AR association name = traverse it first; ~ = no model data (:check, :link)
+#   category     — column picker group key (matches a key in the categories list above); ~ = pinned/ungrouped
 #   csv_label    — verbose CSV column header (intentionally more descriptive than label)
 #   sql_expr     — raw SQL expression used by CSV and GeoJSON exports (e.g. pws.pwsid)
 #                  bool-format columns automatically get ::text in CSV; no annotation needed
+
+categories:
+  - key: utility_details
+    label: "Utility Details"
+  - key: violations
+    label: "Violations"
+  - key: demographics
+    label: "Demographics"
+  - key: environmental_justice
+    label: "Environmental Justice"
+  - key: funding
+    label: "Funding"
+  - key: watershed_hazards
+    label: "Watershed Hazards"
 
 columns:
   # Row selection
@@ -29,6 +44,9 @@ columns:
     size: check
     pinned: true
     source: ~
+    category: ~
+    csv_label: ~
+    sql_expr: ~
 
   # Core identity
   - key: pws_name
@@ -40,6 +58,7 @@ columns:
     row_header: true
     pinned: true
     source: pws
+    category: ~
     csv_label: "Utility Name"
     sql_expr: pws.pws_name
 
@@ -50,6 +69,7 @@ columns:
     format_opts: {}
     size: default
     source: pws
+    category: utility_details
     csv_label: "Utility ID"
     sql_expr: pws.pwsid
 
@@ -60,6 +80,7 @@ columns:
     format_opts: {}
     size: sm
     source: ~
+    category: utility_details
     csv_label: "EPA Facility Report"
     sql_expr: pws.detailed_facility_report
 
@@ -70,6 +91,7 @@ columns:
     format_opts: {}
     size: sm
     source: pws
+    category: utility_details
     csv_label: "State"
     sql_expr: pws.stusps
 
@@ -81,6 +103,7 @@ columns:
     format_opts: {}
     size: wide
     source: pws
+    category: utility_details
     csv_label: "County"
     sql_expr: pws.counties
 
@@ -91,6 +114,7 @@ columns:
     format_opts: {}
     size: default
     source: pws
+    category: utility_details
     csv_label: "Source type"
     sql_expr: pws.gw_sw_code
 
@@ -101,6 +125,7 @@ columns:
     format_opts: {}
     size: default
     source: pws
+    category: utility_details
     csv_label: "Has source water protection"
     sql_expr: pws.source_water_protection_code
 
@@ -111,6 +136,7 @@ columns:
     format_opts: {}
     size: default
     source: pws
+    category: utility_details
     csv_label: "Ownership"
     sql_expr: pws.owner_type
 
@@ -121,6 +147,7 @@ columns:
     format_opts: {}
     size: default
     source: pws
+    category: utility_details
     csv_label: "Authority"
     sql_expr: pws.primacy_type
 
@@ -131,6 +158,7 @@ columns:
     format_opts: {}
     size: default
     source: pws
+    category: utility_details
     csv_label: "Wholesaler"
     sql_expr: pws.is_wholesaler
 
@@ -141,6 +169,7 @@ columns:
     format_opts: {}
     size: default
     source: pws
+    category: utility_details
     csv_label: "Facility type (School or daycare)"
     sql_expr: pws.is_school_or_daycare
 
@@ -151,6 +180,7 @@ columns:
     format_opts: {}
     size: default
     source: pws
+    category: utility_details
     csv_label: "Grant eligible"
     sql_expr: pws.is_grant_eligible
 
@@ -161,6 +191,7 @@ columns:
     format_opts: {}
     size: default
     source: pws
+    category: utility_details
     csv_label: "Boundary type"
     sql_expr: pws.service_area_type
 
@@ -171,6 +202,7 @@ columns:
     format_opts: {}
     size: default
     source: pws
+    category: utility_details
     csv_label: "Size (Area in square miles)"
     sql_expr: pws.area_sq_miles
 
@@ -181,6 +213,7 @@ columns:
     format_opts: {}
     size: default
     source: pws
+    category: violations
     csv_label: "Has open violations"
     sql_expr: pws.open_health_viol
 
@@ -192,6 +225,7 @@ columns:
     format_opts: {}
     size: default
     source: violations_summary
+    category: violations
     csv_label: "Health violations in the last 5 years"
     sql_expr: vs.health_violations_5yr
 
@@ -202,6 +236,7 @@ columns:
     format_opts: {}
     size: default
     source: violations_summary
+    category: violations
     csv_label: "Ground water rule violations in the last 5 years"
     sql_expr: vs.groundwater_rule_5yr
 
@@ -212,6 +247,7 @@ columns:
     format_opts: {}
     size: default
     source: violations_summary
+    category: violations
     csv_label: "Surface water treatment rules violations in the last 5 years"
     sql_expr: vs.surface_water_treatment_5yr
 
@@ -222,6 +258,7 @@ columns:
     format_opts: {}
     size: default
     source: violations_summary
+    category: violations
     csv_label: "Lead & copper violations in the last 5 years"
     sql_expr: vs.lead_and_copper_5yr
 
@@ -232,6 +269,7 @@ columns:
     format_opts: {}
     size: default
     source: violations_summary
+    category: violations
     csv_label: "Radionuclides violations in the last 5 years"
     sql_expr: vs.radionuclides_5yr
 
@@ -242,6 +280,7 @@ columns:
     format_opts: {}
     size: default
     source: violations_summary
+    category: violations
     csv_label: "Inorganic chemicals violations in the last 5 years"
     sql_expr: vs.inorganic_chemicals_5yr
 
@@ -252,6 +291,7 @@ columns:
     format_opts: {}
     size: default
     source: violations_summary
+    category: violations
     csv_label: "Synthetic organic chemicals violations in the last 5 years"
     sql_expr: vs.synthetic_organic_chemicals_5yr
 
@@ -262,6 +302,7 @@ columns:
     format_opts: {}
     size: default
     source: violations_summary
+    category: violations
     csv_label: "Volatile organic chemicals violations in the last 5 years"
     sql_expr: vs.volatile_organic_chemicals_5yr
 
@@ -272,6 +313,7 @@ columns:
     format_opts: {}
     size: default
     source: violations_summary
+    category: violations
     csv_label: "Coliform violations in the last 5 years"
     sql_expr: vs.total_coliform_5yr
 
@@ -282,6 +324,7 @@ columns:
     format_opts: {}
     size: default
     source: violations_summary
+    category: violations
     csv_label: "Stage 1 disinfectants violations in the last 5 years"
     sql_expr: vs.stage_1_disinfectants_5yr
 
@@ -292,6 +335,7 @@ columns:
     format_opts: {}
     size: default
     source: violations_summary
+    category: violations
     csv_label: "Stage 2 disinfectants violations in the last 5 years"
     sql_expr: vs.stage_2_disinfectants_5yr
 
@@ -303,6 +347,7 @@ columns:
     format_opts: {}
     size: default
     source: violations_summary
+    category: violations
     csv_label: "Health violations in the last 10 years"
     sql_expr: vs.health_violations_10yr
 
@@ -313,6 +358,7 @@ columns:
     format_opts: {}
     size: default
     source: violations_summary
+    category: violations
     csv_label: "Ground water rule violations in the last 10 years"
     sql_expr: vs.groundwater_rule_10yr
 
@@ -323,6 +369,7 @@ columns:
     format_opts: {}
     size: default
     source: violations_summary
+    category: violations
     csv_label: "Surface water treatment rules violations in the last 10 years"
     sql_expr: vs.surface_water_treatment_10yr
 
@@ -333,6 +380,7 @@ columns:
     format_opts: {}
     size: default
     source: violations_summary
+    category: violations
     csv_label: "Lead & copper violations in the last 10 years"
     sql_expr: vs.lead_and_copper_10yr
 
@@ -343,6 +391,7 @@ columns:
     format_opts: {}
     size: default
     source: violations_summary
+    category: violations
     csv_label: "Radionuclides violations in the last 10 years"
     sql_expr: vs.radionuclides_10yr
 
@@ -353,6 +402,7 @@ columns:
     format_opts: {}
     size: default
     source: violations_summary
+    category: violations
     csv_label: "Inorganic chemicals violations in the last 10 years"
     sql_expr: vs.inorganic_chemicals_10yr
 
@@ -363,6 +413,7 @@ columns:
     format_opts: {}
     size: default
     source: violations_summary
+    category: violations
     csv_label: "Synthetic organic chemicals violations in the last 10 years"
     sql_expr: vs.synthetic_organic_chemicals_10yr
 
@@ -373,6 +424,7 @@ columns:
     format_opts: {}
     size: default
     source: violations_summary
+    category: violations
     csv_label: "Volatile organic chemicals violations in the last 10 years"
     sql_expr: vs.volatile_organic_chemicals_10yr
 
@@ -383,6 +435,7 @@ columns:
     format_opts: {}
     size: default
     source: violations_summary
+    category: violations
     csv_label: "Coliform violations in the last 10 years"
     sql_expr: vs.total_coliform_10yr
 
@@ -393,6 +446,7 @@ columns:
     format_opts: {}
     size: default
     source: violations_summary
+    category: violations
     csv_label: "Stage 1 disinfectants violations in the last 10 years"
     sql_expr: vs.stage_1_disinfectants_10yr
 
@@ -403,6 +457,7 @@ columns:
     format_opts: {}
     size: default
     source: violations_summary
+    category: violations
     csv_label: "Stage 2 disinfectants violations in the last 10 years"
     sql_expr: vs.stage_2_disinfectants_10yr
 
@@ -414,6 +469,7 @@ columns:
     format_opts: {}
     size: default
     source: violations_summary
+    category: violations
     csv_label: "Non-health violations in the last 5 years"
     sql_expr: vs.paperwork_violations_5yr
 
@@ -424,6 +480,7 @@ columns:
     format_opts: {}
     size: default
     source: violations_summary
+    category: violations
     csv_label: "Non-health violations in the last 10 years"
     sql_expr: vs.paperwork_violations_10yr
 
@@ -435,6 +492,7 @@ columns:
     format_opts: {}
     size: default
     source: boil_water_summary
+    category: violations
     csv_label: "Boil water notices"
     sql_expr: bws.total_notices
 
@@ -446,6 +504,7 @@ columns:
     format_opts: {}
     size: default
     source: demographic
+    category: demographics
     csv_label: "Population size"
     sql_expr: d.total_population
 
@@ -457,6 +516,7 @@ columns:
       precision: 0
     size: default
     source: demographic
+    category: demographics
     csv_label: "Population density (people per square mile)"
     sql_expr: d.population_density
 
@@ -469,6 +529,7 @@ columns:
       precision: 1
     size: default
     source: trend_datum
+    category: demographics
     csv_label: "Change in people in the last 10 years (%)"
     sql_expr: td.population_pct_change
 
@@ -480,6 +541,7 @@ columns:
       precision: 1
     size: default
     source: trend_datum
+    category: demographics
     csv_label: "Change in income in the last 10 years (%)"
     sql_expr: td.mhi_pct_change
 
@@ -490,6 +552,7 @@ columns:
     format_opts: {}
     size: default
     source: demographic
+    category: demographics
     csv_label: "Households below the poverty line (%)"
     sql_expr: d.poverty_rate
 
@@ -500,6 +563,7 @@ columns:
     format_opts: {}
     size: default
     source: demographic
+    category: demographics
     csv_label: "Unemployment (%)"
     sql_expr: d.unemployment_rate
 
@@ -510,6 +574,7 @@ columns:
     format_opts: {}
     size: default
     source: demographic
+    category: demographics
     csv_label: "Annual median household income ($)"
     sql_expr: d.median_household_income
 
@@ -520,6 +585,7 @@ columns:
     format_opts: {}
     size: default
     source: demographic
+    category: demographics
     csv_label: "Higher education attainment (%)"
     sql_expr: d.bachelors_degree_rate
 
@@ -530,6 +596,7 @@ columns:
     format_opts: {}
     size: default
     source: demographic
+    category: demographics
     csv_label: "Children under 5 (%)"
     sql_expr: d.age_under_5_rate
 
@@ -540,6 +607,7 @@ columns:
     format_opts: {}
     size: default
     source: demographic
+    category: demographics
     csv_label: "Elderly over 61 (%)"
     sql_expr: d.age_over_61_rate
 
@@ -550,6 +618,7 @@ columns:
     format_opts: {}
     size: default
     source: demographic
+    category: demographics
     csv_label: "People of color (%)"
     sql_expr: d.poc_rate
 
@@ -560,6 +629,7 @@ columns:
     format_opts: {}
     size: default
     source: demographic
+    category: demographics
     csv_label: "White (%)"
     sql_expr: d.white_rate
 
@@ -570,6 +640,7 @@ columns:
     format_opts: {}
     size: default
     source: demographic
+    category: demographics
     csv_label: "Black (%)"
     sql_expr: d.black_rate
 
@@ -580,6 +651,7 @@ columns:
     format_opts: {}
     size: default
     source: demographic
+    category: demographics
     csv_label: "American Indian and Alaskan Native (%)"
     sql_expr: d.aian_rate
 
@@ -590,6 +662,7 @@ columns:
     format_opts: {}
     size: default
     source: demographic
+    category: demographics
     csv_label: "Native Hawaiian and Pacific Islanders (%)"
     sql_expr: d.napi_rate
 
@@ -600,6 +673,7 @@ columns:
     format_opts: {}
     size: default
     source: demographic
+    category: demographics
     csv_label: "Asian (%)"
     sql_expr: d.asian_rate
 
@@ -610,6 +684,7 @@ columns:
     format_opts: {}
     size: default
     source: demographic
+    category: demographics
     csv_label: "Latino/a (%)"
     sql_expr: d.hispanic_rate
 
@@ -620,6 +695,7 @@ columns:
     format_opts: {}
     size: default
     source: demographic
+    category: demographics
     csv_label: "Other (%)"
     sql_expr: d.other_race_rate
 
@@ -630,6 +706,7 @@ columns:
     format_opts: {}
     size: default
     source: demographic
+    category: demographics
     csv_label: "Mixed race (%)"
     sql_expr: d.mixed_race_rate
 
@@ -640,6 +717,7 @@ columns:
     format_opts: {}
     size: default
     source: demographic
+    category: demographics
     csv_label: "Annual water and sewer bill"
     sql_expr: d.most_common_rate_tier
 
@@ -651,6 +729,7 @@ columns:
     format_opts: {}
     size: default
     source: environmental_justice
+    category: environmental_justice
     csv_label: "Disadvantaged area (%)"
     sql_expr: ej.cejst_disadvantaged_pct
 
@@ -661,6 +740,7 @@ columns:
     format_opts: {}
     size: default
     source: environmental_justice
+    category: environmental_justice
     csv_label: "Social Vulnerability Index (%)"
     sql_expr: ej.svi_overall_pctl
 
@@ -671,6 +751,7 @@ columns:
     format_opts: {}
     size: default
     source: environmental_justice
+    category: environmental_justice
     csv_label: "Climate Vulnerability Index (%)"
     sql_expr: ej.cvi_overall_score
 
@@ -682,6 +763,7 @@ columns:
     format_opts: {}
     size: default
     source: funding_summary
+    category: funding
     csv_label: "State revolving fund financing (2021 - 2025) - times received"
     sql_expr: fs.times_funded
 
@@ -693,6 +775,7 @@ columns:
       precision: 2
     size: default
     source: funding_summary
+    category: funding
     csv_label: "State revolving fund assistance (2021 - 2025) - amount received ($)"
     sql_expr: fs.total_srf_assistance
 
@@ -704,6 +787,7 @@ columns:
       precision: 2
     size: default
     source: funding_summary
+    category: funding
     csv_label: "State revolving fund principal forgiveness (2021 - 2025) - amount forgiven ($)"
     sql_expr: fs.total_principal_forgiveness
 
@@ -715,6 +799,7 @@ columns:
     format_opts: {}
     size: default
     source: watershed_hazard
+    category: watershed_hazards
     csv_label: "Source water connections"
     sql_expr: wh.num_facilities
 
@@ -725,6 +810,7 @@ columns:
     format_opts: {}
     size: default
     source: watershed_hazard
+    category: watershed_hazards
     csv_label: "Pollution permits with breaches"
     sql_expr: wh.permit_effluent_violations
 
@@ -735,6 +821,7 @@ columns:
     format_opts: {}
     size: default
     source: watershed_hazard
+    category: watershed_hazards
     csv_label: "Underground storage tanks"
     sql_expr: wh.open_underground_storage_tanks
 
@@ -745,6 +832,7 @@ columns:
     format_opts: {}
     size: default
     source: watershed_hazard
+    category: watershed_hazards
     csv_label: "Risk management plan facilities"
     sql_expr: wh.risk_management_plan_facilities
 
@@ -755,5 +843,6 @@ columns:
     format_opts: {}
     size: default
     source: watershed_hazard
+    category: watershed_hazards
     csv_label: "Streams with impaired or threatened surface waters"
     sql_expr: wh.impaired_streams_303d

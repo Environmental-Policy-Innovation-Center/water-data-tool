@@ -5,6 +5,14 @@ class ColumnRegistry
     @columns ||= load_columns
   end
 
+  def self.categories
+    @categories ||= load_categories
+  end
+
+  def self.columns_by_category
+    @columns_by_category ||= columns.reject(&:pinned).group_by(&:category).freeze
+  end
+
   # Pinned columns always included; keys: nil returns all columns.
   def self.visible(keys: nil)
     return columns if keys.nil?
@@ -13,8 +21,12 @@ class ColumnRegistry
   end
 
   def self.reload!
+    @yaml_config = nil
     @columns = nil
+    @categories = nil
+    @columns_by_category = nil
     columns
+    categories
   end
 
   # Returns { csv_label => sql_expr } for all exported columns.
@@ -36,9 +48,18 @@ class ColumnRegistry
     end
   end
 
+  def self.yaml_config
+    @yaml_config ||= YAML.safe_load_file(Rails.root.join("config/columns.yml"), symbolize_names: true)
+  end
+  private_class_method :yaml_config
+
+  def self.load_categories
+    (yaml_config[:categories] || []).map { |c| CategoryDef.new(key: c[:key].to_sym, label: c[:label]) }.freeze
+  end
+  private_class_method :load_categories
+
   def self.load_columns
-    config = YAML.safe_load_file(Rails.root.join("config/columns.yml"), symbolize_names: true)
-    config[:columns].map do |attrs|
+    yaml_config[:columns].map do |attrs|
       TableColumn.new(
         key: attrs[:key].to_sym,
         label: attrs[:label],
@@ -50,7 +71,8 @@ class ColumnRegistry
         pinned: attrs[:pinned] || false,
         source: attrs[:source]&.to_sym,
         csv_label: attrs[:csv_label],
-        sql_expr: attrs[:sql_expr]
+        sql_expr: attrs[:sql_expr],
+        category: attrs[:category]&.to_sym
       )
     end.freeze
   end
