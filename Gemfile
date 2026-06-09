@@ -15,7 +15,7 @@ gem "importmap-rails", "~> 2.2.3"
 gem "propshaft", "~> 1.3.1"
 
 # Use the database-backed adapters for Rails.cache, Active Job, and Action Cable
-gem "solid_cable", "~> 3.0.12"
+gem "solid_cable", "~> 4.0.0"
 gem "solid_cache", "~> 1.0.10"
 gem "solid_queue", "~> 1.4.0"
 
