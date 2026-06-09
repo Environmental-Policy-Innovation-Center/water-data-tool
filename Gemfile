@@ -39,7 +39,7 @@ gem "activerecord-postgis-adapter", "~> 11.1.1"
 gem "csv", "~> 3.3.5"
 
 # Use Active Storage variants [https://guides.rubyonrails.org/active_storage_overview.html#transforming-images]
-gem "image_processing", "~> 1.14.0"
+gem "image_processing", "~> 2.0.1"
 
 # Deploy this application anywhere as a Docker container [https://kamal-deploy.org]
 gem "kamal", "~> 2.11.0", require: false
