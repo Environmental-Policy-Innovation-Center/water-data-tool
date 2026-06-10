@@ -1,8 +1,13 @@
 # URL State Management
 
 ## Status
-**Decision made. Implementation not yet started.**
-See [URL_STATE_IMPLEMENTATION.md](URL_STATE_IMPLEMENTATION.md) for the step-by-step agent guide.
+
+| Part | Decision | Implementation |
+|---|---|---|
+| POST export for row selection | Done — POST, hybrid inclusion/exclusion model | **Complete** (branch 117) |
+| Zlib+Base64 URL compression for filter + column state | Done — compress into `s=` param | **Not yet started** |
+
+See [URL_STATE_IMPLEMENTATION.md](URL_STATE_IMPLEMENTATION.md) for the Zlib+Base64 implementation guide.
 
 ---
 
@@ -17,7 +22,7 @@ Two pressure points exist as the app grows:
 
 Worst-case total (all filters active, all columns visible): **~5,400 chars** — 2.7× over the browser/proxy safe limit of ~2,000 chars.
 
-A third related problem: **selected-row exports** pass individual PWSID query params (`pwsids[]=TX0230032&...`), which hits URL limits around 150–200 selected rows. The controller currently caps this at 500 with silent truncation.
+A third related problem: **selected-row exports** previously passed individual PWSID query params via GET, which hits URL limits around 150–200 selected rows. This is now resolved — exports use POST with a hybrid inclusion/exclusion model. See `docs/EXPORTS.md`.
 
 ---
 
@@ -47,27 +52,26 @@ Worst-case compression estimate: filter param names contain heavy repetition (`_
 
 **Backwards compatibility:** If `params[:s]` is absent, fall back to parsing individual params. This preserves any existing bookmarked or shared URLs.
 
-### 2. Selected-Row Exports → POST
+### 2. Selected-Row Exports → POST ✓ Complete
 
-When specific rows are selected for export, IDs are submitted via POST body rather than GET query params.
+When specific rows are selected for export, IDs are submitted via POST body rather than GET query params. Uses a hybrid inclusion/exclusion model — see `docs/EXPORTS.md` for full design.
 
 **Why POST:**
 - POST bodies have no practical size limit — thousands of IDs are fine
-- The 500-row cap (`MAX_PWSID_SELECTION`) and its silent truncation are removed entirely
 - An export is an ephemeral one-time action, not a shareable URL — the core objection to POST (breaking bookmarking) does not apply here
 
 **Why not Zlib+Base64 for IDs:**
-Compressing a list of ~500 IDs (5,000 raw chars) still produces ~2,500–3,300 encoded chars at best — borderline at worst case. POST eliminates the problem entirely with no size concern at any scale.
+Compressing a list of many IDs still produces borderline URL lengths at worst case. POST eliminates the problem entirely with no size concern at any scale.
 
-**Filter-based exports** (no rows selected) stay as GET — filter params are compact and this path is a legitimate "fetch this resource" operation.
+**Filter-based exports** (all rows selected, no explicit IDs) also use POST for consistency — all three selection paths go through the same `create` action.
 
 ---
 
-## Current State (before implementation)
+## Current State
 
-- Filter params: individual verbose keys via `FilterState.toUrlParams()` in `filter_state.js`
-- Column state: `cols=` comma-separated param, already implemented
-- Selected-row exports: GET with `pwsids[]` array params, capped at 500 with silent truncation in `exports_controller.rb`
+- Filter params: individual verbose keys via `FilterState.toUrlParams()` in `filter_controller.js` — **Zlib+Base64 compression not yet implemented**
+- Column state: `cols=` comma-separated param; preserved across filter changes and navigations
+- Selected-row exports: **POST** with hybrid inclusion/exclusion — complete, no cap
 
 ---
 
