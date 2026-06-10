@@ -59,7 +59,7 @@ Removed unused controller, serializer, and view code from early M3 scaffolding t
 | `GET /map` | `HomeController#map` | JSON | `map_controller.js` |
 | `GET /table` | `HomeController#table` | HTML (Turbo Frame) | `filter_controller.js` |
 | `GET /public_water_systems/stats` | `PublicWaterSystems::StatsController` | HTML (Turbo Frame) | `filter_controller.js` |
-| `GET /public_water_systems/export` | `PublicWaterSystems::ExportsController` | CSV / GeoJSON | `export_controller.js` |
+| `POST /public_water_systems/export` | `PublicWaterSystems::ExportsController` | CSV / GeoJSON (streaming) | `export_controller.js` |
 | `GET /public_water_systems/histogram` | `PublicWaterSystems::HistogramsController` | JSON | `slider_controller.js` |
 | `GET /public_water_systems/:pwsid/report` | `PublicWaterSystems::ReportsController` | HTML | `map_controller.js` |
 
@@ -75,7 +75,7 @@ Browser loads /
           ├── GET /table                        → <turbo-frame id="data-table">
           └── GET /public_water_systems/stats   → <turbo-frame id="stats-bar">
         map_controller.js     → Mapbox + popups → /public_water_systems/:pwsid/report
-        export_controller.js  → /public_water_systems/export
+        export_controller.js  → POST /public_water_systems/export
         slider_controller.js  → /public_water_systems/histogram
 ```
 
