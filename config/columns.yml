@@ -65,7 +65,7 @@ columns:
   - key: pwsid
     label: "Utility ID"
     sort: pwsid
-    format: str
+    format: copy
     format_opts: {}
     size: default
     source: pws
