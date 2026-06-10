@@ -2,6 +2,7 @@
   <div class="flex items-center gap-2 rounded px-2 py-1.5 mt-1 bg-neutral-50">
     <button type="button"
             data-action="click->manage-columns#toggleCategoryCollapse"
+            data-category-key="<%= @cat.key %>"
             aria-expanded="false"
             aria-controls="cat-body-<%= @cat.key %>"
             class="flex flex-1 cursor-pointer items-center gap-2 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600">

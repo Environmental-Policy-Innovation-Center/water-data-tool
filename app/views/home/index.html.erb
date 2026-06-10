@@ -214,12 +214,13 @@
                   data-action="submit->manage-columns#serializeCols"
                   data-turbo-frame="data-table"
                   action="<%= table_path %>"
-                  method="get">
+                  method="get"
+                  class="flex flex-col flex-1 min-h-0">
               <%= hidden_inputs_for_params(except: ["cols"]) %>
               <%# Populated by manage_columns_controller#serializeCols before submit %>
               <input type="hidden" name="cols" data-manage-columns-target="colsInput">
 
-              <div class="flex items-center justify-end gap-2 px-3 pt-2 pb-1">
+              <div class="flex shrink-0 items-center justify-center gap-2 px-3 pt-2 pb-1">
                 <button type="button"
                         data-action="click->manage-columns#selectAllColumns"
                         class="<%= ghost_pill_classes %>">
@@ -231,7 +232,7 @@
                   Deselect All
                 </button>
               </div>
-              <ul class="m-0 h-[280px] list-none overflow-y-auto px-2 pb-1 pt-1"
+              <ul class="m-0 flex-1 min-h-0 list-none overflow-y-auto px-2 pb-1 pt-1"
                   aria-label="Table columns">
                 <%# Pinned columns — always visible, not toggleable %>
                 <% @pinned_cols.select { |c| c.label.present? }.each do |col| %>

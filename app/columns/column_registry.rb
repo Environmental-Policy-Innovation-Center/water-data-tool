@@ -20,6 +20,14 @@ class ColumnRegistry
     pinned + selectable.select { |c| keys.include?(c.key) }
   end
 
+  # Parses the raw cols= query-string value into the canonical key list.
+  # Returns nil (all columns), [] (pinned only), or an Array of Symbols.
+  def self.parse_keys(raw)
+    return nil if raw.nil?
+    return [] if raw.strip.empty?
+    raw.strip.split(",").map { |k| k.strip.to_sym }
+  end
+
   def self.reload!
     @yaml_config = nil
     @columns = nil
@@ -29,10 +37,11 @@ class ColumnRegistry
     categories
   end
 
-  # Returns { csv_label => sql_expr } for all exported columns.
+  # Returns { csv_label => sql_expr } for exported columns.
+  # Pass keys: to restrict to a visible column set (nil = all columns).
   # Bool-format columns have ::text appended so PG emits "true"/"false" rather than "t"/"f".
-  def self.csv_columns
-    columns.each_with_object({}) do |col, h|
+  def self.csv_columns(keys: nil)
+    visible(keys: keys).each_with_object({}) do |col, h|
       next if col.sql_expr.nil?
       expr = (col.format == :bool) ? "#{col.sql_expr}::text" : col.sql_expr
       h[col.csv_label] = expr

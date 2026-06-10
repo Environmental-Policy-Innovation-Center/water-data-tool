@@ -188,6 +188,42 @@ RSpec.describe "Exports", type: :request do
         geojson = JSON.parse(response.body)
         expect(geojson["features"].length).to eq(1)
       end
+
+      it "respects exclude_pwsids" do
+        pws1 = create(:public_water_system)
+        create(:public_water_system)
+
+        post export_path, params: {file_format: "geojson", exclude_pwsids: [pws1.pwsid]}
+
+        geojson = JSON.parse(response.body)
+        expect(geojson["features"].length).to eq(1)
+        expect(geojson["features"].first["properties"]["pwsid"]).not_to eq(pws1.pwsid)
+      end
+    end
+
+    context "CSV column visibility" do
+      it "exports only pinned columns when cols is empty" do
+        create(:public_water_system, stusps: "VT")
+        post export_path, params: {cols: ""}
+        headers = CSV.parse(response.body).first
+        expect(headers).to include("Utility Name")
+        expect(headers).not_to include("State")
+      end
+
+      it "exports pinned plus specified columns when cols is set" do
+        create(:public_water_system, stusps: "VT")
+        post export_path, params: {cols: "stusps,pwsid"}
+        headers = CSV.parse(response.body).first
+        expect(headers).to include("Utility Name", "Utility ID", "State")
+        expect(headers).not_to include("Has open violations")
+      end
+
+      it "exports all columns when cols param is absent" do
+        create(:public_water_system)
+        post export_path
+        headers = CSV.parse(response.body).first
+        expect(headers).to include("Utility Name", "State", "Has open violations", "Boil water notices")
+      end
     end
   end
 end

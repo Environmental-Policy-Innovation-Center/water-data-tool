@@ -539,7 +539,16 @@ export default class extends Controller {
   #syncToUrl() {
     const url = new URL(window.location)
     url.search = FilterState.toUrlParams().toString()
+    this.#preserveViewParams(url.searchParams)
     history.replaceState({}, "", url)
+  }
+
+  #preserveViewParams(params) {
+    const current = new URLSearchParams(window.location.search)
+    ;["cols", "sort", "direction"].forEach(key => {
+      const val = current.get(key)
+      if (val !== null) params.set(key, val)
+    })
   }
 
   #restoreFromUrl() {
@@ -627,6 +636,8 @@ export default class extends Controller {
   }
 
   #visitTableFrame() {
-    Turbo.visit(`/table?${FilterState.toUrlParams()}`, { frame: "data-table" })
+    const params = new URLSearchParams(FilterState.toUrlParams())
+    this.#preserveViewParams(params)
+    Turbo.visit(`/table?${params}`, { frame: "data-table" })
   }
 }

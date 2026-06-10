@@ -50,7 +50,7 @@ export default class extends Controller {
   #updateBadge() {
     if (!this.hasCountBadgeTarget) return
 
-    let text
+    let text = null
 
     if (SelectionState.isAllChecked()) {
       text = "All"
@@ -63,12 +63,8 @@ export default class extends Controller {
       text = SelectionState.count().toLocaleString()
     }
 
-    if (text !== undefined) {
-      this.countBadgeTarget.textContent = text
-      this.countBadgeTarget.classList.remove("hidden")
-    } else {
-      this.countBadgeTarget.classList.add("hidden")
-    }
+    this.countBadgeTarget.classList.toggle("hidden", text === null)
+    if (text !== null) this.countBadgeTarget.textContent = text
 
     this.#updateExportButton()
   }
@@ -76,7 +72,10 @@ export default class extends Controller {
   #updateExportButton() {
     if (!this.hasExportButtonTarget) return
 
-    const empty = !SelectionState.isAllMode() && SelectionState.count() === 0
+    const effectiveCount = SelectionState.isAllMode()
+      ? (this.#totalCount - SelectionState.excludedCount())
+      : SelectionState.count()
+    const empty = effectiveCount === 0
     const btn = this.exportButtonTarget
 
     btn.classList.toggle("bg-brand-action", !empty)

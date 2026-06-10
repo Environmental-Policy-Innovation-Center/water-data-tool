@@ -8,17 +8,19 @@ class PublicWaterSystemExporter
   end
 
   # Preserves UI sort order — plucks sorted pwsids first, then batch-fetches rows via raw SQL.
-  def to_csv_stream
-    col_map = ColumnRegistry.csv_columns
-    col_sql = col_map.values.join(", ")
+  # Pass cols: to restrict exported columns to the user's visible column set (nil = all).
+  def to_csv_stream(cols: nil)
+    col_map = ColumnRegistry.csv_columns(keys: cols)
+    # Always prepend pwsid for batch indexing regardless of visible columns; _pwsid_idx avoids label collision.
+    col_sql = "pws.pwsid AS _pwsid_idx, #{col_map.values.join(", ")}"
+
     Enumerator.new do |stream|
       stream << CSV.generate_line(col_map.keys)
-      sorted_ids = @scope.pluck(:pwsid)
-      sorted_ids.each_slice(BATCH_SIZE) do |batch|
-        rows_by_id = fetch_csv_batch(batch, col_sql).index_by { |r| r["pwsid"] }
+      @scope.pluck(:pwsid).each_slice(BATCH_SIZE) do |batch|
+        rows_by_id = fetch_csv_batch(batch, col_sql).index_by { |r| r["_pwsid_idx"] }
         batch.each do |id|
           row = rows_by_id[id]
-          stream << CSV.generate_line(row.values) if row
+          stream << CSV.generate_line(row.except("_pwsid_idx").values) if row
         end
       end
     end
