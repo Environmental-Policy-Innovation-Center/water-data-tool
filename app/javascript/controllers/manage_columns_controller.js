@@ -28,9 +28,7 @@ export default class extends Controller {
   toggleCategoryCollapse(event) {
     const btn = event.currentTarget
     const expanded = btn.getAttribute("aria-expanded") === "true"
-    btn.setAttribute("aria-expanded", String(!expanded))
-    document.getElementById(btn.getAttribute("aria-controls"))?.classList.toggle("hidden", expanded)
-    btn.querySelector("svg")?.classList.toggle("-rotate-90", expanded)
+    this.#setCategoryExpanded(btn.dataset.categoryKey, !expanded)
   }
 
   toggleCategory(event) {
@@ -66,7 +64,7 @@ export default class extends Controller {
 
   #collapseAllCategories() {
     this.formTarget.querySelectorAll('button[aria-controls^="cat-body-"]').forEach(btn => {
-      this.#setCategoryExpanded(btn.getAttribute("aria-controls").replace("cat-body-", ""), false)
+      this.#setCategoryExpanded(btn.dataset.categoryKey, false)
     })
   }
 
@@ -88,9 +86,13 @@ export default class extends Controller {
   #open() {
     this.#syncCheckboxesFromUrl()
     const rect = this.buttonTarget.getBoundingClientRect()
+    const footer = document.querySelector('[aria-label="Table navigation"]')
+    const footerTop = footer?.getBoundingClientRect().top ?? window.innerHeight
+    const gap = 8
     const dropdown = this.dropdownTarget
-    dropdown.style.top = `${rect.bottom + 8}px`
-    dropdown.style.right = "8px" // overhangs container-table's right-4 edge by the same 8px gap
+    dropdown.style.top = `${rect.bottom + gap}px`
+    dropdown.style.right = `${gap}px`
+    dropdown.style.maxHeight = `${footerTop - rect.bottom - gap * 2}px`
     dropdown.classList.remove("hidden")
     dropdown.classList.add("flex")
     this.buttonTarget.setAttribute("aria-expanded", "true")

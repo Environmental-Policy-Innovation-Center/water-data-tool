@@ -81,6 +81,32 @@ RSpec.describe ColumnRegistry do
     end
   end
 
+  describe ".parse_keys" do
+    it "returns nil when raw is nil" do
+      expect(ColumnRegistry.parse_keys(nil)).to be_nil
+    end
+
+    it "returns an empty array when raw is an empty string" do
+      expect(ColumnRegistry.parse_keys("")).to eq([])
+    end
+
+    it "returns an empty array when raw is whitespace only" do
+      expect(ColumnRegistry.parse_keys("   ")).to eq([])
+    end
+
+    it "returns an array of symbols for a comma-separated string" do
+      expect(ColumnRegistry.parse_keys("pwsid,stusps,counties")).to eq([:pwsid, :stusps, :counties])
+    end
+
+    it "strips leading/trailing whitespace from the raw value" do
+      expect(ColumnRegistry.parse_keys("  pwsid,stusps  ")).to eq([:pwsid, :stusps])
+    end
+
+    it "returns a single-element array for a single key" do
+      expect(ColumnRegistry.parse_keys("pwsid")).to eq([:pwsid])
+    end
+  end
+
   describe ".visible" do
     it "returns all columns when keys is nil" do
       expect(ColumnRegistry.visible(keys: nil)).to eq(ColumnRegistry.columns)
@@ -128,6 +154,13 @@ RSpec.describe ColumnRegistry do
     it "excludes columns without sql_expr" do
       expect(result.keys).not_to include(nil)
       expect(result.size).to be < ColumnRegistry.columns.size
+    end
+
+    it "limits columns to pinned + specified keys when keys: is an Array" do
+      result = ColumnRegistry.csv_columns(keys: [:stusps])
+      expect(result.keys).to include("Utility Name")
+      expect(result.keys).to include("State")
+      expect(result.keys).not_to include("Has open violations")
     end
   end
 

@@ -24,13 +24,14 @@ module PublicWaterSystems
     end
 
     def export_params
-      params.permit(pwsids: [], exclude_pwsids: [])
+      @export_params ||= params.permit(:cols, pwsids: [], exclude_pwsids: [])
     end
 
     def render_csv_export(exporter)
+      cols = ColumnRegistry.parse_keys(export_params[:cols])&.to_set
       response.content_type = "text/csv"
       response.headers["Content-Disposition"] = 'attachment; filename="drinking_water_explorer_export.csv"'
-      self.response_body = exporter.to_csv_stream
+      self.response_body = exporter.to_csv_stream(cols: cols)
     end
 
     def render_geojson_export(exporter)

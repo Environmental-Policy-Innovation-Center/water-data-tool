@@ -45,6 +45,41 @@ RSpec.describe PublicWaterSystemExporter do
       all_rows = CSV.parse(described_class.new(PublicWaterSystem.all).to_csv_stream.to_a.join)
       expect(all_rows.length).to eq(3) # 1 header + 2 data rows
     end
+
+    context "with cols: filter" do
+      it "limits headers to pinned columns when cols is an empty array" do
+        result = CSV.parse(exporter.to_csv_stream(cols: []).to_a.join)
+        expect(result.first).to include("Utility Name")
+        expect(result.first).not_to include("State", "Has open violations")
+      end
+
+      it "includes only specified columns plus pinned columns" do
+        result = CSV.parse(exporter.to_csv_stream(cols: [:stusps, :pwsid]).to_a.join)
+        expect(result.first).to include("Utility Name", "Utility ID", "State")
+        expect(result.first).not_to include("Has open violations")
+      end
+
+      it "exports all columns when cols is nil (default)" do
+        result = CSV.parse(exporter.to_csv_stream(cols: nil).to_a.join)
+        expect(result.first).to include("Utility Name", "State", "Has open violations", "Boil water notices")
+      end
+
+      it "includes data rows with the filtered column set" do
+        result = CSV.parse(exporter.to_csv_stream(cols: [:stusps]).to_a.join)
+        expect(result.length).to eq(2) # 1 header + 1 data row
+        expect(result[1]).to include("VT")
+      end
+
+      it "exports correct columns across batch boundaries" do
+        stub_const("PublicWaterSystemExporter::BATCH_SIZE", 1)
+        create(:public_water_system, stusps: "CA")
+        result = CSV.parse(described_class.new(PublicWaterSystem.all).to_csv_stream(cols: [:stusps]).to_a.join)
+        expect(result.length).to eq(3) # 1 header + 2 data rows
+        expect(result.first).to include("Utility Name", "State")
+        expect(result.first).not_to include("Has open violations")
+        expect(result[1..]).to all(have_attributes(length: result.first.length))
+      end
+    end
   end
 
   describe "#to_geojson_stream" do

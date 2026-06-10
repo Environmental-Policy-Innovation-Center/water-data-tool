@@ -51,6 +51,9 @@ export default class extends Controller {
     if (sort) append("sort", sort)
     if (direction) append("direction", direction)
 
+    const cols = new URLSearchParams(window.location.search).get("cols")
+    if (cols !== null) append("cols", cols)
+
     if (format !== "csv") append("file_format", format)
 
     document.body.appendChild(form)
