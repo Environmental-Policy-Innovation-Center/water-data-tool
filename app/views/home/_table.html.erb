@@ -22,12 +22,11 @@
         </tr>
       </thead>
       <tbody>
-        <% sort_param = params[:sort] %>
         <% @systems.each_with_index do |pws, idx| %>
           <% row_stripe = idx.even? ? "bg-white" : "bg-gray-50" %>
           <tr class="group <%= row_stripe %> md:hover:bg-blue-50 transition-colors">
             <% @columns.each do |col| %>
-              <%= render_table_cell(col, pws, row_stripe: row_stripe, sort_param: sort_param) %>
+              <%= render_table_cell(col, pws, row_stripe: row_stripe) %>
             <% end %>
           </tr>
         <% end %>

@@ -31,7 +31,7 @@ module HomeHelper
   end
 
   def col_highlight(column)
-    (params[:sort] == column) ? " bg-blue-100/30" : ""
+    (column.present? && params[:sort] == column) ? " bg-blue-100/30" : ""
   end
 
   def fmt_str(val)
@@ -62,8 +62,8 @@ module HomeHelper
     val.nil? ? BLANK_DISPLAY : number_to_currency(val, precision: precision)
   end
 
-  def render_table_cell(col, pws, row_stripe:, sort_param:)
-    sticky_bg = (sort_param == Sortable::DEFAULT_SORT_COLUMN) ? "bg-blue-50" : row_stripe
+  def render_table_cell(col, pws, row_stripe:)
+    sticky_bg = (params[:sort] == Sortable::DEFAULT_SORT_COLUMN) ? "bg-blue-50" : row_stripe
 
     case col.format
     when :check
@@ -76,8 +76,7 @@ module HomeHelper
           data: {row_selection_target: "row", action: "change->row-selection#toggle"})
       end
     when :link
-      td_class = "px-3 py-2 border-b border-gray-100 overflow-hidden max-w-48"
-      content_tag(:td, class: td_class) do
+      content_tag(:td, class: td_classes(col)) do
         url = pws.detailed_facility_report
         if url.present?
           link_to("report", url,
@@ -86,21 +85,49 @@ module HomeHelper
             aria: {label: "EPA facility report for #{pws.pws_name} (opens in new tab)"})
         end
       end
+    when :copy
+      value = cell_value(pws, col).to_s
+      content_tag(:td, class: td_classes(col)) do
+        content_tag(:div,
+          class: "flex items-center gap-1.5",
+          data: {controller: "clipboard", clipboard_text_value: value}) do
+          safe_join([
+            content_tag(:span, value),
+            content_tag(:button,
+              safe_join([
+                content_tag(:span, icon("copy", classes: "text-gray-400 md:group-hover:text-gray-600 transition-colors"),
+                  data: {clipboard_target: "copy"}),
+                content_tag(:span, icon("check", classes: "text-green-600"),
+                  class: "hidden",
+                  data: {clipboard_target: "check"})
+              ]),
+              type: "button",
+              title: "Copy #{col.label}",
+              aria: {label: "Copy #{value} to clipboard"},
+              class: "opacity-0 md:group-hover:opacity-100 focus-visible:opacity-100 cursor-pointer rounded #{focus_ring_classes}",
+              data: {action: "click->clipboard#copy"})
+          ])
+        end
+      end
     else
       value = cell_value(pws, col)
       formatted = format_cell_value(value, col.format, col.format_opts)
-      highlight = col_highlight(col.sort)
 
       if col.row_header
         td_sticky = "sticky left-7 z-10 font-normal text-left md:group-hover:bg-blue-50 transition-colors px-3 py-2 border-b border-gray-100 overflow-hidden max-w-xs #{sticky_bg}"
         content_tag(:th, formatted, class: td_sticky, scope: "row")
-      elsif [:num, :dec, :pct, :cur].include?(col.format)
-        td_num = "px-3 py-2 border-b border-gray-100 tabular-nums text-right overflow-hidden"
-        content_tag(:td, formatted, class: "#{td_num}#{highlight}")
       else
-        td = "px-3 py-2 border-b border-gray-100 overflow-hidden max-w-48"
-        content_tag(:td, formatted, class: "#{td}#{highlight}")
+        content_tag(:td, formatted, class: td_classes(col))
       end
+    end
+  end
+
+  def td_classes(col)
+    base = "px-3 py-2 border-b border-gray-100"
+    if [:num, :dec, :pct, :cur].include?(col.format)
+      "#{base} tabular-nums text-right overflow-hidden#{col_highlight(col.sort)}"
+    else
+      "#{base} overflow-hidden max-w-48#{col_highlight(col.sort)}"
     end
   end
 

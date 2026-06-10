@@ -110,7 +110,7 @@ RSpec.describe HomeHelper, type: :helper do
       let(:col) { ColumnRegistry.columns.find { |c| c.format == :check } }
 
       it "renders a sticky td with a checkbox input" do
-        html = helper.render_table_cell(col, pws, row_stripe: "bg-white", sort_param: nil)
+        html = helper.render_table_cell(col, pws, row_stripe: "bg-white")
         expect(html).to include("<td")
         expect(html).to include('type="checkbox"')
         expect(html).to include(pws.pwsid)
@@ -122,14 +122,14 @@ RSpec.describe HomeHelper, type: :helper do
 
       it "renders an empty td when no URL is present" do
         pws.detailed_facility_report = nil
-        html = helper.render_table_cell(col, pws, row_stripe: "bg-white", sort_param: nil)
+        html = helper.render_table_cell(col, pws, row_stripe: "bg-white")
         expect(html).to include("<td")
         expect(html).not_to include("<a")
       end
 
       it "renders a link when a URL is present" do
         pws.detailed_facility_report = "https://example.com/report"
-        html = helper.render_table_cell(col, pws, row_stripe: "bg-white", sort_param: nil)
+        html = helper.render_table_cell(col, pws, row_stripe: "bg-white")
         expect(html).to include("https://example.com/report")
         expect(html).to include("<a")
       end
@@ -139,10 +139,24 @@ RSpec.describe HomeHelper, type: :helper do
       let(:col) { ColumnRegistry.columns.find(&:row_header) }
 
       it "renders a <th scope='row'> element" do
-        html = helper.render_table_cell(col, pws, row_stripe: "bg-white", sort_param: nil)
+        html = helper.render_table_cell(col, pws, row_stripe: "bg-white")
         expect(html).to include("<th")
         expect(html).to include('scope="row"')
         expect(html).to include("Aloha Water")
+      end
+    end
+
+    context "with :copy format column (pwsid)" do
+      let(:col) { ColumnRegistry.columns.find { |c| c.format == :copy } }
+
+      it "renders a td containing the value and a clipboard button" do
+        html = helper.render_table_cell(col, pws, row_stripe: "bg-white")
+        expect(html).to include("<td")
+        expect(html).to include(pws.pwsid)
+        expect(html).to include("title=\"Copy #{col.label}\"")
+        expect(html).to include('data-controller="clipboard"')
+        expect(html).to include('data-clipboard-target="copy"')
+        expect(html).to include('data-clipboard-target="check"')
       end
     end
 
@@ -154,7 +168,7 @@ RSpec.describe HomeHelper, type: :helper do
       end
 
       it "renders a td with tabular-nums and text-right" do
-        html = helper.render_table_cell(col, pws_with_demo, row_stripe: "bg-white", sort_param: nil)
+        html = helper.render_table_cell(col, pws_with_demo, row_stripe: "bg-white")
         expect(html).to include("tabular-nums")
         expect(html).to include("text-right")
         expect(html).to include("12,345")
