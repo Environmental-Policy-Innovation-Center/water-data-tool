@@ -252,6 +252,7 @@ export default class extends Controller {
     const willShow = panel.classList.contains("hidden")
     panel.classList.toggle("hidden")
     this.#setToggleArrow(panelId, willShow)
+    if (willShow) this.#loadSlider(panel)
   }
 
   // Keeps parent checkbox in sync when subcats are individually toggled.
@@ -541,6 +542,7 @@ export default class extends Controller {
     if (Object.keys(params).length === 0) return
 
     this.#restoreDomState(params)
+    this.#loadVisibleSliders()
     FilterState.set(params)
     document.dispatchEvent(new CustomEvent("filters:changed"))
     this.#reloadStatsFrame()
@@ -605,8 +607,15 @@ export default class extends Controller {
 
   #reloadStatsFrame() {
     if (!this.#statsFrame) return
-    const newSrc = `/public_water_systems/stats?${FilterState.toUrlParams()}`
-    if (this.#statsFrame.src === newSrc) return
+    const params = new URLSearchParams(FilterState.toUrlParams())
+    const mapContainer = document.getElementById("container-map")
+    if (mapContainer?.dataset.selectedState) {
+      params.set("state", mapContainer.dataset.selectedState)
+      params.set("state_name", mapContainer.dataset.selectedStateName)
+    }
+
+    const newSrc = `/public_water_systems/stats?${params.toString()}`
+    if (this.#statsFrame.getAttribute("src") === newSrc) return
     this.#statsFrame.src = newSrc
     document.getElementById("container-map-content-bottom")?.classList.add("has-stats")
   }
@@ -620,5 +629,15 @@ export default class extends Controller {
 
   #visitTableFrame() {
     Turbo.visit(`/table?${FilterState.toUrlParams()}`, { frame: "data-table" })
+  }
+
+  #loadSlider(panel) {
+    this.application.getControllerForElementAndIdentifier(panel, "slider")?.load()
+  }
+
+  #loadVisibleSliders() {
+    this.element.querySelectorAll("[data-controller~='slider']").forEach(panel => {
+      if (!panel.classList.contains("hidden")) this.#loadSlider(panel)
+    })
   }
 }

@@ -40,11 +40,9 @@ export default class extends Controller {
   #needsDefaults = false
   #minSet = false
   #maxSet = false
+  #loadPromise = null
 
-  async connect() {
-    const field = this.fieldValue
-    if (!field) return
-
+  connect() {
     this.#ro = new ResizeObserver(entries => {
       const w = Math.round(entries[0]?.contentRect.width ?? 0)
       if (w <= 0 || w === this.#svgW) return
@@ -54,6 +52,24 @@ export default class extends Controller {
     })
     this.#ro.observe(this.chartTarget)
 
+    if (!this.element.classList.contains("hidden")) this.load()
+  }
+
+  async load() {
+    const field = this.fieldValue
+    if (!field) return
+    if (this.#bins.length) return
+
+    if (!this.#loadPromise) {
+      this.#loadPromise = this.#fetchHistogram(field)
+    }
+
+    const data = await this.#loadPromise
+    if (!data || this.#bins.length) return
+    this.#init(data)
+  }
+
+  #fetchHistogram(field) {
     if (!CACHE.has(field)) {
       CACHE.set(field,
         fetch(`${this.urlValue}?field=${encodeURIComponent(field)}`)
@@ -62,9 +78,7 @@ export default class extends Controller {
       )
     }
 
-    const data = await CACHE.get(field)
-    if (!data) return
-    this.#init(data)
+    return CACHE.get(field)
   }
 
   disconnect() {
@@ -96,6 +110,7 @@ export default class extends Controller {
   // Ensures inputs carry domain defaults so Apply always sends params for checked subcats.
   // If histogram data hasn't loaded yet, sets a flag so #init applies defaults once fetch resolves.
   populateDefaultsIfEmpty() {
+    this.load()
     if (!this.#bins.length) {
       this.#needsDefaults = true
       return

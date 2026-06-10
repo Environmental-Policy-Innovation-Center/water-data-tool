@@ -12,6 +12,7 @@ Rails.application.routes.draw do
   get "up" => "rails/health#show", :as => :rails_health_check
 
   get "/places/search", to: "places#search"
+  get "/states/lookup", to: "states#lookup", as: :state_lookup
 
   resources :public_water_systems, param: :pwsid, only: [],
     constraints: {pwsid: /[A-Z0-9;%]+/} do

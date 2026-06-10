@@ -10,6 +10,23 @@ const MOBILE_DEFAULT_CENTER = [-97.6, 38.5]
 const MOBILE_DEFAULT_ZOOM = 2
 const DESKTOP_MIN_ZOOM = 3
 const MOBILE_MIN_ZOOM = 2
+const NATION_MAX_ZOOM = 4.75
+const STATE_ENTRY_ZOOM = 6
+const STATE_EXIT_ZOOM = 4.55
+const SYSTEMS_ENTRY_ZOOM = 8
+const UNLOCKED_MAX_ZOOM = 22
+const MODE_NATION = "nation"
+const MODE_STATE = "state"
+const MODE_SYSTEMS = "systems"
+const EMPTY_PWS_FILTER = ["in", "pwsid", ""]
+const EMPTY_STATE_FILTER = ["==", ["get", "geoid"], ""]
+const REGION_STATES = {
+  AK: { stusps: "AK", name: "Alaska", geoid: "02" },
+  HI: { stusps: "HI", name: "Hawaii", geoid: "15" },
+  PR: { stusps: "PR", name: "Puerto Rico", geoid: "72" },
+  GU: { stusps: "GU", name: "Guam", geoid: "66" },
+  MP: { stusps: "MP", name: "Northern Mariana Islands", geoid: "69" }
+}
 
 export default class extends Controller {
   static targets = ["popupTemplate"]
@@ -51,7 +68,11 @@ export default class extends Controller {
     // Dev convenience: mapDebug.getZoom(), mapDebug.getCenter(), etc. in browser console.
     if (window.location.hostname === "localhost") window.mapDebug = this.map
     this.hoverPopup = null
+    this.stateHoverPopup = null
     this.hoveredPwsid = null
+    this.selectedState = null
+    this.filteredPwsids = null
+    this.mapMode = MODE_NATION
     this.activeFilterRequest = null
 
     this.boundOnFiltersChanged = this.#onFiltersChanged.bind(this)
@@ -126,6 +147,7 @@ export default class extends Controller {
     this.#addLayers()
     this.#styleWater()
     this.#bindEvents()
+    this.#enterNationMode({ fitDefault: false })
 
     // filter_controller#restoreFromUrl dispatches filters:changed synchronously before
     // map.on("load") completes, so that event is swallowed. Re-apply here to ensure
@@ -152,14 +174,17 @@ export default class extends Controller {
         placeholder: "Search map..."
       })
 
-      geocoder.on("result", (ev) => {
+      geocoder.on("result", async (ev) => {
         const placeType = ev.result.place_type?.[0]
         let zoom = 10
         if (placeType === "region") zoom = 5
         else if (placeType === "district") zoom = 7
         else if (placeType === "place") zoom = 8
 
-        this.map.flyTo({ center: ev.result.geometry.coordinates, zoom })
+        const center = ev.result.geometry.coordinates
+        const state = await this.#lookupState(center)
+        if (state) this.#selectState(state)
+        this.map.flyTo({ center, zoom })
       })
 
       // Geocoder first so it appears above the zoom controls in the top-left column
@@ -237,7 +262,7 @@ export default class extends Controller {
         "fill-opacity": 0.2,
         "fill-outline-color": "#999"
       },
-      filter: ["in", "geoid", ""]
+      filter: EMPTY_STATE_FILTER
     })
 
     this.map.addLayer({
@@ -247,7 +272,7 @@ export default class extends Controller {
       "source-layer": "states",
       layout: { visibility: "visible" },
       paint: { "line-color": "#000", "line-width": 2 },
-      filter: ["in", "geoid", ""]
+      filter: EMPTY_STATE_FILTER
     })
 
     this.map.addLayer({
@@ -277,6 +302,7 @@ export default class extends Controller {
       type: "fill",
       source: "wdt",
       "source-layer": "pws",
+      minzoom: SYSTEMS_ENTRY_ZOOM,
       layout: { visibility: "visible" },
       paint: {
         "fill-color": "rgb(78, 163, 36)",
@@ -293,7 +319,7 @@ export default class extends Controller {
       "source-layer": "pws",
       layout: { visibility: "visible" },
       paint: {
-        "line-color": "#000",
+        "line-color": "#777",
         "line-width": { base: 2, stops: [[8, 2.5], [22, 4.5]] }
       },
       filter: ["in", "pwsid", ""]
@@ -314,17 +340,6 @@ export default class extends Controller {
       }
     })
 
-    // Selected PWS highlight (hidden until a feature is clicked)
-    this.map.addLayer({
-      id: "selected_pws",
-      type: "line",
-      source: "wdt",
-      "source-layer": "pws",
-      layout: { visibility: "none" },
-      paint: { "line-color": "#f00", "line-width": 2 },
-      filter: ["in", "pwsid", ""]
-    })
-
   }
 
   #styleWater() {
@@ -341,26 +356,46 @@ export default class extends Controller {
     // ── States hover / click ──────────────────────────────────────────────────
 
     this.map.on("mousemove", "states", (e) => {
-      const props = e.features[0].properties
+      if (this.#systemsModeActive()) return
+
+      const props = this.#statePropsFromEvent(e)
+      if (!props) return
+
       this.map.getCanvas().style.cursor = "pointer"
-      this.map.setFilter("states_hover", ["in", "geoid", props.geoid])
+      this.map.setFilter("states_hover", ["==", ["get", "geoid"], props.geoid])
+
+      if (this.#shouldShowStatePrompt(props)) {
+        this.#showStatePrompt(e.lngLat)
+      } else {
+        this.#removeStatePrompt()
+      }
     })
 
     this.map.on("mouseleave", "states", () => {
       this.map.getCanvas().style.cursor = ""
-      this.map.setFilter("states_hover", ["in", "geoid", ""])
+      this.map.setFilter("states_hover", EMPTY_STATE_FILTER)
+      this.#removeStatePrompt()
     })
 
     this.map.on("click", "states", (e) => {
-      const props = e.features[0].properties
-      this.map.setFilter("states_hover", ["in", "geoid", ""])
-      this.map.setFilter("states_filter", ["in", "geoid", props.geoid])
+      if (this.#systemsModeActive()) return
+
+      const props = this.#statePropsFromEvent(e)
+      if (!props) return
+
+      const wasNationMode = this.mapMode === MODE_NATION
+      this.#selectState(props)
+      this.#removeStatePrompt()
+
+      if (wasNationMode) {
+        this.map.flyTo({ center: e.lngLat, zoom: Math.max(this.map.getZoom(), STATE_ENTRY_ZOOM) })
+      }
     })
 
     // ── PWS polygon hover ─────────────────────────────────────────────────────
 
     this.map.on("mousemove", "pws", (e) => {
-      if (this.map.getZoom() < 5) return
+      if (!this.selectedState) return
 
       this.map.getCanvas().style.cursor = "pointer"
       const props = e.features[0].properties
@@ -386,7 +421,7 @@ export default class extends Controller {
     })
 
     this.map.on("mouseleave", "pws", () => {
-      if (this.map.getZoom() < 5) return
+      if (!this.selectedState) return
 
       this.map.getCanvas().style.cursor = ""
       this.hoveredPwsid = null
@@ -400,17 +435,22 @@ export default class extends Controller {
 
     this.map.on("zoomstart", () => {
       this.hoveredPwsid = null
-      this.map.setFilter("pws_hover", ["in", "pwsid", ""])
+      this.map.setFilter("pws_hover", EMPTY_PWS_FILTER)
+      this.#removeStatePrompt()
       if (this.hoverPopup) {
         this.hoverPopup.remove()
         this.hoverPopup = null
       }
     })
 
+    this.map.on("zoomend", () => this.#syncModeFromZoom())
+
     // ── PWS polygon click → detail popup with "View Full Report" ───────────
 
     this.map.on("click", "pws", (e) => {
-      if (this.map.getZoom() < 8) {
+      if (!this.selectedState) return
+
+      if (!this.#systemsModeActive()) {
         this.map.flyTo({ center: e.lngLat, zoom: 8.5 })
         return
       }
@@ -424,44 +464,9 @@ export default class extends Controller {
         this.hoverPopup = null
       }
 
-      // Highlight selected
-      this.map.setLayoutProperty("selected_pws", "visibility", "visible")
-      this.map.setFilter("selected_pws", ["in", "pwsid", props.pwsid])
-
-      // Show click popup with detail + report link
       if (this.clickPopup) this.clickPopup.remove()
-      this.clickPopup = new window.mapboxgl.Popup({
-        closeButton: true,
-        className: "min-w-[280px]",
-        maxWidth: "400px"
-      })
-        .setLngLat(e.lngLat)
-        .setHTML(this.#buildClickHtml(props))
-        .addTo(this.map)
-
-      // Wire "View Full Report" — popup DOM is outside Stimulus scope,
-      // so we attach the listener manually after popup is added to the map.
-      const reportLink = this.clickPopup.getElement().querySelector(".js-view-report")
-      if (reportLink) {
-        reportLink.addEventListener("click", (evt) => {
-          if (this.#shouldFollowLink(evt)) return
-
-          evt.preventDefault()
-          const overlay = document.getElementById("container-report")
-          if (overlay) overlay.classList.remove("hidden")
-
-          if (document.querySelector("turbo-frame#report-body")) {
-            Turbo.visit(reportLink.href, {frame: "report-body"})
-          }
-
-          if (this.clickPopup) this.clickPopup.remove()
-        })
-      }
-
-      this.clickPopup.on("close", () => {
-        this.map.setLayoutProperty("selected_pws", "visibility", "none")
-        this.clickPopup = null
-      })
+      this.clickPopup = null
+      this.#openReport(props.pwsid)
     })
 
   }
@@ -469,10 +474,11 @@ export default class extends Controller {
   zoom48() {
     const input = document.querySelector(".mapboxgl-ctrl-geocoder--input")
     if (input) input.value = ""
-    this.#fitDefaultView()
+    this.#enterNationMode()
   }
 
   zoomAk() {
+    this.#selectState(REGION_STATES.AK)
     this.map.flyTo({ center: [-149.504, 61.342], zoom: 4.9 })
     this.map.once("idle", () => {
       this.map.flyTo({ zoom: 5, duration: 3600 })
@@ -480,6 +486,7 @@ export default class extends Controller {
   }
 
   zoomHi() {
+    this.#selectState(REGION_STATES.HI)
     this.map.flyTo({ center: [-157.856, 21.305], zoom: 4.9 })
     this.map.once("idle", () => {
       this.map.flyTo({ zoom: 6, duration: 3600 })
@@ -487,6 +494,7 @@ export default class extends Controller {
   }
 
   zoomPr() {
+    this.#selectState(REGION_STATES.PR)
     this.map.flyTo({ center: [-66.590, 18.220], zoom: 5 })
     this.map.once("idle", () => {
       this.map.flyTo({ zoom: 8, duration: 3600 })
@@ -494,6 +502,7 @@ export default class extends Controller {
   }
 
   zoomGu() {
+    this.#selectState(REGION_STATES.GU)
     this.map.flyTo({ center: [144.794, 13.444], zoom: 7 })
     this.map.once("idle", () => {
       this.map.flyTo({ zoom: 10, duration: 3600 })
@@ -501,6 +510,7 @@ export default class extends Controller {
   }
 
   zoomMp() {
+    this.#selectState(REGION_STATES.MP)
     this.map.flyTo({ center: [145.674, 15.180], zoom: 7 })
     this.map.once("idle", () => {
       this.map.flyTo({ zoom: 9, duration: 3600 })
@@ -513,8 +523,9 @@ export default class extends Controller {
     const filters = FilterState.get()
 
     if (Object.keys(filters).length === 0) {
-      this.map.setFilter("pws", null)
-      this.map.setFilter("pws_outline", null)
+      this.filteredPwsids = null
+      this.#applyPwsFilters()
+      this.#reloadStatsFrame()
       return
     }
 
@@ -523,7 +534,7 @@ export default class extends Controller {
     this.activeFilterRequest = new AbortController()
 
     try {
-      const res = await fetch(`/map?${FilterState.toUrlParams()}`, {
+      const res = await fetch(`/map?${this.#filterParamsWithoutMapState().toString()}`, {
         signal: this.activeFilterRequest.signal
       })
       if (!res.ok) return
@@ -531,26 +542,192 @@ export default class extends Controller {
       const { pwsids } = await res.json()
       if (!this.map) return
 
-      const expr = pwsids.length > 0
-        ? ["in", "pwsid", ...pwsids]
-        : ["in", "pwsid", ""]
-
-      this.map.setFilter("pws", expr)
-      this.map.setFilter("pws_outline", expr)
+      this.filteredPwsids = pwsids
+      this.#applyPwsFilters()
+      this.#reloadStatsFrame()
     } catch (err) {
       if (err.name !== "AbortError") console.error("[map] filter fetch failed", err)
     }
   }
 
-  #buildClickHtml(props) {
-    return this.#buildPopupHtml(props, { showType: true, showReport: true })
+  #enterNationMode({ fitDefault = true } = {}) {
+    this.selectedState = null
+    delete this.element.dataset.selectedState
+    delete this.element.dataset.selectedStateName
+    this.mapMode = MODE_NATION
+    this.map.setMaxZoom(NATION_MAX_ZOOM)
+    this.map.setFilter("states_filter", EMPTY_STATE_FILTER)
+    this.map.setFilter("states_hover", EMPTY_STATE_FILTER)
+    this.map.setFilter("pws_hover", EMPTY_PWS_FILTER)
+    this.#removeStatePrompt()
+    this.#removeSystemPopups()
+    this.#applyPwsFilters()
+    this.#reloadStatsFrame()
+    if (fitDefault) this.#fitDefaultView()
+  }
+
+  #selectState(props) {
+    const state = this.#normalizeStateProps(props)
+    if (!state) return
+
+    this.map.setMaxZoom(UNLOCKED_MAX_ZOOM)
+    this.selectedState = state
+    this.element.dataset.selectedState = state.stusps
+    this.element.dataset.selectedStateName = state.name
+    this.mapMode = this.#systemsModeActive() ? MODE_SYSTEMS : MODE_STATE
+    this.map.setFilter("states_hover", EMPTY_STATE_FILTER)
+    this.map.setFilter("states_filter", ["==", ["get", "geoid"], state.geoid])
+    this.map.setFilter("pws_hover", EMPTY_PWS_FILTER)
+    this.#removeSystemPopups()
+    this.#applyPwsFilters()
+    this.#reloadStatsFrame()
+  }
+
+  #syncModeFromZoom() {
+    if (!this.selectedState) return
+
+    if (this.map.getZoom() < STATE_EXIT_ZOOM) {
+      this.#enterNationMode({ fitDefault: false })
+      return
+    }
+
+    this.mapMode = this.#systemsModeActive() ? MODE_SYSTEMS : MODE_STATE
+  }
+
+  #systemsModeActive() {
+    return !!this.selectedState && this.map.getZoom() >= SYSTEMS_ENTRY_ZOOM
+  }
+
+  #statePropsFromEvent(event) {
+    return this.#normalizeStateProps(event?.features?.[0]?.properties)
+  }
+
+  #normalizeStateProps(props) {
+    if (!props?.stusps || !props?.geoid) return null
+
+    return {
+      stusps: props.stusps,
+      name: props.name || props.stusps,
+      geoid: props.geoid
+    }
+  }
+
+  #applyPwsFilters() {
+    if (!this.map?.getLayer("pws")) return
+
+    const expr = this.#pwsFilterExpression()
+    this.map.setFilter("pws", expr)
+    this.map.setFilter("pws_outline", expr)
+  }
+
+  #pwsFilterExpression() {
+    if (!this.selectedState) return EMPTY_PWS_FILTER
+
+    const stateExpr = ["==", "stusps", this.selectedState.stusps]
+    if (this.filteredPwsids === null) return stateExpr
+    if (this.filteredPwsids.length === 0) return EMPTY_PWS_FILTER
+
+    return ["all", stateExpr, ["in", "pwsid", ...this.filteredPwsids]]
+  }
+
+  #reloadStatsFrame() {
+    const frame = document.querySelector("turbo-frame#stats-bar")
+    if (!frame) return
+
+    const params = new URLSearchParams(FilterState.toUrlParams())
+    if (this.selectedState) {
+      params.set("state", this.selectedState.stusps)
+      params.set("state_name", this.selectedState.name)
+    } else {
+      params.delete("state")
+      params.delete("state_name")
+    }
+
+    if ([...params.keys()].length === 0) {
+      frame.removeAttribute("src")
+      frame.innerHTML = ""
+      document.getElementById("container-map-content-bottom")?.classList.remove("has-stats")
+      return
+    }
+
+    const newSrc = `/public_water_systems/stats?${params.toString()}`
+    if (frame.getAttribute("src") === newSrc) return
+    frame.src = newSrc
+    document.getElementById("container-map-content-bottom")?.classList.add("has-stats")
+  }
+
+  #filterParamsWithoutMapState() {
+    const params = new URLSearchParams(FilterState.toUrlParams())
+    params.delete("state")
+    params.delete("state_name")
+    return params
+  }
+
+  async #lookupState(center) {
+    if (!center) return null
+
+    try {
+      const params = new URLSearchParams({ lng: center[0], lat: center[1] })
+      const res = await fetch(`/states/lookup?${params.toString()}`)
+      if (!res.ok) return null
+      return await res.json()
+    } catch (err) {
+      console.error("[map] state lookup failed", err)
+      return null
+    }
+  }
+
+  #shouldShowStatePrompt(props) {
+    return this.mapMode === MODE_NATION || props.stusps !== this.selectedState?.stusps
+  }
+
+  #showStatePrompt(lngLat) {
+    if (!this.stateHoverPopup) {
+      this.stateHoverPopup = new window.mapboxgl.Popup({
+        closeButton: false,
+        closeOnClick: false,
+        className: "map-state-hover",
+        maxWidth: "240px"
+      }).setHTML('<span class="text-sm font-medium">Select a state to learn more</span>')
+    }
+
+    this.stateHoverPopup.setLngLat(lngLat).addTo(this.map)
+  }
+
+  #removeStatePrompt() {
+    if (!this.stateHoverPopup) return
+    this.stateHoverPopup.remove()
+    this.stateHoverPopup = null
+  }
+
+  #removeSystemPopups() {
+    if (this.hoverPopup) {
+      this.hoverPopup.remove()
+      this.hoverPopup = null
+    }
+    if (this.clickPopup) {
+      this.clickPopup.remove()
+      this.clickPopup = null
+    }
+  }
+
+  #openReport(pwsid) {
+    const overlay = document.getElementById("container-report")
+    if (overlay) overlay.classList.remove("hidden")
+
+    if (document.querySelector("turbo-frame#report-body")) {
+      Turbo.visit(this.#reportPath(pwsid), {frame: "report-body"})
+    }
   }
 
   #buildHoverHtml(props) {
-    return this.#buildPopupHtml(props)
+    return this.#buildPopupHtml(props, {
+      showReport: this.#systemsModeActive(),
+      reportLabel: "Click to Open Report"
+    })
   }
 
-  #buildPopupHtml(props, { showType = false, showReport = false } = {}) {
+  #buildPopupHtml(props, { showType = false, showReport = false, reportLabel = "View Full Report" } = {}) {
     const root = this.popupTemplateTarget.content.firstElementChild.cloneNode(true)
 
     root.querySelectorAll("[data-popup-field]").forEach(el => {
@@ -573,7 +750,10 @@ export default class extends Controller {
     if (showReport) {
       root.querySelector('[data-popup-section="report"]')?.classList.remove("hidden")
       const link = root.querySelector(".js-view-report")
-      if (link && props.pwsid) link.href = this.#reportPath(props.pwsid)
+      if (link) {
+        link.textContent = reportLabel
+        if (props.pwsid) link.href = this.#reportPath(props.pwsid)
+      }
     }
 
     return root.outerHTML
@@ -581,10 +761,6 @@ export default class extends Controller {
 
   #reportPath(pwsid) {
     return `/public_water_systems/${encodeURIComponent(pwsid)}/report`
-  }
-
-  #shouldFollowLink(evt) {
-    return evt.button !== 0 || evt.metaKey || evt.ctrlKey || evt.shiftKey || evt.altKey
   }
 
   #firstLineLayerId() {

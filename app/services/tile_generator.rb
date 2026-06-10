@@ -1,5 +1,7 @@
 module TileGenerator
   LAYERS = %w[pws places counties states].freeze
+  PWS_MIN_ZOOM = 8
+  PLACES_MIN_ZOOM = 8
 
   # Simplification tolerances keyed by max zoom level.
   SIMPLIFICATION = [
@@ -17,6 +19,14 @@ module TileGenerator
 
   def layers
     LAYERS
+  end
+
+  def layers_for_zoom(z)
+    return %w[states] if z < PWS_MIN_ZOOM
+
+    layers = LAYERS.dup
+    layers.delete("places") if z < PLACES_MIN_ZOOM
+    layers
   end
 
   def simplification_tolerance(z)
@@ -48,7 +58,7 @@ module TileGenerator
     cached = TileCache.where(z: z, x: x, y: y).index_by(&:layer)
     simp = simplification_tolerance(z)
 
-    LAYERS.each_with_object("".b) do |layer, result|
+    layers_for_zoom(z).each_with_object("".b) do |layer, result|
       mvt = if cached[layer]
         cached[layer].mvt.to_s
       else
@@ -95,7 +105,7 @@ module TileGenerator
         FROM (
           SELECT
             ST_AsMVTGeom(
-              ST_SimplifyPreserveTopology(ST_Transform(sag.geom, 3857), #{simp}),
+              ST_Transform(ST_SimplifyPreserveTopology(sag.geom, #{simp}), 3857),
               ST_TileEnvelope(#{z}, #{x}, #{y}), 4096, 0, false
             ) AS mvtgeom,
             pws.pwsid, pws.stusps, pws.pws_name, pws.symbology_field,
@@ -112,7 +122,7 @@ module TileGenerator
         FROM (
           SELECT
             ST_AsMVTGeom(
-              ST_SimplifyPreserveTopology(ST_Transform(cp.geom, 3857), #{simp}),
+              ST_Transform(ST_SimplifyPreserveTopology(cp.geom, #{simp}), 3857),
               ST_TileEnvelope(#{z}, #{x}, #{y}), 4096, 0, false
             ) AS mvtgeom,
             cp.geoid,
@@ -133,7 +143,7 @@ module TileGenerator
         FROM (
           SELECT
             ST_AsMVTGeom(
-              ST_SimplifyPreserveTopology(ST_Transform(cc.geom, 3857), #{simp}),
+              ST_Transform(ST_SimplifyPreserveTopology(cc.geom, #{simp}), 3857),
               ST_TileEnvelope(#{z}, #{x}, #{y}), 4096, 0, false
             ) AS mvtgeom,
             cc.geoid,
@@ -149,7 +159,7 @@ module TileGenerator
         FROM (
           SELECT
             ST_AsMVTGeom(
-              ST_SimplifyPreserveTopology(ST_Transform(cs.geom, 3857), #{simp}),
+              ST_Transform(ST_SimplifyPreserveTopology(cs.geom, #{simp}), 3857),
               ST_TileEnvelope(#{z}, #{x}, #{y}), 4096, 0, false
             ) AS mvtgeom,
             cs.geoid, cs.stusps, cs.name
