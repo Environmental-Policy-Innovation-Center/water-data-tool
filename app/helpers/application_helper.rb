@@ -7,7 +7,9 @@ module ApplicationHelper
     "focus-visible:outline-blue-600 motion-reduce:transition-none".freeze
 
   FILTER_ROW_CLASSES = "px-[15px] py-1.5 [@media(hover:hover)]:hover:bg-neutral-50 [&_label]:align-middle [&_input:not([type=text])]:mr-2 " \
-    "[&_input:not([type=text])]:inline-block [&_input:not([type=text])]:align-middle [&_input:not(.rounded-checkbox):not([type=text])]:size-4".freeze
+    "[&_input:not([type=text])]:inline-block [&_input:not([type=text])]:align-middle [&_input:not(.rounded-checkbox):not([type=text])]:size-4 " \
+    "[&_input[type=radio]]:appearance-none [&_input[type=radio]]:rounded-full [&_input[type=radio]]:border [&_input[type=radio]]:border-neutral-700 " \
+    "[&_input[type=radio]]:cursor-pointer [&_input[type=radio]]:checked:bg-blue-500 [&_input[type=radio]]:checked:border-blue-500".freeze
 
   FILTER_INFO_BUTTON_CLASSES = "ml-1 text-neutral-400 [@media(hover:hover)]:hover:text-neutral-600".freeze
 
