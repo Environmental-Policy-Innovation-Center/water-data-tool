@@ -14,6 +14,6 @@ export default class extends Controller {
           this.checkTarget.classList.add("hidden")
         }, 2000)
       })
-      .catch(() => {})
+      .catch(() => { console.warn("Clipboard write failed") })
   }
 }

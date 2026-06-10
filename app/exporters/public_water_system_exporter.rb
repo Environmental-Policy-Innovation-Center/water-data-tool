@@ -11,8 +11,8 @@ class PublicWaterSystemExporter
   # Pass cols: to restrict exported columns to the user's visible column set (nil = all).
   def to_csv_stream(cols: nil)
     col_map = ColumnRegistry.csv_columns(keys: cols)
-    # Always prepend pwsid for batch indexing regardless of visible columns; _pwsid_idx avoids label collision.
-    col_sql = "pws.pwsid AS _pwsid_idx, #{col_map.values.join(", ")}"
+    # Always prepend pwsid as the batch index key; the _pwsid_idx alias prevents a duplicate-column collision when Utility ID is also visible.
+    col_sql = (["pws.pwsid AS _pwsid_idx"] + col_map.values).join(", ")
 
     Enumerator.new do |stream|
       stream << CSV.generate_line(col_map.keys)
@@ -26,7 +26,10 @@ class PublicWaterSystemExporter
     end
   end
 
-  # Streams a GeoJSON FeatureCollection in pwsid order (not UI sort order).
+  # Streams a GeoJSON FeatureCollection in pwsid order.
+  # Note: any sort order on the incoming scope is intentionally ignored — cursor-based
+  # pagination requires a stable key sort (ORDER BY pws.pwsid), so UI sort order does
+  # not apply to GeoJSON exports.
   # PostgreSQL via ST_AsGeoJSON + json_build_object; records are fetched in
   # cursor-based batches to keep memory usage flat regardless of result size.
   def to_geojson_stream
