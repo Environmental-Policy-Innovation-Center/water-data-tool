@@ -8,6 +8,7 @@ export default class extends Controller {
 
   download(event) {
     event.preventDefault()
+    if (event.currentTarget.getAttribute("aria-disabled") === "true") return
     const format = this.formatTargets.find(el => el.checked)?.value || "csv"
 
     const form = document.createElement("form")

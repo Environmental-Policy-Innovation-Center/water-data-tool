@@ -362,6 +362,43 @@ RSpec.describe "Home", type: :request do
       end
     end
 
+    context "sorting by trend_data columns" do
+      it "sorts by population_pct_change_capped ascending" do
+        shrinking = create(:public_water_system, pws_name: "Shrinking System")
+        growing = create(:public_water_system, pws_name: "Growing System")
+        create(:trend_datum, pwsid: shrinking.pwsid, population_pct_change_capped: -5.0)
+        create(:trend_datum, pwsid: growing.pwsid, population_pct_change_capped: 10.0)
+
+        get table_path, params: {sort: "population_pct_change_capped", direction: "asc"}
+
+        expect(response).to have_http_status(:ok)
+        expect(response.body.index("Shrinking System")).to be < response.body.index("Growing System")
+      end
+
+      it "sorts by mhi_pct_change_capped descending" do
+        low = create(:public_water_system, pws_name: "Low Income Growth")
+        high = create(:public_water_system, pws_name: "High Income Growth")
+        create(:trend_datum, pwsid: low.pwsid, mhi_pct_change_capped: 2.0)
+        create(:trend_datum, pwsid: high.pwsid, mhi_pct_change_capped: 25.0)
+
+        get table_path, params: {sort: "mhi_pct_change_capped", direction: "desc"}
+
+        expect(response).to have_http_status(:ok)
+        expect(response.body.index("High Income Growth")).to be < response.body.index("Low Income Growth")
+      end
+
+      it "sorts systems with no trend_datum last (null values last)" do
+        with_data = create(:public_water_system, pws_name: "Has Trend")
+        create(:public_water_system, pws_name: "No Trend")
+        create(:trend_datum, pwsid: with_data.pwsid, population_pct_change_capped: 5.0)
+
+        get table_path, params: {sort: "population_pct_change_capped", direction: "asc"}
+
+        expect(response).to have_http_status(:ok)
+        expect(response.body.index("Has Trend")).to be < response.body.index("No Trend")
+      end
+    end
+
     it "filters by has_open_violations" do
       create(:public_water_system, pws_name: "Open Violation System", open_health_viol: true)
       create(:public_water_system, pws_name: "Clean System", open_health_viol: false)

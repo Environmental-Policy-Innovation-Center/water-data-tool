@@ -222,6 +222,11 @@ sortable_column_groups:
       - open_underground_storage_tanks
       - risk_management_plan_facilities
       - impaired_streams_303d
+  trend_data:
+    association: trend_datum
+    columns:
+      - population_pct_change_capped
+      - mhi_pct_change_capped
 
 # Histogram field contract used by PublicWaterSystems::HistogramsController.
 # This keeps every histogram-capable field in one uniform config shape.
