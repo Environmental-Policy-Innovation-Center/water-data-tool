@@ -39,10 +39,10 @@
       </p>
       <div class="my-2 space-y-2 group-data-[sidebar-collapsed]:text-xs group-data-[sidebar-collapsed]:space-y-1">
         <p>
-          <%= render UI::ExternalLinkComponent.new(url: "https://github.com/Environmental-Policy-Innovation-Center/national-dw-tool-public") do %>Github<% end %>
+          <%= render UI::ExternalLinkComponent.new(url: "https://github.com/Environmental-Policy-Innovation-Center/national-dw-tool-public", aria_label: "EPIC water tool source code on GitHub") do %>Github<% end %>
         </p>
         <p>
-          <%= render UI::ExternalLinkComponent.new(url: "https://docs.google.com/forms/d/e/1FAIpQLSdj-JcAmFNHnyEGoou74kyL_R1YOUtsFG4dKlYl0TWWwkUcrg/viewform") do %>Feedback<% end %>
+          <%= render UI::ExternalLinkComponent.new(url: "https://docs.google.com/forms/d/e/1FAIpQLSdj-JcAmFNHnyEGoou74kyL_R1YOUtsFG4dKlYl0TWWwkUcrg/viewform", aria_label: "Submit feedback for the Water Explorer tool") do %>Feedback<% end %>
         </p>
         <p>
           <%= render UI::MailtoLinkComponent.new(email: "watertool@policyinnovation.org") do %>Contact EPIC<% end %>
