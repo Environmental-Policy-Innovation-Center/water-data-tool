@@ -1,5 +1,6 @@
 import { Controller } from "@hotwired/stimulus"
 import * as FilterState from "filter_state"
+import { syncStatsFrame } from "stats_frame"
 
 const POP_CAT_MAP = { "1": "<=500", "2": "501-3,300", "3": "3,301-10,000", "4": "10,001-100,000", "5": ">100,000" }
 const POP_CLASS_MAP = Object.fromEntries(Object.entries(POP_CAT_MAP).map(([k, v]) => [v, `pop-size-${k}`]))
@@ -150,11 +151,9 @@ for (const { type, group, param } of FILTERS) {
 // Collects filter state → writes to FilterState → dispatches filters:changed.
 // Menu open/close lives in filter_menu_controller. Responsive layout in filter_layout_controller.
 export default class extends Controller {
-  #statsFrame = null
   #tableLoaded = false
 
   connect() {
-    this.#statsFrame = document.querySelector("turbo-frame#stats-bar")
     document.addEventListener("table:show", this.#onTableShow)
     document.addEventListener("filter:layout-changed", this.#onLayoutChanged)
     this.#restoreFromUrl()
@@ -614,13 +613,7 @@ export default class extends Controller {
   }
 
   #reloadStatsFrame() {
-    if (!this.#statsFrame) return
-    const params = new URLSearchParams(FilterState.toUrlParams())
-
-    const newSrc = `/public_water_systems/stats?${params.toString()}`
-    if (this.#statsFrame.getAttribute("src") === newSrc) return
-    this.#statsFrame.src = newSrc
-    document.getElementById("container-map-content-bottom")?.classList.add("has-stats")
+    syncStatsFrame()
   }
 
   // Only visits if the frame has been shown at least once — avoids a background

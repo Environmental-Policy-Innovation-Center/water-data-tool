@@ -5,6 +5,27 @@ require "tempfile"
 RSpec.describe "map_controller state selection" do
   def run_node_script(script)
     Tempfile.create(["map-controller-state-selection", ".js"]) do |file|
+      file.write(<<~JS)
+        function syncStatsFrame() {
+          const frame = document.querySelector("turbo-frame#stats-bar")
+          if (!frame) return
+
+          const params = new URLSearchParams(FilterState.toUrlParams())
+          const container = document.getElementById("container-map-content-bottom")
+
+          if ([...params.keys()].length === 0) {
+            frame.removeAttribute("src")
+            frame.innerHTML = ""
+            container?.classList.remove("has-stats")
+            return
+          }
+
+          const newSrc = `/public_water_systems/stats?${params.toString()}`
+          if (frame.getAttribute("src") === newSrc) return
+          frame.src = newSrc
+          container?.classList.add("has-stats")
+        }
+      JS
       file.write(script)
       file.flush
 
@@ -746,6 +767,123 @@ RSpec.describe "map_controller state selection" do
       const stateHoverUpdates = mapStub.filters.filter(([layer]) => layer === "states_hover")
       if (stateHoverUpdates.length > 0) throw new Error("expected systems mode to ignore state hover")
       if (mapStub.canvas.style.cursor === "pointer") throw new Error("expected state hover not to own the cursor in systems mode")
+    JS
+
+    run_node_script(script)
+  end
+
+  it "ignores stale geocoder state lookups when search results resolve out of order" do
+    script = <<~JS
+      const fs = require("fs")
+      class Controller {}
+      const filterStateCurrent = {}
+      const FilterState = {
+        get: () => ({ ...filterStateCurrent }),
+        set: (params) => {
+          Object.keys(filterStateCurrent).forEach((key) => delete filterStateCurrent[key])
+          Object.assign(filterStateCurrent, params)
+        },
+        toUrlParams: () => new URLSearchParams(filterStateCurrent)
+      }
+      const lookups = []
+      global.fetch = (url) => new Promise((resolve) => {
+        lookups.push({ url, resolve })
+      })
+      global.document = {
+        head: { querySelector: () => ({ content: "token" }) },
+        querySelector: () => null,
+        getElementById: () => null,
+        addEventListener: () => {},
+        removeEventListener: () => {},
+        dispatchEvent: () => {}
+      }
+      global.CustomEvent = class {
+        constructor(type) { this.type = type }
+      }
+      global.history = { replaceState: () => {} }
+      global.window = {
+        location: new URL("http://example.test/"),
+        mapboxgl: {}
+      }
+      global.Turbo = { visit: () => {} }
+
+      class GeocoderStub {
+        constructor() { globalThis.geocoderStub = this; this.handlers = {} }
+        on(event, callback) { this.handlers[event] = callback }
+      }
+
+      class MapStub {
+        constructor() {
+          this.handlers = {}
+          this.zoom = 3
+          this.flyToCalls = []
+          globalThis.mapStub = this
+        }
+
+        dragRotate = { disable: () => {} }
+        touchZoomRotate = { disableRotation: () => {} }
+        getStyle() { return { layers: [{ id: "base-line", type: "line" }] } }
+        getCanvas() { return { style: {} } }
+        getZoom() { return this.zoom }
+        addControl() {}
+        addSource() {}
+        addLayer() {}
+        setPaintProperty() {}
+        getLayer() { return true }
+        setFilter() {}
+        setMaxZoom() {}
+        fitBounds() {}
+        jumpTo(options) { if (options.zoom !== undefined) this.zoom = options.zoom }
+        flyTo(options) {
+          this.flyToCalls.push(options)
+          if (options.zoom !== undefined) this.zoom = options.zoom
+        }
+        once() {}
+        on(event, layerOrCallback, callback) {
+          if (callback) {
+            this.handlers[`${event}:${layerOrCallback}`] = callback
+          } else {
+            this.handlers[event] = layerOrCallback
+          }
+        }
+      }
+
+      ;(async () => {
+        window.mapboxgl.Map = MapStub
+        window.mapboxgl.NavigationControl = class {}
+        window.MapboxGeocoder = GeocoderStub
+
+        let source = fs.readFileSync(#{controller_source_path.to_s.inspect}, "utf8")
+        source = source.replace(/^import .*\\n/gm, "")
+        source = source.replace("export default class extends Controller", "globalThis.MapController = class extends Controller")
+        eval(source)
+
+        const controller = new MapController()
+        controller.element = { dataset: {} }
+        controller.tileUrlValue = "/tiles/{z}/{x}/{y}.mvt"
+        controller.connect()
+        mapStub.handlers.load()
+
+        const first = geocoderStub.handlers.result({
+          result: { place_type: ["place"], geometry: { coordinates: [-105, 39] } }
+        })
+        const second = geocoderStub.handlers.result({
+          result: { place_type: ["place"], geometry: { coordinates: [-122, 47] } }
+        })
+
+        if (lookups.length !== 2) throw new Error(`expected two lookups, got ${lookups.length}`)
+
+        lookups[1].resolve({ ok: true, json: async () => ({ stusps: "WA", name: "Washington", geoid: "53" }) })
+        await second
+        lookups[0].resolve({ ok: true, json: async () => ({ stusps: "CO", name: "Colorado", geoid: "08" }) })
+        await first
+
+        if (filterStateCurrent.state !== "WA") throw new Error(`expected latest geocoder state WA, got ${filterStateCurrent.state}`)
+        const lastFlyTo = mapStub.flyToCalls.at(-1)
+        if (JSON.stringify(lastFlyTo.center) !== JSON.stringify([-122, 47])) {
+          throw new Error(`expected latest geocoder center to win, got ${JSON.stringify(lastFlyTo.center)}`)
+        }
+      })()
     JS
 
     run_node_script(script)

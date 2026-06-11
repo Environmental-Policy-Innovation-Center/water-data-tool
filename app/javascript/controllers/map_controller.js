@@ -1,5 +1,6 @@
 import { Controller } from "@hotwired/stimulus"
 import * as FilterState from "filter_state"
+import { syncStatsFrame } from "stats_frame"
 
 const DESKTOP_US_BOUNDS = [[-125.5, 23.5], [-65.5, 49.5]]
 const VIEWPORT_PADDING = 20
@@ -27,6 +28,13 @@ const REGION_STATES = {
   PR: { stusps: "PR", name: "Puerto Rico", geoid: "72" },
   GU: { stusps: "GU", name: "Guam", geoid: "66" },
   MP: { stusps: "MP", name: "Northern Mariana Islands", geoid: "69" }
+}
+const REGION_CAMERAS = {
+  AK: { center: [-149.504, 61.342], zoom: 4.9, settleZoom: 5 },
+  HI: { center: [-157.856, 21.305], zoom: 4.9, settleZoom: 6 },
+  PR: { center: [-66.590, 18.220], zoom: 5, settleZoom: 8 },
+  GU: { center: [144.794, 13.444], zoom: 7, settleZoom: 10 },
+  MP: { center: [145.674, 15.180], zoom: 7, settleZoom: 9 }
 }
 
 export default class extends Controller {
@@ -75,6 +83,7 @@ export default class extends Controller {
     this.filteredPwsids = null
     this.mapMode = MODE_NATION
     this.activeFilterRequest = null
+    this.geocoderRequestSequence = 0
 
     this.boundOnFiltersChanged = this.#onFiltersChanged.bind(this)
     document.addEventListener("filters:changed", this.boundOnFiltersChanged)
@@ -177,6 +186,7 @@ export default class extends Controller {
       })
 
       geocoder.on("result", async (ev) => {
+        const requestSequence = ++this.geocoderRequestSequence
         const placeType = ev.result.place_type?.[0]
         let zoom = 10
         if (placeType === "region") zoom = 5
@@ -185,6 +195,7 @@ export default class extends Controller {
 
         const center = ev.result.geometry.coordinates
         const state = await this.#lookupState(center)
+        if (requestSequence !== this.geocoderRequestSequence) return
         if (state) this.#selectState(state)
         this.map.flyTo({ center, zoom })
       })
@@ -480,42 +491,34 @@ export default class extends Controller {
   }
 
   zoomAk() {
-    this.#selectState(REGION_STATES.AK)
-    this.map.flyTo({ center: [-149.504, 61.342], zoom: 4.9 })
-    this.map.once("idle", () => {
-      this.map.flyTo({ zoom: 5, duration: 3600 })
-    })
+    this.#zoomRegion("AK")
   }
 
   zoomHi() {
-    this.#selectState(REGION_STATES.HI)
-    this.map.flyTo({ center: [-157.856, 21.305], zoom: 4.9 })
-    this.map.once("idle", () => {
-      this.map.flyTo({ zoom: 6, duration: 3600 })
-    })
+    this.#zoomRegion("HI")
   }
 
   zoomPr() {
-    this.#selectState(REGION_STATES.PR)
-    this.map.flyTo({ center: [-66.590, 18.220], zoom: 5 })
-    this.map.once("idle", () => {
-      this.map.flyTo({ zoom: 8, duration: 3600 })
-    })
+    this.#zoomRegion("PR")
   }
 
   zoomGu() {
-    this.#selectState(REGION_STATES.GU)
-    this.map.flyTo({ center: [144.794, 13.444], zoom: 7 })
-    this.map.once("idle", () => {
-      this.map.flyTo({ zoom: 10, duration: 3600 })
-    })
+    this.#zoomRegion("GU")
   }
 
   zoomMp() {
-    this.#selectState(REGION_STATES.MP)
-    this.map.flyTo({ center: [145.674, 15.180], zoom: 7 })
+    this.#zoomRegion("MP")
+  }
+
+  #zoomRegion(regionKey) {
+    const state = REGION_STATES[regionKey]
+    const camera = REGION_CAMERAS[regionKey]
+    if (!state || !camera) return
+
+    this.#selectState(state)
+    this.map.flyTo({ center: camera.center, zoom: camera.zoom })
     this.map.once("idle", () => {
-      this.map.flyTo({ zoom: 9, duration: 3600 })
+      this.map.flyTo({ zoom: camera.settleZoom, duration: 3600 })
     })
   }
 
@@ -669,22 +672,7 @@ export default class extends Controller {
   }
 
   #reloadStatsFrame() {
-    const frame = document.querySelector("turbo-frame#stats-bar")
-    if (!frame) return
-
-    const params = new URLSearchParams(FilterState.toUrlParams())
-
-    if ([...params.keys()].length === 0) {
-      frame.removeAttribute("src")
-      frame.innerHTML = ""
-      document.getElementById("container-map-content-bottom")?.classList.remove("has-stats")
-      return
-    }
-
-    const newSrc = `/public_water_systems/stats?${params.toString()}`
-    if (frame.getAttribute("src") === newSrc) return
-    frame.src = newSrc
-    document.getElementById("container-map-content-bottom")?.classList.add("has-stats")
+    syncStatsFrame()
   }
 
   #filterParamsWithoutMapState() {
