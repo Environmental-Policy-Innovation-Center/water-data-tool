@@ -80,7 +80,16 @@ The `@apply` directive should be a last resort.
 Never add raw hex codes or unique spacing units directly into custom CSS. 
 * **Extend the Theme**: To add brand colors, custom fonts, or custom breakpoints, declare them inside the `@theme` block in `application.css` as custom CSS properties (e.g., `--color-brand-primary: #4f46e5;`).
 
-### 5. Management & Structure
+### 5. Follow Tailwind v4 Conventions
+This project uses Tailwind v4. Write new code using v4 canonical syntax; migrate legacy v3 patterns when you touch existing code.
+
+| Convention | v3 (legacy — avoid) | v4 (canonical — use this) |
+|---|---|---|
+| Important modifier | `!w-12 !text-sm` | `w-12! text-sm!` |
+| Arbitrary variant | `[&_el]:checked:bg-blue-500` | `[&_el:checked]:bg-blue-500` |
+| Theme config | `tailwind.config.js` | `@theme {}` block in `application.css` |
+
+### 6. Management & Structure
 * **Purge Native Scaffolds**: Delete any standard Rails-generated `scaffold.css` files to prevent layout overrides and conflicts.
 * **Native CSS Imports**: If custom CSS is unavoidable, use native CSS `@import` statements *after* `@import "tailwindcss";`.
 
