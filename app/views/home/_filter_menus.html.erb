@@ -56,14 +56,12 @@
     <%= render Filters::CategoryComponent.new(label: "Ownership") do %>
       <ul class="my-[6px] mb-[10px] mx-0 list-none px-1">
         <li class="<%= filter_row_classes %>">
-          <label class="relative mr-2 inline-flex cursor-pointer">
-            <input type="checkbox" class="peer absolute inset-0 w-full! h-full! opacity-0 cursor-pointer z-10 toggle select-all default-checked"
-                   id="type-deselect-all" checked="checked"
-                   data-action="change->filter#toggleSelectAll">
-            <%= icon "checkbox-circle-off", classes: "size-4 shrink-0 text-neutral-700 peer-checked:hidden peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-blue-600 peer-focus-visible:rounded-full" %>
-            <%= icon "checkbox-circle-on",  classes: "size-4 shrink-0 text-blue-500 hidden peer-checked:inline peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-blue-600 peer-focus-visible:rounded-full" %>
-          </label>
-          <label for="type-deselect-all" id="type-deselect-all-txt">Deselect all</label>
+          <%= render UI::CircleToggleComponent.new(
+                id: "type-deselect-all",
+                label: "Deselect all",
+                data_action: "change->filter#toggleSelectAll",
+                input_classes: "toggle select-all default-checked"
+              ) %>
         </li>
         <li class="<%= filter_row_classes %>"><input type="checkbox" class="toggle default-checked checkbox-type" checked="checked" id="type-federal-government" data-action="change->filter#syncSelectAll"><label for="type-federal-government">Federal</label></li>
         <li class="<%= filter_row_classes %>"><input type="checkbox" class="toggle default-checked checkbox-type" checked="checked" id="type-state-government" data-action="change->filter#syncSelectAll"><label for="type-state-government">State</label></li>
