@@ -148,7 +148,8 @@ export default class extends Controller {
     this.#addLayers()
     this.#styleWater()
     this.#bindEvents()
-    this.#enterNationMode({ fitDefault: false })
+    this.#enterNationMode({ fitDefault: false, syncStateFilter: false })
+    this.#restoreStateFromFilter()
 
     // filter_controller#restoreFromUrl dispatches filters:changed synchronously before
     // map.on("load") completes, so that event is swallowed. Re-apply here to ensure
@@ -522,6 +523,8 @@ export default class extends Controller {
     if (!this.map?.getLayer("pws")) return
 
     const filters = FilterState.get()
+    const filterParamsWithoutState = this.#filterParamsWithoutMapState()
+    this.#abortActiveFilterRequest()
 
     if (Object.keys(filters).length === 0) {
       this.filteredPwsids = null
@@ -530,17 +533,24 @@ export default class extends Controller {
       return
     }
 
-    // Abort any in-flight request to avoid stale results on rapid Apply
-    if (this.activeFilterRequest) this.activeFilterRequest.abort()
-    this.activeFilterRequest = new AbortController()
+    if ([...filterParamsWithoutState.keys()].length === 0) {
+      this.filteredPwsids = null
+      this.#applyPwsFilters()
+      this.#reloadStatsFrame()
+      return
+    }
+
+    const request = new AbortController()
+    this.activeFilterRequest = request
 
     try {
-      const res = await fetch(`/map?${this.#filterParamsWithoutMapState().toString()}`, {
-        signal: this.activeFilterRequest.signal
+      const res = await fetch(`/map?${filterParamsWithoutState.toString()}`, {
+        signal: request.signal
       })
       if (!res.ok) return
 
       const { pwsids } = await res.json()
+      if (this.activeFilterRequest !== request) return
       if (!this.map) return
 
       this.filteredPwsids = pwsids
@@ -551,7 +561,14 @@ export default class extends Controller {
     }
   }
 
-  #enterNationMode({ fitDefault = true } = {}) {
+  #abortActiveFilterRequest() {
+    if (!this.activeFilterRequest) return
+    this.activeFilterRequest.abort()
+    this.activeFilterRequest = null
+  }
+
+  #enterNationMode({ fitDefault = true, syncStateFilter = true } = {}) {
+    const hadStateScope = !!this.selectedState || !!FilterState.get().state || !!FilterState.get().state_name
     this.selectedState = null
     delete this.element.dataset.selectedState
     delete this.element.dataset.selectedStateName
@@ -563,11 +580,12 @@ export default class extends Controller {
     this.#removeStatePrompt()
     this.#removeSystemPopups()
     this.#applyPwsFilters()
+    if (syncStateFilter && hadStateScope) this.#clearStateFilter()
     this.#reloadStatsFrame()
     if (fitDefault) this.#fitDefaultView()
   }
 
-  #selectState(props) {
+  #selectState(props, { syncStateFilter = true } = {}) {
     const state = this.#normalizeStateProps(props)
     if (!state) return
 
@@ -577,11 +595,15 @@ export default class extends Controller {
     this.element.dataset.selectedStateName = state.name
     this.mapMode = this.#systemsModeActive() ? MODE_SYSTEMS : MODE_STATE
     this.map.setFilter("states_hover", EMPTY_STATE_FILTER)
-    this.map.setFilter("states_filter", ["==", ["get", "geoid"], state.geoid])
+    this.map.setFilter("states_filter", this.#stateBoundaryFilter(state))
     this.map.setFilter("pws_hover", EMPTY_PWS_FILTER)
     this.#removeSystemPopups()
     this.#applyPwsFilters()
-    this.#reloadStatsFrame()
+    if (syncStateFilter) {
+      this.#setStateFilter(state)
+    } else {
+      this.#reloadStatsFrame()
+    }
   }
 
   #syncModeFromZoom() {
@@ -604,13 +626,28 @@ export default class extends Controller {
   }
 
   #normalizeStateProps(props) {
-    if (!props?.stusps || !props?.geoid) return null
+    if (!props?.stusps) return null
 
     return {
       stusps: props.stusps,
       name: props.name || props.stusps,
-      geoid: props.geoid
+      geoid: props.geoid || null
     }
+  }
+
+  #restoreStateFromFilter() {
+    const filters = FilterState.get()
+    if (!filters.state) return
+
+    this.#selectState({
+      stusps: filters.state,
+      name: filters.state_name || filters.state
+    }, { syncStateFilter: false })
+  }
+
+  #stateBoundaryFilter(state) {
+    if (state.geoid) return ["==", ["get", "geoid"], state.geoid]
+    return ["==", ["get", "stusps"], state.stusps]
   }
 
   #applyPwsFilters() {
@@ -636,13 +673,6 @@ export default class extends Controller {
     if (!frame) return
 
     const params = new URLSearchParams(FilterState.toUrlParams())
-    if (this.selectedState) {
-      params.set("state", this.selectedState.stusps)
-      params.set("state_name", this.selectedState.name)
-    } else {
-      params.delete("state")
-      params.delete("state_name")
-    }
 
     if ([...params.keys()].length === 0) {
       frame.removeAttribute("src")
@@ -662,6 +692,31 @@ export default class extends Controller {
     params.delete("state")
     params.delete("state_name")
     return params
+  }
+
+  #setStateFilter(state) {
+    FilterState.set({
+      ...FilterState.get(),
+      state: state.stusps,
+      state_name: state.name
+    })
+    this.#syncFiltersToUrl()
+    document.dispatchEvent(new CustomEvent("filters:changed"))
+  }
+
+  #clearStateFilter() {
+    const filters = { ...FilterState.get() }
+    delete filters.state
+    delete filters.state_name
+    FilterState.set(filters)
+    this.#syncFiltersToUrl()
+    document.dispatchEvent(new CustomEvent("filters:changed"))
+  }
+
+  #syncFiltersToUrl() {
+    const url = new URL(window.location)
+    url.search = FilterState.toUrlParams().toString()
+    history.replaceState({}, "", url)
   }
 
   async #lookupState(center) {

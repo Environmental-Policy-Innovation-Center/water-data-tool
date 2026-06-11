@@ -169,7 +169,7 @@ export default class extends Controller {
   apply(event) {
     event.preventDefault()
     document.dispatchEvent(new CustomEvent("filter:close-all"))
-    FilterState.set(this.#collectFilters())
+    FilterState.set({ ...this.#currentStateScope(), ...this.#collectFilters() })
     this.#syncToUrl()
     this.#updateBadges()
     document.dispatchEvent(new CustomEvent("filters:changed"))
@@ -414,6 +414,14 @@ export default class extends Controller {
     return p
   }
 
+  #currentStateScope() {
+    const current = FilterState.get()
+    const stateScope = {}
+    if (current.state) stateScope.state = current.state
+    if (current.state_name) stateScope.state_name = current.state_name
+    return stateScope
+  }
+
   #restoreDomState(params) {
     for (const f of FILTERS) {
       switch (f.type) {
@@ -608,11 +616,6 @@ export default class extends Controller {
   #reloadStatsFrame() {
     if (!this.#statsFrame) return
     const params = new URLSearchParams(FilterState.toUrlParams())
-    const mapContainer = document.getElementById("container-map")
-    if (mapContainer?.dataset.selectedState) {
-      params.set("state", mapContainer.dataset.selectedState)
-      params.set("state_name", mapContainer.dataset.selectedStateName)
-    }
 
     const newSrc = `/public_water_systems/stats?${params.toString()}`
     if (this.#statsFrame.getAttribute("src") === newSrc) return

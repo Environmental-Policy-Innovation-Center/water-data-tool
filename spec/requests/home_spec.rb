@@ -190,6 +190,16 @@ RSpec.describe "Home", type: :request do
       expect(response.body).not_to include("Surface System")
     end
 
+    it "filters by selected state" do
+      create(:public_water_system, stusps: "TX", pws_name: "Texas System")
+      create(:public_water_system, stusps: "OK", pws_name: "Oklahoma System")
+
+      get table_path, params: {state: "TX"}
+
+      expect(response.body).to include("Texas System")
+      expect(response.body).not_to include("Oklahoma System")
+    end
+
     it "filters by owner_type array" do
       create(:public_water_system, owner_type: "Federal", pws_name: "Federal System")
       create(:public_water_system, owner_type: "State", pws_name: "State System")
