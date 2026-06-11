@@ -31,8 +31,8 @@ module Filterable
 
       scope = scope.where(is_wholesaler: true) if params[:is_wholesaler] == "true"
       scope = scope.where(is_school_or_daycare: true) if params[:is_school_or_daycare] == "true"
-      scope = scope.where(source_water_protection_code: "Yes") if params[:has_source_protection] == "true"
-      scope = scope.where(open_health_viol: "Yes") if params[:has_open_violations] == "true"
+      scope = scope.where(source_water_protection_code: true) if params[:has_source_protection] == "true"
+      scope = scope.where(open_health_viol: true) if params[:has_open_violations] == "true"
 
       scope = scope.where(stusps: params[:state]) if params[:state].present?
       scope

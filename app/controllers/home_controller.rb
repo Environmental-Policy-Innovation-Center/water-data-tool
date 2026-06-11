@@ -1,13 +1,12 @@
 class HomeController < ApplicationController
-  # TODO - Consider moving into a PORO as this grows
-  SORTABLE_COLUMNS = %w[
-    pws_name pwsid stusps counties gw_sw_code source_water_protection_code
-    owner_type primacy_type is_wholesaler is_school_or_daycare symbology_field
-    area_sq_miles open_health_viol
-  ].freeze
+  include Sortable
 
   def index
     @last_updated = DataImport.maximum(:imported_at)
+    @visible_col_keys = parse_cols_param
+    @pinned_cols = pinned_columns
+    @column_categories = ColumnRegistry.categories
+    @cols_by_category = ColumnRegistry.columns_by_category
   end
 
   def map
@@ -18,31 +17,29 @@ class HomeController < ApplicationController
   def table
     scope = PublicWaterSystem.apply_filters(filter_params)
     scope = apply_search(scope, params[:search].to_s.strip) if params[:search].present?
-    preloads = [:violations_summary, :demographic, :environmental_justice,
+    scope = apply_sort_join(scope)
+    preloads = [:violations_summary, :demographic, :trend_datum, :environmental_justice,
       :funding_summary, :watershed_hazard, :boil_water_summary]
     @pagy, @systems = pagy(scope.preload(preloads).order(order_clause))
+    @columns = visible_columns
     render partial: "home/table"
   end
 
   private
 
+  def visible_columns
+    ColumnRegistry.visible(keys: parse_cols_param)
+  end
+
+  def parse_cols_param
+    ColumnRegistry.parse_keys(params[:cols])&.to_set
+  end
+
+  def pinned_columns
+    ColumnRegistry.columns.select(&:pinned)
+  end
+
   def filter_params
     FilterParams.permit(params)
-  end
-
-  def apply_search(scope, term)
-    sanitized = term.gsub(/[%_\\]/) { |c| "\\#{c}" }
-    scope.where(
-      "public_water_systems.pws_name ILIKE :q OR public_water_systems.pwsid ILIKE :q " \
-      "OR public_water_systems.stusps ILIKE :q OR public_water_systems.counties ILIKE :q",
-      q: "%#{sanitized}%"
-    )
-  end
-
-  def order_clause
-    col = SORTABLE_COLUMNS.include?(params[:sort]) ? params[:sort] : "pws_name"
-    dir = (params[:direction] == "desc") ? "DESC" : "ASC"
-    tiebreaker = (col == "pws_name") ? "" : ", public_water_systems.pws_name ASC"
-    Arel.sql("public_water_systems.#{col} #{dir} NULLS LAST#{tiebreaker}")
   end
 end

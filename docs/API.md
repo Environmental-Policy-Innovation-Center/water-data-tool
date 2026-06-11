@@ -14,7 +14,7 @@ The app uses a **Hotwire-first** architecture. Most UI data is server-rendered H
 | `/map` | GET | JSON | Filtered `pwsid` list for map polygon highlighting |
 | `/table` | GET | HTML | Data table Turbo Frame partial |
 | `/public_water_systems/stats` | GET | HTML | Stats bar Turbo Frame partial |
-| `/public_water_systems/export` | GET | CSV / GeoJSON | Filtered data download |
+| `/public_water_systems/export` | POST | CSV / GeoJSON (streaming) | Filtered or row-selected data download |
 | `/public_water_systems/histogram` | GET | JSON | Histogram bins for range sliders |
 | `/public_water_systems/:pwsid/report` | GET | HTML | Printable system report |
 | `/places/search` | GET | JSON | Place autocomplete for filter UI |
@@ -28,7 +28,7 @@ There is **no** general-purpose JSON list or detail API (`GET /public_water_syst
 
 Most data endpoints accept the same filter query params defined in `config/filters.yml` and applied by `PublicWaterSystem.apply_filters`. Full param reference: `docs/FILTERING.md`.
 
-Endpoints that accept filters: `/map`, `/table`, `/public_water_systems/stats`, `/public_water_systems/export`.
+Endpoints that accept filters: `/map`, `/table`, `/public_water_systems/stats`, `POST /public_water_systems/export`.
 
 ---
 
@@ -71,27 +71,35 @@ Accepts shared filter params. Response includes systems count (filtered vs total
 
 ---
 
-## `GET /public_water_systems/export`
+## `POST /public_water_systems/export`
 
-Filtered data download. Accepts shared filter params.
+Streaming data download. Accepts shared filter params plus row-selection params. See `docs/EXPORTS.md` for the full design.
 
-### Additional parameters
+### Request body parameters
 
 | Param | Type | Default | Description |
 |-------|------|---------|-------------|
 | `file_format` | string | `csv` | `csv` or `geojson` |
+| `cols` | string | — | Comma-separated column keys; restricts CSV columns to the user's visible set |
+| `sort` | string | `pws_name` | Column to sort by |
+| `direction` | string | `asc` | `asc` or `desc` |
+| `search` | string | — | ILIKE search (same as `/table`) |
+| `pwsids[]` | string[] | — | Explicit row selection (None mode). When present, filter params are ignored. |
+| `exclude_pwsids[]` | string[] | — | Exclusion list (All mode with some unchecked rows) |
+
+Plus all shared filter params.
 
 ### CSV response
 
 - `Content-Type: text/csv`
 - `Content-Disposition: attachment; filename="drinking_water_explorer_export.csv"`
-- All matching systems, no pagination
+- Streaming — no `Content-Length`; columns match the user's visible column set
 
 ### GeoJSON response
 
-- `Content-Type: application/json`
-- `Content-Encoding: gzip`
-- `FeatureCollection` with `MultiPolygon` geometries and flat properties
+- `Content-Type: application/json; charset=utf-8`
+- `Content-Disposition: attachment; filename="export.geojson"`
+- Streaming `FeatureCollection` with `MultiPolygon` geometries; all columns regardless of `cols=`
 
 ---
 
@@ -189,9 +197,16 @@ curl "http://localhost:3000/table?state=VT&page=1" | head -20
 ### Export
 
 ```bash
-curl "http://localhost:3000/public_water_systems/export?state=VT" -o tmp/test_exports/vt_export.csv
-curl --compressed "http://localhost:3000/public_water_systems/export?file_format=geojson&state=VT" \
-  -o tmp/test_exports/vt_export.geojson
+# CSV — all VT systems (filter-based, all rows selected)
+curl -X POST "http://localhost:3000/public_water_systems/export" \
+  -d "state=VT" \
+  -H "X-CSRF-Token: $(curl -s http://localhost:3000/ | grep csrf-token | sed 's/.*content="\([^"]*\)".*/\1/')" \
+  -o tmp/test_exports/vt_export.csv
+
+# GeoJSON — explicit row selection
+curl -X POST "http://localhost:3000/public_water_systems/export" \
+  -d "file_format=geojson&pwsids[]=VT0020001&pwsids[]=VT0020002" \
+  -o tmp/test_exports/selected_export.geojson
 ```
 
 ### Histogram

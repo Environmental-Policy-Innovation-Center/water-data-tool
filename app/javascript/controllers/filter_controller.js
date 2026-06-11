@@ -1,6 +1,7 @@
 import { Controller } from "@hotwired/stimulus"
 import * as FilterState from "filter_state"
 import { syncStatsFrame } from "stats_frame"
+import * as SelectionState from "selection_state"
 
 const POP_CAT_MAP = { "1": "<=500", "2": "501-3,300", "3": "3,301-10,000", "4": "10,001-100,000", "5": ">100,000" }
 const POP_CLASS_MAP = Object.fromEntries(Object.entries(POP_CAT_MAP).map(([k, v]) => [v, `pop-size-${k}`]))
@@ -169,6 +170,7 @@ export default class extends Controller {
     event.preventDefault()
     document.dispatchEvent(new CustomEvent("filter:close-all"))
     FilterState.set({ ...this.#currentStateScope(), ...this.#collectFilters() })
+    SelectionState.clear()
     this.#syncToUrl()
     this.#updateBadges()
     document.dispatchEvent(new CustomEvent("filters:changed"))
@@ -261,11 +263,13 @@ export default class extends Controller {
     const filter = SUBCAT_PANEL_FILTERS.find(f => f.panelId === panel.id)
     if (!filter) return
 
-    const anyChecked = filter.subcats.some(s => document.getElementById(s.id)?.checked)
-    const parentEl = document.getElementById(filter.parentId)
-    if (parentEl) parentEl.checked = anyChecked
-
+    const checkedCount = filter.subcats.filter(s => document.getElementById(s.id)?.checked).length
     const changedSubcat = filter.subcats.find(s => s.id === event.target.id)
+    const parentEl = document.getElementById(filter.parentId)
+    if (parentEl) {
+      parentEl.checked = checkedCount === filter.subcats.length
+      parentEl.indeterminate = checkedCount > 0 && checkedCount < filter.subcats.length
+    }
     if (!changedSubcat?.sliderPanelId) return
     const sliderPanel = document.getElementById(changedSubcat.sliderPanelId)
     if (!sliderPanel) return
@@ -289,7 +293,7 @@ export default class extends Controller {
     const btn = this.element.querySelector(`button[data-panel-id="${panelId}"]`)
     if (!btn) return
     btn.setAttribute("aria-expanded", String(expanded))
-    btn.querySelector("svg")?.classList.toggle("rotate-180", expanded)
+    btn.querySelector("svg")?.classList.toggle("-rotate-90", !expanded)
   }
 
   #onLayoutChanged = () => this.#updateBadges()
@@ -320,8 +324,7 @@ export default class extends Controller {
       this.#hideAndResetSlider(el)
     })
     menu.querySelectorAll("button[data-panel-id]").forEach(btn => {
-      btn.setAttribute("aria-expanded", "false")
-      btn.querySelector("svg")?.classList.remove("rotate-180")
+      this.#setToggleArrow(btn.dataset.panelId, false)
     })
     menu.querySelectorAll("select.min-select").forEach(s => { s.selectedIndex = 0 })
     menu.querySelectorAll("select.max-select").forEach(s => { s.selectedIndex = s.options.length - 1 })
@@ -482,8 +485,6 @@ export default class extends Controller {
           const anySubcatSet = f.subcats.some(s => params[s.param_min] != null || params[s.param_max] != null)
           if (!anySubcatSet) break
 
-          const parent = document.getElementById(f.parentId)
-          if (parent) parent.checked = true
           const panel = document.getElementById(f.panelId)
           if (panel) panel.classList.remove("hidden")
           this.#setToggleArrow(f.panelId, true)
@@ -506,6 +507,13 @@ export default class extends Controller {
               if (sliderPanel) sliderPanel.classList.remove("hidden")
             }
           })
+
+          const parent = document.getElementById(f.parentId)
+          if (parent) {
+            const checkedCount = f.subcats.filter(s => document.getElementById(s.id)?.checked).length
+            parent.checked = checkedCount === f.subcats.length
+            parent.indeterminate = checkedCount > 0 && checkedCount < f.subcats.length
+          }
           break
         }
         case "range": {
@@ -539,7 +547,16 @@ export default class extends Controller {
   #syncToUrl() {
     const url = new URL(window.location)
     url.search = FilterState.toUrlParams().toString()
+    this.#preserveViewParams(url.searchParams)
     history.replaceState({}, "", url)
+  }
+
+  #preserveViewParams(params) {
+    const current = new URLSearchParams(window.location.search)
+    ;["cols", "sort", "direction"].forEach(key => {
+      const val = current.get(key)
+      if (val !== null) params.set(key, val)
+    })
   }
 
   #restoreFromUrl() {
@@ -624,7 +641,9 @@ export default class extends Controller {
   }
 
   #visitTableFrame() {
-    Turbo.visit(`/table?${FilterState.toUrlParams()}`, { frame: "data-table" })
+    const params = new URLSearchParams(FilterState.toUrlParams())
+    this.#preserveViewParams(params)
+    Turbo.visit(`/table?${params}`, { frame: "data-table" })
   }
 
   #loadSlider(panel) {

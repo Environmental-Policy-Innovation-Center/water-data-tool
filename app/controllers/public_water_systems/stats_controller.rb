@@ -1,7 +1,7 @@
 module PublicWaterSystems
   class StatsController < ApplicationController
     def show
-      scope = PublicWaterSystem.apply_filters(params)
+      scope = PublicWaterSystem.apply_filters(FilterParams.permit(params))
       unfiltered_total = PublicWaterSystem.count(:pwsid)
       @summary = PublicWaterSystem.build_summary(scope).merge(unfiltered_total: unfiltered_total)
       @summary_title = summary_title

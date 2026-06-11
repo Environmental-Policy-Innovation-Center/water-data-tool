@@ -2,44 +2,36 @@ require "rails_helper"
 require "csv"
 
 RSpec.describe "Exports", type: :request do
-  describe "GET /export" do
+  describe "POST /export" do
     context "with an unrecognized file_format" do
       it "falls back to CSV" do
         create(:public_water_system)
-
-        get export_path, params: {file_format: "invalid"}
-
+        post export_path, params: {file_format: "invalid"}
         expect(response).to have_http_status(:ok)
-        expect(response.content_type).to eq("text/csv")
+        expect(response.content_type).to include("text/csv")
       end
     end
 
     context "CSV export (default)" do
       it "returns a CSV file with correct content headers" do
         create(:public_water_system)
-
-        get export_path
-
+        post export_path
         expect(response).to have_http_status(:ok)
-        expect(response.content_type).to eq("text/csv")
+        expect(response.content_type).to include("text/csv")
         expect(response.headers["Content-Disposition"]).to include("attachment")
         expect(response.headers["Content-Disposition"]).to include(".csv")
       end
 
       it "includes the expected column headers in the first row" do
         create(:public_water_system)
-
-        get export_path
-
+        post export_path
         headers = CSV.parse(response.body).first
-        expect(headers).to include("Utility Name", "Utility ID", "State", "Open violations", "Boil water notices")
+        expect(headers).to include("Utility Name", "Utility ID", "State", "Has open violations", "Boil water notices")
       end
 
       it "includes one data row per matching system" do
         create_list(:public_water_system, 3)
-
-        get export_path
-
+        post export_path
         rows = CSV.parse(response.body)
         expect(rows.length).to eq(4) # 1 header + 3 data rows
       end
@@ -47,29 +39,120 @@ RSpec.describe "Exports", type: :request do
       it "respects active filters" do
         create(:public_water_system, stusps: "VT")
         create(:public_water_system, stusps: "OH")
-
-        get export_path, params: {state: "VT"}
-
+        post export_path, params: {state: "VT"}
         rows = CSV.parse(response.body)
         expect(rows.length).to eq(2) # 1 header + 1 data row
       end
 
       it "returns all matching records without pagination" do
         create_list(:public_water_system, 75)
-
-        get export_path
-
+        post export_path
         rows = CSV.parse(response.body)
         expect(rows.length).to eq(76) # 1 header + 75 data rows
+      end
+
+      it "respects the search param" do
+        create(:public_water_system, pws_name: "Milwaukee Water Works")
+        create(:public_water_system, pws_name: "Chicago Water System")
+        post export_path, params: {search: "Milwaukee"}
+        rows = CSV.parse(response.body)
+        expect(rows.length).to eq(2) # 1 header + 1 match
+        expect(rows[1][0]).to eq("Milwaukee Water Works")
+      end
+    end
+
+    context "sort ordering" do
+      it "orders by pws_name ascending by default" do
+        create(:public_water_system, pws_name: "Zeta Water")
+        create(:public_water_system, pws_name: "Alpha Water")
+        post export_path
+        rows = CSV.parse(response.body)
+        expect(rows[1][0]).to eq("Alpha Water")
+        expect(rows[2][0]).to eq("Zeta Water")
+      end
+
+      it "respects sort and direction params" do
+        create(:public_water_system, pws_name: "Alpha Water", stusps: "VT")
+        create(:public_water_system, pws_name: "Beta Water", stusps: "AL")
+        post export_path, params: {sort: "stusps", direction: "asc"}
+        rows = CSV.parse(response.body)
+        expect(rows[1][0]).to eq("Beta Water")  # AL before VT
+        expect(rows[2][0]).to eq("Alpha Water")
+      end
+
+      it "orders explicit pwsids by pws_name ascending (default)" do
+        b = create(:public_water_system, pws_name: "Zeta Water")
+        a = create(:public_water_system, pws_name: "Alpha Water")
+        post export_path, params: {pwsids: [b.pwsid, a.pwsid]}
+        rows = CSV.parse(response.body)
+        expect(rows[1][0]).to eq("Alpha Water")
+        expect(rows[2][0]).to eq("Zeta Water")
+      end
+    end
+
+    context "with specific IDs selected" do
+      it "exports only the specified records as CSV" do
+        pws1 = create(:public_water_system)
+        create(:public_water_system)
+        post export_path, params: {pwsids: [pws1.pwsid]}
+        rows = CSV.parse(response.body)
+        expect(rows.length).to eq(2) # 1 header + 1 data row
+      end
+
+      it "exports only the specified records as GeoJSON" do
+        pws1 = create(:public_water_system)
+        create(:public_water_system)
+        post export_path, params: {pwsids: [pws1.pwsid], file_format: "geojson"}
+        expect(JSON.parse(response.body)["features"].length).to eq(1)
+      end
+
+      it "silently ignores unknown pwsids and returns only matching records" do
+        pws = create(:public_water_system)
+        post export_path, params: {pwsids: [pws.pwsid, "NONEXISTENT"]}
+        rows = CSV.parse(response.body)
+        expect(rows.length).to eq(2) # 1 header + 1 data row for the valid ID
+      end
+
+      it "exports a batch of explicitly-specified IDs" do
+        systems = create_list(:public_water_system, 3)
+        ids = systems.map(&:pwsid)
+        post export_path, params: {pwsids: ids}
+        rows = CSV.parse(response.body)
+        expect(rows.length).to eq(4) # 1 header + 3 data rows
+      end
+    end
+
+    context "with excluded IDs (all-minus-some export)" do
+      it "excludes the specified records from the filter-based export" do
+        pws1 = create(:public_water_system)
+        create(:public_water_system)
+        post export_path, params: {exclude_pwsids: [pws1.pwsid]}
+        rows = CSV.parse(response.body)
+        expect(rows.length).to eq(2) # 1 header + 1 remaining record
+      end
+
+      it "excludes work alongside active filters" do
+        create(:public_water_system, stusps: "VT")
+        pws_vt_remove = create(:public_water_system, stusps: "VT")
+        create(:public_water_system, stusps: "OH")
+        post export_path, params: {state: "VT", exclude_pwsids: [pws_vt_remove.pwsid]}
+        rows = CSV.parse(response.body)
+        expect(rows.length).to eq(2) # 1 header + 1 VT record (the non-excluded one)
+      end
+
+      it "ignores exclude_pwsids when pwsids are also present (explicit selection takes precedence)" do
+        pws1 = create(:public_water_system)
+        create(:public_water_system)
+        post export_path, params: {pwsids: [pws1.pwsid], exclude_pwsids: [pws1.pwsid]}
+        rows = CSV.parse(response.body)
+        expect(rows.length).to eq(2) # pwsids wins — pws1 still exported
       end
     end
 
     context "GeoJSON export" do
       it "returns a response with correct content headers" do
         create(:public_water_system)
-
-        get export_path, params: {file_format: "geojson"}
-
+        post export_path, params: {file_format: "geojson"}
         expect(response).to have_http_status(:ok)
         expect(response.content_type).to include("application/json")
         expect(response.headers["Content-Disposition"]).to include("attachment")
@@ -79,7 +162,7 @@ RSpec.describe "Exports", type: :request do
       it "returns a valid GeoJSON FeatureCollection" do
         create(:public_water_system)
 
-        get export_path, params: {file_format: "geojson"}
+        post export_path, params: {file_format: "geojson"}
 
         geojson = JSON.parse(response.body)
         expect(geojson["type"]).to eq("FeatureCollection")
@@ -90,7 +173,7 @@ RSpec.describe "Exports", type: :request do
       it "includes pwsid in feature properties" do
         pws = create(:public_water_system)
 
-        get export_path, params: {file_format: "geojson"}
+        post export_path, params: {file_format: "geojson"}
 
         feature = JSON.parse(response.body)["features"].first
         expect(feature["properties"]["pwsid"]).to eq(pws.pwsid)
@@ -100,10 +183,46 @@ RSpec.describe "Exports", type: :request do
         create(:public_water_system, stusps: "VT")
         create(:public_water_system, stusps: "OH")
 
-        get export_path, params: {file_format: "geojson", state: "VT"}
+        post export_path, params: {file_format: "geojson", state: "VT"}
 
         geojson = JSON.parse(response.body)
         expect(geojson["features"].length).to eq(1)
+      end
+
+      it "respects exclude_pwsids" do
+        pws1 = create(:public_water_system)
+        create(:public_water_system)
+
+        post export_path, params: {file_format: "geojson", exclude_pwsids: [pws1.pwsid]}
+
+        geojson = JSON.parse(response.body)
+        expect(geojson["features"].length).to eq(1)
+        expect(geojson["features"].first["properties"]["pwsid"]).not_to eq(pws1.pwsid)
+      end
+    end
+
+    context "CSV column visibility" do
+      it "exports only pinned columns when cols is empty" do
+        create(:public_water_system, stusps: "VT")
+        post export_path, params: {cols: ""}
+        headers = CSV.parse(response.body).first
+        expect(headers).to include("Utility Name")
+        expect(headers).not_to include("State")
+      end
+
+      it "exports pinned plus specified columns when cols is set" do
+        create(:public_water_system, stusps: "VT")
+        post export_path, params: {cols: "stusps,pwsid"}
+        headers = CSV.parse(response.body).first
+        expect(headers).to include("Utility Name", "Utility ID", "State")
+        expect(headers).not_to include("Has open violations")
+      end
+
+      it "exports all columns when cols param is absent" do
+        create(:public_water_system)
+        post export_path
+        headers = CSV.parse(response.body).first
+        expect(headers).to include("Utility Name", "State", "Has open violations", "Boil water notices")
       end
     end
   end

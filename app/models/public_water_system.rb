@@ -11,7 +11,7 @@
 #  is_grant_eligible            :boolean
 #  is_school_or_daycare         :boolean
 #  is_wholesaler                :boolean
-#  open_health_viol             :string
+#  open_health_viol             :boolean
 #  owner_type                   :string
 #  phone_number                 :string
 #  pop_cat_5                    :string
@@ -23,7 +23,7 @@
 #  pwsid                        :string           not null, primary key
 #  service_area_type            :string
 #  service_connections_count    :integer
-#  source_water_protection_code :string
+#  source_water_protection_code :boolean
 #  stusps                       :string(2)
 #  symbology_field              :string
 #  years_operating              :integer
@@ -79,7 +79,7 @@ class PublicWaterSystem < ApplicationRecord
       .left_joins(:demographic)
       .pick(
         Arel.sql("SUM(population_served_count)"),
-        Arel.sql("COUNT(*) FILTER (WHERE open_health_viol = 'Yes')"),
+        Arel.sql("COUNT(*) FILTER (WHERE open_health_viol)"),
         Arel.sql("ROUND(AVG(demographics.median_household_income))"),
         Arel.sql("COUNT(DISTINCT public_water_systems.pwsid)")
       )

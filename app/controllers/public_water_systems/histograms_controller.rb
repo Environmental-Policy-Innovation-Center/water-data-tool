@@ -3,7 +3,6 @@
 module PublicWaterSystems
   class HistogramsController < ApplicationController
     FIELD_CONFIG = FilterRegistry.histogram_field_config.freeze
-    ALLOWED_FIELDS = FIELD_CONFIG.keys.map(&:to_s).freeze
 
     def show
       field = params[:field]

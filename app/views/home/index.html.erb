@@ -107,7 +107,7 @@
             id: "btn-mobile-filter",
             aria_label: "Toggle map filters",
             data_action: "click->nav#toggleMobileFilterPanel",
-            classes: "!w-12 !h-12 shadow-sm data-[active]:bg-brand-primary data-[active]:border-brand-primary data-[active]:text-white"
+            classes: "w-12! h-12! shadow-sm data-[active]:bg-brand-primary data-[active]:border-brand-primary data-[active]:text-white"
           ) do %>
         <%= icon "filter", classes: "w-6 h-6" %>
       <% end %>
@@ -117,7 +117,7 @@
             id: "btn-mobile-stats",
             aria_label: "Toggle statistics panel",
             data_action: "click->nav#toggleMobileStats",
-            classes: "!w-12 !h-12 shadow-sm data-[active]:bg-brand-primary data-[active]:border-brand-primary data-[active]:text-white"
+            classes: "w-12! h-12! shadow-sm data-[active]:bg-brand-primary data-[active]:border-brand-primary data-[active]:text-white"
           ) do %>
         <%= icon "info", classes: "w-6 h-6" %>
       <% end %>
@@ -158,36 +158,138 @@
       Shown/hidden by nav_controller.js#show via classList.
       ===================================================== %>
   <div id="container-table" class="hidden max-md:!hidden absolute bg-white z-[3] top-3 right-4 bottom-8 rounded-xl shadow-lg overflow-hidden">
-    <div class="flex min-h-0 flex-1 flex-col px-5 pt-[52px]">
-      <div class="flex min-w-0 flex-col gap-4 overflow-hidden py-5 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
-        <div class="min-w-0 shrink">
-          <p class="m-0 p-0 text-base">
+    <div class="flex min-h-0 flex-1 flex-col px-5 pt-[52px]"
+         data-controller="row-selection">
+      <div class="flex items-center justify-between gap-4 py-5">
+        <%# Title + export controls: grouped left %>
+        <div class="flex min-w-0 flex-wrap items-center gap-3">
+          <p class="m-0 shrink-0 p-0 text-base">
             <strong>Public Water Utilities <span class="geo-filter"></span></strong>
           </p>
+          <div class="flex shrink-0 flex-nowrap items-center gap-3"
+               data-controller="export"
+               data-export-url-value="<%= export_path %>">
+            <button type="button"
+               class="relative inline-flex cursor-pointer flex-nowrap items-center whitespace-nowrap rounded-full border border-neutral-400 bg-brand-action px-3 py-1.5 pl-9 text-sm font-normal leading-none text-white <%= focus_ring_classes %>"
+               data-row-selection-target="exportButton"
+               data-action="click->export#download">
+              <%= icon "downloads", classes: "pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2" %>
+              Export Selection
+              <span data-row-selection-target="countBadge"
+                    class="hidden ml-1.5 min-w-[2rem] rounded-full bg-white/25 px-1.5 py-0.5 text-center text-xs leading-none tabular-nums"
+                    aria-live="polite"
+                    aria-label="selected rows count"></span>
+            </button>
+            <span class="inline-flex flex-nowrap items-center gap-3">
+              <span class="inline-flex items-center gap-1.5 whitespace-nowrap">
+                <input type="radio" name="file-type" id="file-csv" value="csv" checked
+                       data-export-target="format"
+                       class="m-0">
+                <label for="file-csv">.csv</label>
+              </span>
+              <span class="inline-flex items-center gap-1.5 whitespace-nowrap">
+                <input type="radio" name="file-type" id="file-geojson" value="geojson"
+                       class="file-geojson m-0" data-export-target="format">
+                <label for="file-geojson" class="file-geojson">.geojson</label>
+              </span>
+            </span>
+          </div>
         </div>
-        <div class="flex min-w-0 shrink-0 flex-nowrap items-center justify-end gap-3 sm:gap-4"
-             data-controller="export">
+
+        <%# Manage Columns: far right with fixed-position disclosure panel %>
+        <div class="shrink-0" data-controller="manage-columns">
           <button type="button"
-             class="relative inline-flex cursor-pointer flex-nowrap items-center whitespace-nowrap rounded-full border border-neutral-400 bg-[#67a25e] px-3 py-1.5 pl-9 text-sm font-normal leading-none text-white <%= focus_ring_classes %>"
-             data-action="click->export#download">
-            <%= icon "downloads",
-                  classes: "pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2" %>
-            Export
+                  class="inline-flex min-h-11 cursor-pointer items-center gap-1.5 font-bold text-brand-primary hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 motion-reduce:transition-none"
+                  data-manage-columns-target="button"
+                  data-action="click->manage-columns#toggle"
+                  aria-expanded="false"
+                  aria-controls="manage-columns-panel">
+            Manage Columns
+            <%= icon "columns", classes: "size-4" %>
           </button>
-          <span class="inline-flex flex-nowrap items-center gap-3">
-            <span class="inline-flex items-center gap-1.5 whitespace-nowrap">
-              <input type="radio" name="file-type" id="file-csv" value="csv" checked
-                     data-export-target="format"
-                     class="m-0">
-              <label for="file-csv">.csv</label>
-            </span>
-            <span class="inline-flex items-center gap-1.5 whitespace-nowrap">
-              <input type="radio" name="file-type" id="file-geojson" value="geojson"
-                     class="file-geojson m-0" data-export-target="format">
-              <label for="file-geojson" class="file-geojson">.geojson</label>
-            </span>
-          </span>
+          <div id="manage-columns-panel"
+               data-manage-columns-target="dropdown"
+               class="hidden fixed w-80 flex-col overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-xl z-[100]">
+            <form data-manage-columns-target="form"
+                  data-action="submit->manage-columns#serializeCols"
+                  data-turbo-frame="data-table"
+                  action="<%= table_path %>"
+                  method="get"
+                  class="flex flex-col flex-1 min-h-0">
+              <%= hidden_inputs_for_params(except: ["cols"]) %>
+              <%# Populated by manage_columns_controller#serializeCols before submit %>
+              <input type="hidden" name="cols" data-manage-columns-target="colsInput">
+
+              <div class="flex shrink-0 items-center justify-center gap-2 px-3 pt-2 pb-1">
+                <button type="button"
+                        data-action="click->manage-columns#selectAllColumns"
+                        class="<%= ghost_pill_classes %>">
+                  Select All
+                </button>
+                <button type="button"
+                        data-action="click->manage-columns#deselectAllColumns"
+                        class="<%= ghost_pill_classes %>">
+                  Deselect All
+                </button>
+              </div>
+              <ul class="m-0 flex-1 min-h-0 list-none overflow-y-auto px-2 pb-1 pt-1"
+                  aria-label="Table columns">
+                <%# Pinned columns — always visible, not toggleable %>
+                <% @pinned_cols.select { |c| c.label.present? }.each do |col| %>
+                  <%= render ManageColumns::PinnedRowComponent.new(col: col) %>
+                <% end %>
+                <%# Ungrouped toggleable columns %>
+                <% (@cols_by_category[nil] || []).each do |col| %>
+                  <%= render ManageColumns::ColumnRowComponent.new(
+                        col: col,
+                        checked: @visible_col_keys.nil? || @visible_col_keys.include?(col.key)
+                      ) %>
+                <% end %>
+                <%# Categorized columns %>
+                <% @column_categories.each do |cat| %>
+                  <% cat_cols = @cols_by_category[cat.key] || [] %>
+                  <% next if cat_cols.empty? %>
+                  <%= render ManageColumns::CategoryHeaderRowComponent.new(cat: cat) do %>
+                    <% cat_cols.each do |col| %>
+                      <%= render ManageColumns::ColumnRowComponent.new(
+                            col: col,
+                            checked: @visible_col_keys.nil? || @visible_col_keys.include?(col.key),
+                            indented: true
+                          ) %>
+                    <% end %>
+                  <% end %>
+                <% end %>
+              </ul>
+              <div class="shrink-0 border-t border-neutral-100 bg-white pb-2.5 pt-1 text-center"
+                   role="group"
+                   aria-label="Column actions">
+                <button type="button"
+                        data-action="click->manage-columns#reset"
+                        class="inline-block cursor-pointer rounded-full border border-neutral-400 bg-white mx-2 my-1.5 min-h-11 px-7 py-2 text-sm text-neutral-800 md:hover:bg-neutral-200 md:hover:text-black focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 motion-reduce:transition-none">
+                  Reset
+                </button>
+                <button type="submit"
+                        class="inline-block cursor-pointer rounded-full border border-brand-primary bg-brand-primary mx-2 my-1.5 min-h-11 px-7 py-2 text-sm text-white md:hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 motion-reduce:transition-none">
+                  Show Columns
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
+      </div>
+
+      <%# Row selection controls — outside the Turbo Frame so they persist across page navigations %>
+      <div class="flex items-center gap-2 pb-2 pl-1">
+        <button type="button"
+                class="<%= ghost_pill_classes %>"
+                data-action="click->row-selection#selectAll">
+          Select All
+        </button>
+        <button type="button"
+                class="<%= ghost_pill_classes %>"
+                data-action="click->row-selection#deselectAll">
+          Deselect All
+        </button>
       </div>
 
       <%# Table loaded via Turbo Frame — filter_controller sets src on table:show %>

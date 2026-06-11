@@ -6,6 +6,9 @@ Rails.application.configure do
   # Make code changes take effect immediately without server restart.
   config.enable_reloading = true
 
+  # Reload when YAML configs change (ColumnRegistry and FilterRegistry cache parsed YAML at class level).
+  config.watchable_files.concat %w[config/columns.yml config/filters.yml]
+
   # Do not eager load code on boot.
   config.eager_load = false
 

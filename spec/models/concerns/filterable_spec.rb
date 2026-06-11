@@ -82,12 +82,21 @@ RSpec.describe Filterable, type: :model do
       end
 
       it "filters systems with open violations" do
-        with_viol = create(:public_water_system, open_health_viol: "Yes")
-        without_viol = create(:public_water_system, open_health_viol: "No")
+        with_viol = create(:public_water_system, open_health_viol: true)
+        without_viol = create(:public_water_system, open_health_viol: false)
 
         results = PublicWaterSystem.apply_filters(has_open_violations: "true")
         expect(results).to include(with_viol)
         expect(results).not_to include(without_viol)
+      end
+
+      it "filters systems with source water protection" do
+        with_protection = create(:public_water_system, source_water_protection_code: true)
+        without_protection = create(:public_water_system, source_water_protection_code: false)
+
+        results = PublicWaterSystem.apply_filters(has_source_protection: "true")
+        expect(results).to include(with_protection)
+        expect(results).not_to include(without_protection)
       end
     end
 

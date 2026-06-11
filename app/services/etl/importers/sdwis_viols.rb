@@ -23,9 +23,9 @@ module Etl
             is_grant_eligible: cast_bool(row["is_grant_eligible_ind"]),
             is_wholesaler: cast_bool(row["is_wholesaler_ind"]),
             is_school_or_daycare: cast_bool(row["is_school_or_daycare_ind"]),
-            source_water_protection_code: cast_string(row["source_water_protection_code"]),
+            source_water_protection_code: cast_bool(row["source_water_protection_code"]),
             phone_number: cast_string(row["phone_number"]),
-            open_health_viol: cast_string(row["open_health_viol"]),
+            open_health_viol: cast_bool(row["open_health_viol"]),
             updated_at: Time.current
           }
 

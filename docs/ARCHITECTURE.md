@@ -45,17 +45,33 @@ app/
 │   ├── cartographic_county.rb
 │   └── cartographic_place.rb
 ├── models/concerns/
-│   ├── filterable.rb                        # filter scopes for PublicWaterSystem
-│   └── exportable.rb                        # CSV/GeoJSON generation
+│   └── filterable.rb                        # filter scopes for PublicWaterSystem
+├── columns/
+│   ├── column_registry.rb                   # loads/memoizes columns.yml; csv_columns, geojson_columns
+│   ├── table_column.rb                      # Data.define value object for a single column
+│   └── category_def.rb                      # Data.define value object for a column category
+├── exporters/
+│   └── public_water_system_exporter.rb      # to_csv_stream, to_geojson_stream (streaming, no AR objects)
+├── components/
+│   ├── ui/
+│   │   └── table_header_component.rb        # sortable/check column <th> rendering
+│   └── manage_columns/
+│       ├── pinned_row_component.rb          # always-visible pinned column row
+│       ├── category_header_row_component.rb # collapse/expand category header row
+│       └── column_row_component.rb          # checkbox column row with drag handle icon (SortableJS wiring deferred to #180)
 ├── jobs/
 │   ├── etl_import_job.rb                    # SolidQueue: full ETL pipeline
 │   └── tile_cache_warm_job.rb               # SolidQueue: pre-generate common tiles
 ├── javascript/
+│   ├── selection_state.js                   # inversion-of-selection state (mode, excluded/included Sets)
 │   └── controllers/                         # Stimulus controllers
 │       ├── map_controller.js                # Mapbox GL JS init, tile loading, click
-│       ├── filter_controller.js             # filter form submit/reset, URL sync
+│       ├── filter_controller.js             # filter form submit/reset, URL sync (preserves cols/sort)
 │       ├── slider_controller.js             # range slider with histogram
-│       ├── export_controller.js             # CSV/GeoJSON download trigger
+│       ├── export_controller.js             # builds and POSTs export form; reads #table-query-state
+│       ├── row_selection_controller.js      # checkbox state, export badge, export button disabled state
+│       ├── manage_columns_controller.js     # column visibility panel, category collapse, Turbo.visit
+│       ├── clipboard_controller.js          # copy-to-clipboard for utility IDs
 │       ├── nav_controller.js                # map/table/section view toggle
 │       ├── place_autocomplete_controller.js # debounced place search dropdown
 │       └── report_controller.js             # report overlay open/close
@@ -161,7 +177,7 @@ Primary data surface for the Hotwire UI. See `docs/FRONTEND_DECISION.md` for the
 Utility endpoints namespaced under `/public_water_systems/`. The top-level `PublicWaterSystemsController`
 (JSON `index`/`show`) was removed in June 2026 — it was never wired to the frontend.
 
-- **`ExportsController#show`** — `GET /public_water_systems/export`. CSV or gzipped GeoJSON download.
+- **`ExportsController#create`** — `POST /public_water_systems/export`. Streaming CSV or GeoJSON download. Accepts filter params, `pwsids[]`, `exclude_pwsids[]`, `cols`, `sort`, `direction`, `search`. See `docs/EXPORTS.md`.
 - **`StatsController#show`** — `GET /public_water_systems/stats`. Turbo Frame HTML partial for the stats bar.
 - **`HistogramsController#show`** — `GET /public_water_systems/histogram?field=`. JSON histogram bins for sliders.
 - **`ReportsController#show`** — `GET /public_water_systems/:pwsid/report`. Printable report (overlay or full page).
@@ -427,9 +443,9 @@ Rails.application.routes.draw do
   resources :public_water_systems, param: :pwsid, only: [],
       constraints: {pwsid: /[A-Z0-9;%]+/} do
     collection do
-      resource :stats, only: :show, module: :public_water_systems
-      resource :export, only: :show, module: :public_water_systems
+      resource :export, only: :create, module: :public_water_systems
       resource :histogram, only: :show, module: :public_water_systems
+      resource :stats, only: :show, module: :public_water_systems
     end
     member do
       resource :report, only: :show, module: :public_water_systems

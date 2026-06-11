@@ -1,0 +1,16 @@
+<th scope="col"
+    class="<%= th_classes %>"
+    <% if sortable? %> aria-sort="<%= aria_sort_value %>"<% end %>>
+  <% if sortable? %>
+    <%= link_to next_sort_url,
+          class: "flex items-center justify-between gap-2 w-full group focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-1 rounded-sm" do %>
+      <span class="group-hover:underline"><%= @label %></span>
+      <span class="inline-flex flex-col leading-none shrink-0">
+        <span class="block text-[8px] leading-none <%= sort_up_class %>">▲</span>
+        <span class="block text-[8px] leading-none <%= sort_down_class %>">▼</span>
+      </span>
+    <% end %>
+  <% else %>
+    <%= @label %>
+  <% end %>
+</th>

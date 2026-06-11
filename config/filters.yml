@@ -131,6 +131,103 @@ range_column_groups:
       - permit_effluent_violations
       - risk_management_plan_facilities
 
+# Sortable columns for the data table — used by HomeController.
+# key = SQL table name; association = ActiveRecord join name (omitted for the base table).
+sortable_column_groups:
+  public_water_systems:
+    columns:
+      - pws_name
+      - pwsid
+      - stusps
+      - counties
+      - gw_sw_code
+      - source_water_protection_code
+      - owner_type
+      - primacy_type
+      - is_wholesaler
+      - is_school_or_daycare
+      - is_grant_eligible
+      - symbology_field
+      - area_sq_miles
+      - open_health_viol
+  violations_summaries:
+    association: violations_summary
+    columns:
+      - health_violations_5yr
+      - groundwater_rule_5yr
+      - surface_water_treatment_5yr
+      - lead_and_copper_5yr
+      - radionuclides_5yr
+      - inorganic_chemicals_5yr
+      - synthetic_organic_chemicals_5yr
+      - volatile_organic_chemicals_5yr
+      - total_coliform_5yr
+      - stage_1_disinfectants_5yr
+      - stage_2_disinfectants_5yr
+      - health_violations_10yr
+      - groundwater_rule_10yr
+      - surface_water_treatment_10yr
+      - lead_and_copper_10yr
+      - radionuclides_10yr
+      - inorganic_chemicals_10yr
+      - synthetic_organic_chemicals_10yr
+      - volatile_organic_chemicals_10yr
+      - total_coliform_10yr
+      - stage_1_disinfectants_10yr
+      - stage_2_disinfectants_10yr
+      - paperwork_violations_5yr
+      - paperwork_violations_10yr
+  boil_water_summaries:
+    association: boil_water_summary
+    columns:
+      - total_notices
+  demographics:
+    association: demographic
+    columns:
+      - total_population
+      - population_density
+      - poverty_rate
+      - unemployment_rate
+      - median_household_income
+      - bachelors_degree_rate
+      - age_under_5_rate
+      - age_over_61_rate
+      - poc_rate
+      - white_rate
+      - black_rate
+      - aian_rate
+      - napi_rate
+      - asian_rate
+      - hispanic_rate
+      - other_race_rate
+      - mixed_race_rate
+      - most_common_rate_tier
+  environmental_justices:
+    association: environmental_justice
+    columns:
+      - cejst_disadvantaged_pct
+      - svi_overall_pctl
+      - cvi_overall_score
+  funding_summaries:
+    association: funding_summary
+    columns:
+      - times_funded
+      - total_srf_assistance
+      - total_principal_forgiveness
+  watershed_hazards:
+    association: watershed_hazard
+    columns:
+      - num_facilities
+      - permit_effluent_violations
+      - open_underground_storage_tanks
+      - risk_management_plan_facilities
+      - impaired_streams_303d
+  trend_data:
+    association: trend_datum
+    columns:
+      - population_pct_change_capped
+      - mhi_pct_change_capped
+
 # Histogram field contract used by PublicWaterSystems::HistogramsController.
 # This keeps every histogram-capable field in one uniform config shape.
 histogram_field_groups:

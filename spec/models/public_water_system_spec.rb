@@ -11,7 +11,7 @@
 #  is_grant_eligible            :boolean
 #  is_school_or_daycare         :boolean
 #  is_wholesaler                :boolean
-#  open_health_viol             :string
+#  open_health_viol             :boolean
 #  owner_type                   :string
 #  phone_number                 :string
 #  pop_cat_5                    :string
@@ -23,7 +23,7 @@
 #  pwsid                        :string           not null, primary key
 #  service_area_type            :string
 #  service_connections_count    :integer
-#  source_water_protection_code :string
+#  source_water_protection_code :boolean
 #  stusps                       :string(2)
 #  symbology_field              :string
 #  years_operating              :integer
@@ -137,8 +137,8 @@ RSpec.describe PublicWaterSystem, type: :model do
     end
 
     it "aliases source_protection to source_water_protection_code" do
-      pws = create(:public_water_system, source_water_protection_code: "SPC123")
-      expect(pws.source_protection).to eq("SPC123")
+      pws = create(:public_water_system, source_water_protection_code: true)
+      expect(pws.source_protection).to be(true)
     end
   end
 
@@ -169,8 +169,8 @@ RSpec.describe PublicWaterSystem, type: :model do
     end
 
     it "counts only systems with open health violations" do
-      create(:public_water_system, open_health_viol: "Yes")
-      create(:public_water_system, open_health_viol: "No")
+      create(:public_water_system, open_health_viol: true)
+      create(:public_water_system, open_health_viol: false)
       result = PublicWaterSystem.build_summary(PublicWaterSystem.all)
 
       expect(result[:systems_with_open_violations]).to eq(1)

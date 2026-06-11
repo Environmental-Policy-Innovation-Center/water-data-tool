@@ -55,7 +55,14 @@
   <div id="container-menu-2-items">
     <%= render Filters::CategoryComponent.new(label: "Ownership") do %>
       <ul class="my-[6px] mb-[10px] mx-0 list-none px-1">
-        <li class="<%= filter_row_classes %>"><input type="checkbox" class="toggle select-all default-checked rounded-checkbox size-4 rounded-full border border-neutral-400 appearance-none cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 checked:appearance-auto checked:[clip-path:circle(50%_at_50%_50%)] checked:bg-brand-dark checked:accent-[#13171F]" id="type-deselect-all" checked="checked" data-action="change->filter#toggleSelectAll"><label for="type-deselect-all" id="type-deselect-all-txt">Deselect all</label></li>
+        <li class="<%= filter_row_classes %>">
+          <%= render UI::CircleToggleComponent.new(
+                id: "type-deselect-all",
+                label: "Deselect all",
+                data_action: "change->filter#toggleSelectAll",
+                input_classes: "toggle select-all default-checked"
+              ) %>
+        </li>
         <li class="<%= filter_row_classes %>"><input type="checkbox" class="toggle default-checked checkbox-type" checked="checked" id="type-federal-government" data-action="change->filter#syncSelectAll"><label for="type-federal-government">Federal</label></li>
         <li class="<%= filter_row_classes %>"><input type="checkbox" class="toggle default-checked checkbox-type" checked="checked" id="type-state-government" data-action="change->filter#syncSelectAll"><label for="type-state-government">State</label></li>
         <li class="<%= filter_row_classes %>"><input type="checkbox" class="toggle default-checked checkbox-type" checked="checked" id="type-local-government" data-action="change->filter#syncSelectAll"><label for="type-local-government">Local</label></li>
@@ -132,7 +139,7 @@
                   data-panel-id="subcat-health-5yr"
                   aria-expanded="false"
                   aria-controls="subcat-health-5yr">
-            <%= icon("arrow-down", classes: "h-3 w-3 transition-transform duration-150") %>
+            <%= icon("arrow-down", classes: "h-3 w-3 -rotate-90 transition-transform duration-150") %>
           </button>
           <div id="subcat-health-5yr" class="hidden pl-2 pb-1" data-subcat-panel
                data-action="change->filter#syncParentFromSubcat">
@@ -190,7 +197,7 @@
                   data-panel-id="subcat-health-10yr"
                   aria-expanded="false"
                   aria-controls="subcat-health-10yr">
-            <%= icon("arrow-down", classes: "h-3 w-3 transition-transform duration-150") %>
+            <%= icon("arrow-down", classes: "h-3 w-3 -rotate-90 transition-transform duration-150") %>
           </button>
           <div id="subcat-health-10yr" class="hidden pl-2 pb-1" data-subcat-panel
                data-action="change->filter#syncParentFromSubcat">
@@ -248,7 +255,7 @@
                   data-panel-id="subcat-paperwork-5yr"
                   aria-expanded="false"
                   aria-controls="subcat-paperwork-5yr">
-            <%= icon("arrow-down", classes: "h-3 w-3 transition-transform duration-150") %>
+            <%= icon("arrow-down", classes: "h-3 w-3 -rotate-90 transition-transform duration-150") %>
           </button>
           <div id="subcat-paperwork-5yr" class="hidden px-2 py-2" data-subcat-panel
                data-controller="slider"
@@ -274,7 +281,7 @@
                   data-panel-id="subcat-paperwork-10yr"
                   aria-expanded="false"
                   aria-controls="subcat-paperwork-10yr">
-            <%= icon("arrow-down", classes: "h-3 w-3 transition-transform duration-150") %>
+            <%= icon("arrow-down", classes: "h-3 w-3 -rotate-90 transition-transform duration-150") %>
           </button>
           <div id="subcat-paperwork-10yr" class="hidden px-2 py-2" data-subcat-panel
                data-controller="slider"
@@ -332,7 +339,7 @@
                   data-action="click->filter#toggleSubcatPanel"
                   data-panel-id="subcat-rate-tier"
                   aria-expanded="false" aria-controls="subcat-rate-tier">
-            <%= icon("arrow-down", classes: "h-3 w-3 transition-transform duration-150") %>
+            <%= icon("arrow-down", classes: "h-3 w-3 -rotate-90 transition-transform duration-150") %>
           </button>
           <div id="subcat-rate-tier" class="hidden pl-2 pb-2" data-subcat-panel>
             <ul class="space-y-0.5 mt-1 list-none px-1">
@@ -392,7 +399,7 @@
                   data-action="click->filter#toggleSubcatPanel"
                   data-panel-id="subcat-watershed-hazards"
                   aria-expanded="false" aria-controls="subcat-watershed-hazards">
-            <%= icon("arrow-down", classes: "h-3 w-3 transition-transform duration-150") %>
+            <%= icon("arrow-down", classes: "h-3 w-3 -rotate-90 transition-transform duration-150") %>
           </button>
           <div id="subcat-watershed-hazards" class="hidden pl-2 pb-1" data-subcat-panel
                data-action="change->filter#syncParentFromSubcat">

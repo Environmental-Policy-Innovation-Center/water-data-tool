@@ -16,7 +16,7 @@
               data-panel-id="<%= @panel_id %>"
               aria-expanded="false"
               aria-controls="<%= @panel_id %>">
-        <%= helpers.icon "arrow-down", classes: "h-3.5 w-3.5 transition-transform duration-150" %>
+        <%= helpers.icon "arrow-down", classes: "h-3.5 w-3.5 -rotate-90 transition-transform duration-150" %>
       </button>
     </div>
   <% else %>
@@ -35,7 +35,7 @@
             data-panel-id="<%= @panel_id %>"
             aria-expanded="false"
             aria-controls="<%= @panel_id %>">
-      <%= helpers.icon("arrow-down", classes: "h-3 w-3 transition-transform duration-150") %>
+      <%= helpers.icon("arrow-down", classes: "h-3 w-3 -rotate-90 transition-transform duration-150") %>
     </button>
   <% end %>
   <%= render "home/slider_panel", panel_id: @panel_id, field: @field,

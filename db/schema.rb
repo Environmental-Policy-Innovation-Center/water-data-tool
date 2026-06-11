@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_01_070742) do
+ActiveRecord::Schema[8.1].define(version: 2026_06_05_000001) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "postgis"
@@ -160,7 +160,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_01_070742) do
     t.boolean "is_grant_eligible"
     t.boolean "is_school_or_daycare"
     t.boolean "is_wholesaler"
-    t.string "open_health_viol"
+    t.boolean "open_health_viol"
     t.string "owner_type"
     t.string "phone_number"
     t.string "pop_cat_5"
@@ -171,7 +171,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_01_070742) do
     t.string "pws_name"
     t.string "service_area_type"
     t.integer "service_connections_count"
-    t.string "source_water_protection_code"
+    t.boolean "source_water_protection_code"
     t.string "stusps", limit: 2
     t.string "symbology_field"
     t.datetime "updated_at", null: false

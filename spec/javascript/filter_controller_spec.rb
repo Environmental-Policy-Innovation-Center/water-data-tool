@@ -25,6 +25,10 @@ RSpec.describe "filter_controller state preservation" do
           frame.src = newSrc
           container?.classList.add("has-stats")
         }
+
+        const SelectionState = {
+          clear: () => { globalThis.selectionClearCount = (globalThis.selectionClearCount || 0) + 1 }
+        }
       JS
       file.write(script)
       file.flush
