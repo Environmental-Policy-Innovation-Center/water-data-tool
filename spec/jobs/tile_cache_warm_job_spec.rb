@@ -41,13 +41,18 @@ RSpec.describe TileCacheWarmJob, type: :job do
       expect(TileGenerator).to have_received(:generate_tile!).with("states", 3, 0, 0)
     end
 
-    it "does not warm public water system tiles at state selection zooms" do
+    it "warms public water system tiles at state selection zooms" do
       allow_any_instance_of(described_class).to receive(:tile_coordinates).and_return([[0, 0]])
 
       described_class.perform_now
 
-      expect(TileGenerator).not_to have_received(:generate_tile!).with("pws", 6, 0, 0)
-      expect(TileGenerator).not_to have_received(:generate_tile!).with("pws", 7, 0, 0)
+      expect(TileGenerator).to have_received(:generate_tile!).with("pws", 5, 0, 0)
+      expect(TileGenerator).to have_received(:generate_tile!).with("pws", 6, 0, 0)
+      expect(TileGenerator).to have_received(:generate_tile!).with("pws", 7, 0, 0)
+      expect(TileGenerator).to have_received(:generate_tile!).with("counties", 5, 0, 0)
+      expect(TileGenerator).to have_received(:generate_tile!).with("counties", 6, 0, 0)
+      expect(TileGenerator).to have_received(:generate_tile!).with("counties", 7, 0, 0)
+      expect(TileGenerator).to have_received(:generate_tile!).with("states", 5, 0, 0)
       expect(TileGenerator).to have_received(:generate_tile!).with("states", 6, 0, 0)
       expect(TileGenerator).to have_received(:generate_tile!).with("states", 7, 0, 0)
     end

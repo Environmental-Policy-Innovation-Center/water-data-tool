@@ -147,6 +147,100 @@ RSpec.describe "map_controller state selection" do
     run_node_script(script)
   end
 
+  it "reveals selected-state service areas at the state selection level" do
+    script = <<~JS
+      const fs = require("fs")
+      class Controller {}
+      const FilterState = {
+        get: () => ({}),
+        toUrlParams: () => new URLSearchParams()
+      }
+      global.document = {
+        head: { querySelector: () => ({ content: "token" }) },
+        querySelector: () => null,
+        getElementById: () => null,
+        addEventListener: () => {},
+        removeEventListener: () => {}
+      }
+      global.window = {
+        location: { origin: "http://example.test", hostname: "example.test" },
+        mapboxgl: {}
+      }
+      global.Turbo = { visit: () => {} }
+
+      class MapStub {
+        constructor() {
+          this.handlers = {}
+          this.zoom = 3
+          this.layers = []
+          this.filters = {}
+          globalThis.mapStub = this
+        }
+
+        dragRotate = { disable: () => {} }
+        touchZoomRotate = { disableRotation: () => {} }
+        getStyle() { return { layers: [{ id: "base-line", type: "line" }] } }
+        getCanvas() { return { style: {} } }
+        getZoom() { return this.zoom }
+        addControl() {}
+        addSource() {}
+        addLayer(layer) { this.layers.push(layer) }
+        setPaintProperty() {}
+        getLayer() { return true }
+        setFilter(layer, filter) { this.filters[layer] = filter }
+        setMaxZoom() {}
+        fitBounds() {}
+        jumpTo(options) {
+          if (options.zoom !== undefined) this.zoom = options.zoom
+        }
+        flyTo(options) {
+          if (options.zoom !== undefined) this.zoom = options.zoom - 0.01
+        }
+        once() {}
+        on(event, layerOrCallback, callback) {
+          if (callback) {
+            this.handlers[`${event}:${layerOrCallback}`] = callback
+          } else {
+            this.handlers[event] = layerOrCallback
+          }
+        }
+      }
+
+      window.mapboxgl.Map = MapStub
+      window.mapboxgl.NavigationControl = class {}
+
+      let source = fs.readFileSync(#{controller_source_path.to_s.inspect}, "utf8")
+      source = source.replace(/^import .*\\n/gm, "")
+      source = source.replace("export default class extends Controller", "globalThis.MapController = class extends Controller")
+      eval(source)
+
+      const controller = new MapController()
+      controller.element = { dataset: {} }
+      controller.tileUrlValue = "/tiles/{z}/{x}/{y}.mvt"
+      controller.connect()
+      mapStub.handlers.load()
+
+      mapStub.handlers["click:states"]({
+        lngLat: { lng: -105.5, lat: 39.0 },
+        features: [{ properties: { stusps: "CO", name: "Colorado", geoid: "08" } }]
+      })
+
+      const pwsLayer = mapStub.layers.find((layer) => layer.id === "pws")
+      if (!pwsLayer) throw new Error("expected pws layer to be registered")
+      if ((pwsLayer.minzoom ?? 0) > mapStub.zoom) {
+        throw new Error(`expected pws to be visible at zoom ${mapStub.zoom}, got minzoom ${pwsLayer.minzoom}`)
+      }
+
+      const expectedFilter = JSON.stringify(["==", "stusps", "CO"])
+      const actualFilter = JSON.stringify(mapStub.filters.pws)
+      if (actualFilter !== expectedFilter) {
+        throw new Error(`expected pws filter ${expectedFilter}, got ${actualFilter}`)
+      }
+    JS
+
+    run_node_script(script)
+  end
+
   it "does not let state hover compete with systems once service areas are active" do
     script = <<~JS
       const fs = require("fs")

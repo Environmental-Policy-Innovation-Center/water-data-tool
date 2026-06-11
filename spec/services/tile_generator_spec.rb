@@ -29,12 +29,13 @@ RSpec.describe TileGenerator do
 
   describe ".layers_for_zoom" do
     it "returns only states before state selection is available" do
-      expect(described_class.layers_for_zoom(5)).to eq(%w[states])
+      expect(described_class.layers_for_zoom(4)).to eq(%w[states])
     end
 
-    it "keeps state zooms states-only until system browsing starts" do
-      expect(described_class.layers_for_zoom(6)).to eq(%w[states])
-      expect(described_class.layers_for_zoom(7)).to eq(%w[states])
+    it "adds service areas at state selection zooms" do
+      expect(described_class.layers_for_zoom(5)).to eq(%w[pws counties states])
+      expect(described_class.layers_for_zoom(6)).to eq(%w[pws counties states])
+      expect(described_class.layers_for_zoom(7)).to eq(%w[pws counties states])
     end
 
     it "adds system and boundary layers at system browsing zooms" do
@@ -112,13 +113,13 @@ RSpec.describe TileGenerator do
         expect(result.bytesize).to eq(expected_size)
       end
 
-      it "does not generate public water system tiles before system browsing zooms" do
-        described_class.build_tile(7, 64, 48)
+      it "generates public water system tiles at state selection zooms" do
+        described_class.build_tile(5, 16, 12)
 
-        expect(TileCache.where(layer: "pws", z: 7, x: 64, y: 48)).to be_empty
-        expect(TileCache.where(layer: "places", z: 7, x: 64, y: 48)).to be_empty
-        expect(TileCache.where(layer: "counties", z: 7, x: 64, y: 48)).to be_empty
-        expect(TileCache.where(layer: "states", z: 7, x: 64, y: 48)).to exist
+        expect(TileCache.where(layer: "pws", z: 5, x: 16, y: 12)).to exist
+        expect(TileCache.where(layer: "places", z: 5, x: 16, y: 12)).to be_empty
+        expect(TileCache.where(layer: "counties", z: 5, x: 16, y: 12)).to exist
+        expect(TileCache.where(layer: "states", z: 5, x: 16, y: 12)).to exist
       end
     end
   end

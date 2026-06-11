@@ -1,6 +1,6 @@
 module TileGenerator
   LAYERS = %w[pws places counties states].freeze
-  PWS_MIN_ZOOM = 8
+  PWS_MIN_ZOOM = 5
   PLACES_MIN_ZOOM = 8
 
   # Simplification tolerances keyed by max zoom level.

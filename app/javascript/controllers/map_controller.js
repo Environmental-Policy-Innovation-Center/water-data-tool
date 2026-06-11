@@ -11,6 +11,7 @@ const MOBILE_DEFAULT_ZOOM = 2
 const DESKTOP_MIN_ZOOM = 3
 const MOBILE_MIN_ZOOM = 2
 const NATION_MAX_ZOOM = 4.75
+const SERVICE_AREAS_MIN_ZOOM = 5
 const STATE_ENTRY_ZOOM = 6
 const STATE_EXIT_ZOOM = 4.55
 const SYSTEMS_ENTRY_ZOOM = 8
@@ -302,7 +303,7 @@ export default class extends Controller {
       type: "fill",
       source: "wdt",
       "source-layer": "pws",
-      minzoom: SYSTEMS_ENTRY_ZOOM,
+      minzoom: SERVICE_AREAS_MIN_ZOOM,
       layout: { visibility: "visible" },
       paint: {
         "fill-color": "rgb(78, 163, 36)",
