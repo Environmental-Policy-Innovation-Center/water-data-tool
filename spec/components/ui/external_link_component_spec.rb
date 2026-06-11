@@ -39,9 +39,18 @@ RSpec.describe UI::ExternalLinkComponent, type: :component do
     expect(html.at_css(".sr-only").text).to eq("(opens in new tab)")
   end
 
-  it "does not set aria-label" do
+  it "does not set aria-label by default" do
     render_inline(component) { "Example" }
     expect(html.at_css("a")["aria-label"]).to be_nil
+  end
+
+  context "with aria_label:" do
+    subject(:component) { described_class.new(url: "https://example.com", aria_label: "Example site") }
+
+    it "sets aria-label on the anchor" do
+      render_inline(component) { "Example" }
+      expect(html.at_css("a")["aria-label"]).to eq("Example site")
+    end
   end
 
   it "renders the external-link icon by default" do

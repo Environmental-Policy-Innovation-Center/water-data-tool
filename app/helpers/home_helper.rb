@@ -79,35 +79,32 @@ module HomeHelper
       content_tag(:td, class: td_classes(col)) do
         url = pws.detailed_facility_report
         if url.present?
-          link_to("report", url,
-            target: "_blank", rel: "noopener noreferrer",
-            class: "text-blue-600 md:hover:underline focus:underline focus:outline-none",
-            aria: {label: "EPA facility report for #{pws.pws_name} (opens in new tab)"})
+          render(UI::ExternalLinkComponent.new(
+            url: url,
+            show_icon: false,
+            underline: false,
+            classes: "text-blue-600 md:hover:underline focus:underline focus:outline-none",
+            aria_label: "EPA facility report for #{pws.pws_name}"
+          )) { "report" }
         end
       end
     when :copy
       value = cell_value(pws, col).to_s
       content_tag(:td, class: td_classes(col)) do
-        content_tag(:div,
-          class: "flex items-center gap-1.5",
-          data: {controller: "clipboard", clipboard_text_value: value}) do
+        content_tag(:button,
           safe_join([
             content_tag(:span, value),
-            content_tag(:button,
-              safe_join([
-                content_tag(:span, icon("copy", classes: "text-gray-400 md:group-hover:text-gray-600 transition-colors"),
-                  data: {clipboard_target: "copy"}),
-                content_tag(:span, icon("check", classes: "text-green-600"),
-                  class: "hidden",
-                  data: {clipboard_target: "check"})
-              ]),
-              type: "button",
-              title: "Copy #{col.label}",
-              aria: {label: "Copy #{value} to clipboard"},
-              class: "opacity-0 md:group-hover:opacity-100 focus-visible:opacity-100 cursor-pointer rounded #{focus_ring_classes}",
-              data: {action: "click->clipboard#copy"})
-          ])
-        end
+            content_tag(:span, icon("copy", classes: "text-gray-400 group-hover/copy:text-gray-600 transition-colors"),
+              data: {clipboard_target: "copy"}),
+            content_tag(:span, icon("check", classes: "text-green-600"),
+              class: "hidden",
+              data: {clipboard_target: "check"})
+          ]),
+          type: "button",
+          title: "Copy #{col.label}",
+          aria: {label: "Copy #{value} to clipboard"},
+          class: "group/copy flex items-center gap-1.5 cursor-pointer rounded #{focus_ring_classes}",
+          data: {controller: "clipboard", clipboard_text_value: value, action: "click->clipboard#copy"})
       end
     else
       value = cell_value(pws, col)
