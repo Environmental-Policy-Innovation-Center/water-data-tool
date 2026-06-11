@@ -4,7 +4,6 @@ class HomeController < ApplicationController
   def index
     @last_updated = DataImport.maximum(:imported_at)
     @visible_col_keys = parse_cols_param
-    @pinned_cols = pinned_columns
     @column_categories = ColumnRegistry.categories
     @cols_by_category = ColumnRegistry.columns_by_category
   end
@@ -33,10 +32,6 @@ class HomeController < ApplicationController
 
   def parse_cols_param
     ColumnRegistry.parse_keys(params[:cols])&.to_set
-  end
-
-  def pinned_columns
-    ColumnRegistry.columns.select(&:pinned)
   end
 
   def filter_params

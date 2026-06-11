@@ -234,10 +234,6 @@
               </div>
               <ul class="m-0 flex-1 min-h-0 list-none overflow-y-auto px-2 pb-1 pt-1"
                   aria-label="Table columns">
-                <%# Pinned columns — always visible, not toggleable %>
-                <% @pinned_cols.select { |c| c.label.present? }.each do |col| %>
-                  <%= render ManageColumns::PinnedRowComponent.new(col: col) %>
-                <% end %>
                 <%# Ungrouped toggleable columns %>
                 <% (@cols_by_category[nil] || []).each do |col| %>
                   <%= render ManageColumns::ColumnRowComponent.new(

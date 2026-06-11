@@ -35,7 +35,6 @@ export default class extends Controller {
     const { category } = event.target.dataset
     this.formTarget.querySelectorAll(`input[data-col-key][data-category="${category}"]`)
       .forEach(cb => { cb.checked = event.target.checked })
-    this.#setCategoryExpanded(category, event.target.checked)
   }
 
   syncCategoryState(event) {
