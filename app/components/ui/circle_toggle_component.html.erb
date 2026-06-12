@@ -7,4 +7,4 @@
          <% if @title && !@label %> aria-label="<%= @title %>"<% end %>>
   <%= icon "checkbox-circle-off", classes: off_svg_classes %>
   <%= icon "checkbox-circle-on",  classes: on_svg_classes %>
-</label><%- if @label -%><label for="<%= @id %>" id="<%= label_id %>"><%= @label %></label><%- end -%>
+</label><%- if @label -%><label for="<%= @id %>" id="<%= label_id %>" class="text-sm text-neutral-700"><%= @label %></label><%- end -%>
