@@ -220,17 +220,21 @@
               <%# Populated by manage_columns_controller#serializeCols before submit %>
               <input type="hidden" name="cols" data-manage-columns-target="colsInput">
 
-              <div class="flex shrink-0 items-center justify-center gap-2 px-3 pt-2 pb-1">
-                <button type="button"
-                        data-action="click->manage-columns#selectAllColumns"
-                        class="<%= ghost_pill_classes %>">
-                  Select All
-                </button>
-                <button type="button"
-                        data-action="click->manage-columns#deselectAllColumns"
-                        class="<%= ghost_pill_classes %>">
-                  Deselect All
-                </button>
+              <div class="flex shrink-0 items-center justify-end pl-3 pr-4 pt-2 pb-1">
+                <%= render UI::CircleButtonComponent.new(
+                      id: "manage-columns-toggle-all",
+                      aria_label: "Toggle all columns",
+                      data_action: "click->manage-columns#toggleAllColumns",
+                      label: "Deselect all",
+                      label_position: :left
+                    ) do %>
+                  <span id="manage-columns-toggle-all-icon-on">
+                    <%= icon "checkbox-circle-on", classes: "size-4 text-neutral-900" %>
+                  </span>
+                  <span id="manage-columns-toggle-all-icon-off" class="hidden">
+                    <%= icon "checkbox-circle-off", classes: "size-4 text-neutral-700" %>
+                  </span>
+                <% end %>
               </div>
               <ul class="m-0 flex-1 min-h-0 list-none overflow-y-auto px-2 pb-1 pt-1"
                   aria-label="Table columns">
@@ -272,20 +276,6 @@
             </form>
           </div>
         </div>
-      </div>
-
-      <%# Row selection controls — outside the Turbo Frame so they persist across page navigations %>
-      <div class="flex items-center gap-2 pb-2 pl-1">
-        <button type="button"
-                class="<%= ghost_pill_classes %>"
-                data-action="click->row-selection#selectAll">
-          Select All
-        </button>
-        <button type="button"
-                class="<%= ghost_pill_classes %>"
-                data-action="click->row-selection#deselectAll">
-          Deselect All
-        </button>
       </div>
 
       <%# Table loaded via Turbo Frame — filter_controller sets src on table:show %>
