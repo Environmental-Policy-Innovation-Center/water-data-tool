@@ -17,7 +17,21 @@
       <thead>
         <tr>
           <% @columns.each do |col| %>
-            <%= render UI::TableHeaderComponent.new(label: col.label, column: col.sort, size: col.size) %>
+            <% if col.format == :check %>
+              <th scope="col" class="sticky left-0 top-0 z-30 bg-gray-100 border-b border-gray-200 px-2 py-2 w-7 min-w-7 max-w-7 text-center">
+                <button type="button"
+                        id="row-toggle-all"
+                        aria-label="Toggle all rows"
+                        title="Deselect all"
+                        class="inline-flex items-center align-middle cursor-pointer rounded <%= focus_ring_classes %>"
+                        data-action="click->row-selection#toggleAll">
+                  <span id="row-toggle-all-icon-on"><%= icon "checkbox-circle-on", classes: "size-4 text-neutral-900" %></span>
+                  <span id="row-toggle-all-icon-off" class="hidden"><%= icon "checkbox-circle-off", classes: "size-4 text-neutral-700" %></span>
+                </button>
+              </th>
+            <% else %>
+              <%= render UI::TableHeaderComponent.new(label: col.label, column: col.sort, size: col.size) %>
+            <% end %>
           <% end %>
         </tr>
       </thead>

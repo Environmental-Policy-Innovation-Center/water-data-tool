@@ -11,14 +11,18 @@ export default class extends Controller {
     if (e.key === "Escape") { this.#close(); this.buttonTarget.focus() }
   }
 
+  #onFormChange = () => this.#syncToggleAllLabel()
+
   connect() {
     document.addEventListener("click", this.#outsideClick)
     document.addEventListener("keydown", this.#onKeydown)
+    this.formTarget.addEventListener("change", this.#onFormChange)
   }
 
   disconnect() {
     document.removeEventListener("click", this.#outsideClick)
     document.removeEventListener("keydown", this.#onKeydown)
+    this.formTarget.removeEventListener("change", this.#onFormChange)
   }
 
   toggle() {
@@ -35,6 +39,8 @@ export default class extends Controller {
     const { category } = event.target.dataset
     this.formTarget.querySelectorAll(`input[data-col-key][data-category="${category}"]`)
       .forEach(cb => { cb.checked = event.target.checked })
+    this.#updateCategoryState(category)
+    this.#syncToggleAllLabel()
   }
 
   syncCategoryState(event) {
@@ -52,8 +58,12 @@ export default class extends Controller {
     this.#close()
   }
 
-  selectAllColumns()   { this.#setAllColumns(true) }
-  deselectAllColumns() { this.#setAllColumns(false) }
+  toggleAllColumns() {
+    const allBoxes = this.formTarget.querySelectorAll('input[type="checkbox"][data-col-key]')
+    const allChecked = Array.from(allBoxes).every(cb => cb.checked)
+    this.#setAllColumns(!allChecked)
+    this.#syncToggleAllLabel()
+  }
 
   reset() {
     this.formTarget.querySelectorAll('input[type="checkbox"][data-col-key]').forEach(cb => cb.checked = true)
@@ -84,6 +94,7 @@ export default class extends Controller {
 
   #open() {
     this.#syncCheckboxesFromUrl()
+    this.#syncToggleAllLabel()
     const rect = this.buttonTarget.getBoundingClientRect()
     const footer = document.querySelector('[aria-label="Table navigation"]')
     const footerTop = footer?.getBoundingClientRect().top ?? window.innerHeight
@@ -124,6 +135,17 @@ export default class extends Controller {
     const checkedCount = children.filter(cb => cb.checked).length
     header.checked = checkedCount === children.length
     header.indeterminate = checkedCount > 0 && checkedCount < children.length
+  }
+
+  #syncToggleAllLabel() {
+    const allBoxes = this.formTarget.querySelectorAll('input[type="checkbox"][data-col-key]')
+    const allChecked = Array.from(allBoxes).every(cb => cb.checked)
+
+    const label = document.getElementById("manage-columns-toggle-all-label")
+    if (label) label.textContent = allChecked ? "Deselect all" : "Select all"
+
+    document.getElementById("manage-columns-toggle-all-icon-on")?.classList.toggle("hidden", !allChecked)
+    document.getElementById("manage-columns-toggle-all-icon-off")?.classList.toggle("hidden", allChecked)
   }
 
   #close() {

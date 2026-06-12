@@ -6,15 +6,12 @@ module ApplicationHelper
   FOCUS_RING_CLASSES = "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 " \
     "focus-visible:outline-blue-600 motion-reduce:transition-none".freeze
 
-  FILTER_ROW_CLASSES = "px-[15px] py-1.5 [@media(hover:hover)]:hover:bg-neutral-50 [&_label]:align-middle [&_input:not([type=text])]:mr-2 " \
+  FILTER_ROW_CLASSES = "px-[15px] py-1.5 [@media(hover:hover)]:hover:bg-neutral-50 [&_label]:align-middle [&_label]:text-sm [&_label]:text-neutral-700 [&_input:not([type=text])]:mr-2 " \
     "[&_input:not([type=text])]:inline-block [&_input:not([type=text])]:align-middle [&_input:not(.rounded-checkbox):not([type=text])]:size-4 " \
     "[&_input[type=radio]]:appearance-none [&_input[type=radio]]:rounded-full [&_input[type=radio]]:border [&_input[type=radio]]:border-neutral-700 " \
     "[&_input[type=radio]]:cursor-pointer [&_input[type=radio]:checked]:bg-blue-500 [&_input[type=radio]:checked]:shadow-[inset_0_0_0_3px_white]".freeze
 
   FILTER_INFO_BUTTON_CLASSES = "ml-1 text-neutral-400 [@media(hover:hover)]:hover:text-neutral-600".freeze
-
-  GHOST_PILL_CLASSES = "cursor-pointer rounded-full border border-neutral-400 bg-white px-3 py-1 text-sm " \
-    "text-neutral-700 md:hover:bg-neutral-100 md:hover:text-neutral-900 #{FOCUS_RING_CLASSES}".freeze
 
   COLLAPSE_TOGGLE_ICON_CLASSES = "size-3.5 shrink-0 -rotate-90 text-neutral-700 transition-transform duration-150".freeze
 
@@ -49,7 +46,6 @@ module ApplicationHelper
   def filter_info_button_classes = FILTER_INFO_BUTTON_CLASSES
   def filter_row_classes = FILTER_ROW_CLASSES
   def focus_ring_classes = FOCUS_RING_CLASSES
-  def ghost_pill_classes = GHOST_PILL_CLASSES
 
   def icon(name, classes: nil, aria_hidden: true)
     safe_name = name.to_s.gsub(/[^a-z0-9\-_]/, "")
