@@ -70,7 +70,7 @@ module HomeHelper
       td_check = "sticky left-0 z-10 px-2 py-2 border-b border-gray-100 w-7 min-w-7 max-w-7 text-center md:group-hover:bg-blue-50 transition-colors #{sticky_bg}"
       content_tag(:td, class: td_check) do
         tag.input(type: "checkbox",
-          class: "cursor-pointer",
+          class: "cursor-pointer size-4 align-middle",
           value: pws.pwsid,
           aria: {label: "Select #{pws.pws_name}"},
           data: {row_selection_target: "row", action: "change->row-selection#toggle"})
