@@ -39,6 +39,49 @@ RSpec.describe UI::CircleButtonComponent, type: :component do
     expect(btn["data-action"]).to be_nil
   end
 
+  context "with label: and label_position: :left" do
+    subject(:component) do
+      described_class.new(aria_label: "Toggle all", label: "Deselect all", label_position: :left)
+    end
+
+    it "renders label text to the left of the circle" do
+      render_inline(component) { "X" }
+      children = html.at_css("button").children.select(&:element?)
+      expect(children.first.text.strip).to eq("Deselect all")
+    end
+
+    it "does not apply circle sizing classes to the button itself" do
+      render_inline(component) { "X" }
+      expect(html.at_css("button")["class"]).not_to include("w-8")
+    end
+
+    it "uses inline-flex layout on the button" do
+      render_inline(component) { "X" }
+      expect(html.at_css("button")["class"]).to include("inline-flex", "items-center", "gap-2")
+    end
+
+    it "adds id to label span when id is given" do
+      component = described_class.new(
+        aria_label: "Toggle all", id: "my-btn", label: "Deselect all", label_position: :left
+      )
+      render_inline(component) { "X" }
+      expect(html.at_css("#my-btn-label")).to be_present
+      expect(html.at_css("#my-btn-label").text).to eq("Deselect all")
+    end
+  end
+
+  context "with label: and label_position: :right" do
+    subject(:component) do
+      described_class.new(aria_label: "Toggle all", label: "Select all", label_position: :right)
+    end
+
+    it "renders label text to the right of the circle" do
+      render_inline(component) { "X" }
+      children = html.at_css("button").children.select(&:element?)
+      expect(children.last.text.strip).to eq("Select all")
+    end
+  end
+
   context "with optional attributes" do
     subject(:component) do
       described_class.new(
