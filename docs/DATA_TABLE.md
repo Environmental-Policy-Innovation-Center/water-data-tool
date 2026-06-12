@@ -32,6 +32,8 @@ Two modes, each backed by a `Set` of PWSID strings (O(1) lookup, guaranteed uniq
 
 State transitions: `deselectAll()` → none mode · `selectAll()` or filter change (`clear()`) → all mode · `toggle(id)` → adds/removes from the active set.
 
+The toggle button (Select All / Deselect All) drives **mode only** (Axis 1: all ↔ none). Individual row checks fill the active set (Axis 2: empty ↔ non-empty). The 4 export states above are the 2×2 product of these two axes — the button never sees Axis 2 directly, but the export payload builder always does.
+
 Badge and export behavior:
 
 | State | Badge | Export sends |
