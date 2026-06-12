@@ -1,0 +1,49 @@
+# Remember To
+
+A scratchpad for docs housekeeping — things to write, update, remove, or decide on.
+
+---
+
+### Add
+
+- **Column Management** — how the config works, where it's used, what the helpers do
+- **How to add new data** — full guide covering filters, table columns, exports, etc.
+- **Github Workflows** — document the deploy pipeline and PR environment lifecycle
+
+
+### Update
+
+- `ETL.md`
+- `FILTERING.md`
+- `GLOSSARY.md`
+- `MAPPING.md`
+- `TAILWINDS_CSS_GUIDE.md`
+- `DEPLOYMENTS.md`
+- `FRONTEND_DECISION.md`
+- `HISTOGRAMS.md`
+- `DATA_TABLE.md`
+- `URL_MANAGEMENT.md` — add section (see note in `NICE_TO_HAVES.md`)
+- `Contributing` — how other open source repos handle this; style guides, PR norms, etc.
+- `README` — confirm it's up to date and refs all relevant docs _(partially done)_
+
+### Remove
+
+- `TRANSITION.md` — legacy migration notes, likely stale
+
+### Decide
+
+- `ETL_STRING_NORMALIZATION.md` — still relevant?
+- `API.md` — still accurate / needed?
+- `OPEN_WORK_ITEMS.md` — ready to delete once fully extracted _(see `NICE_TO_HAVES.md`)_
+- `DRAG_DROP_SORTABLE_JS.md` — keep as open item or move to nice-to-have?
+
+### Verify / Check
+
+- **Filter gaps** — tooltips (Primary Type, Type, Violations, Wholesaler), Annual Water & Sewer Bill checkbox, Boil Water Summary filter
+- **Table sort options** — confirm all expected sort columns are implemented and working
+
+### Other
+
+- Reorganize `docs/` structure — remove stale implementation guides, consider new categories
+  (runbooks, guides, architecture, domain concepts)
+- **Test GeoJSON exports**

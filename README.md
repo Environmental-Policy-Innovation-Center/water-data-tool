@@ -215,9 +215,11 @@ This blocks until all z0–z8 tiles are generated (~32 minutes at national scale
 | [docs/DISCOVERY.md](docs/DISCOVERY.md) | Discovery notes from the legacy PHP app analysis |
 | [docs/ETL.md](docs/ETL.md) | Data pipeline design — S3 to PostgreSQL import flow |
 | [docs/GLOSSARY.md](docs/GLOSSARY.md) | Terminology and domain definitions |
+| [docs/LOOKBOOK.md](docs/LOOKBOOK.md) | ViewComponent preview catalog — how to access and add previews |
 | [docs/MAPPING.md](docs/MAPPING.md) | Mapping design information |
 | [docs/SCHEMA.md](docs/SCHEMA.md) | Database schema — all tables, columns, types, indexes |
 | [docs/TRANSITION.md](docs/TRANSITION.md) | Migration notes from the legacy PHP app to Rails |
+| [docs/open_items/](docs/open_items/) | Known issues, discovery work, and planned improvements not yet ticketed |
 
 ---
 
