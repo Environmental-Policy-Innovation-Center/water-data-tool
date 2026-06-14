@@ -41,6 +41,30 @@ RSpec.describe "Stats", type: :request do
       expect(response.body).to include("Open health violations: 1")
     end
 
+    it "renders a state-scoped summary heading and composes state with active filters" do
+      create(:cartographic_state, stusps: "TX", name: "Texas")
+      tx_groundwater = create(:public_water_system, stusps: "TX", gw_sw_code: "Groundwater", population_served_count: 3_000)
+      create(:demographic, public_water_system: tx_groundwater, pwsid: tx_groundwater.pwsid, median_household_income: 55_000)
+      create(:public_water_system, stusps: "TX", gw_sw_code: "Surface Water", population_served_count: 9_000)
+      create(:public_water_system, stusps: "VT", gw_sw_code: "Groundwater", population_served_count: 12_000)
+
+      get stats_path, params: {state: "TX", state_name: "Texas", gw_sw_code: "Groundwater"}
+
+      expect(response.body).to include("Texas: Summary Statistics")
+      expect(response.body).to include("Systems: 1 of 3")
+      expect(response.body).to include("Customers served: 3,000")
+    end
+
+    it "derives the state-scoped summary heading from the state filter" do
+      create(:cartographic_state, stusps: "VT", name: "Vermont")
+      create(:public_water_system, stusps: "VT")
+
+      get stats_path, params: {state: "VT", state_name: "Texas"}
+
+      expect(response.body).to include("Vermont: Summary Statistics")
+      expect(response.body).not_to include("Texas: Summary Statistics")
+    end
+
     context "edge cases" do
       it "renders 0 of N when no systems match the active filter" do
         create(:public_water_system, gw_sw_code: "Groundwater")

@@ -34,9 +34,10 @@ class TileCacheWarmJob < ApplicationJob
     coords = tile_coordinates(z)
     total = coords.size
 
-    log("[TileCacheWarm] z#{z}: starting (#{total} coordinates, #{TileGenerator.layers.size} layers each)")
+    layers = TileGenerator.layers_for_zoom(z)
 
-    layers = TileGenerator.layers
+    log("[TileCacheWarm] z#{z}: starting (#{total} coordinates, #{layers.size} layers each)")
+
     report_interval = [total / 4, 1].max
 
     coords.each_with_index do |(x, y), idx|
