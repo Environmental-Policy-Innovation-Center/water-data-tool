@@ -99,7 +99,7 @@ group :development do
   gem "erb_lint", "~> 0.9.0", require: false
 
   # Git hooks manager [https://github.com/evilmartians/lefthook]
-  gem "lefthook", "~> 2.1.6", require: false
+  gem "lefthook", "~> 2.1.8", require: false
 
   # Lookbook — ViewComponent dev preview catalog [https://lookbook.build]
   gem "lookbook", "~> 2.3.14"
