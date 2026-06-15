@@ -8,26 +8,25 @@ module Etl
       # imported_files is an array of successfully-imported file keys, e.g. ["epa_sabs", "epa_sabs_geoms"]
       return if imported_files.empty?
 
-      # Bust the tile cache for any import, not just geometry — tiles embed non-geometry
-      # attributes (violations, demographics, etc.) that can become stale after any data
-      # update. Upstream, Etl::Importer only calls us when at least one file actually
-      # imported (not just checked), so this only fires when there is real new data.
-      bust_tile_cache
-      TileCacheWarmJob.perform_later
-
       # The following steps are only necessary if the geometry file was imported.
-      return unless imported_files.include?("epa_sabs_geoms")
+      unless imported_files.include?("epa_sabs_geoms")
+        bust_tile_cache
+        TileCacheWarmJob.perform_later
+        return
+      end
 
       # Tee up initial geoms repair and enrichment steps before refreshing
       fix_invalid_geometries
       generate_centroids
-      CartographicBoundaries.load unless CartographicBoundaries.loaded?
+      CartographicBoundaries.load
 
       # Assign state codes and county associations based on the new geometries,
       # then rebuild spatial indexes and place crosswalks that depend on those joins.
       assign_state_codes
       rebuild_spatial_indexes
       build_place_crosswalks
+      bust_tile_cache
+      TileCacheWarmJob.perform_later
     end
 
     # Repair invalid geometries using ST_Buffer trick. Runs until none remain
@@ -128,12 +127,12 @@ module Etl
     end
 
     # Rebuild GiST spatial indexes and update query-planner statistics after
-    # a bulk geometry import. REINDEX without CONCURRENTLY to stay
-    # transaction-safe; ANALYZE refreshes planner statistics.
+    # a bulk geometry import. CONCURRENTLY avoids ACCESS EXCLUSIVE locks on
+    # service_area_geometries while map requests continue using the old indexes.
     def rebuild_spatial_indexes
       conn = ApplicationRecord.connection
-      conn.execute("REINDEX INDEX index_service_area_geometries_on_geom")
-      conn.execute("REINDEX INDEX index_service_area_geometries_on_centroid")
+      conn.execute("REINDEX INDEX CONCURRENTLY index_service_area_geometries_on_geom")
+      conn.execute("REINDEX INDEX CONCURRENTLY index_service_area_geometries_on_centroid")
       conn.execute("ANALYZE service_area_geometries")
       Rails.logger.info("[ETL] rebuild_spatial_indexes: complete")
     end

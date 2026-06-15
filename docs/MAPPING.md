@@ -41,9 +41,9 @@ Tiles are generated on-demand by PostGIS (`ST_AsMVT`) and cached in the `tile_ca
 
 1. **Cold** — tile has never been requested; PostGIS generates it from `service_area_geometries` (slow, especially at low zoom where many polygons are included)
 2. **Warm** — tile exists in `tile_cache`; returned as a simple DB lookup (fast)
-3. **Invalidated** — ETL runs and calls `bust_tile_cache`, which truncates the entire `tile_cache` table; all tiles revert to cold
+3. **Invalidated** — ETL finishes its post-import data work and calls `bust_tile_cache`, which truncates the entire `tile_cache` table; all tiles revert to cold
 
-The ETL always wipes the full table (not selectively) because tiles embed non-geometry attributes (system names, categories, etc.) that can change from CSV-only imports.
+The ETL always wipes the full table (not selectively) because tiles embed non-geometry attributes (system names, categories, etc.) that can change from CSV-only imports. Geometry imports keep the old warm cache in place until geometry enrichment and place crosswalk rebuilding finish.
 
 ### Pre-warming (TileCacheWarmJob)
 

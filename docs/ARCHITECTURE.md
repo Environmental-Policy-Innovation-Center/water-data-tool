@@ -388,7 +388,7 @@ Geometries are simplified at lower zoom levels for performance (same approach as
 
 ### Cache invalidation
 
-After an ETL import, truncate the `tile_cache` table (or delete specific layers if only some source tables changed).
+After an ETL import, truncate the `tile_cache` table. For geometry imports, invalidation waits until geometry enrichment and place crosswalk rebuilding are complete.
 
 ---
 
@@ -402,13 +402,13 @@ SolidQueue recurring job. Runs the full ETL pipeline:
 2. Compare timestamps against `data_imports` table
 3. Download and import changed files
 4. Run post-import steps
-5. Invalidate tile cache
+5. Invalidate and warm tile cache
 
 See [ETL.md](ETL.md) for full pipeline details.
 
 ### `TileCacheWarmJob`
 
-Optional. After an ETL import, pre-generates tiles for common zoom levels (z0–z7, covering the continental US viewport) so the first user after a data update doesn't hit cold tiles.
+Optional. After an ETL import, pre-generates tiles for common zoom levels (z0–z8 across US region bounds) so the first user after a data update doesn't hit cold tiles.
 
 ---
 

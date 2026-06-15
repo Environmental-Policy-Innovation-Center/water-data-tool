@@ -1,5 +1,5 @@
 class EtlImportJob < ApplicationJob
-  queue_as :default
+  queue_as :etl
 
   # Keyword arguments mirror the options exposed by the etl:import rake task.
   #

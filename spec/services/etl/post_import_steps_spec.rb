@@ -81,8 +81,15 @@ RSpec.describe Etl::PostImportSteps do
   end
 
   describe ".rebuild_spatial_indexes" do
-    it "runs without error" do
-      expect { described_class.rebuild_spatial_indexes }.not_to raise_error
+    it "rebuilds spatial indexes concurrently before analyzing the table" do
+      connection = instance_double(ActiveRecord::ConnectionAdapters::AbstractAdapter)
+      allow(ApplicationRecord).to receive(:connection).and_return(connection)
+
+      expect(connection).to receive(:execute).with("REINDEX INDEX CONCURRENTLY index_service_area_geometries_on_geom").ordered
+      expect(connection).to receive(:execute).with("REINDEX INDEX CONCURRENTLY index_service_area_geometries_on_centroid").ordered
+      expect(connection).to receive(:execute).with("ANALYZE service_area_geometries").ordered
+
+      described_class.rebuild_spatial_indexes
     end
   end
 
@@ -104,6 +111,7 @@ RSpec.describe Etl::PostImportSteps do
     before do
       insert_state("VT", VERMONT_STATE_WKT)
       allow(CartographicBoundaries).to receive(:load)
+      allow(described_class).to receive(:rebuild_spatial_indexes)
       allow(TileCacheWarmJob).to receive(:perform_later)
     end
 
@@ -113,22 +121,42 @@ RSpec.describe Etl::PostImportSteps do
       described_class.call(imported_files: [])
     end
 
-    it "busts tile cache but skips geometry steps for non-geometry imports" do
+    it "busts tile cache and warms tiles for non-geometry imports" do
       expect(TileCacheWarmJob).to receive(:perform_later)
       expect(CartographicBoundaries).not_to receive(:load)
       described_class.call(imported_files: ["epa_sabs"])
     end
 
-    it "skips CartographicBoundaries.load when boundaries are already loaded" do
+    it "loads CartographicBoundaries for geometry imports even when boundaries are already loaded" do
       allow(CartographicBoundaries).to receive(:loaded?).and_return(true)
-      expect(CartographicBoundaries).not_to receive(:load)
+      expect(CartographicBoundaries).to receive(:load)
       described_class.call(imported_files: ["epa_sabs_geoms"])
     end
 
-    it "loads CartographicBoundaries when boundaries are not yet loaded" do
-      allow(CartographicBoundaries).to receive(:loaded?).and_return(false)
-      expect(CartographicBoundaries).to receive(:load)
+    it "busts tile cache and warms tiles after geometry enrichment completes" do
+      calls = []
+
+      allow(described_class).to receive(:fix_invalid_geometries) { calls << :fix_invalid_geometries }
+      allow(described_class).to receive(:generate_centroids) { calls << :generate_centroids }
+      allow(CartographicBoundaries).to receive(:load) { calls << :load_boundaries }
+      allow(described_class).to receive(:assign_state_codes) { calls << :assign_state_codes }
+      allow(described_class).to receive(:rebuild_spatial_indexes) { calls << :rebuild_spatial_indexes }
+      allow(described_class).to receive(:build_place_crosswalks) { calls << :build_place_crosswalks }
+      allow(described_class).to receive(:bust_tile_cache) { calls << :bust_tile_cache }
+      allow(TileCacheWarmJob).to receive(:perform_later) { calls << :warm_tiles }
+
       described_class.call(imported_files: ["epa_sabs_geoms"])
+
+      expect(calls).to eq([
+        :fix_invalid_geometries,
+        :generate_centroids,
+        :load_boundaries,
+        :assign_state_codes,
+        :rebuild_spatial_indexes,
+        :build_place_crosswalks,
+        :bust_tile_cache,
+        :warm_tiles
+      ])
     end
 
     it "runs all steps in sequence without error" do

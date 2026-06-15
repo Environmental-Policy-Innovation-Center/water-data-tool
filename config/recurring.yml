@@ -19,7 +19,7 @@ production:
   # is refreshed upstream.
   etl_import:
     class: EtlImportJob
-    queue: default
+    queue: etl
     schedule: every day at 12am America/New_York 
 
   clear_solid_queue_finished_jobs:

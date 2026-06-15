@@ -1,6 +1,10 @@
 require "rails_helper"
 
 RSpec.describe EtlImportJob, type: :job do
+  it "uses the etl queue" do
+    expect(described_class.queue_name).to eq("etl")
+  end
+
   describe "#perform" do
     it "instantiates Etl::Importer with default options and calls it" do
       importer = instance_double(Etl::Importer, call: [])

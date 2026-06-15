@@ -79,9 +79,9 @@ For each file that needs updating:
 
 If `epa_sabs_geoms.geojson` was imported (geometry data changed), run the derived data steps. See "Post-Import Steps" below.
 
-### Step 5: Invalidate tile cache
+### Step 5: Invalidate and warm tile cache
 
-Truncate the `tile_cache` table (if all source tables changed) or delete specific layers (if only some tables changed).
+Truncate the `tile_cache` table and enqueue `TileCacheWarmJob` after every successful import. For geometry imports, this happens after geometry repair, centroid generation, cartographic boundary refresh, state assignment, spatial index rebuilds, and place crosswalk rebuilds complete so stale-but-complete tiles keep serving during the long enrichment window.
 
 ---
 
@@ -262,5 +262,4 @@ All import activity is logged with: file URL, row count imported, duration, erro
 | Credentials      | Flat `credentials.py` file | Rails encrypted credentials (`bin/rails credentials:edit`) or environment variables         |
 | S3 access        | HTTP public URLs           | Public HTTPS — no credentials required for reads; IAM only needed if bucket is made private |
 | Schema isolation | Schema name in f-strings   | Rails environments (`development` / `staging` / `production`)                               |
-
 
