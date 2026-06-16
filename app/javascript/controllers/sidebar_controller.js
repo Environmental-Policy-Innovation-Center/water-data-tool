@@ -10,12 +10,19 @@ const AUTO_COLLAPSE_BELOW = 1280
 export default class extends Controller {
   #resizeTimer = null
   #userSet = false
+  #onMapControlsAdded = () => this.#shiftContent(parseInt(this.element.style.width))
 
   connect() {
     const saved = localStorage.getItem("sidebar-collapsed")
     // Do NOT set #userSet here — only manual toggles should lock out auto-collapse
     const collapsed = saved !== null ? saved === "true" : window.innerWidth < AUTO_COLLAPSE_BELOW
     this.#apply(collapsed)
+    document.addEventListener("map:controls-added", this.#onMapControlsAdded)
+  }
+
+  disconnect() {
+    document.removeEventListener("map:controls-added", this.#onMapControlsAdded)
+    clearTimeout(this.#resizeTimer)
   }
 
   toggle() {

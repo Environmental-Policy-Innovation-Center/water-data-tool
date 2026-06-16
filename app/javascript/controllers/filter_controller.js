@@ -1,6 +1,7 @@
 import { Controller } from "@hotwired/stimulus"
 import * as FilterState from "filter_state"
 import * as SelectionState from "selection_state"
+import { decodeState, colsFromUrl, sortFromUrl, buildEncodedParam } from "url_state_codec"
 
 const POP_CAT_MAP = { "1": "<=500", "2": "501-3,300", "3": "3,301-10,000", "4": "10,001-100,000", "5": ">100,000" }
 const POP_CLASS_MAP = Object.fromEntries(Object.entries(POP_CAT_MAP).map(([k, v]) => [v, `pop-size-${k}`]))
@@ -154,10 +155,29 @@ export default class extends Controller {
   #statsFrame = null
   #tableLoaded = false
 
+  // Syncs sort/direction from the server-rendered table state into the page URL after each frame load.
+  // Reading from #table-query-state (server-rendered) is authoritative — it reflects what the server
+  // actually received, not what we predicted would be fetched.
+  #onTableFrameLoad = () => {
+    const queryState = document.getElementById("table-query-state")
+    if (!queryState) return
+
+    const sort = queryState.dataset.sort || null
+    const direction = queryState.dataset.direction || null
+
+    const pageUrl = new URL(window.location)
+    if (pageUrl.searchParams.get("sort") === sort && pageUrl.searchParams.get("direction") === direction) return
+
+    if (sort) pageUrl.searchParams.set("sort", sort); else pageUrl.searchParams.delete("sort")
+    if (direction) pageUrl.searchParams.set("direction", direction); else pageUrl.searchParams.delete("direction")
+    history.replaceState({}, "", pageUrl)
+  }
+
   connect() {
     this.#statsFrame = document.querySelector("turbo-frame#stats-bar")
     document.addEventListener("table:show", this.#onTableShow)
     document.addEventListener("filter:layout-changed", this.#onLayoutChanged)
+    document.getElementById("data-table")?.addEventListener("turbo:frame-load", this.#onTableFrameLoad)
     this.#restoreFromUrl()
     this.#updateBadges()
   }
@@ -165,6 +185,7 @@ export default class extends Controller {
   disconnect() {
     document.removeEventListener("table:show", this.#onTableShow)
     document.removeEventListener("filter:layout-changed", this.#onLayoutChanged)
+    document.getElementById("data-table")?.removeEventListener("turbo:frame-load", this.#onTableFrameLoad)
   }
 
   apply(event) {
@@ -305,7 +326,10 @@ export default class extends Controller {
 
   #resetMenu(menu) {
     menu.querySelectorAll("input[type='radio']").forEach(r => { r.checked = r.hasAttribute("data-default") })
-    menu.querySelectorAll("input[type='checkbox']").forEach(cb => { cb.checked = cb.classList.contains("default-checked") })
+    menu.querySelectorAll("input[type='checkbox']").forEach(cb => {
+      cb.checked = cb.classList.contains("default-checked")
+      cb.indeterminate = false
+    })
     menu.querySelectorAll("[data-subcat-panel]").forEach(panel => {
       panel.classList.add("hidden")
       panel.querySelectorAll("input[type='hidden']").forEach(inp => { inp.value = "" })
@@ -384,7 +408,7 @@ export default class extends Controller {
         }
         case "subcat_panel": {
           const parent = document.getElementById(f.parentId)
-          if (!parent?.checked) break
+          if (!parent?.checked && !parent?.indeterminate) break
           for (const s of f.subcats) {
             if (!document.getElementById(s.id)?.checked) continue
             const minVal = document.getElementById(s.minInputId)?.value
@@ -538,23 +562,27 @@ export default class extends Controller {
 
   #syncToUrl() {
     const url = new URL(window.location)
-    url.search = FilterState.toUrlParams().toString()
-    this.#preserveViewParams(url.searchParams)
-    history.replaceState({}, "", url)
-  }
+    const cols = colsFromUrl()
+    const { sort, direction } = sortFromUrl()
+    const hasFilters = Object.keys(FilterState.get()).length > 0
 
-  #preserveViewParams(params) {
-    const current = new URLSearchParams(window.location.search)
-    ;["cols", "sort", "direction"].forEach(key => {
-      const val = current.get(key)
-      if (val !== null) params.set(key, val)
-    })
+    url.search = ""
+    if (hasFilters || cols !== null) {
+      url.searchParams.set("encoded", buildEncodedParam({ filters: FilterState.get(), cols }))
+    }
+    if (sort) url.searchParams.set("sort", sort)
+    if (direction) url.searchParams.set("direction", direction)
+    history.replaceState({}, "", url)
   }
 
   #restoreFromUrl() {
     if (!window.location.search) return
 
-    const params = FilterState.fromUrlParams(window.location.search)
+    const sp = new URLSearchParams(window.location.search)
+    const encoded = sp.get("encoded")
+    if (!encoded) return
+
+    const params = decodeState(encoded).filters ?? {}
     if (Object.keys(params).length === 0) return
 
     this.#restoreDomState(params)
@@ -636,8 +664,6 @@ export default class extends Controller {
   }
 
   #visitTableFrame() {
-    const params = new URLSearchParams(FilterState.toUrlParams())
-    this.#preserveViewParams(params)
-    Turbo.visit(`/table?${params}`, { frame: "data-table" })
+    Turbo.visit(`/table${window.location.search}`, { frame: "data-table" })
   }
 }
