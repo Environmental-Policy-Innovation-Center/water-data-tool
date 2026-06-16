@@ -374,12 +374,12 @@
               checkbox_id: "more-has-srf-assistance", panel_id: "subcat-srf-assistance",
               label: "State revolving fund assistance", tooltip_text: filter_tooltips["srf_assistance"],
               field: "total_srf_assistance", min_input_id: "min-srf-assistance", max_input_id: "max-srf-assistance",
-              slider_label: "Amount ($)") %>
+              slider_label: "Amount ($)", format: "currency") %>
         <%= render Filters::GroupRangeComponent.new(
               checkbox_id: "more-has-principal-forgiveness", panel_id: "subcat-srf-forgiveness",
               label: "State revolving fund principal forgiveness", tooltip_text: filter_tooltips["principal_forgiveness"],
               field: "total_principal_forgiveness", min_input_id: "min-srf-forgiveness", max_input_id: "max-srf-forgiveness",
-              slider_label: "Amount ($)") %>
+              slider_label: "Amount ($)", format: "currency") %>
       </ul>
     <% end %>
     <%= render Filters::CategoryComponent.new(label: "Environmental", variant: :light) do %>
