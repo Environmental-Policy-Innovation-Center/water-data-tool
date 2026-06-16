@@ -42,6 +42,15 @@ RSpec.describe Etl::Importers::EpaSabsGeoms do
         expect(importer.call).to eq(:imported)
       end
 
+      it "returns changed geometry metadata" do
+        result = importer.call
+
+        expect(result.status).to eq(:imported)
+        expect(result.changed_pwsids).to eq(["VT0000001"])
+        expect(result.changed_layers).to eq(%w[pws places])
+        expect(result.geometry_changed).to be(true)
+      end
+
       it "records a DataImport entry" do
         expect { importer.call }.to change(DataImport, :count).by(1)
       end
@@ -121,6 +130,54 @@ RSpec.describe Etl::Importers::EpaSabsGeoms do
       geom = features.first["geometry"]
       expect(geom["type"]).to eq("MultiPolygon")
       expect(geom["coordinates"]).to be_an(Array)
+    end
+  end
+
+  describe "#import!" do
+    let(:row) do
+      features = []
+      handler = Etl::Importers::EpaSabsGeoms::FeatureHandler.new { |feature| features << feature }
+      Oj.saj_parse(handler, File.read(fixture_path))
+      {
+        pwsid: features.first.dig("properties", "pwsid"),
+        geom_json: Oj.dump(features.first["geometry"])
+      }
+    end
+
+    before { create(:public_water_system, pwsid: "VT0000001") }
+
+    it "stores a geometry digest" do
+      importer.import!([row])
+
+      expect(ServiceAreaGeometry.find_by!(pwsid: "VT0000001").geom_digest).to be_present
+    end
+
+    it "skips unchanged geometries and returns no changed pwsids" do
+      importer.import!([row])
+
+      result = importer.import!([row])
+
+      expect(result.changed_pwsids).to be_empty
+      expect(result.geometry_changed).to be(false)
+    end
+
+    it "returns previous geometry bounds when an existing geometry changes" do
+      importer.import!([row])
+      changed_row = row.merge(
+        geom_json: Oj.dump({
+          "type" => "MultiPolygon",
+          "coordinates" => [[[[-73.0, 44.0], [-72.9, 44.0], [-72.9, 44.1], [-73.0, 44.1], [-73.0, 44.0]]]]
+        })
+      )
+
+      result = importer.import!([changed_row])
+
+      expect(result.previous_geometry_bboxes).to contain_exactly(
+        satisfy { |bbox|
+          west, south, east, north = bbox
+          west < east && south < north && !west.in?(-73.01..-72.99)
+        }
+      )
     end
   end
 end

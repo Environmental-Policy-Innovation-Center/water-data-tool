@@ -48,7 +48,7 @@ module Etl
 
     def call
       entries = build_file_entries
-      imported_files = []
+      import_results = []
       errors = []
 
       entries.each do |entry|
@@ -59,30 +59,46 @@ module Etl
 
         begin
           result = klass.new(file_url: entry["http_path"], last_updated: entry["last_updated"], force: @force).call
-          imported_files << file_key if result == :imported
+          result = normalize_result(file_key, result)
+          import_results << result if result.imported?
         rescue => e
           errors << {file_key: file_key, error: e}
           Rails.logger.error("[ETL] #{file_key} failed: #{e.class} — #{e.message}")
         end
       end
 
-      Etl::PostImportSteps.call(imported_files: imported_files)
+      Etl::PostImportSteps.call(import_results: import_results)
 
       errors
     end
 
     private
 
+    def normalize_result(file_key, result)
+      return result if result.is_a?(Etl::ImportResult)
+
+      if result == :imported
+        Etl::ImportResult.imported(file_key: file_key, full_refresh_required: true)
+      elsif result == :skipped || result.nil?
+        Etl::ImportResult.skipped(file_key: file_key)
+      else
+        Etl::ImportResult.imported(file_key: file_key, full_refresh_required: true)
+      end
+    end
+
     def build_file_entries
       base_url = ENV.fetch("ETL_SOURCE_URL") { raise "ETL_SOURCE_URL is not set" }.chomp("/")
 
-      FILE_IMPORTERS.keys.map do |key|
+      file_keys = @only ? [@only] : FILE_IMPORTERS.keys
+
+      file_keys.map do |key|
         ext = FILE_EXTENSIONS[key]
         url = "#{base_url}/#{key}#{ext}"
         response = head_url(url)
         last_modified = response["last-modified"]
-        raise "Missing Last-Modified header for #{url}" if last_modified.nil?
-        {"file_key" => key, "http_path" => url, "last_updated" => Time.zone.parse(last_modified)}
+        Rails.logger.warn("[ETL] Missing Last-Modified header for #{url}; importing as changed") if last_modified.nil?
+
+        {"file_key" => key, "http_path" => url, "last_updated" => last_modified ? Time.zone.parse(last_modified) : Time.current}
       end
     end
   end

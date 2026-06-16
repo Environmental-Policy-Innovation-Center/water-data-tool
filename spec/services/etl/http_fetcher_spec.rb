@@ -17,16 +17,28 @@ RSpec.describe Etl::HttpFetcher do
       let(:url) { "https://s3.example.com/data.csv" }
 
       it "returns the response body" do
-        allow(Net::HTTP).to receive(:get).and_return("csv,data\n1,2")
+        response = instance_double(Net::HTTPOK, code: "200", body: "csv,data\n1,2", message: "OK")
+        allow(Net::HTTP).to receive(:get_response).and_return(response)
+
         expect(fetcher.fetch_url(url)).to eq("csv,data\n1,2")
       end
 
       it "uses Net::HTTP (does not follow redirects)" do
-        allow(Net::HTTP).to receive(:get).and_return("body")
+        response = instance_double(Net::HTTPOK, code: "200", body: "body", message: "OK")
+        allow(Net::HTTP).to receive(:get_response).and_return(response)
+
         fetcher.fetch_url(url)
         # Net::HTTP.get does not follow redirects — a single call is sufficient
         # to confirm we are not using open-uri, which does follow redirects.
-        expect(Net::HTTP).to have_received(:get).exactly(:once)
+        expect(Net::HTTP).to have_received(:get_response).exactly(:once)
+      end
+
+      it "raises a clear error for non-success responses" do
+        response = instance_double(Net::HTTPNotFound, code: "404", message: "Not Found", body: "<Error>NoSuchKey</Error>")
+        allow(Net::HTTP).to receive(:get_response).and_return(response)
+
+        expect { fetcher.fetch_url(url) }
+          .to raise_error(Etl::HttpFetcher::HttpResponseError, /GET https:\/\/s3\.example\.com\/data\.csv returned 404 Not Found/)
       end
     end
 
@@ -47,9 +59,9 @@ RSpec.describe Etl::HttpFetcher do
       end
 
       it "does not make any HTTP request before raising" do
-        allow(Net::HTTP).to receive(:get)
+        allow(Net::HTTP).to receive(:get_response)
         expect { fetcher.fetch_url("http://example.com/data.csv") }.to raise_error(Etl::HttpFetcher::InsecureUrlError)
-        expect(Net::HTTP).not_to have_received(:get)
+        expect(Net::HTTP).not_to have_received(:get_response)
       end
     end
   end
@@ -129,6 +141,17 @@ RSpec.describe Etl::HttpFetcher do
         expect(mock_response).to have_received(:read_body)
 
         # tempfile cleanup
+      end
+
+      it "raises a clear error for non-success responses without reading the body" do
+        error_response = instance_double(Net::HTTPNotFound, code: "404", message: "Not Found")
+        allow(Net::HTTP).to receive(:start).and_yield(mock_http)
+        allow(mock_http).to receive(:request_get).and_yield(error_response)
+        allow(error_response).to receive(:read_body)
+
+        expect { fetcher.stream_to_tempfile(url) }
+          .to raise_error(Etl::HttpFetcher::HttpResponseError, /GET https:\/\/s3\.example\.com\/data\.geojson returned 404 Not Found/)
+        expect(error_response).not_to have_received(:read_body)
       end
     end
 

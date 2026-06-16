@@ -131,5 +131,14 @@ RSpec.describe TileGenerator do
       expect(sql).to include("ST_Transform(ST_SimplifyPreserveTopology(cs.geom, 0.05), 3857)")
       expect(sql).not_to include("ST_SimplifyPreserveTopology(ST_Transform")
     end
+
+    it "uses matching tile margins and MVT geometry buffers" do
+      sql = described_class.layer_sql("pws", 5, 8, 12, 0.01)
+
+      expect(sql).to include("ST_TileEnvelope(5, 8, 12, margin => 64.0 / 4096)")
+      expect(sql).to include("ST_AsMVTGeom(")
+      expect(sql).to include("4096, 64, true")
+      expect(sql).to include("sag.geom && ST_Transform(ST_TileEnvelope(5, 8, 12, margin => 64.0 / 4096), 4326)")
+    end
   end
 end

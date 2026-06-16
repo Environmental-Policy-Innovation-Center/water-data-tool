@@ -4,10 +4,14 @@ default: &default
       batch_size: 500
   workers:
     - queues: default
-      threads: 3
+      threads: 1
       processes: <%= ENV.fetch("JOB_CONCURRENCY", 1) %>
       polling_interval: 0.1
     - queues: etl
+      threads: 1
+      processes: 1
+      polling_interval: 1
+    - queues: tile_refresh
       threads: 1
       processes: 1
       polling_interval: 1

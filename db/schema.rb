@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_06_05_000001) do
+ActiveRecord::Schema[8.1].define(version: 2026_06_16_000001) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "postgis"
@@ -187,10 +187,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_05_000001) do
     t.geometry "centroid", limit: {srid: 4326, type: "st_point"}
     t.datetime "created_at", null: false
     t.geometry "geom", limit: {srid: 4326, type: "multi_polygon"}
+    t.string "geom_digest"
     t.string "pwsid", null: false
     t.datetime "updated_at", null: false
     t.index ["centroid"], name: "index_service_area_geometries_on_centroid", using: :gist
     t.index ["geom"], name: "index_service_area_geometries_on_geom", using: :gist
+    t.index ["geom_digest"], name: "index_service_area_geometries_on_geom_digest"
     t.index ["pwsid"], name: "index_service_area_geometries_on_pwsid", unique: true
   end
 
