@@ -31,10 +31,14 @@ class HomeController < ApplicationController
   end
 
   def parse_cols_param
-    ColumnRegistry.parse_keys(params[:cols])&.to_set
+    ColumnRegistry.parse_keys(decoded_state["cols"])&.to_set
   end
 
   def filter_params
-    FilterParams.permit(params)
+    ActionController::Parameters.new(decoded_state["filters"] || {}).permit(*FilterRegistry.permit_arguments)
+  end
+
+  def decoded_state
+    @decoded_state ||= UrlStateCodec.decode(params[:encoded])
   end
 end
