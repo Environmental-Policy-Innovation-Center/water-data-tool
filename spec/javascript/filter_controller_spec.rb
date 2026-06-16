@@ -29,6 +29,15 @@ RSpec.describe "filter_controller state preservation" do
         const SelectionState = {
           clear: () => { globalThis.selectionClearCount = (globalThis.selectionClearCount || 0) + 1 }
         }
+        const decodeState = () => ({})
+        const colsFromUrl = () => null
+        const sortFromUrl = () => ({ sort: null, direction: null })
+        const buildEncodedParam = ({ filters = {}, cols = null } = {}) => {
+          const state = {}
+          if (Object.keys(filters).length > 0) state.filters = filters
+          if (cols !== null) state.cols = cols
+          return Buffer.from(JSON.stringify(state)).toString("base64url")
+        }
       JS
       file.write(script)
       file.flush
@@ -116,8 +125,12 @@ RSpec.describe "filter_controller state preservation" do
       global.CustomEvent = class {
         constructor(type) { this.type = type }
       }
-      global.history = { replaceState: () => {} }
       global.window = { location: new URL("http://example.test/") }
+      global.history = {
+        replaceState: (_state, _title, url) => {
+          window.location = new URL(url, window.location)
+        }
+      }
       global.Turbo = { visit: (url, options) => visits.push([url, options]) }
 
       let source = fs.readFileSync(#{controller_source_path.to_s.inspect}, "utf8")
@@ -145,7 +158,11 @@ RSpec.describe "filter_controller state preservation" do
       controller.apply({ preventDefault: () => {} })
       const tableVisit = visits.at(-1)
       if (!tableVisit) throw new Error("expected table reload visit")
-      if (!tableVisit[0].includes("state=CO")) throw new Error(`expected table URL to include state, got ${tableVisit[0]}`)
+      const tableUrl = new URL(tableVisit[0], "http://example.test")
+      const encoded = tableUrl.searchParams.get("encoded")
+      if (!encoded) throw new Error(`expected table URL to include encoded filters, got ${tableVisit[0]}`)
+      const decoded = JSON.parse(Buffer.from(encoded, "base64url").toString())
+      if (decoded.filters.state !== "CO") throw new Error(`expected table URL to preserve state, got ${tableVisit[0]}`)
     JS
 
     run_node_script(script)

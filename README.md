@@ -189,19 +189,19 @@ bin/rails 'etl:import[epa_sabs]'
 docker compose down
 ```
 
-### Background jobs and tile cache warming
+### Background jobs and tile cache refresh
 
-`TileCacheWarmJob` runs automatically after each ETL import to pre-generate z0–z8 map tiles using US region bounding boxes, so the initial national map view is fast for every user.
+Normal ETL imports refresh cached map tiles selectively. Importers report changed PWS IDs and affected map layers, `TileImpact` converts those changes into z5-z8 XYZ tile coordinates, and `TileCacheRefreshJob` overwrites only those cached tile rows on the `tile_refresh` queue. Existing cached tiles remain readable until replacements are ready.
 
-In production, SolidQueue processes this job as a persistent background worker. In development, the ETL runs as a short-lived rake task (`bin/rails etl:import`) — the warm job is enqueued but the process exits before the job completes, so **the warm job never runs automatically in dev**.
+The full `TileCacheWarmJob` still exists for explicit full-refresh or maintenance cases. In production, SolidQueue processes background jobs persistently. In development, the ETL runs as a short-lived rake task (`bin/rails etl:import`) -- queued refresh/warm jobs only run automatically if a SolidQueue worker is running.
 
-After loading the national dataset locally, warm the tile cache manually:
+After loading the national dataset locally, you can warm the full z0-z8 cache manually if you need cold-cache performance testing:
 
 ```bash
 bin/rails runner "TileCacheWarmJob.perform_now"
 ```
 
-This blocks until all z0–z8 tiles are generated (~32 minutes at national scale). Progress is logged to stdout.
+This blocks until all z0-z8 tiles are generated. Progress is logged to stdout.
 
 ---
 

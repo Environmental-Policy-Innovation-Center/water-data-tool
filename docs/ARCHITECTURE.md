@@ -362,10 +362,9 @@ With server-side filtering, tiles need far fewer properties. The primary tile la
 
 | Layer | Purpose | Properties |
 |-------|---------|------------|
-| `pws` | Service area polygons | `pwsid`, `stusps` |
-| `pws_points` | Point centroids (ensures visibility at low zoom) | `pwsid`, `stusps`, core display fields |
+| `pws` | Service area polygons | `pwsid`, `stusps`, core display fields |
 | `places` | Census place boundaries | `geoid`, `name`, `place_pwsids` |
-| `counties` | County boundaries | `geoid`, `name`, `county_pwsids` |
+| `counties` | County boundaries | `geoid`, `name` |
 | `states` | State boundaries | `geoid`, `stusps`, `name` |
 
 Filtered highlighting happens client-side: the filter API returns a list of matching `pwsid` values, and the map controller applies a Mapbox GL JS filter like `["in", "pwsid", ...matchingIds]` to style matching vs. non-matching systems.
@@ -388,7 +387,9 @@ Geometries are simplified at lower zoom levels for performance (same approach as
 
 ### Cache invalidation
 
-After an ETL import, truncate the `tile_cache` table. For geometry imports, invalidation waits until geometry enrichment and place crosswalk rebuilding are complete.
+Normal ETL imports do not truncate the full `tile_cache` table. Importers return changed PWS IDs, affected layers, and geometry metadata; `TileImpact` converts those changes into affected z5-z8 tile coordinates; and `TileCacheRefreshJob` overwrites those cached rows in small batches. Existing cached tiles remain readable until replacements are written.
+
+The full bust-and-warm path still exists for legacy importer results or imports that explicitly require a full refresh, such as broad cartographic boundary changes.
 
 ---
 
@@ -398,17 +399,21 @@ After an ETL import, truncate the `tile_cache` table. For geometry imports, inva
 
 SolidQueue recurring job. Runs the full ETL pipeline:
 
-1. Fetch S3 manifest (`data.json`)
-2. Compare timestamps against `data_imports` table
+1. Issue HTTP HEAD requests against source files under `ETL_SOURCE_URL`
+2. Compare `Last-Modified` timestamps against the `data_imports` table
 3. Download and import changed files
-4. Run post-import steps
-5. Invalidate and warm tile cache
+4. Run scoped post-import steps for changed geometry
+5. Refresh affected tile cache rows through `tile_refresh` jobs
 
 See [ETL.md](ETL.md) for full pipeline details.
 
 ### `TileCacheWarmJob`
 
-Optional. After an ETL import, pre-generates tiles for common zoom levels (z0–z8 across US region bounds) so the first user after a data update doesn't hit cold tiles.
+Maintenance fallback. Pre-generates tiles for common zoom levels (z0-z8 across US region bounds) after an explicit full cache refresh.
+
+### `TileCacheRefreshJob`
+
+Normal post-import tile refresh job. Regenerates bounded batches of affected layer/z/x/y tiles on the low-concurrency `tile_refresh` queue.
 
 ---
 
