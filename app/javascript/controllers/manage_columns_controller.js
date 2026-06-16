@@ -1,7 +1,8 @@
 import { Controller } from "@hotwired/stimulus"
+import { encodeState, decodeState, colsFromUrl } from "url_state_codec"
 
 export default class extends Controller {
-  static targets = ["button", "dropdown", "form", "colsInput"]
+  static targets = ["button", "dropdown", "form"]
 
   #outsideClick = (e) => {
     if (!this.element.contains(e.target)) this.#close()
@@ -47,14 +48,15 @@ export default class extends Controller {
     this.#updateCategoryState(event.target.dataset.category)
   }
 
-  serializeCols() {
+  serializeCols(event) {
+    event.preventDefault()
     const allBoxes = this.formTarget.querySelectorAll('input[type="checkbox"][data-col-key]')
     const checkedKeys = Array.from(allBoxes).filter(cb => cb.checked).map(cb => cb.dataset.colKey)
     // null = all checked (omit param = default); "" = none checked (pinned only); "a,b" = explicit selection
     const keys = checkedKeys.length === allBoxes.length ? null : checkedKeys.join(",")
-    this.colsInputTarget.disabled = keys === null
-    this.colsInputTarget.value = keys ?? ""
+    if (keys === colsFromUrl()) { this.#close(); return }
     this.#updateUrl(keys)
+    Turbo.visit(`/table${window.location.search}`, { frame: "data-table" })
     this.#close()
   }
 
@@ -88,8 +90,28 @@ export default class extends Controller {
 
   #updateUrl(keys) {
     const url = new URL(window.location)
-    keys === null ? url.searchParams.delete("cols") : url.searchParams.set("cols", keys)
+    const sp = url.searchParams
+    const existingBlob = sp.get("encoded")
+    let newBlob = null
+
+    if (existingBlob) {
+      const state = decodeState(existingBlob)
+      if (keys === null) { delete state.cols } else { state.cols = keys }
+      if (Object.keys(state).length > 0) {
+        newBlob = encodeState(state)
+        sp.set("encoded", newBlob)
+      } else {
+        sp.delete("encoded")
+      }
+    } else if (keys !== null) {
+      newBlob = encodeState({ cols: keys })
+      sp.set("encoded", newBlob)
+    } else {
+      sp.delete("cols")
+    }
+
     history.replaceState({}, "", url)
+    return newBlob
   }
 
   #open() {
@@ -109,8 +131,8 @@ export default class extends Controller {
   }
 
   #syncCheckboxesFromUrl() {
-    const cols = new URLSearchParams(window.location.search).get("cols")
     // null = param absent (show all); "" = explicitly empty (pinned only); "a,b" = specific keys
+    const cols = colsFromUrl()
     const visibleKeys = cols !== null ? new Set(cols.split(",").filter(Boolean)) : null
     const categoryKeys = new Set()
     this.formTarget.querySelectorAll('input[type="checkbox"][data-col-key]').forEach(cb => {
