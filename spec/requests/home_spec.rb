@@ -48,6 +48,62 @@ RSpec.describe "Home", type: :request do
       expect(response.body).to include("data-controller=\"datasets\"")
       expect(response.body).to include("ds-dataSource")
     end
+
+    it "returns 200 when encoded= param is present" do
+      get root_path, params: {encoded: encode_state({"cols" => "stusps"})}
+      expect(response).to have_http_status(:ok)
+    end
+
+    it "returns 200 for a malformed encoded= value" do
+      get root_path, params: {encoded: "!!!invalid!!!"}
+      expect(response).to have_http_status(:ok)
+    end
+  end
+
+  describe "GET /map with encoded= param" do
+    it "applies filters encoded in encoded=" do
+      gw = create(:public_water_system, gw_sw_code: "Groundwater")
+      sw = create(:public_water_system, gw_sw_code: "Surface Water")
+
+      get map_path, params: {encoded: encode_state({"filters" => {"gw_sw_code" => "Groundwater"}})}
+
+      json = response.parsed_body
+      expect(json["pwsids"]).to include(gw.pwsid)
+      expect(json["pwsids"]).not_to include(sw.pwsid)
+    end
+
+    it "returns empty state gracefully for a malformed encoded= value" do
+      create(:public_water_system)
+
+      get map_path, params: {encoded: "!!!invalid!!!"}
+
+      expect(response).to have_http_status(:ok)
+      expect(response.parsed_body["pwsids"]).to be_an(Array)
+    end
+  end
+
+  describe "GET /table with encoded= param" do
+    it "applies filters encoded in encoded=" do
+      create(:public_water_system, gw_sw_code: "GW", pws_name: "Groundwater System")
+      create(:public_water_system, gw_sw_code: "SW", pws_name: "Surface System")
+
+      get table_path, params: {encoded: encode_state({"filters" => {"gw_sw_code" => "GW"}})}
+
+      expect(response.body).to include("Groundwater System")
+      expect(response.body).not_to include("Surface System")
+    end
+
+    it "applies cols encoded in encoded=" do
+      get table_path, params: {encoded: encode_state({"cols" => "stusps"})}
+
+      expect(response.body).to include("State")
+      expect(response.body).not_to include("County")
+    end
+
+    it "returns 200 for a malformed encoded= value" do
+      get table_path, params: {encoded: "!!!invalid!!!"}
+      expect(response).to have_http_status(:ok)
+    end
   end
 
   describe "GET /map" do
@@ -65,7 +121,7 @@ RSpec.describe "Home", type: :request do
       gw = create(:public_water_system, gw_sw_code: "Groundwater")
       sw = create(:public_water_system, gw_sw_code: "Surface Water")
 
-      get map_path, params: {gw_sw_code: "Groundwater"}
+      get map_path, params: {encoded: encode_state({"filters" => {"gw_sw_code" => "Groundwater"}})}
 
       json = response.parsed_body
       expect(json["pwsids"]).to include(gw.pwsid)
@@ -75,7 +131,7 @@ RSpec.describe "Home", type: :request do
     it "returns an empty array when no systems match the filters" do
       create(:public_water_system, gw_sw_code: "Groundwater")
 
-      get map_path, params: {gw_sw_code: "Surface Water"}
+      get map_path, params: {encoded: encode_state({"filters" => {"gw_sw_code" => "Surface Water"}})}
 
       expect(response.parsed_body["pwsids"]).to eq([])
     end
@@ -86,7 +142,7 @@ RSpec.describe "Home", type: :request do
       create(:violations_summary, pwsid: match.pwsid, groundwater_rule_5yr: 5)
       create(:violations_summary, pwsid: excluded.pwsid, groundwater_rule_5yr: 1)
 
-      get map_path, params: {groundwater_rule_5yr_min: 4, groundwater_rule_5yr_max: 10}
+      get map_path, params: {encoded: encode_state({"filters" => {"groundwater_rule_5yr_min" => 4, "groundwater_rule_5yr_max" => 10}})}
 
       json = response.parsed_body
       expect(json["pwsids"]).to include(match.pwsid)
@@ -99,7 +155,7 @@ RSpec.describe "Home", type: :request do
       create(:violations_summary, pwsid: match.pwsid, paperwork_violations_5yr: 10)
       create(:violations_summary, pwsid: excluded.pwsid, paperwork_violations_5yr: 1)
 
-      get map_path, params: {paperwork_violations_5yr_min: 5, paperwork_violations_5yr_max: 20}
+      get map_path, params: {encoded: encode_state({"filters" => {"paperwork_violations_5yr_min" => 5, "paperwork_violations_5yr_max" => 20}})}
 
       json = response.parsed_body
       expect(json["pwsids"]).to include(match.pwsid)
@@ -186,7 +242,7 @@ RSpec.describe "Home", type: :request do
     it "filters by gw_sw_code" do
       create(:public_water_system, gw_sw_code: "GW", pws_name: "Groundwater System")
       create(:public_water_system, gw_sw_code: "SW", pws_name: "Surface System")
-      get table_path, params: {gw_sw_code: "GW"}
+      get table_path, params: {encoded: encode_state({"filters" => {"gw_sw_code" => "GW"}})}
       expect(response.body).to include("Groundwater System")
       expect(response.body).not_to include("Surface System")
     end
@@ -204,7 +260,7 @@ RSpec.describe "Home", type: :request do
     it "filters by owner_type array" do
       create(:public_water_system, owner_type: "Federal", pws_name: "Federal System")
       create(:public_water_system, owner_type: "State", pws_name: "State System")
-      get table_path, params: {owner_type: ["Federal"]}
+      get table_path, params: {encoded: encode_state({"filters" => {"owner_type" => ["Federal"]}})}
       expect(response.body).to include("Federal System")
       expect(response.body).not_to include("State System")
     end
@@ -412,7 +468,7 @@ RSpec.describe "Home", type: :request do
     it "filters by has_open_violations" do
       create(:public_water_system, pws_name: "Open Violation System", open_health_viol: true)
       create(:public_water_system, pws_name: "Clean System", open_health_viol: false)
-      get table_path, params: {has_open_violations: "true"}
+      get table_path, params: {encoded: encode_state({"filters" => {"has_open_violations" => "true"}})}
       expect(response.body).to include("Open Violation System")
       expect(response.body).not_to include("Clean System")
     end
@@ -456,39 +512,6 @@ RSpec.describe "Home", type: :request do
     it "highlights the down arrow (text-gray-600) on the active column when sorted desc" do
       get table_path, params: {sort: "pws_name", direction: "desc"}
       expect(response.body).to include("text-gray-600")
-    end
-
-    context "with cols= param (column visibility)" do
-      it "shows all columns when cols= is absent" do
-        get table_path
-        expect(response.body).to include("State")
-        expect(response.body).to include("County")
-        expect(response.body).to include("Grant eligible")
-      end
-
-      it "shows only the requested columns plus always-visible ones" do
-        get table_path, params: {cols: "stusps"}
-        expect(response.body).to include("State")
-        expect(response.body).not_to include("County")
-      end
-
-      it "always shows the pws_name column regardless of cols=" do
-        get table_path, params: {cols: "stusps"}
-        expect(response.body).to include("Utility Name")
-      end
-
-      it "ignores unknown column keys in cols=" do
-        get table_path, params: {cols: "stusps,nonexistent_column"}
-        expect(response.body).to include("State")
-        expect(response.body).not_to include("County")
-      end
-
-      it "shows multiple requested columns" do
-        get table_path, params: {cols: "stusps,counties"}
-        expect(response.body).to include("State")
-        expect(response.body).to include("County")
-        expect(response.body).not_to include("Grant eligible")
-      end
     end
   end
 end

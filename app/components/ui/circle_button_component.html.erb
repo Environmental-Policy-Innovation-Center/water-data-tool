@@ -3,5 +3,7 @@
         class="<%= button_classes %>"
         <% if @id %> id="<%= @id %>"<% end %>
         <% if @data_action %> data-action="<%= @data_action %>"<% end %>>
+  <%= label_html if @label_position == :left %>
   <%= content %>
+  <%= label_html if @label_position == :right %>
 </button>

@@ -38,6 +38,10 @@ export default class extends Controller {
     this.#updateBadge()
   }
 
+  toggleAll() {
+    SelectionState.isAllChecked() ? this.#setAllRows(false) : this.#setAllRows(true)
+  }
+
   selectAll()   { this.#setAllRows(true) }
   deselectAll() { this.#setAllRows(false) }
 
@@ -67,6 +71,14 @@ export default class extends Controller {
     if (text !== null) this.countBadgeTarget.textContent = text
 
     this.#updateExportButton()
+    this.#syncToggleAllIcon()
+  }
+
+  #syncToggleAllIcon() {
+    const allChecked = SelectionState.isAllChecked()
+    document.getElementById("row-toggle-all-icon-on")?.classList.toggle("hidden", !allChecked)
+    document.getElementById("row-toggle-all-icon-off")?.classList.toggle("hidden", allChecked)
+    document.getElementById("row-toggle-all")?.setAttribute("title", allChecked ? "Deselect all" : "Select all")
   }
 
   #updateExportButton() {

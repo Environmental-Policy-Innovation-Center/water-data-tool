@@ -8,6 +8,7 @@ The data table is a core feature of the app. This document captures design decis
 
 ### Sort behavior
 - **3-state cycle:** unsorted (↕) → ascending (↑) → descending (↓) → unsorted. Third click drops `sort`/`direction` params entirely, restoring default `pws_name ASC` order.
+- **Sort persists through resets.** Resetting filters (individual menu or Reset All) and resetting columns both preserve the active sort. Sort is an independent user preference — orthogonal to both filter state and column visibility. The only way to clear sort is to cycle back to unsorted via the column header.
 - **`NULLS LAST` always** — on both ASC and DESC. PostgreSQL defaults to `NULLS FIRST` for DESC, which puts missing data at the top. Users expect missing data out of the way regardless of sort direction.
 - **Tiebreaker:** `pws_name ASC` appended to every `ORDER BY` (skipped when `pws_name` is the primary sort column). Matches legacy behavior where the DataTables array was pre-sorted by name before client-side sorting.
 - **SQL injection guard:** `SORTABLE_COLUMNS` allowlist in the `Sortable` concern (`app/controllers/concerns/sortable.rb`) — only these column names are permitted in `ORDER BY`. Does not control display order.
@@ -32,6 +33,8 @@ Two modes, each backed by a `Set` of PWSID strings (O(1) lookup, guaranteed uniq
 
 State transitions: `deselectAll()` → none mode · `selectAll()` or filter change (`clear()`) → all mode · `toggle(id)` → adds/removes from the active set.
 
+The toggle button (Select All / Deselect All) drives **mode only** (Axis 1: all ↔ none). Individual row checks fill the active set (Axis 2: empty ↔ non-empty). The 4 export states above are the 2×2 product of these two axes — the button never sees Axis 2 directly, but the export payload builder always does.
+
 Badge and export behavior:
 
 | State | Badge | Export sends |
@@ -43,7 +46,7 @@ Badge and export behavior:
 
 Export always uses POST (CSRF token, avoids URL length limits). The server has two paths: `apply_filters + apply_search + where.not(pwsid: excluded)` vs `where(pwsid: included)`. Both paths apply the current sort order. The exclusion model was chosen because it keeps payloads small at every realistic threshold — a user unchecking 3 of 5,000 rows sends 3 IDs, not 4,997.
 
-**Sort/search state in the DOM.** Sort header clicks and the search form navigate the `data-table` Turbo Frame only — they do not update `window.location`, and `FilterState` only tracks filter panel state. The server renders current sort/direction/search into a `#table-query-state` span inside the frame (re-rendered on every frame navigation). `export_controller.js` reads from this span so exports always match what the user sees in the table.
+**Sort/search state in the DOM.** The server renders current sort/direction/search into a `#table-query-state` span inside the frame on every frame navigation. `export_controller.js` reads from this span so exports match what the user sees; `filter_controller.js` reads it after each frame load to sync sort/direction into the page URL. See `docs/decisions/URL_MANAGEMENT.md` for the full URL state design.
 
 ---
 

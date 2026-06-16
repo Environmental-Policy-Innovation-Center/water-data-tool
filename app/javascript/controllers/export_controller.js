@@ -1,6 +1,7 @@
 import { Controller } from "@hotwired/stimulus"
 import * as FilterState from "filter_state"
 import * as SelectionState from "selection_state"
+import { colsFromUrl } from "url_state_codec"
 
 export default class extends Controller {
   static targets = ["format"]
@@ -52,7 +53,7 @@ export default class extends Controller {
     if (sort) append("sort", sort)
     if (direction) append("direction", direction)
 
-    const cols = new URLSearchParams(window.location.search).get("cols")
+    const cols = colsFromUrl()
     if (cols !== null) append("cols", cols)
 
     if (format !== "csv") append("file_format", format)

@@ -1,7 +1,8 @@
 import { Controller } from "@hotwired/stimulus"
+import { encodeState, decodeState, colsFromUrl } from "url_state_codec"
 
 export default class extends Controller {
-  static targets = ["button", "dropdown", "form", "colsInput"]
+  static targets = ["button", "dropdown", "form"]
 
   #outsideClick = (e) => {
     if (!this.element.contains(e.target)) this.#close()
@@ -11,14 +12,18 @@ export default class extends Controller {
     if (e.key === "Escape") { this.#close(); this.buttonTarget.focus() }
   }
 
+  #onFormChange = () => this.#syncToggleAllLabel()
+
   connect() {
     document.addEventListener("click", this.#outsideClick)
     document.addEventListener("keydown", this.#onKeydown)
+    this.formTarget.addEventListener("change", this.#onFormChange)
   }
 
   disconnect() {
     document.removeEventListener("click", this.#outsideClick)
     document.removeEventListener("keydown", this.#onKeydown)
+    this.formTarget.removeEventListener("change", this.#onFormChange)
   }
 
   toggle() {
@@ -35,26 +40,32 @@ export default class extends Controller {
     const { category } = event.target.dataset
     this.formTarget.querySelectorAll(`input[data-col-key][data-category="${category}"]`)
       .forEach(cb => { cb.checked = event.target.checked })
-    this.#setCategoryExpanded(category, event.target.checked)
+    this.#updateCategoryState(category)
+    this.#syncToggleAllLabel()
   }
 
   syncCategoryState(event) {
     this.#updateCategoryState(event.target.dataset.category)
   }
 
-  serializeCols() {
+  serializeCols(event) {
+    event.preventDefault()
     const allBoxes = this.formTarget.querySelectorAll('input[type="checkbox"][data-col-key]')
     const checkedKeys = Array.from(allBoxes).filter(cb => cb.checked).map(cb => cb.dataset.colKey)
     // null = all checked (omit param = default); "" = none checked (pinned only); "a,b" = explicit selection
     const keys = checkedKeys.length === allBoxes.length ? null : checkedKeys.join(",")
-    this.colsInputTarget.disabled = keys === null
-    this.colsInputTarget.value = keys ?? ""
+    if (keys === colsFromUrl()) { this.#close(); return }
     this.#updateUrl(keys)
+    Turbo.visit(`/table${window.location.search}`, { frame: "data-table" })
     this.#close()
   }
 
-  selectAllColumns()   { this.#setAllColumns(true) }
-  deselectAllColumns() { this.#setAllColumns(false) }
+  toggleAllColumns() {
+    const allBoxes = this.formTarget.querySelectorAll('input[type="checkbox"][data-col-key]')
+    const allChecked = Array.from(allBoxes).every(cb => cb.checked)
+    this.#setAllColumns(!allChecked)
+    this.#syncToggleAllLabel()
+  }
 
   reset() {
     this.formTarget.querySelectorAll('input[type="checkbox"][data-col-key]').forEach(cb => cb.checked = true)
@@ -79,12 +90,33 @@ export default class extends Controller {
 
   #updateUrl(keys) {
     const url = new URL(window.location)
-    keys === null ? url.searchParams.delete("cols") : url.searchParams.set("cols", keys)
+    const sp = url.searchParams
+    const existingBlob = sp.get("encoded")
+    let newBlob = null
+
+    if (existingBlob) {
+      const state = decodeState(existingBlob)
+      if (keys === null) { delete state.cols } else { state.cols = keys }
+      if (Object.keys(state).length > 0) {
+        newBlob = encodeState(state)
+        sp.set("encoded", newBlob)
+      } else {
+        sp.delete("encoded")
+      }
+    } else if (keys !== null) {
+      newBlob = encodeState({ cols: keys })
+      sp.set("encoded", newBlob)
+    } else {
+      sp.delete("cols")
+    }
+
     history.replaceState({}, "", url)
+    return newBlob
   }
 
   #open() {
     this.#syncCheckboxesFromUrl()
+    this.#syncToggleAllLabel()
     const rect = this.buttonTarget.getBoundingClientRect()
     const footer = document.querySelector('[aria-label="Table navigation"]')
     const footerTop = footer?.getBoundingClientRect().top ?? window.innerHeight
@@ -99,8 +131,8 @@ export default class extends Controller {
   }
 
   #syncCheckboxesFromUrl() {
-    const cols = new URLSearchParams(window.location.search).get("cols")
     // null = param absent (show all); "" = explicitly empty (pinned only); "a,b" = specific keys
+    const cols = colsFromUrl()
     const visibleKeys = cols !== null ? new Set(cols.split(",").filter(Boolean)) : null
     const categoryKeys = new Set()
     this.formTarget.querySelectorAll('input[type="checkbox"][data-col-key]').forEach(cb => {
@@ -125,6 +157,17 @@ export default class extends Controller {
     const checkedCount = children.filter(cb => cb.checked).length
     header.checked = checkedCount === children.length
     header.indeterminate = checkedCount > 0 && checkedCount < children.length
+  }
+
+  #syncToggleAllLabel() {
+    const allBoxes = this.formTarget.querySelectorAll('input[type="checkbox"][data-col-key]')
+    const allChecked = Array.from(allBoxes).every(cb => cb.checked)
+
+    const label = document.getElementById("manage-columns-toggle-all-label")
+    if (label) label.textContent = allChecked ? "Deselect all" : "Select all"
+
+    document.getElementById("manage-columns-toggle-all-icon-on")?.classList.toggle("hidden", !allChecked)
+    document.getElementById("manage-columns-toggle-all-icon-off")?.classList.toggle("hidden", allChecked)
   }
 
   #close() {

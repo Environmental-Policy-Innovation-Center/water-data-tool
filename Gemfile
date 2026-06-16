@@ -6,7 +6,7 @@ source "https://rubygems.org"
 gem "rails", "~> 8.1.3"
 
 # Reduces boot times through caching; required in config/boot.rb
-gem "bootsnap", "~> 1.23.0", require: false
+gem "bootsnap", "~> 1.24.5", require: false
 
 # Use JavaScript with ESM import maps [https://github.com/rails/importmap-rails]
 gem "importmap-rails", "~> 2.2.3"
@@ -58,20 +58,20 @@ gem "pagy", "~> 43.5.1"
 gem "pg", "~> 1.6.3"
 
 # Use the Puma web server [https://github.com/puma/puma]
-gem "puma", "~> 7.2.1"
+gem "puma", "~> 8.0.2"
 
 # Add HTTP asset caching/compression and X-Sendfile acceleration to Puma [https://github.com/basecamp/thruster/]
 gem "thruster", "~> 0.1.20", require: false
 
 # ViewComponent — server-rendered UI components [https://viewcomponent.org]
-gem "view_component", "~> 4.10.0"
+gem "view_component", "~> 4.11.0"
 
 # Use Active Model has_secure_password [https://guides.rubyonrails.org/active_model_basics.html#securepassword]
 # gem "bcrypt", "~> 3.1.7"
 
 group :development, :test do
   # Static analysis for security vulnerabilities [https://brakemanscanner.org/]
-  gem "brakeman", "~> 8.0.4", require: false
+  gem "brakeman", "~> 8.0.5", require: false
 
   # Audits gems for known security defects (use config/bundler-audit.yml to ignore issues)
   gem "bundler-audit", "~> 0.9.3", require: false

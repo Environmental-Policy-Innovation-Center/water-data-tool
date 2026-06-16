@@ -73,8 +73,8 @@ RSpec.describe Filters::GroupRangeComponent, type: :component do
       expect(checkbox["data-panel-id"]).to eq("subcat-poverty-rate")
     end
 
-    it "uses a smaller arrow icon (h-3 w-3)" do
-      expect(rendered_content).to include("h-3 w-3")
+    it "renders the collapse toggle arrow icon" do
+      expect(rendered_content).to include("size-3.5")
     end
   end
 
@@ -94,8 +94,8 @@ RSpec.describe Filters::GroupRangeComponent, type: :component do
       expect(checkbox["data-panel-id"]).to be_nil
     end
 
-    it "uses a larger arrow icon (h-3.5 w-3.5)" do
-      expect(rendered_content).to include("h-3.5 w-3.5")
+    it "renders the collapse toggle arrow icon" do
+      expect(rendered_content).to include("size-3.5")
     end
   end
 

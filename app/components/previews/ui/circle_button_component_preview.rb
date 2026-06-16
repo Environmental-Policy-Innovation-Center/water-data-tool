@@ -12,4 +12,27 @@ class UI::CircleButtonComponentPreview < Lookbook::Preview
       "HI"
     end
   end
+
+  # @label With label on the left (toggle-all pattern)
+  def labeled_left
+    render UI::CircleButtonComponent.new(
+      id: "preview-toggle-all",
+      aria_label: "Toggle all columns",
+      label: "Deselect all",
+      label_position: :left
+    ) do
+      icon("checkbox-circle-on", classes: "size-4 text-neutral-900")
+    end
+  end
+
+  # @label With label on the right
+  def labeled_right
+    render UI::CircleButtonComponent.new(
+      aria_label: "Toggle all columns",
+      label: "Select all",
+      label_position: :right
+    ) do
+      icon("checkbox-circle-off", classes: "size-4 text-neutral-700")
+    end
+  end
 end

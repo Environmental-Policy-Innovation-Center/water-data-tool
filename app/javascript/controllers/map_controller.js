@@ -153,6 +153,7 @@ export default class extends Controller {
 
   #onLoad() {
     this.#addControls()
+    document.dispatchEvent(new CustomEvent("map:controls-added"))
     this.#addSource()
     this.#addLayers()
     this.#styleWater()

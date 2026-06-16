@@ -139,7 +139,7 @@
                   data-panel-id="subcat-health-5yr"
                   aria-expanded="false"
                   aria-controls="subcat-health-5yr">
-            <%= icon("arrow-down", classes: "h-3 w-3 -rotate-90 transition-transform duration-150") %>
+            <%= icon("arrow-down", classes: collapse_toggle_icon_classes) %>
           </button>
           <div id="subcat-health-5yr" class="hidden pl-2 pb-1" data-subcat-panel
                data-action="change->filter#syncParentFromSubcat">
@@ -197,7 +197,7 @@
                   data-panel-id="subcat-health-10yr"
                   aria-expanded="false"
                   aria-controls="subcat-health-10yr">
-            <%= icon("arrow-down", classes: "h-3 w-3 -rotate-90 transition-transform duration-150") %>
+            <%= icon("arrow-down", classes: collapse_toggle_icon_classes) %>
           </button>
           <div id="subcat-health-10yr" class="hidden pl-2 pb-1" data-subcat-panel
                data-action="change->filter#syncParentFromSubcat">
@@ -255,7 +255,7 @@
                   data-panel-id="subcat-paperwork-5yr"
                   aria-expanded="false"
                   aria-controls="subcat-paperwork-5yr">
-            <%= icon("arrow-down", classes: "h-3 w-3 -rotate-90 transition-transform duration-150") %>
+            <%= icon("arrow-down", classes: collapse_toggle_icon_classes) %>
           </button>
           <div id="subcat-paperwork-5yr" class="hidden px-2 py-2" data-subcat-panel
                data-controller="slider"
@@ -281,7 +281,7 @@
                   data-panel-id="subcat-paperwork-10yr"
                   aria-expanded="false"
                   aria-controls="subcat-paperwork-10yr">
-            <%= icon("arrow-down", classes: "h-3 w-3 -rotate-90 transition-transform duration-150") %>
+            <%= icon("arrow-down", classes: collapse_toggle_icon_classes) %>
           </button>
           <div id="subcat-paperwork-10yr" class="hidden px-2 py-2" data-subcat-panel
                data-controller="slider"
@@ -339,7 +339,7 @@
                   data-action="click->filter#toggleSubcatPanel"
                   data-panel-id="subcat-rate-tier"
                   aria-expanded="false" aria-controls="subcat-rate-tier">
-            <%= icon("arrow-down", classes: "h-3 w-3 -rotate-90 transition-transform duration-150") %>
+            <%= icon("arrow-down", classes: collapse_toggle_icon_classes) %>
           </button>
           <div id="subcat-rate-tier" class="hidden pl-2 pb-2" data-subcat-panel>
             <ul class="space-y-0.5 mt-1 list-none px-1">
@@ -374,12 +374,12 @@
               checkbox_id: "more-has-srf-assistance", panel_id: "subcat-srf-assistance",
               label: "State revolving fund assistance", tooltip_text: filter_tooltips["srf_assistance"],
               field: "total_srf_assistance", min_input_id: "min-srf-assistance", max_input_id: "max-srf-assistance",
-              slider_label: "Amount ($)") %>
+              slider_label: "Amount ($)", format: "currency") %>
         <%= render Filters::GroupRangeComponent.new(
               checkbox_id: "more-has-principal-forgiveness", panel_id: "subcat-srf-forgiveness",
               label: "State revolving fund principal forgiveness", tooltip_text: filter_tooltips["principal_forgiveness"],
               field: "total_principal_forgiveness", min_input_id: "min-srf-forgiveness", max_input_id: "max-srf-forgiveness",
-              slider_label: "Amount ($)") %>
+              slider_label: "Amount ($)", format: "currency") %>
       </ul>
     <% end %>
     <%= render Filters::CategoryComponent.new(label: "Environmental", variant: :light) do %>
@@ -399,7 +399,7 @@
                   data-action="click->filter#toggleSubcatPanel"
                   data-panel-id="subcat-watershed-hazards"
                   aria-expanded="false" aria-controls="subcat-watershed-hazards">
-            <%= icon("arrow-down", classes: "h-3 w-3 -rotate-90 transition-transform duration-150") %>
+            <%= icon("arrow-down", classes: collapse_toggle_icon_classes) %>
           </button>
           <div id="subcat-watershed-hazards" class="hidden pl-2 pb-1" data-subcat-panel
                data-action="change->filter#syncParentFromSubcat">

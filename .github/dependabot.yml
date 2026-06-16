@@ -1,12 +1,21 @@
 version: 2
+
+# Version-update PRs are disabled. Security alerts fire automatically via
+# GitHub Settings → Security & Analysis → Dependabot security updates,
+# and vulnerabilities are also caught locally by bundler-audit in bin/ci.
+#
+# To re-enable version-update PRs, replace the empty list below with:
+#
+# open-pull-requests-limit: 0 disables version-update PRs while satisfying
+# the schema requirement that updates has at least one entry.
 updates:
-- package-ecosystem: bundler
-  directory: "/"
-  schedule:
-    interval: weekly
-  open-pull-requests-limit: 10
-- package-ecosystem: github-actions
-  directory: "/"
-  schedule:
-    interval: weekly
-  open-pull-requests-limit: 10
+  - package-ecosystem: bundler
+    directory: "/"
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 0
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 0

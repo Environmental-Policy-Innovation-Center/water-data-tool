@@ -237,6 +237,54 @@ The job issues HEAD requests per file and only imports files with updated `Last-
 
 ---
 
+## Runtime, Downtime, and Known Issues
+
+### Expected Duration
+
+A full import that includes `epa_sabs_geoms.geojson` (the only file that triggers post-import
+geometry steps) runs roughly as follows:
+
+| Step | Estimate |
+|---|---|
+| Download + SAX-parse + batch insert `epa_sabs_geoms.geojson` (~1 GB) | 15–45 min |
+| `CartographicBoundaries.load` — 3 TIGER zips via `ogr2ogr` | 5–15 min |
+| `fix_invalid_geometries` + `generate_centroids` | 2–5 min |
+| `assign_state_codes` + `build_place_crosswalks` (national spatial joins) | 10–30 min |
+| `REINDEX` + `ANALYZE` on `service_area_geometries` | 2–10 min |
+| **Total** | **~35–105 min** |
+
+CSV-only runs (no geometry change) complete in seconds to a few minutes and do not trigger
+the steps above.
+
+### Why the App Degrades During a Geometry Import
+
+Two things cause user-facing degradation:
+
+**1. `REINDEX INDEX` takes an `ACCESS EXCLUSIVE` lock** on `service_area_geometries`. While
+the lock is held, every incoming request that reads from that table (map tiles, spatial
+filters) blocks completely. Requests that wait longer than the load balancer timeout (typically
+30–60 s) return a 504. This is the most likely cause of 504 errors observed during an ETL run.
+
+**2. `bust_tile_cache` fires before geometry steps complete.** The cache is emptied at the
+start of `PostImportSteps`, then `TileCacheWarmJob` is queued immediately. For geometry
+imports, the enrichment steps (centroids, state codes, place crosswalks) haven't run yet when
+the warm job starts — it can warm tiles against incomplete data, and every tile request during
+the 35–105 min enrichment window is a cache miss hitting an already-loaded database.
+
+The correct order for geometry imports is: complete all enrichment steps first, then bust and
+warm. This keeps stale-but-complete tiles serving fast throughout the ETL, and only triggers
+a brief transition window at the very end when the data is actually ready.
+
+### Known Issues / Improvement Opportunities
+
+| Issue | Impact | Fix |
+|---|---|---|
+| `bust_tile_cache` + `TileCacheWarmJob` called before geometry steps complete | Cache misses hit loaded DB for full ETL duration; warm job may cache incomplete data | Move both calls to after `build_place_crosswalks` for geometry imports |
+| `REINDEX INDEX` without `CONCURRENTLY` | `ACCESS EXCLUSIVE` lock blocks all reads during reindex | Use `REINDEX INDEX CONCURRENTLY` outside a transaction; users see old index until new one is ready; no integrity risk, ~2× slower to build |
+| ETL job on `:default` queue | Occupies 1 of 3 SolidQueue threads for ~1 hour; other background work still runs but competes for DB | Add a dedicated `:etl` queue with its own worker block in `config/queue.yml` |
+
+---
+
 ## Error Handling
 
 
