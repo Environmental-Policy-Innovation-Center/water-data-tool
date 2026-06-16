@@ -52,14 +52,6 @@ These are missing features surfaced during development — not critical but noti
 - **Boil Water Summary filtering** — `BoilWaterSummary` data is imported and displayed but
   there is no filter for it yet.
 
----
-
-### URL State: Compression (`s=` param)
-
-With a large filter set, URLs can get very long. A Zlib+Base64 compressed `s=` param has been
-designed to replace the verbose per-filter params. The approach is documented in
-`docs/URL_MANAGEMENT.md` — the design is complete, it just hasn't been implemented.
-POST export is already solved; this work covers filter+column URL compression only.
 
 ---
 
