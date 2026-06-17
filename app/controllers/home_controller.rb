@@ -3,9 +3,9 @@ class HomeController < ApplicationController
 
   def index
     @last_updated = DataImport.maximum(:imported_at)
-    @visible_col_keys = parse_cols_param
-    @column_categories = ColumnRegistry.categories
-    @cols_by_category = ColumnRegistry.columns_by_category
+    @column_state = column_state
+    @visible_col_keys = @column_state.visible_col_keys
+    @panel_groups = ColumnRegistry.panel_groups(col_keys: @column_state.panel_col_keys)
   end
 
   def map
@@ -27,11 +27,15 @@ class HomeController < ApplicationController
   private
 
   def visible_columns
-    ColumnRegistry.visible(keys: parse_cols_param)
+    ColumnRegistry.visible(keys: column_state.visible_col_keys)
   end
 
   def parse_cols_param
-    ColumnRegistry.parse_keys(decoded_state["cols"])&.to_set
+    column_state.visible_col_keys
+  end
+
+  def column_state
+    @column_state ||= ColumnRegistry.parse_column_state(decoded_state["cols"])
   end
 
   def filter_params

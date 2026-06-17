@@ -22,6 +22,12 @@ RSpec.describe ManageColumns::CategoryHeaderRowComponent, type: :component do
     expect(btn["aria-controls"]).to eq("cat-body-violations")
   end
 
+  it "renders a drag handle for reordering the category" do
+    handle = html.at_css("button.drag-handle")
+    expect(handle).to be_present
+    expect(handle["aria-label"]).to eq("Drag to reorder Violations")
+  end
+
   it "renders a toggle-all checkbox" do
     input = html.at_css("input[data-action='change->manage-columns#toggleCategory']")
     expect(input).to be_present

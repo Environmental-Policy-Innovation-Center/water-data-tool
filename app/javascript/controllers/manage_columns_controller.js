@@ -1,8 +1,9 @@
 import { Controller } from "@hotwired/stimulus"
+import Sortable from "sortablejs"
 import { encodeState, decodeState, colsFromUrl } from "url_state_codec"
 
 export default class extends Controller {
-  static targets = ["button", "dropdown", "form"]
+  static targets = ["button", "dropdown", "form", "columnList", "defaultTemplate"]
 
   #outsideClick = (e) => {
     if (!this.element.contains(e.target)) this.#close()
@@ -14,16 +15,21 @@ export default class extends Controller {
 
   #onFormChange = () => this.#syncToggleAllLabel()
 
+  #sortables = []
+  #orderCustomized = false
+
   connect() {
     document.addEventListener("click", this.#outsideClick)
     document.addEventListener("keydown", this.#onKeydown)
     this.formTarget.addEventListener("change", this.#onFormChange)
+    this.#initSortables()
   }
 
   disconnect() {
     document.removeEventListener("click", this.#outsideClick)
     document.removeEventListener("keydown", this.#onKeydown)
     this.formTarget.removeEventListener("change", this.#onFormChange)
+    this.#destroySortables()
   }
 
   toggle() {
@@ -50,13 +56,9 @@ export default class extends Controller {
 
   serializeCols(event) {
     event.preventDefault()
-    const allBoxes = this.formTarget.querySelectorAll('input[type="checkbox"][data-col-key]')
-    const checkedKeys = Array.from(allBoxes).filter(cb => cb.checked).map(cb => cb.dataset.colKey)
-    // null = all checked (omit param = default); "" = none checked (pinned only); "a,b" = explicit selection
-    const keys = checkedKeys.length === allBoxes.length ? null : checkedKeys.join(",")
+    const keys = this.#colKeysForSubmit()
     if (keys === colsFromUrl()) { this.#close(); return }
-    this.#updateUrl(keys)
-    Turbo.visit(`/table${window.location.search}`, { frame: "data-table" })
+    this.#applyToTable(keys)
     this.#close()
   }
 
@@ -68,9 +70,67 @@ export default class extends Controller {
   }
 
   reset() {
-    this.formTarget.querySelectorAll('input[type="checkbox"][data-col-key]').forEach(cb => cb.checked = true)
+    this.#orderCustomized = false
+    this.#restoreDefaultDomOrder()
+    this.#setAllColumns(true)
     this.#collapseAllCategories()
-    this.formTarget.requestSubmit()
+    this.#syncToggleAllLabel()
+    this.#close()
+    if (colsFromUrl() !== null) {
+      this.#applyToTable(null)
+    }
+  }
+
+  #initSortables() {
+    const options = {
+      handle: ".drag-handle",
+      animation: 150,
+      ghostClass: "opacity-40",
+      onEnd: (event) => this.#onReorder(event)
+    }
+
+    if (this.hasColumnListTarget) {
+      this.#sortables.push(new Sortable(this.columnListTarget, {
+        ...options,
+        draggable: "> li"
+      }))
+    }
+
+    // Turbo frame updates that replace the panel DOM require calling #initSortables again.
+    this.formTarget.querySelectorAll('ul[id^="cat-body-"]').forEach((list) => {
+      this.#sortables.push(new Sortable(list, options))
+    })
+  }
+
+  #destroySortables() {
+    this.#sortables.forEach((sortable) => sortable.destroy())
+    this.#sortables = []
+  }
+
+  #onReorder(event) {
+    // Cross-category drag is blocked (no Sortable group option), so same-index = no move.
+    if (event.newIndex === event.oldIndex) return
+    this.#orderCustomized = true
+  }
+
+  #restoreDefaultDomOrder() {
+    if (!this.hasColumnListTarget || !this.hasDefaultTemplateTarget) return
+    this.#destroySortables()
+    this.columnListTarget.innerHTML = ""
+    this.columnListTarget.appendChild(this.defaultTemplateTarget.content.cloneNode(true))
+    this.#initSortables()
+  }
+
+  #applyToTable(colsKeys) {
+    this.#updateUrl(colsKeys)
+    Turbo.visit(`/table${window.location.search}`, { frame: "data-table" })
+  }
+
+  #colKeysForSubmit() {
+    const allCheckboxes = Array.from(this.formTarget.querySelectorAll('input[type="checkbox"][data-col-key]'))
+    const allVisible = allCheckboxes.every((cb) => cb.checked)
+    if (!this.#orderCustomized && allVisible) return null
+    return allCheckboxes.map((cb) => cb.checked ? cb.dataset.colKey : `-${cb.dataset.colKey}`).join(",")
   }
 
   #collapseAllCategories() {
@@ -107,7 +167,7 @@ export default class extends Controller {
       newBlob = encodeState({ cols: keys })
       sp.set("encoded", newBlob)
     } else {
-      sp.delete("cols")
+      sp.delete("encoded")
     }
 
     history.replaceState({}, "", url)
@@ -115,7 +175,10 @@ export default class extends Controller {
   }
 
   #open() {
-    this.#syncCheckboxesFromUrl()
+    const cols = colsFromUrl()
+    this.#orderCustomized = cols !== null
+    // Syncs checkboxes only; DOM list order reflects the last full page load, not URL changes since.
+    this.#syncCheckboxesFromUrl(cols)
     this.#syncToggleAllLabel()
     const rect = this.buttonTarget.getBoundingClientRect()
     const footer = document.querySelector('[aria-label="Table navigation"]')
@@ -130,16 +193,18 @@ export default class extends Controller {
     this.buttonTarget.setAttribute("aria-expanded", "true")
   }
 
-  #syncCheckboxesFromUrl() {
-    // null = param absent (show all); "" = explicitly empty (pinned only); "a,b" = specific keys
-    const cols = colsFromUrl()
-    const visibleKeys = cols !== null ? new Set(cols.split(",").filter(Boolean)) : null
+  #syncCheckboxesFromUrl(cols = colsFromUrl()) {
+    const hiddenColKeys = cols === null ? null : this.#hiddenColKeysFromCols(cols)
     const categoryKeys = new Set()
     this.formTarget.querySelectorAll('input[type="checkbox"][data-col-key]').forEach(cb => {
-      cb.checked = visibleKeys === null || visibleKeys.has(cb.dataset.colKey)
+      cb.checked = hiddenColKeys === null || !hiddenColKeys.has(cb.dataset.colKey)
       if (cb.dataset.category) categoryKeys.add(cb.dataset.category)
     })
     categoryKeys.forEach(key => this.#updateCategoryState(key))
+  }
+
+  #hiddenColKeysFromCols(cols) {
+    return new Set(cols.split(",").filter(s => s.startsWith("-")).map(s => s.slice(1)))
   }
 
   #setCategoryExpanded(categoryKey, expanded) {

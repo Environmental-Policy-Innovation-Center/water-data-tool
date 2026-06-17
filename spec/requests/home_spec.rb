@@ -513,5 +513,85 @@ RSpec.describe "Home", type: :request do
       get table_path, params: {sort: "pws_name", direction: "desc"}
       expect(response.body).to include("text-gray-600")
     end
+
+    context "with cols encoded in url state blob (column visibility)" do
+      it "shows all columns when cols is absent from blob" do
+        get table_path
+        expect(response.body).to include("State")
+        expect(response.body).to include("County")
+        expect(response.body).to include("Grant eligible")
+      end
+
+      it "shows only the requested columns plus always-visible ones" do
+        get table_path, params: {encoded: encode_state({cols: "stusps"})}
+        expect(response.body).to include("State")
+        expect(response.body).not_to include("County")
+      end
+
+      it "always shows the pws_name column regardless of cols" do
+        get table_path, params: {encoded: encode_state({cols: "stusps"})}
+        expect(response.body).to include("Utility Name")
+      end
+
+      it "ignores unknown column keys in cols" do
+        get table_path, params: {encoded: encode_state({cols: "stusps,nonexistent_column"})}
+        expect(response.body).to include("State")
+        expect(response.body).not_to include("County")
+      end
+
+      it "shows multiple requested columns" do
+        get table_path, params: {encoded: encode_state({cols: "stusps,counties"})}
+        expect(response.body).to include("State")
+        expect(response.body).to include("County")
+        expect(response.body).not_to include("Grant eligible")
+      end
+
+      it "renders visible columns in cols order" do
+        get table_path, params: {encoded: encode_state({cols: "counties,stusps"})}
+        county_pos = response.body.index(">County</span>")
+        state_pos = response.body.index(">State</span>")
+        expect(county_pos).to be_present
+        expect(state_pos).to be_present
+        expect(county_pos).to be < state_pos
+      end
+
+      it "renders all columns in the manage-columns panel even when cols excludes some" do
+        get root_path, params: {encoded: encode_state({cols: "counties,stusps"})}
+        expect(response.body).to include("col_counties")
+        expect(response.body).to include("col_stusps")
+        expect(response.body).to include("col_pwsid")
+      end
+    end
+
+    context "with - prefix col keys (full panel state format)" do
+      it "shows only visible columns in the table (strips hidden - prefix cols)" do
+        get table_path, params: {encoded: encode_state({cols: "stusps,-pwsid"})}
+        expect(response.body).to include("State")
+        expect(response.body).not_to include(">PWSID</")
+      end
+
+      it "renders panel with hidden column present but unchecked" do
+        get root_path, params: {encoded: encode_state({cols: "stusps,-pwsid"})}
+        body = response.body
+        expect(body).to include("col_stusps")
+        expect(body).to include("col_pwsid")
+      end
+
+      it "renders panel in blob col order with hidden columns in position" do
+        get root_path, params: {encoded: encode_state({cols: "counties,-pwsid,stusps"})}
+        counties_pos = response.body.index("col_counties")
+        pwsid_pos = response.body.index("col_pwsid")
+        stusps_pos = response.body.index("col_stusps")
+        expect(counties_pos).to be < pwsid_pos
+        expect(pwsid_pos).to be < stusps_pos
+      end
+
+      it "renders visible columns in table in blob col order" do
+        get table_path, params: {encoded: encode_state({cols: "counties,-pwsid,stusps"})}
+        county_pos = response.body.index(">County</span>")
+        state_pos = response.body.index(">State</span>")
+        expect(county_pos).to be < state_pos
+      end
+    end
   end
 end

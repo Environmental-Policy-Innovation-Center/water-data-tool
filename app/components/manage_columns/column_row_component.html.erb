@@ -1,5 +1,9 @@
 <li class="flex items-center gap-2 rounded <%= @indented ? 'pl-6 pr-2' : 'px-2' %> py-1.5 hover:bg-neutral-50">
-  <%= icon "drag", classes: "size-3 shrink-0 text-neutral-300" %>
+  <button type="button"
+          class="drag-handle shrink-0 cursor-grab text-neutral-300 active:cursor-grabbing touch-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
+          aria-label="Drag to reorder <%= @col.label %>">
+    <%= icon "drag", classes: "size-3 pointer-events-none" %>
+  </button>
   <label for="col_<%= @col.key %>" class="flex-1 cursor-pointer text-sm text-neutral-700">
     <%= @col.label %>
   </label>

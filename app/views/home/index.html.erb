@@ -232,29 +232,17 @@
                 <% end %>
               </div>
               <ul class="m-0 flex-1 min-h-0 list-none overflow-y-auto px-2 pb-1 pt-1"
+                  data-manage-columns-target="columnList"
                   aria-label="Table columns">
-                <%# Ungrouped toggleable columns %>
-                <% (@cols_by_category[nil] || []).each do |col| %>
-                  <%= render ManageColumns::ColumnRowComponent.new(
-                        col: col,
-                        checked: @visible_col_keys.nil? || @visible_col_keys.include?(col.key)
-                      ) %>
-                <% end %>
-                <%# Categorized columns %>
-                <% @column_categories.each do |cat| %>
-                  <% cat_cols = @cols_by_category[cat.key] || [] %>
-                  <% next if cat_cols.empty? %>
-                  <%= render ManageColumns::CategoryHeaderRowComponent.new(cat: cat) do %>
-                    <% cat_cols.each do |col| %>
-                      <%= render ManageColumns::ColumnRowComponent.new(
-                            col: col,
-                            checked: @visible_col_keys.nil? || @visible_col_keys.include?(col.key),
-                            indented: true
-                          ) %>
-                    <% end %>
-                  <% end %>
-                <% end %>
+                <%= render "home/manage_columns_list",
+                      panel_groups: @panel_groups,
+                      visible_col_keys: @visible_col_keys %>
               </ul>
+              <template data-manage-columns-target="defaultTemplate">
+                <%= render "home/manage_columns_list",
+                      panel_groups: ColumnRegistry.panel_groups(col_keys: nil),
+                      force_all_checked: true %>
+              </template>
               <div class="shrink-0 border-t border-neutral-100 bg-white pb-2.5 pt-1 text-center"
                    role="group"
                    aria-label="Column actions">
