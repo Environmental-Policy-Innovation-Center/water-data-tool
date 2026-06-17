@@ -1,0 +1,289 @@
+name: Refresh Cartographic Boundaries
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_environment:
+        description: "Environment to refresh"
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+      scale_service_down:
+        description: "Temporarily scale the web service to zero while the one-off task runs"
+        required: true
+        type: boolean
+        default: false
+      confirm:
+        description: 'Type "refresh-<env>-boundaries"; append "-with-downtime" when scale_service_down is true'
+        required: true
+
+concurrency:
+  group: refresh-cartographic-boundaries-${{ github.event.inputs.target_environment }}
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    if: vars.AWS_DEPLOY_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.target_environment }}
+    permissions:
+      id-token: write
+      contents: read
+    env:
+      AWS_REGION:          ${{ vars.AWS_REGION }}
+      ECS_CLUSTER:         ${{ vars.ECS_CLUSTER }}
+      ECS_SERVICE_PROD:    ${{ vars.ECS_SERVICE_PROD }}
+      ECS_SERVICE_STAGING: ${{ vars.ECS_SERVICE_STAGING }}
+      TARGET_ENV:          ${{ github.event.inputs.target_environment }}
+      SCALE_SERVICE_DOWN:  ${{ github.event.inputs.scale_service_down }}
+
+    steps:
+      - name: Validate confirmation input
+        run: |
+          EXPECTED="refresh-${TARGET_ENV}-boundaries"
+          if [ "$SCALE_SERVICE_DOWN" = "true" ]; then
+            EXPECTED="${EXPECTED}-with-downtime"
+          fi
+
+          if [ "${{ github.event.inputs.confirm }}" != "$EXPECTED" ]; then
+            echo "::error::Confirmation input must be exactly '$EXPECTED'."
+            exit 1
+          fi
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Resolve ECS target
+        id: target
+        run: |
+          if [ "$TARGET_ENV" = "staging" ]; then
+            SERVICE="$ECS_SERVICE_STAGING"
+          elif [ "$TARGET_ENV" = "production" ]; then
+            SERVICE="$ECS_SERVICE_PROD"
+          else
+            echo "::error::Unknown target environment: $TARGET_ENV"
+            exit 1
+          fi
+
+          TASK_DEF=$(aws ecs describe-services \
+            --cluster "$ECS_CLUSTER" \
+            --services "$SERVICE" \
+            --query 'services[0].taskDefinition' \
+            --output text)
+
+          if [ -z "$TASK_DEF" ] || [ "$TASK_DEF" = "None" ]; then
+            echo "::error::Could not resolve task definition for service '$SERVICE'"
+            exit 1
+          fi
+
+          CONTAINER_NAME=$(aws ecs describe-task-definition \
+            --task-definition "$TASK_DEF" \
+            --query 'taskDefinition.containerDefinitions[0].name' \
+            --output text)
+
+          DESIRED_COUNT=$(aws ecs describe-services \
+            --cluster "$ECS_CLUSTER" \
+            --services "$SERVICE" \
+            --query 'services[0].desiredCount' \
+            --output text)
+
+          PLACEMENT_CONSTRAINTS=$(aws ecs describe-services \
+            --cluster "$ECS_CLUSTER" \
+            --services "$SERVICE" \
+            --query 'services[0].placementConstraints' \
+            --output json | jq -c .)
+
+          {
+            echo "service=$SERVICE"
+            echo "task_definition=$TASK_DEF"
+            echo "container_name=$CONTAINER_NAME"
+            echo "desired_count=$DESIRED_COUNT"
+            echo "placement_constraints=$PLACEMENT_CONSTRAINTS"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Scale service down
+        if: github.event.inputs.scale_service_down == 'true'
+        run: |
+          aws ecs update-service \
+            --cluster "$ECS_CLUSTER" \
+            --service "${{ steps.target.outputs.service }}" \
+            --desired-count 0 \
+            --no-cli-pager
+
+          aws ecs wait services-stable \
+            --cluster "$ECS_CLUSTER" \
+            --services "${{ steps.target.outputs.service }}"
+
+      - name: Refresh cartographic boundaries
+        id: refresh
+        timeout-minutes: 30
+        env:
+          TASK_DEF: ${{ steps.target.outputs.task_definition }}
+          CONTAINER_NAME: ${{ steps.target.outputs.container_name }}
+          PLACEMENT_CONSTRAINTS: ${{ steps.target.outputs.placement_constraints }}
+        run: |
+          OVERRIDES=$(jq -cn \
+            --arg name "$CONTAINER_NAME" \
+            --arg code "CartographicBoundaries.load" \
+            '{containerOverrides:[{name:$name, command:["./bin/rails","runner",$code]}]}')
+
+          RUN_ARGS=(
+            --cluster "$ECS_CLUSTER"
+            --launch-type EC2
+            --task-definition "$TASK_DEF"
+            --started-by "gha-refresh-boundaries-${TARGET_ENV}"
+            --overrides "$OVERRIDES"
+          )
+
+          if [ "$PLACEMENT_CONSTRAINTS" != "[]" ]; then
+            RUN_ARGS+=(--placement-constraints "$PLACEMENT_CONSTRAINTS")
+          fi
+
+          RUN_TASK_RESPONSE=$(aws ecs run-task "${RUN_ARGS[@]}" --output json)
+          TASK_ARN=$(jq -r '.tasks[0].taskArn // empty' <<< "$RUN_TASK_RESPONSE")
+          if [ -z "$TASK_ARN" ] || [ "$TASK_ARN" = "None" ]; then
+            echo "::error::Failed to start boundary refresh task."
+            jq -r '.failures // []' <<< "$RUN_TASK_RESPONSE"
+            exit 1
+          fi
+
+          echo "task_arn=$TASK_ARN" >> "$GITHUB_OUTPUT"
+
+          aws ecs wait tasks-stopped \
+            --cluster "$ECS_CLUSTER" \
+            --tasks "$TASK_ARN"
+
+          TASK_DESCRIPTION=$(aws ecs describe-tasks \
+            --cluster "$ECS_CLUSTER" \
+            --tasks "$TASK_ARN")
+          EXIT_CODE=$(jq -r '.tasks[0].containers[0].exitCode // empty' <<< "$TASK_DESCRIPTION")
+
+          if [ "$EXIT_CODE" != "0" ]; then
+            echo "::error::Boundary refresh task exited with code $EXIT_CODE. Task: $TASK_ARN"
+            jq '.tasks[0].containers[0] | {name, lastStatus, exitCode, reason}' <<< "$TASK_DESCRIPTION"
+            exit 1
+          fi
+
+      - name: Verify boundary row counts
+        id: verify
+        timeout-minutes: 10
+        env:
+          TASK_DEF: ${{ steps.target.outputs.task_definition }}
+          CONTAINER_NAME: ${{ steps.target.outputs.container_name }}
+          PLACEMENT_CONSTRAINTS: ${{ steps.target.outputs.placement_constraints }}
+        run: |
+          VERIFY_CODE='counts = {cartographic_states: CartographicState.count, cartographic_counties: CartographicCounty.count, cartographic_places: CartographicPlace.count}; puts counts.to_json; abort("Missing cartographic boundary rows: #{counts}") if counts.values.any?(&:zero?)'
+          OVERRIDES=$(jq -cn \
+            --arg name "$CONTAINER_NAME" \
+            --arg code "$VERIFY_CODE" \
+            '{containerOverrides:[{name:$name, command:["./bin/rails","runner",$code]}]}')
+
+          RUN_ARGS=(
+            --cluster "$ECS_CLUSTER"
+            --launch-type EC2
+            --task-definition "$TASK_DEF"
+            --started-by "gha-verify-boundaries-${TARGET_ENV}"
+            --overrides "$OVERRIDES"
+          )
+
+          if [ "$PLACEMENT_CONSTRAINTS" != "[]" ]; then
+            RUN_ARGS+=(--placement-constraints "$PLACEMENT_CONSTRAINTS")
+          fi
+
+          RUN_TASK_RESPONSE=$(aws ecs run-task "${RUN_ARGS[@]}" --output json)
+          TASK_ARN=$(jq -r '.tasks[0].taskArn // empty' <<< "$RUN_TASK_RESPONSE")
+          if [ -z "$TASK_ARN" ] || [ "$TASK_ARN" = "None" ]; then
+            echo "::error::Failed to start boundary verification task."
+            jq -r '.failures // []' <<< "$RUN_TASK_RESPONSE"
+            exit 1
+          fi
+
+          echo "task_arn=$TASK_ARN" >> "$GITHUB_OUTPUT"
+
+          aws ecs wait tasks-stopped \
+            --cluster "$ECS_CLUSTER" \
+            --tasks "$TASK_ARN"
+
+          TASK_DESCRIPTION=$(aws ecs describe-tasks \
+            --cluster "$ECS_CLUSTER" \
+            --tasks "$TASK_ARN")
+          EXIT_CODE=$(jq -r '.tasks[0].containers[0].exitCode // empty' <<< "$TASK_DESCRIPTION")
+
+          if [ "$EXIT_CODE" != "0" ]; then
+            echo "::error::Boundary verification task exited with code $EXIT_CODE. Task: $TASK_ARN"
+            jq '.tasks[0].containers[0] | {name, lastStatus, exitCode, reason}' <<< "$TASK_DESCRIPTION"
+            exit 1
+          fi
+
+          LOG_GROUP=$(aws ecs describe-task-definition \
+            --task-definition "$TASK_DEF" \
+            --query 'taskDefinition.containerDefinitions[0].logConfiguration.options."awslogs-group"' \
+            --output text)
+          LOG_PREFIX=$(aws ecs describe-task-definition \
+            --task-definition "$TASK_DEF" \
+            --query 'taskDefinition.containerDefinitions[0].logConfiguration.options."awslogs-stream-prefix"' \
+            --output text)
+          TASK_ID="${TASK_ARN##*/}"
+          LOG_STREAM="${LOG_PREFIX}/${CONTAINER_NAME}/${TASK_ID}"
+
+          sleep 5
+          COUNTS=$(aws logs get-log-events \
+            --log-group-name "$LOG_GROUP" \
+            --log-stream-name "$LOG_STREAM" \
+            --start-from-head \
+            --query 'events[*].message' \
+            --output text)
+
+          DELIM=$(openssl rand -hex 8)
+          {
+            echo "boundary_counts<<$DELIM"
+            echo "$COUNTS"
+            echo "$DELIM"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Restore service desired count
+        if: always() && github.event.inputs.scale_service_down == 'true' && steps.target.outputs.service != '' && steps.target.outputs.desired_count != ''
+        run: |
+          aws ecs update-service \
+            --cluster "$ECS_CLUSTER" \
+            --service "${{ steps.target.outputs.service }}" \
+            --desired-count "${{ steps.target.outputs.desired_count }}" \
+            --no-cli-pager
+
+          aws ecs wait services-stable \
+            --cluster "$ECS_CLUSTER" \
+            --services "${{ steps.target.outputs.service }}"
+
+      - name: Summary
+        if: always()
+        env:
+          BOUNDARY_COUNTS: ${{ steps.verify.outputs.boundary_counts }}
+        run: |
+          {
+            echo "## Cartographic boundary refresh"
+            echo ""
+            echo "| | |"
+            echo "|---|---|"
+            echo "| **Environment** | \`${TARGET_ENV}\` |"
+            echo "| **Service** | \`${{ steps.target.outputs.service }}\` |"
+            echo "| **Refresh task** | \`${{ steps.refresh.outputs.task_arn }}\` |"
+            echo "| **Verify task** | \`${{ steps.verify.outputs.task_arn }}\` |"
+            echo "| **Scaled service down** | \`${SCALE_SERVICE_DOWN}\` |"
+            echo "| **Triggered by** | @${{ github.actor }} |"
+            echo "| **Time** | $(date -u '+%Y-%m-%d %H:%M UTC') |"
+            echo ""
+            echo "### Boundary row counts"
+            echo ""
+            echo '```json'
+            if [ -n "$BOUNDARY_COUNTS" ]; then
+              printf '%s\n' "$BOUNDARY_COUNTS"
+            else
+              echo "Row counts were not captured."
+            fi
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
