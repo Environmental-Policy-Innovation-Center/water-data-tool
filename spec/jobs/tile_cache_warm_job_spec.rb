@@ -67,6 +67,46 @@ RSpec.describe TileCacheWarmJob, type: :job do
       expect(TileGenerator).to have_received(:generate_tile!).with("counties", 8, 0, 0)
       expect(TileGenerator).to have_received(:generate_tile!).with("states", 8, 0, 0)
     end
+
+    it "defaults to warming eligible layers through z8" do
+      allow_any_instance_of(described_class).to receive(:tile_coordinates).and_return([[0, 0]])
+
+      described_class.perform_now
+
+      expect(TileGenerator).to have_received(:generate_tile!).with("states", 0, 0, 0)
+      expect(TileGenerator).to have_received(:generate_tile!).with("states", 8, 0, 0)
+      expect(TileGenerator).not_to have_received(:generate_tile!).with(anything, 9, anything, anything)
+    end
+
+    it "does not warm zooms above max_zoom" do
+      allow_any_instance_of(described_class).to receive(:tile_coordinates).and_return([[0, 0]])
+
+      described_class.perform_now(max_zoom: 5)
+
+      expect(TileGenerator).to have_received(:generate_tile!).with("states", 5, 0, 0)
+      expect(TileGenerator).not_to have_received(:generate_tile!).with(anything, 6, anything, anything)
+    end
+
+    it "warms only requested layers when layers are provided" do
+      allow_any_instance_of(described_class).to receive(:tile_coordinates).and_return([[0, 0]])
+
+      described_class.perform_now(layers: %w[states counties places])
+
+      expect(TileGenerator).to have_received(:generate_tile!).with("states", 8, 0, 0)
+      expect(TileGenerator).to have_received(:generate_tile!).with("counties", 8, 0, 0)
+      expect(TileGenerator).to have_received(:generate_tile!).with("places", 8, 0, 0)
+      expect(TileGenerator).not_to have_received(:generate_tile!).with("pws", anything, anything, anything)
+    end
+
+    it "uses zoom eligibility after filtering requested layers" do
+      allow_any_instance_of(described_class).to receive(:tile_coordinates).and_return([[0, 0]])
+
+      described_class.perform_now(max_zoom: 5, layers: %w[states counties places])
+
+      expect(TileGenerator).to have_received(:generate_tile!).with("states", 5, 0, 0)
+      expect(TileGenerator).to have_received(:generate_tile!).with("counties", 5, 0, 0)
+      expect(TileGenerator).not_to have_received(:generate_tile!).with("places", 5, 0, 0)
+    end
   end
 
   describe "#tile_coordinates" do

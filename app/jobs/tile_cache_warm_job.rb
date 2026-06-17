@@ -12,14 +12,14 @@ class TileCacheWarmJob < ApplicationJob
     [144, 13, 146, 16]  # Guam + CNMI
   ].freeze
 
-  def perform
+  def perform(max_zoom: MAX_WARM_ZOOM, layers: nil)
     total_start = Time.current
     total_coords = 0
 
-    log("[TileCacheWarm] Starting smart warm for z0-z#{MAX_WARM_ZOOM}")
+    log("[TileCacheWarm] Starting smart warm for z0-z#{max_zoom}")
 
-    (0..MAX_WARM_ZOOM).each do |z|
-      total_coords += warm_zoom(z)
+    (0..max_zoom).each do |z|
+      total_coords += warm_zoom(z, requested_layers: layers)
     end
 
     elapsed = (Time.current - total_start).round(1)
@@ -28,13 +28,14 @@ class TileCacheWarmJob < ApplicationJob
 
   private
 
-  def warm_zoom(z)
+  def warm_zoom(z, requested_layers: nil)
     started_at = Time.current
     errors = 0
     coords = tile_coordinates(z)
     total = coords.size
 
     layers = TileGenerator.layers_for_zoom(z)
+    layers &= requested_layers if requested_layers
 
     log("[TileCacheWarm] z#{z}: starting (#{total} coordinates, #{layers.size} layers each)")
 

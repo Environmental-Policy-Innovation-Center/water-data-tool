@@ -107,6 +107,27 @@ RSpec.describe Etl::PostImportSteps do
     end
   end
 
+  describe ".bust_cartographic_boundary_tile_cache" do
+    it "deletes only boundary layer rows from the tile cache" do
+      create(:tile_cache, layer: "states", z: 3, x: 2, y: 1)
+      create(:tile_cache, layer: "counties", z: 5, x: 8, y: 12)
+      create(:tile_cache, layer: "places", z: 8, x: 76, y: 93)
+      pws = create(:tile_cache, layer: "pws", z: 5, x: 9, y: 12)
+
+      expect { described_class.bust_cartographic_boundary_tile_cache }
+        .to change { TileCache.count }.from(4).to(1)
+
+      expect(TileCache.pluck(:layer, :z, :x, :y)).to eq([[pws.layer, pws.z, pws.x, pws.y]])
+    end
+
+    it "runs without error when no boundary cache rows exist" do
+      create(:tile_cache, layer: "pws", z: 5, x: 8, y: 12)
+
+      expect { described_class.bust_cartographic_boundary_tile_cache }.not_to raise_error
+      expect(TileCache.pluck(:layer)).to eq(["pws"])
+    end
+  end
+
   describe ".call" do
     before do
       insert_state("VT", VERMONT_STATE_WKT)

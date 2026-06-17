@@ -192,6 +192,11 @@ module Etl
       Rails.logger.info("[ETL] bust_tile_cache: deleted #{deleted} cached tile(s)")
     end
 
+    def bust_cartographic_boundary_tile_cache
+      deleted = TileCache.where(layer: %w[states counties places]).delete_all
+      Rails.logger.info("[ETL] bust_cartographic_boundary_tile_cache: deleted #{deleted} cached boundary tile(s)")
+    end
+
     # Rebuild GiST spatial indexes and update query-planner statistics after
     # a bulk geometry import. CONCURRENTLY avoids ACCESS EXCLUSIVE locks on
     # service_area_geometries while map requests continue using the old indexes.
