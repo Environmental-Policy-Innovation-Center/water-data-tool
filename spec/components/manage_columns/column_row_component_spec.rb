@@ -21,9 +21,10 @@ RSpec.describe ManageColumns::ColumnRowComponent, type: :component do
   context "ungrouped column" do
     before { render_inline(described_class.new(col: ungrouped_col, checked: true)) }
 
-    it "renders an li with drag icon and label" do
+    it "renders an li with drag handle and label" do
       expect(html.at_css("li")).to be_present
       expect(html.text).to include("Utility ID")
+      expect(html.at_css("button.drag-handle")).to be_present
     end
 
     it "renders a checked checkbox with data-col-key" do

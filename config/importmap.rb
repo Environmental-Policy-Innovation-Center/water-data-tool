@@ -14,3 +14,4 @@ pin "selection_state", to: "selection_state.js"
 
 # Third-party vendor libraries (vendored via bin/importmap pin)
 pin "pako" # @2.1.0
+pin "sortablejs" # @1.15.7

@@ -114,20 +114,102 @@ RSpec.describe ColumnRegistry do
 
     it "always includes pinned columns regardless of keys" do
       pinned_keys = ColumnRegistry.columns.select(&:pinned).map(&:key)
-      result = ColumnRegistry.visible(keys: Set.new)
+      result = ColumnRegistry.visible(keys: [])
       expect(result.map(&:key)).to include(*pinned_keys)
     end
 
     it "excludes non-pinned columns not in the keys set" do
-      result = ColumnRegistry.visible(keys: Set[:pwsid])
+      result = ColumnRegistry.visible(keys: [:pwsid])
       non_pinned_keys = result.reject(&:pinned).map(&:key)
       expect(non_pinned_keys).not_to include(:stusps, :counties)
     end
 
     it "includes non-pinned columns whose key is in the keys set" do
-      result = ColumnRegistry.visible(keys: Set[:pwsid, :stusps])
+      result = ColumnRegistry.visible(keys: [:pwsid, :stusps])
       non_pinned_keys = result.reject(&:pinned).map(&:key)
       expect(non_pinned_keys).to include(:pwsid, :stusps)
+    end
+
+    it "returns non-pinned columns in the order specified by keys" do
+      result = ColumnRegistry.visible(keys: [:counties, :stusps, :pwsid])
+      non_pinned_keys = result.reject(&:pinned).map(&:key)
+      expect(non_pinned_keys).to eq([:counties, :stusps, :pwsid])
+    end
+
+    it "places pinned columns before reordered selectable columns" do
+      result = ColumnRegistry.visible(keys: [:stusps, :pwsid])
+      expect(result.map(&:key).first(2)).to eq([:check, :pws_name])
+    end
+  end
+
+  describe ".parse_column_state" do
+    it "returns nil panel_col_keys and nil visible_col_keys when raw is nil" do
+      state = ColumnRegistry.parse_column_state(nil)
+      expect(state.panel_col_keys).to be_nil
+      expect(state.visible_col_keys).to be_nil
+    end
+
+    it "returns empty arrays when raw is blank" do
+      state = ColumnRegistry.parse_column_state("")
+      expect(state.panel_col_keys).to eq([])
+      expect(state.visible_col_keys).to eq([])
+    end
+
+    it "parses visible col keys from a new-format string with - prefix" do
+      state = ColumnRegistry.parse_column_state("counties,-pwsid,stusps")
+      expect(state.visible_col_keys).to eq([:counties, :stusps])
+    end
+
+    it "preserves full panel order including hidden positions from - prefix string" do
+      state = ColumnRegistry.parse_column_state("counties,-pwsid,stusps")
+      expect(state.panel_col_keys).to eq(["counties", "-pwsid", "stusps"])
+    end
+
+    it "handles legacy string with no - prefix: visible_col_keys contains only those keys" do
+      state = ColumnRegistry.parse_column_state("counties,stusps")
+      expect(state.visible_col_keys).to eq([:counties, :stusps])
+    end
+
+    it "appends remaining selectable cols as hidden in legacy format" do
+      state = ColumnRegistry.parse_column_state("counties,stusps")
+      expect(state.panel_col_keys).to start_with(["counties", "stusps"])
+      hidden_tail = state.panel_col_keys.drop(2)
+      expect(hidden_tail).to all(start_with("-"))
+      expect(hidden_tail).not_to include("-counties", "-stusps")
+    end
+  end
+
+  describe ".panel_groups" do
+    it "returns YAML-ordered groups when col_keys is nil" do
+      groups = ColumnRegistry.panel_groups(col_keys: nil)
+      expect(groups).not_to be_empty
+      expect(groups.first[:type]).to be_in([:column, :category])
+      utility = groups.find { |g| g[:type] == :category && g[:cat].key == :utility_details }
+      expect(utility[:cols].map(&:key)).to eq(ColumnRegistry.columns_by_category[:utility_details].map(&:key))
+    end
+
+    it "returns empty array when col_keys is empty" do
+      expect(ColumnRegistry.panel_groups(col_keys: [])).to eq([])
+    end
+
+    it "orders columns within a category by col_keys order" do
+      groups = ColumnRegistry.panel_groups(col_keys: ["counties", "stusps"])
+      utility = groups.find { |g| g[:type] == :category && g[:cat].key == :utility_details }
+      expect(utility[:cols].map(&:key)).to eq([:counties, :stusps])
+    end
+
+    it "includes hidden columns (- prefix) in panel order" do
+      groups = ColumnRegistry.panel_groups(col_keys: ["counties", "-pwsid", "stusps"])
+      utility = groups.find { |g| g[:type] == :category && g[:cat].key == :utility_details }
+      expect(utility[:cols].map(&:key)).to eq([:counties, :pwsid, :stusps])
+    end
+
+    it "splits category blocks when col_keys interleave different categories" do
+      health_key = ColumnRegistry.columns.find { |c| c.category == :violations }&.key
+      expect(health_key).not_to be_nil, "expected columns.yml to have at least one :violations column"
+      groups = ColumnRegistry.panel_groups(col_keys: ["stusps", health_key.to_s, "pwsid"])
+      category_groups = groups.select { |g| g[:type] == :category }
+      expect(category_groups.size).to be >= 2
     end
   end
 

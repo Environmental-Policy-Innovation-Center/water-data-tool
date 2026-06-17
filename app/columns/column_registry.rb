@@ -13,19 +13,51 @@ class ColumnRegistry
     @columns_by_category ||= columns.reject(&:pinned).group_by(&:category).freeze
   end
 
-  # Pinned columns always included; keys: nil returns all columns.
+  ColumnState = Data.define(:panel_col_keys, :visible_col_keys)
+
+  # panel_col_keys:   nil = YAML default; Array<String> of raw keys, "-key" = hidden
+  # visible_col_keys: nil = all visible; Array<Symbol> of checked column keys only
+  def self.parse_column_state(raw)
+    return ColumnState.new(panel_col_keys: nil, visible_col_keys: nil) if raw.nil?
+    return ColumnState.new(panel_col_keys: [], visible_col_keys: []) if raw.strip.empty?
+
+    raw_keys = raw.strip.split(",").map(&:strip).reject(&:empty?)
+    hidden_raw, visible_raw = raw_keys.partition { |k| k.start_with?("-") }
+    visible_col_keys = visible_raw.map(&:to_sym)
+
+    if hidden_raw.any?
+      ColumnState.new(panel_col_keys: raw_keys, visible_col_keys:)
+    else
+      # Legacy format: visible keys only — append remaining selectable cols as hidden
+      selectable_keys = columns.reject(&:pinned).map { |c| c.key.to_s }
+      hidden_tail = (selectable_keys - visible_raw).map { |k| "-#{k}" }
+      ColumnState.new(panel_col_keys: visible_raw + hidden_tail, visible_col_keys:)
+    end
+  end
+
+  # col_keys: nil → YAML default (all columns, definition order).
+  # col_keys: [] → empty panel (pinned-only scenario).
+  # col_keys: Array<String> → panel follows that order; "-key" entries are included as hidden.
+  def self.panel_groups(col_keys: nil)
+    return yaml_panel_groups if col_keys.nil?
+    return [] if col_keys.empty?
+
+    selectable_by_key = columns.reject(&:pinned).index_by { |c| c.key.to_s }
+    ordered_cols = col_keys.filter_map { |k| selectable_by_key[k.delete_prefix("-")] }
+    build_groups(ordered_cols).freeze
+  end
+
+  # Pinned columns always included; keys: nil returns all columns in YAML order.
   def self.visible(keys: nil)
     return columns if keys.nil?
     pinned, selectable = columns.partition(&:pinned)
-    pinned + selectable.select { |c| keys.include?(c.key) }
+    selectable_by_key = selectable.index_by(&:key)
+    pinned + keys.filter_map { |k| selectable_by_key[k] }
   end
 
-  # Parses the raw cols= query-string value into the canonical key list.
-  # Returns nil (all columns), [] (pinned only), or an Array of Symbols.
+  # Returns visible col keys only — use parse_column_state for full panel state.
   def self.parse_keys(raw)
-    return nil if raw.nil?
-    return [] if raw.strip.empty?
-    raw.strip.split(",").map { |k| k.strip.to_sym }
+    parse_column_state(raw).visible_col_keys
   end
 
   def self.reload!
@@ -33,6 +65,8 @@ class ColumnRegistry
     @columns = nil
     @categories = nil
     @columns_by_category = nil
+    @categories_by_key = nil
+    @yaml_panel_groups = nil
     columns
     categories
   end
@@ -86,4 +120,36 @@ class ColumnRegistry
     end.freeze
   end
   private_class_method :load_columns
+
+  def self.yaml_panel_groups
+    @yaml_panel_groups ||= begin
+      ordered = (columns_by_category[nil] || []) +
+        categories.flat_map { |cat| columns_by_category[cat.key] || [] }
+      build_groups(ordered).freeze
+    end
+  end
+  private_class_method :yaml_panel_groups
+
+  def self.categories_by_key
+    @categories_by_key ||= categories.index_by(&:key)
+  end
+  private_class_method :categories_by_key
+
+  def self.build_groups(ordered_cols)
+    groups = []
+    ordered_cols.each do |col|
+      if col.category.nil?
+        groups << {type: :column, col: col}
+      else
+        last = groups.last
+        if last&.dig(:type) == :category && last[:cat].key == col.category
+          last[:cols] << col
+        else
+          groups << {type: :category, cat: categories_by_key[col.category], cols: [col]}
+        end
+      end
+    end
+    groups
+  end
+  private_class_method :build_groups
 end

@@ -1,0 +1,20 @@
+<%# locals: (panel_groups:, force_all_checked: false, visible_col_keys: nil) %>
+<% visible_col_keys = visible_col_keys.to_set if visible_col_keys.is_a?(Array) %>
+<% panel_groups.each do |group| %>
+  <% if group[:type] == :column %>
+    <%= render ManageColumns::ColumnRowComponent.new(
+          col: group[:col],
+          checked: force_all_checked || visible_col_keys.nil? || visible_col_keys.include?(group[:col].key)
+        ) %>
+  <% else %>
+    <%= render ManageColumns::CategoryHeaderRowComponent.new(cat: group[:cat]) do %>
+      <% group[:cols].each do |col| %>
+        <%= render ManageColumns::ColumnRowComponent.new(
+              col: col,
+              checked: force_all_checked || visible_col_keys.nil? || visible_col_keys.include?(col.key),
+              indented: true
+            ) %>
+      <% end %>
+    <% end %>
+  <% end %>
+<% end %>
