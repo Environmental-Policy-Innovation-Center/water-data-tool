@@ -1,5 +1,6 @@
 class EtlImportJob < ApplicationJob
-  queue_as :default
+  queue_as :etl
+  limits_concurrency key: "etl_import", to: 1, duration: 6.hours
 
   # Keyword arguments mirror the options exposed by the etl:import rake task.
   #

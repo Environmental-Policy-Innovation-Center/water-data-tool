@@ -1,5 +1,9 @@
 module TileGenerator
   LAYERS = %w[pws places counties states].freeze
+  EXTENT = 4096
+  BUFFER = 64
+  PWS_MIN_ZOOM = 5
+  PLACES_MIN_ZOOM = 8
 
   # Simplification tolerances keyed by max zoom level.
   SIMPLIFICATION = [
@@ -17,6 +21,14 @@ module TileGenerator
 
   def layers
     LAYERS
+  end
+
+  def layers_for_zoom(z)
+    return %w[states] if z < PWS_MIN_ZOOM
+
+    layers = LAYERS.dup
+    layers.delete("places") if z < PLACES_MIN_ZOOM
+    layers
   end
 
   def simplification_tolerance(z)
@@ -48,7 +60,7 @@ module TileGenerator
     cached = TileCache.where(z: z, x: x, y: y).index_by(&:layer)
     simp = simplification_tolerance(z)
 
-    LAYERS.each_with_object("".b) do |layer, result|
+    layers_for_zoom(z).each_with_object("".b) do |layer, result|
       mvt = if cached[layer]
         cached[layer].mvt.to_s
       else
@@ -88,32 +100,35 @@ module TileGenerator
   # Safety: z, x, y are integers and simp is a hardcoded Float from
   # SIMPLIFICATION. No user-controlled data is interpolated.
   def layer_sql(layer, z, x, y, simp)
+    tile_envelope = tile_envelope_sql(z, x, y)
+    query_envelope = tile_envelope_sql(z, x, y, margin: true)
+
     case layer
     when "pws"
       <<~SQL.squish
-        SELECT ST_AsMVT(t, 'pws', 4096, 'mvtgeom') AS mvt
+        SELECT ST_AsMVT(t, 'pws', #{EXTENT}, 'mvtgeom') AS mvt
         FROM (
           SELECT
             ST_AsMVTGeom(
-              ST_SimplifyPreserveTopology(ST_Transform(sag.geom, 3857), #{simp}),
-              ST_TileEnvelope(#{z}, #{x}, #{y}), 4096, 0, false
+              ST_Transform(ST_SimplifyPreserveTopology(sag.geom, #{simp}), 3857),
+              #{tile_envelope}, #{EXTENT}, #{BUFFER}, true
             ) AS mvtgeom,
             pws.pwsid, pws.stusps, pws.pws_name, pws.symbology_field,
             pws.pop_cat_5, pws.population_served_count, pws.service_connections_count
           FROM service_area_geometries sag
           JOIN public_water_systems pws ON pws.pwsid = sag.pwsid
           WHERE sag.geom IS NOT NULL
-            AND sag.geom && ST_Transform(ST_TileEnvelope(#{z}, #{x}, #{y}), 4326)
+            AND sag.geom && ST_Transform(#{query_envelope}, 4326)
         ) t
       SQL
     when "places"
       <<~SQL.squish
-        SELECT ST_AsMVT(t, 'places', 4096, 'mvtgeom') AS mvt
+        SELECT ST_AsMVT(t, 'places', #{EXTENT}, 'mvtgeom') AS mvt
         FROM (
           SELECT
             ST_AsMVTGeom(
-              ST_SimplifyPreserveTopology(ST_Transform(cp.geom, 3857), #{simp}),
-              ST_TileEnvelope(#{z}, #{x}, #{y}), 4096, 0, false
+              ST_Transform(ST_SimplifyPreserveTopology(cp.geom, #{simp}), 3857),
+              #{tile_envelope}, #{EXTENT}, #{BUFFER}, true
             ) AS mvtgeom,
             cp.geoid,
             cp.name || ', ' || cp.stusps AS name,
@@ -123,42 +138,48 @@ module TileGenerator
             ON cp.geoid = psc.geoid
             AND (psc.fraction_of_service_area >= 0.5 OR psc.fraction_of_place >= 0.5)
           WHERE cp.geom IS NOT NULL
-            AND cp.geom && ST_Transform(ST_TileEnvelope(#{z}, #{x}, #{y}), 4326)
+            AND cp.geom && ST_Transform(#{query_envelope}, 4326)
           GROUP BY cp.geoid, cp.name, cp.stusps, cp.geom
         ) t
       SQL
     when "counties"
       <<~SQL.squish
-        SELECT ST_AsMVT(t, 'counties', 4096, 'mvtgeom') AS mvt
+        SELECT ST_AsMVT(t, 'counties', #{EXTENT}, 'mvtgeom') AS mvt
         FROM (
           SELECT
             ST_AsMVTGeom(
-              ST_SimplifyPreserveTopology(ST_Transform(cc.geom, 3857), #{simp}),
-              ST_TileEnvelope(#{z}, #{x}, #{y}), 4096, 0, false
+              ST_Transform(ST_SimplifyPreserveTopology(cc.geom, #{simp}), 3857),
+              #{tile_envelope}, #{EXTENT}, #{BUFFER}, true
             ) AS mvtgeom,
             cc.geoid,
             cc.namelsad || ', ' || cc.stusps AS name
           FROM cartographic_counties cc
           WHERE cc.geom IS NOT NULL
-            AND cc.geom && ST_Transform(ST_TileEnvelope(#{z}, #{x}, #{y}), 4326)
+            AND cc.geom && ST_Transform(#{query_envelope}, 4326)
         ) t
       SQL
     when "states"
       <<~SQL.squish
-        SELECT ST_AsMVT(t, 'states', 4096, 'mvtgeom') AS mvt
+        SELECT ST_AsMVT(t, 'states', #{EXTENT}, 'mvtgeom') AS mvt
         FROM (
           SELECT
             ST_AsMVTGeom(
-              ST_SimplifyPreserveTopology(ST_Transform(cs.geom, 3857), #{simp}),
-              ST_TileEnvelope(#{z}, #{x}, #{y}), 4096, 0, false
+              ST_Transform(ST_SimplifyPreserveTopology(cs.geom, #{simp}), 3857),
+              #{tile_envelope}, #{EXTENT}, #{BUFFER}, true
             ) AS mvtgeom,
             cs.geoid, cs.stusps, cs.name
           FROM cartographic_states cs
           WHERE cs.geom IS NOT NULL
-            AND cs.geom && ST_Transform(ST_TileEnvelope(#{z}, #{x}, #{y}), 4326)
+            AND cs.geom && ST_Transform(#{query_envelope}, 4326)
         ) t
       SQL
     end
+  end
+
+  def tile_envelope_sql(z, x, y, margin: false)
+    return "ST_TileEnvelope(#{z}, #{x}, #{y}, margin => #{BUFFER}.0 / #{EXTENT})" if margin
+
+    "ST_TileEnvelope(#{z}, #{x}, #{y})"
   end
   # rubocop:enable Metrics/MethodLength
 end

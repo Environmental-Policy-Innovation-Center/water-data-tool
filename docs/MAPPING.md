@@ -23,9 +23,9 @@ The source contains four **source layers** (data channels baked into each tile):
 | Source layer | Contains | Notes |
 |---|---|---|
 | `pws` | PWS service area polygons | Properties: `pwsid`, `pws_name`, `stusps`, `symbology_field`, `population_served_count`, `service_connections_count` |
-| `places` | Census place boundaries | Properties: `geoid`, `name` |
+| `places` | Census place boundaries | Properties: `geoid`, `name`, `place_pwsids` |
 | `counties` | County boundaries | Properties: `geoid`, `name` |
-| `states` | State boundaries | Properties: `geoid`, `stusps` |
+| `states` | State boundaries | Properties: `geoid`, `stusps`, `name` |
 
 ---
 
@@ -41,15 +41,21 @@ Tiles are generated on-demand by PostGIS (`ST_AsMVT`) and cached in the `tile_ca
 
 1. **Cold** — tile has never been requested; PostGIS generates it from `service_area_geometries` (slow, especially at low zoom where many polygons are included)
 2. **Warm** — tile exists in `tile_cache`; returned as a simple DB lookup (fast)
-3. **Invalidated** — ETL runs and calls `bust_tile_cache`, which truncates the entire `tile_cache` table; all tiles revert to cold
+3. **Refreshing** — ETL identifies affected tile coordinates and `TileCacheRefreshJob` overwrites those cached rows in the background; old cached rows remain readable until replacements are ready
 
-The ETL always wipes the full table (not selectively) because tiles embed non-geometry attributes (system names, categories, etc.) that can change from CSV-only imports.
+Normal imports refresh selectively. `epa_sabs.csv` reports PWS IDs when map-relevant attributes change, `epa_sabs_geoms.geojson` reports PWS IDs and previous geometry bounds when geometry digests change, and `TileImpact` converts those bounds into affected z5-z8 layer coordinates with a small edge margin.
+
+The full `bust_tile_cache` + `TileCacheWarmJob` path remains available for explicit full-refresh fallbacks, such as broad cartographic boundary changes.
 
 ### Pre-warming (TileCacheWarmJob)
 
-After each ETL run, `TileCacheWarmJob` pre-generates tiles for z0–z8 using US region bounding boxes (continental US, AK, HI, PR, Guam+CNMI). This skips empty ocean and land tiles entirely and covers through city/district zoom — the level where users first interact with individual water utility polygons. z9+ tiles generate on-demand (fast, small area).
+For full-refresh maintenance, `TileCacheWarmJob` pre-generates tiles for z0-z8 using US region bounding boxes (continental US, AK, HI, PR, Guam+CNMI). This skips empty ocean and land tiles entirely and covers through city/district zoom — the level where users first interact with individual water utility polygons. z9+ tiles generate on-demand (fast, small area).
 
 The warm job takes ~32 minutes at national scale (~44k systems). See `scratch/performance_work.md` for full timing data.
+
+### Selective refresh (TileImpact + TileCacheRefreshJob)
+
+After normal imports, `TileImpact` calculates affected z5-z8 coordinates for changed PWS and place bounds. It adds a one-tile margin so edge-adjacent tiles are refreshed, deduplicates coordinates, and enqueues bounded `TileCacheRefreshJob` batches on the `tile_refresh` queue. Each refresh job calls `TileGenerator.generate_tile!` for the affected layer/z/x/y rows.
 
 ### Zoom level tile counts
 

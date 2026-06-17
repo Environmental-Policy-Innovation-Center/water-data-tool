@@ -1,6 +1,8 @@
 module Etl
   module Importers
     class EpaSabsGeoms < Etl::FileImporter
+      require "digest"
+
       BATCH_SIZE = 500
 
       # Overrides FileImporter#call to stream the GeoJSON from disk one feature
@@ -12,7 +14,7 @@ module Etl
 
         unless needs_import?
           log("[ETL] #{filename}: skipped (unchanged since last import)")
-          return :skipped
+          return Etl::ImportResult.skipped(file_key: file_key)
         end
 
         log("[ETL] #{filename}: downloading...")
@@ -22,39 +24,62 @@ module Etl
         size_mb = (tempfile.size / 1_048_576.0).round(1)
         log("[ETL] #{filename}: downloaded #{size_mb} MB in #{elapsed}s, streaming import...")
 
-        count = stream_import(tempfile)
+        count, changed_pwsids, previous_geometry_bboxes = stream_import(tempfile)
         raise EmptyImportError, "Import produced 0 rows for #{@file_url}" if count.zero?
 
         record_import
         log("[ETL] #{filename}: import complete")
-        :imported
+        Etl::ImportResult.imported(
+          file_key: file_key,
+          changed_pwsids: changed_pwsids,
+          changed_layers: changed_pwsids.any? ? %w[pws places] : [],
+          geometry_changed: changed_pwsids.any?,
+          previous_geometry_bboxes: previous_geometry_bboxes
+        )
       ensure
         tempfile&.close!
       end
 
       def import!(rows)
         conn = ApplicationRecord.connection
+        changed_pwsids = []
+        previous_geometry_bboxes = []
 
         rows.each_slice(BATCH_SIZE) do |batch|
+          changed_batch, existing = changed_geometry_batch(batch)
+          next if changed_batch.empty?
+
+          changed_pwsids.concat(changed_batch.pluck(:pwsid))
+          previous_geometry_bboxes.concat(changed_batch.filter_map { |row| existing.dig(row[:pwsid], :bbox) })
           conn.transaction do
-            batch.each do |row|
+            changed_batch.each do |row|
               conn.exec_query(
                 <<~SQL,
-                  INSERT INTO service_area_geometries (pwsid, geom, created_at, updated_at)
-                  VALUES ($1, ST_GeomFromGeoJSON($2), NOW(), NOW())
+                  INSERT INTO service_area_geometries (pwsid, geom, geom_digest, created_at, updated_at)
+                  VALUES ($1, ST_GeomFromGeoJSON($2), $3, NOW(), NOW())
                   ON CONFLICT (pwsid) DO UPDATE
                     SET geom = EXCLUDED.geom,
+                        geom_digest = EXCLUDED.geom_digest,
                         updated_at = NOW()
                 SQL
                 "EpaSabsGeoms#import!",
                 [
                   ActiveRecord::Relation::QueryAttribute.new("pwsid", row[:pwsid], ActiveModel::Type::String.new),
-                  ActiveRecord::Relation::QueryAttribute.new("geom_json", row[:geom_json], ActiveModel::Type::String.new)
+                  ActiveRecord::Relation::QueryAttribute.new("geom_json", row[:geom_json], ActiveModel::Type::String.new),
+                  ActiveRecord::Relation::QueryAttribute.new("geom_digest", row[:geom_digest], ActiveModel::Type::String.new)
                 ]
               )
             end
           end
         end
+
+        Etl::ImportResult.imported(
+          file_key: file_key,
+          changed_pwsids: changed_pwsids,
+          changed_layers: changed_pwsids.any? ? %w[pws places] : [],
+          geometry_changed: changed_pwsids.any?,
+          previous_geometry_bboxes: previous_geometry_bboxes
+        )
       end
 
       # SAX-style handler that yields one complete feature Hash at a time as
@@ -128,6 +153,8 @@ module Etl
       def stream_import(tempfile)
         count = 0
         batch = []
+        changed_pwsids = []
+        previous_geometry_bboxes = []
 
         handler = FeatureHandler.new do |feature|
           batch << {
@@ -137,14 +164,64 @@ module Etl
           count += 1
 
           if batch.size >= BATCH_SIZE
-            import!(batch)
+            result = import!(batch)
+            changed_pwsids.concat(result.changed_pwsids)
+            previous_geometry_bboxes.concat(result.previous_geometry_bboxes)
             batch.clear
           end
         end
 
         File.open(tempfile.path) { |f| Oj.saj_parse(handler, f) }
-        import!(batch) unless batch.empty?
-        count
+        unless batch.empty?
+          result = import!(batch)
+          changed_pwsids.concat(result.changed_pwsids)
+          previous_geometry_bboxes.concat(result.previous_geometry_bboxes)
+        end
+        [count, changed_pwsids.uniq, previous_geometry_bboxes.uniq]
+      end
+
+      def changed_geometry_batch(batch)
+        rows = batch.map { |row| row.merge(geom_digest: geometry_digest(row)) }
+        existing = existing_geometry_metadata(rows.pluck(:pwsid))
+        changed_rows = rows.reject { |row| existing.dig(row[:pwsid], :geom_digest) == row[:geom_digest] }
+
+        [changed_rows, existing]
+      end
+
+      def geometry_digest(row)
+        Digest::SHA256.hexdigest(row[:geom_json].to_s)
+      end
+
+      def existing_geometry_metadata(pwsids)
+        rows = ApplicationRecord.connection.exec_query(
+          <<~SQL,
+            SELECT
+              pwsid,
+              geom_digest,
+              ST_XMin(geom::box3d) AS west,
+              ST_YMin(geom::box3d) AS south,
+              ST_XMax(geom::box3d) AS east,
+              ST_YMax(geom::box3d) AS north
+            FROM service_area_geometries
+            WHERE pwsid = ANY($1::text[])
+          SQL
+          "EpaSabsGeoms#existing_geometry_metadata",
+          [
+            ActiveRecord::Relation::QueryAttribute.new(
+              "pwsids",
+              Array(pwsids).compact.uniq,
+              ActiveRecord::ConnectionAdapters::PostgreSQL::OID::Array.new(ActiveModel::Type::String.new)
+            )
+          ]
+        )
+
+        rows.each_with_object({}) do |row, metadata|
+          bbox = %w[west south east north].map { |key| row[key]&.to_f }
+          metadata[row.fetch("pwsid")] = {
+            geom_digest: row["geom_digest"],
+            bbox: bbox.all? ? bbox : nil
+          }
+        end
       end
     end
   end

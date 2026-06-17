@@ -27,6 +27,22 @@ RSpec.describe TileGenerator do
     end
   end
 
+  describe ".layers_for_zoom" do
+    it "returns only states before state selection is available" do
+      expect(described_class.layers_for_zoom(4)).to eq(%w[states])
+    end
+
+    it "adds service areas at state selection zooms" do
+      expect(described_class.layers_for_zoom(5)).to eq(%w[pws counties states])
+      expect(described_class.layers_for_zoom(6)).to eq(%w[pws counties states])
+      expect(described_class.layers_for_zoom(7)).to eq(%w[pws counties states])
+    end
+
+    it "adds system and boundary layers at system browsing zooms" do
+      expect(described_class.layers_for_zoom(8)).to eq(%w[pws places counties states])
+    end
+  end
+
   describe ".generate_tile" do
     context "when a cached tile exists" do
       let(:mvt_data) { "\x1a\x10tile_data".b }
@@ -74,27 +90,55 @@ RSpec.describe TileGenerator do
   describe ".build_tile" do
     context "when all layers are cached" do
       let(:mvt_data) { "\x1a\x10tile_data".b }
+      let(:layers) { described_class.layers_for_zoom(z) }
 
       before do
-        described_class.layers.each do |layer|
+        layers.each do |layer|
           create(:tile_cache, layer: layer, z: z, x: x, y: y, mvt: mvt_data)
         end
       end
 
       it "returns concatenated MVT binary from all cached layers" do
         result = described_class.build_tile(z, x, y)
-        expect(result.bytesize).to eq(mvt_data.bytesize * 4)
+        expect(result.bytesize).to eq(mvt_data.bytesize * layers.size)
       end
     end
 
     context "when no tiles are cached" do
       it "returns concatenated MVT matching the sum of all generated layer tiles" do
         result = described_class.build_tile(z, x, y)
-        expected_size = described_class.layers.sum { |layer|
+        expected_size = described_class.layers_for_zoom(z).sum { |layer|
           TileCache.find_by!(layer: layer, z: z, x: x, y: y).mvt.bytesize
         }
         expect(result.bytesize).to eq(expected_size)
       end
+
+      it "generates public water system tiles at state selection zooms" do
+        described_class.build_tile(5, 16, 12)
+
+        expect(TileCache.where(layer: "pws", z: 5, x: 16, y: 12)).to exist
+        expect(TileCache.where(layer: "places", z: 5, x: 16, y: 12)).to be_empty
+        expect(TileCache.where(layer: "counties", z: 5, x: 16, y: 12)).to exist
+        expect(TileCache.where(layer: "states", z: 5, x: 16, y: 12)).to exist
+      end
+    end
+  end
+
+  describe ".layer_sql" do
+    it "simplifies geometries before transforming them for vector tiles" do
+      sql = described_class.layer_sql("states", 3, 1, 2, 0.05)
+
+      expect(sql).to include("ST_Transform(ST_SimplifyPreserveTopology(cs.geom, 0.05), 3857)")
+      expect(sql).not_to include("ST_SimplifyPreserveTopology(ST_Transform")
+    end
+
+    it "uses matching tile margins and MVT geometry buffers" do
+      sql = described_class.layer_sql("pws", 5, 8, 12, 0.01)
+
+      expect(sql).to include("ST_TileEnvelope(5, 8, 12, margin => 64.0 / 4096)")
+      expect(sql).to include("ST_AsMVTGeom(")
+      expect(sql).to include("4096, 64, true")
+      expect(sql).to include("sag.geom && ST_Transform(ST_TileEnvelope(5, 8, 12, margin => 64.0 / 4096), 4326)")
     end
   end
 end

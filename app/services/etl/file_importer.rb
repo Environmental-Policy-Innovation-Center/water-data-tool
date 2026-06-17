@@ -6,6 +6,7 @@ module Etl
 
     # Backward-compatible alias — existing code and specs reference this constant.
     InsecureUrlError = Etl::HttpFetcher::InsecureUrlError
+    LEGACY_IMPORT_STATUSES = [:imported, :skipped].freeze
 
     def initialize(file_url:, last_updated:, force: false)
       @file_url = file_url
@@ -18,7 +19,7 @@ module Etl
 
       unless needs_import?
         log("[ETL] #{filename}: skipped (unchanged since last import)")
-        return :skipped
+        return Etl::ImportResult.skipped(file_key: file_key)
       end
 
       log("[ETL] #{filename}: downloading...")
@@ -30,13 +31,19 @@ module Etl
 
       rows = parse(content)
       validate!(rows)
-      import!(rows)
+      result = import!(rows)
       record_import
       log("[ETL] #{filename}: import complete")
-      :imported
+      return result if import_result?(result)
+
+      Etl::ImportResult.imported(file_key: file_key, full_refresh_required: true)
     end
 
     private
+
+    def import_result?(result)
+      result.is_a?(Etl::ImportResult) || LEGACY_IMPORT_STATUSES.include?(result)
+    end
 
     def needs_import?
       return true if @force
@@ -66,6 +73,10 @@ module Etl
       Rails.logger.info(msg)
       $stdout.puts msg
       $stdout.flush
+    end
+
+    def file_key
+      File.basename(@file_url, ".*")
     end
 
     # Subclasses must implement:

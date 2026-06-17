@@ -35,7 +35,13 @@ class HomeController < ApplicationController
   end
 
   def filter_params
-    ActionController::Parameters.new(decoded_state["filters"] || {}).permit(*FilterRegistry.permit_arguments)
+    encoded_filters = ActionController::Parameters
+      .new(decoded_state["filters"] || {})
+      .permit(*FilterRegistry.permit_arguments)
+      .to_h
+    direct_filters = FilterParams.permit(params).to_h
+
+    ActionController::Parameters.new(encoded_filters.merge(direct_filters)).permit(*FilterRegistry.permit_arguments)
   end
 
   def decoded_state

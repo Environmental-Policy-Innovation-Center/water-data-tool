@@ -1,6 +1,15 @@
 require "rails_helper"
 
 RSpec.describe EtlImportJob, type: :job do
+  it "uses the etl queue" do
+    expect(described_class.queue_name).to eq("etl")
+  end
+
+  it "limits ETL imports to one running job at a time" do
+    expect(described_class.concurrency_limit).to eq(1)
+    expect(described_class.new.concurrency_key).to eq("EtlImportJob/etl_import")
+  end
+
   describe "#perform" do
     it "instantiates Etl::Importer with default options and calls it" do
       importer = instance_double(Etl::Importer, call: [])

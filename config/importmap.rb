@@ -9,6 +9,7 @@ pin "@hotwired/stimulus-loading", to: "stimulus-loading.js"
 pin_all_from "app/javascript/controllers", under: "controllers"
 pin "url_state_codec", to: "url_state_codec.js"
 pin "filter_state", to: "filter_state.js"
+pin "stats_frame", to: "stats_frame.js"
 pin "selection_state", to: "selection_state.js"
 
 # Third-party vendor libraries (vendored via bin/importmap pin)

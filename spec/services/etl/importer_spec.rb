@@ -39,18 +39,19 @@ RSpec.describe Etl::Importer do
     end
 
     it "runs PostImportSteps with the geometry file key when geometry is imported" do
-      geoms_importer = instance_double(Etl::Importers::EpaSabsGeoms, call: :imported)
+      geoms_result = Etl::ImportResult.imported(file_key: "epa_sabs_geoms", changed_pwsids: ["VT0000001"], changed_layers: %w[pws places], geometry_changed: true)
+      geoms_importer = instance_double(Etl::Importers::EpaSabsGeoms, call: geoms_result)
       allow(Etl::Importers::EpaSabsGeoms).to receive(:new).and_return(geoms_importer)
       allow_all_importers_to_skip(except: Etl::Importers::EpaSabsGeoms)
 
-      expect(Etl::PostImportSteps).to receive(:call).with(imported_files: ["epa_sabs_geoms"])
+      expect(Etl::PostImportSteps).to receive(:call).with(import_results: [geoms_result])
       importer.call
     end
 
     it "calls PostImportSteps with an empty list when no files are imported" do
       allow_all_importers_to_skip
 
-      expect(Etl::PostImportSteps).to receive(:call).with(imported_files: [])
+      expect(Etl::PostImportSteps).to receive(:call).with(import_results: [])
       importer.call
     end
 
@@ -60,6 +61,46 @@ RSpec.describe Etl::Importer do
 
       expect(TileCacheWarmJob).not_to receive(:perform_later)
       importer.call
+    end
+
+    it "treats truthy non-result importer returns as imported and requests a full refresh" do
+      raw_import_result = ActiveRecord::Result.new([], [])
+      sdwis_importer = instance_double(Etl::Importers::SdwisViols, call: raw_import_result)
+      allow(Etl::Importers::SdwisViols).to receive(:new).and_return(sdwis_importer)
+      allow_all_importers_to_skip(except: Etl::Importers::SdwisViols)
+      allow(Etl::PostImportSteps).to receive(:call)
+
+      importer.call
+
+      expect(Etl::PostImportSteps).to have_received(:call) do |args|
+        result = args.fetch(:import_results).sole
+        expect(result).to have_attributes(
+          file_key: "sdwis_viols",
+          status: :imported,
+          full_refresh_required: true
+        )
+      end
+    end
+
+    it "does not treat arbitrary imported?-responding objects as import results" do
+      raw_result = Class.new do
+        def imported? = true
+      end.new
+      sdwis_importer = instance_double(Etl::Importers::SdwisViols, call: raw_result)
+      allow(Etl::Importers::SdwisViols).to receive(:new).and_return(sdwis_importer)
+      allow_all_importers_to_skip(except: Etl::Importers::SdwisViols)
+      allow(Etl::PostImportSteps).to receive(:call)
+
+      importer.call
+
+      expect(Etl::PostImportSteps).to have_received(:call) do |args|
+        result = args.fetch(:import_results).sole
+        expect(result).to have_attributes(
+          file_key: "sdwis_viols",
+          status: :imported,
+          full_refresh_required: true
+        )
+      end
     end
 
     it "passes force: true to each importer when called with force: true" do
@@ -123,7 +164,8 @@ RSpec.describe Etl::Importer do
       end
 
       it "still runs PostImportSteps with geometry key if geometry was imported before the failure" do
-        geoms_importer = instance_double(Etl::Importers::EpaSabsGeoms, call: :imported)
+        geoms_result = Etl::ImportResult.imported(file_key: "epa_sabs_geoms")
+        geoms_importer = instance_double(Etl::Importers::EpaSabsGeoms, call: geoms_result)
         allow(Etl::Importers::EpaSabsGeoms).to receive(:new).and_return(geoms_importer)
 
         failing_sabs = instance_double(Etl::Importers::EpaSabs)
@@ -132,7 +174,7 @@ RSpec.describe Etl::Importer do
 
         allow_all_importers_to_skip(except: [Etl::Importers::EpaSabsGeoms, Etl::Importers::EpaSabs])
 
-        expect(Etl::PostImportSteps).to receive(:call).with(imported_files: ["epa_sabs_geoms"])
+        expect(Etl::PostImportSteps).to receive(:call).with(import_results: [geoms_result])
         importer.call
       end
     end
@@ -145,27 +187,29 @@ RSpec.describe Etl::Importer do
     end
 
     it "passes the imported file key to PostImportSteps when a file is imported" do
-      epa_sabs_importer = instance_double(Etl::Importers::EpaSabs, call: :imported)
+      epa_sabs_result = Etl::ImportResult.imported(file_key: "epa_sabs")
+      epa_sabs_importer = instance_double(Etl::Importers::EpaSabs, call: epa_sabs_result)
       allow(Etl::Importers::EpaSabs).to receive(:new).and_return(epa_sabs_importer)
       allow_all_importers_to_skip(except: Etl::Importers::EpaSabs)
 
-      expect(Etl::PostImportSteps).to receive(:call).with(imported_files: ["epa_sabs"])
+      expect(Etl::PostImportSteps).to receive(:call).with(import_results: [epa_sabs_result])
       importer.call
     end
 
     it "passes an empty imported_files when all files are skipped" do
       allow_all_importers_to_skip
 
-      expect(Etl::PostImportSteps).to receive(:call).with(imported_files: [])
+      expect(Etl::PostImportSteps).to receive(:call).with(import_results: [])
       importer.call
     end
 
     it "passes only the imported file key when a non-geometry file is imported" do
-      sdwis_importer = instance_double(Etl::Importers::SdwisViols, call: :imported)
+      sdwis_result = Etl::ImportResult.imported(file_key: "sdwis_viols")
+      sdwis_importer = instance_double(Etl::Importers::SdwisViols, call: sdwis_result)
       allow(Etl::Importers::SdwisViols).to receive(:new).and_return(sdwis_importer)
       allow_all_importers_to_skip(except: Etl::Importers::SdwisViols)
 
-      expect(Etl::PostImportSteps).to receive(:call).with(imported_files: ["sdwis_viols"])
+      expect(Etl::PostImportSteps).to receive(:call).with(import_results: [sdwis_result])
       importer.call
     end
   end
@@ -212,6 +256,30 @@ RSpec.describe Etl::Importer do
       expect(entries.first["http_path"]).not_to include("//epa_sabs")
     end
 
+    it "only preflights the requested table when a table filter is provided" do
+      filtered_importer = described_class.new(only: "epa_sabs")
+      allow(filtered_importer).to receive(:head_url).with("https://s3.example.com/data/epa_sabs.csv").and_return(mock_response)
+
+      entries = filtered_importer.send(:build_file_entries)
+
+      expect(entries.map { |entry| entry.fetch("file_key") }).to eq(["epa_sabs"])
+      expect(filtered_importer).to have_received(:head_url).once
+    end
+
+    it "does not require Last-Modified headers for forced imports" do
+      force_importer = described_class.new(force: true, only: "epa_sabs_geoms")
+      missing = instance_double(Net::HTTPOK)
+      allow(missing).to receive(:[]).with("last-modified").and_return(nil)
+      allow(force_importer).to receive(:head_url).and_return(missing)
+
+      entries = force_importer.send(:build_file_entries)
+
+      expect(entries.sole).to include(
+        "file_key" => "epa_sabs_geoms",
+        "last_updated" => be_within(2.seconds).of(Time.current)
+      )
+    end
+
     context "when ETL_SOURCE_URL is not set" do
       before { @saved = ENV.delete("ETL_SOURCE_URL") }
       after { ENV["ETL_SOURCE_URL"] = @saved if @saved }
@@ -229,9 +297,10 @@ RSpec.describe Etl::Importer do
         allow(importer).to receive(:head_url).and_return(missing)
       end
 
-      it "raises a descriptive error" do
-        expect { importer.send(:build_file_entries) }
-          .to raise_error(RuntimeError, /Missing Last-Modified header/)
+      it "falls back to the current time so sources without HEAD metadata can still import" do
+        entries = importer.send(:build_file_entries)
+
+        expect(entries.first.fetch("last_updated")).to be_within(2.seconds).of(Time.current)
       end
     end
   end

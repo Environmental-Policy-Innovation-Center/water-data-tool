@@ -170,7 +170,7 @@ Mapbox Vector Tile (MVT) binary protobuf.
 | `x` | integer | Tile column |
 | `y` | integer | Tile row |
 
-Layers: `pws`, `pws_points`, `places`, `counties`, `states`.
+Layers: `pws`, `places`, `counties`, `states`.
 
 ---
 

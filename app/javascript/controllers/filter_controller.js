@@ -1,5 +1,6 @@
 import { Controller } from "@hotwired/stimulus"
 import * as FilterState from "filter_state"
+import { syncStatsFrame } from "stats_frame"
 import * as SelectionState from "selection_state"
 import { decodeState, colsFromUrl, sortFromUrl, buildEncodedParam } from "url_state_codec"
 
@@ -152,7 +153,6 @@ for (const { type, group, param } of FILTERS) {
 // Collects filter state → writes to FilterState → dispatches filters:changed.
 // Menu open/close lives in filter_menu_controller. Responsive layout in filter_layout_controller.
 export default class extends Controller {
-  #statsFrame = null
   #tableLoaded = false
 
   // Syncs sort/direction from the server-rendered table state into the page URL after each frame load.
@@ -174,7 +174,6 @@ export default class extends Controller {
   }
 
   connect() {
-    this.#statsFrame = document.querySelector("turbo-frame#stats-bar")
     document.addEventListener("table:show", this.#onTableShow)
     document.addEventListener("filter:layout-changed", this.#onLayoutChanged)
     document.getElementById("data-table")?.addEventListener("turbo:frame-load", this.#onTableFrameLoad)
@@ -191,7 +190,7 @@ export default class extends Controller {
   apply(event) {
     event.preventDefault()
     document.dispatchEvent(new CustomEvent("filter:close-all"))
-    FilterState.set(this.#collectFilters())
+    FilterState.set({ ...this.#currentStateScope(), ...this.#collectFilters() })
     SelectionState.clear()
     this.#syncToUrl()
     this.#updateBadges()
@@ -275,6 +274,7 @@ export default class extends Controller {
     const willShow = panel.classList.contains("hidden")
     panel.classList.toggle("hidden")
     this.#setToggleArrow(panelId, willShow)
+    if (willShow) this.#loadSlider(panel)
   }
 
   // Keeps parent checkbox in sync when subcats are individually toggled.
@@ -440,6 +440,14 @@ export default class extends Controller {
     return p
   }
 
+  #currentStateScope() {
+    const current = FilterState.get()
+    const stateScope = {}
+    if (current.state) stateScope.state = current.state
+    if (current.state_name) stateScope.state_name = current.state_name
+    return stateScope
+  }
+
   #restoreDomState(params) {
     for (const f of FILTERS) {
       switch (f.type) {
@@ -586,6 +594,7 @@ export default class extends Controller {
     if (Object.keys(params).length === 0) return
 
     this.#restoreDomState(params)
+    this.#loadVisibleSliders()
     FilterState.set(params)
     document.dispatchEvent(new CustomEvent("filters:changed"))
     this.#reloadStatsFrame()
@@ -649,11 +658,7 @@ export default class extends Controller {
   }
 
   #reloadStatsFrame() {
-    if (!this.#statsFrame) return
-    const newSrc = `/public_water_systems/stats?${FilterState.toUrlParams()}`
-    if (this.#statsFrame.src === newSrc) return
-    this.#statsFrame.src = newSrc
-    document.getElementById("container-map-content-bottom")?.classList.add("has-stats")
+    syncStatsFrame()
   }
 
   // Only visits if the frame has been shown at least once — avoids a background
@@ -665,5 +670,15 @@ export default class extends Controller {
 
   #visitTableFrame() {
     Turbo.visit(`/table${window.location.search}`, { frame: "data-table" })
+  }
+
+  #loadSlider(panel) {
+    this.application.getControllerForElementAndIdentifier(panel, "slider")?.load()
+  }
+
+  #loadVisibleSliders() {
+    this.element.querySelectorAll("[data-controller~='slider']").forEach(panel => {
+      if (!panel.classList.contains("hidden")) this.#loadSlider(panel)
+    })
   }
 }

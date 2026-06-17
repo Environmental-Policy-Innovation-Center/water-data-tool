@@ -15,4 +15,12 @@
 #
 class CartographicState < ApplicationRecord
   self.primary_key = "gid"
+
+  scope :containing_point, ->(lng:, lat:) {
+    where(
+      "geom IS NOT NULL AND ST_Intersects(geom, ST_SetSRID(ST_MakePoint(?, ?), 4326))",
+      lng,
+      lat
+    )
+  }
 end

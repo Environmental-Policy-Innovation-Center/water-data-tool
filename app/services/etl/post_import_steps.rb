@@ -4,51 +4,87 @@ module Etl
   module PostImportSteps
     module_function
 
-    def call(imported_files:)
+    def call(imported_files: nil, import_results: nil)
+      return legacy_call(imported_files) unless import_results
+
+      return if import_results.empty?
+
+      return legacy_call(import_results.map(&:file_key)) if import_results.any?(&:full_refresh_required)
+
+      changed_pwsids = import_results.flat_map(&:changed_pwsids).compact.uniq
+      changed_layers = import_results.flat_map(&:changed_layers).compact.uniq
+      geometry_pwsids = import_results.select(&:geometry_changed).flat_map(&:changed_pwsids).compact.uniq
+      previous_geometry_bboxes = import_results.flat_map(&:previous_geometry_bboxes).compact.uniq
+      affected_place_geoids = []
+
+      if geometry_pwsids.any?
+        fix_invalid_geometries(pwsids: geometry_pwsids)
+        generate_centroids(pwsids: geometry_pwsids)
+        CartographicBoundaries.load
+        assign_state_codes(pwsids: geometry_pwsids)
+        analyze_spatial_tables
+        affected_place_geoids = build_place_crosswalks(pwsids: geometry_pwsids)
+      end
+
+      return if changed_pwsids.empty? || changed_layers.empty?
+
+      impacts = {}
+      pws_layers = changed_layers - ["places"]
+      place_layers = changed_layers & ["places"]
+      if pws_layers.any?
+        pws_impacts = if previous_geometry_bboxes.any?
+          TileImpact.for_pwsids(changed_pwsids, layers: pws_layers, additional_bboxes: previous_geometry_bboxes)
+        else
+          TileImpact.for_pwsids(changed_pwsids, layers: pws_layers)
+        end
+        impacts.merge!(pws_impacts)
+      end
+      impacts.merge!(TileImpact.for_place_geoids(affected_place_geoids, layers: place_layers)) if place_layers.any?
+      TileImpact.enqueue_refreshes(impacts)
+    end
+
+    def legacy_call(imported_files)
       # imported_files is an array of successfully-imported file keys, e.g. ["epa_sabs", "epa_sabs_geoms"]
-      return if imported_files.empty?
+      return if imported_files.blank?
 
-      # Bust the tile cache for any import, not just geometry — tiles embed non-geometry
-      # attributes (violations, demographics, etc.) that can become stale after any data
-      # update. Upstream, Etl::Importer only calls us when at least one file actually
-      # imported (not just checked), so this only fires when there is real new data.
-      bust_tile_cache
-      TileCacheWarmJob.perform_later
-
-      # The following steps are only necessary if the geometry file was imported.
-      return unless imported_files.include?("epa_sabs_geoms")
+      unless imported_files.include?("epa_sabs_geoms")
+        bust_tile_cache
+        TileCacheWarmJob.perform_later
+        return
+      end
 
       # Tee up initial geoms repair and enrichment steps before refreshing
       fix_invalid_geometries
       generate_centroids
-      CartographicBoundaries.load unless CartographicBoundaries.loaded?
+      CartographicBoundaries.load
 
       # Assign state codes and county associations based on the new geometries,
       # then rebuild spatial indexes and place crosswalks that depend on those joins.
       assign_state_codes
       rebuild_spatial_indexes
       build_place_crosswalks
+      bust_tile_cache
+      TileCacheWarmJob.perform_later
     end
 
     # Repair invalid geometries using ST_Buffer trick. Runs until none remain
     # or until MAX_REPAIR_ITERATIONS is reached (guard against pathological data).
     MAX_REPAIR_ITERATIONS = 10
+    PWSID_ARRAY_TYPE = ActiveRecord::ConnectionAdapters::PostgreSQL::OID::Array.new(ActiveModel::Type::String.new)
 
-    def fix_invalid_geometries
-      conn = ApplicationRecord.connection
+    def fix_invalid_geometries(pwsids: nil)
       all_valid = false
       MAX_REPAIR_ITERATIONS.times do |i|
-        result = conn.execute(<<~SQL)
-          UPDATE service_area_geometries
-          SET geom = ST_Buffer(geom, 0)
-          WHERE ST_IsValid(geom) = false
-        SQL
-        if result.cmd_tuples == 0
+        scope = ServiceAreaGeometry.where("ST_IsValid(geom) = false")
+        scope = scope.where(pwsid: pwsids) if pwsids.present?
+        updated = scope.update_all("geom = ST_Buffer(geom, 0)")
+
+        if updated == 0
           Rails.logger.info("[ETL] fix_invalid_geometries: complete after #{i} iteration(s)")
           all_valid = true
           break
         end
-        Rails.logger.info("[ETL] fix_invalid_geometries: iteration #{i + 1} repaired #{result.cmd_tuples} geometry(ies)")
+        Rails.logger.info("[ETL] fix_invalid_geometries: iteration #{i + 1} repaired #{updated} geometry(ies)")
       end
       unless all_valid
         Rails.logger.warn("[ETL] fix_invalid_geometries reached #{MAX_REPAIR_ITERATIONS} iterations — some geometries may still be invalid")
@@ -56,17 +92,17 @@ module Etl
     end
 
     # Populate centroid using ST_PointOnSurface (guaranteed inside polygon).
-    def generate_centroids
-      result = ApplicationRecord.connection.execute(<<~SQL)
-        UPDATE service_area_geometries
-        SET centroid = ST_PointOnSurface(geom)
-      SQL
-      Rails.logger.info("[ETL] generate_centroids: updated #{result.cmd_tuples} row(s)")
+    def generate_centroids(pwsids: nil)
+      scope = ServiceAreaGeometry.where.not(geom: nil)
+      scope = scope.where(pwsid: pwsids) if pwsids.present?
+      updated = scope.update_all("centroid = ST_PointOnSurface(geom)")
+
+      Rails.logger.info("[ETL] generate_centroids: updated #{updated} row(s)")
     end
 
     # Join centroids to cartographic_states to assign the stusps code.
-    def assign_state_codes
-      result = ApplicationRecord.connection.execute(<<~SQL)
+    def assign_state_codes(pwsids: nil)
+      sql = <<~SQL
         UPDATE public_water_systems pws
         SET stusps = cs.stusps
         FROM service_area_geometries sag
@@ -74,7 +110,10 @@ module Etl
         WHERE pws.pwsid = sag.pwsid
           AND sag.centroid IS NOT NULL
       SQL
-      Rails.logger.info("[ETL] assign_state_codes: updated #{result.cmd_tuples} row(s)")
+      sql << " AND pws.pwsid = ANY($1::text[])" if pwsids.present?
+
+      updated = ApplicationRecord.connection.exec_update(sql, "PostImportSteps#assign_state_codes", pwsid_binds(pwsids))
+      Rails.logger.info("[ETL] assign_state_codes: updated #{updated} row(s)")
     end
 
     # Rebuild the place_system_crosswalks table from spatial intersections.
@@ -84,11 +123,23 @@ module Etl
     # fractions from that result, and filters below-threshold pairs inline.
     # The explicit && bounding-box pre-filter ensures the GiST index is used.
     # Must run after rebuild_spatial_indexes so the index is fresh.
-    def build_place_crosswalks
+    def build_place_crosswalks(pwsids: nil)
       ApplicationRecord.connection.transaction do
-        ApplicationRecord.connection.execute("DELETE FROM place_system_crosswalks")
+        affected_geoids = []
+        if pwsids.present?
+          affected_geoids.concat(
+            PlaceSystemCrosswalk.where(pwsid: pwsids).distinct.pluck(:geoid)
+          )
+          ApplicationRecord.connection.exec_delete(
+            "DELETE FROM place_system_crosswalks WHERE pwsid = ANY($1::text[])",
+            "PostImportSteps#delete_place_crosswalks",
+            pwsid_binds(pwsids)
+          )
+        else
+          ApplicationRecord.connection.execute("DELETE FROM place_system_crosswalks")
+        end
 
-        inserted = ApplicationRecord.connection.execute(<<~SQL).cmd_tuples
+        sql = <<~SQL
           WITH intersections AS (
             SELECT
               cp.geoid,
@@ -100,6 +151,7 @@ module Etl
             JOIN service_area_geometries sag
               ON sag.geom && cp.geom
              AND ST_Intersects(sag.geom, cp.geom)
+            WHERE sag.geom IS NOT NULL
           )
           INSERT INTO place_system_crosswalks
             (geoid, pwsid, fraction_of_service_area, fraction_of_place, created_at, updated_at)
@@ -114,8 +166,21 @@ module Etl
              OR ST_Area(ix_geom) / NULLIF(place_area, 0) >= 0.01
           ON CONFLICT (geoid, pwsid) DO NOTHING
         SQL
+        sql.sub!("WHERE sag.geom IS NOT NULL", "WHERE sag.geom IS NOT NULL AND sag.pwsid = ANY($1::text[])") if pwsids.present?
+        inserted = if pwsids.present?
+          inserted_rows = ApplicationRecord.connection.exec_query(
+            "#{sql} RETURNING geoid",
+            "PostImportSteps#build_place_crosswalks",
+            pwsid_binds(pwsids)
+          )
+          affected_geoids.concat(inserted_rows.rows.flatten)
+          inserted_rows.rows.size
+        else
+          ApplicationRecord.connection.execute(sql).cmd_tuples
+        end
 
         Rails.logger.info("[ETL] build_place_crosswalks: inserted #{inserted} crosswalk(s)")
+        affected_geoids.compact.uniq
       end
     end
 
@@ -128,14 +193,32 @@ module Etl
     end
 
     # Rebuild GiST spatial indexes and update query-planner statistics after
-    # a bulk geometry import. REINDEX without CONCURRENTLY to stay
-    # transaction-safe; ANALYZE refreshes planner statistics.
+    # a bulk geometry import. CONCURRENTLY avoids ACCESS EXCLUSIVE locks on
+    # service_area_geometries while map requests continue using the old indexes.
     def rebuild_spatial_indexes
       conn = ApplicationRecord.connection
-      conn.execute("REINDEX INDEX index_service_area_geometries_on_geom")
-      conn.execute("REINDEX INDEX index_service_area_geometries_on_centroid")
-      conn.execute("ANALYZE service_area_geometries")
+      conn.execute("REINDEX INDEX CONCURRENTLY index_service_area_geometries_on_geom")
+      conn.execute("REINDEX INDEX CONCURRENTLY index_service_area_geometries_on_centroid")
+      analyze_spatial_tables
       Rails.logger.info("[ETL] rebuild_spatial_indexes: complete")
+    end
+
+    def analyze_spatial_tables
+      conn = ApplicationRecord.connection
+      conn.execute("ANALYZE service_area_geometries")
+      Rails.logger.info("[ETL] analyze_spatial_tables: complete")
+    end
+
+    def pwsid_binds(pwsids)
+      return [] if pwsids.blank?
+
+      [
+        ActiveRecord::Relation::QueryAttribute.new(
+          "pwsids",
+          Array(pwsids).compact.uniq,
+          PWSID_ARRAY_TYPE
+        )
+      ]
     end
   end
 end

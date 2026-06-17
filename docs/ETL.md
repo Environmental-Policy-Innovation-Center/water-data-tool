@@ -77,11 +77,15 @@ For each file that needs updating:
 
 ### Step 4: Run post-import steps
 
-If `epa_sabs_geoms.geojson` was imported (geometry data changed), run the derived data steps. See "Post-Import Steps" below.
+Importers return `Etl::ImportResult` metadata describing skipped/imported status, changed PWS IDs, changed map layers, geometry changes, previous geometry bounds, and whether a full refresh is required.
 
-### Step 5: Invalidate tile cache
+If `epa_sabs_geoms.geojson` changed geometry rows, run the derived spatial steps for those systems where possible. See "Post-Import Steps" below.
 
-Truncate the `tile_cache` table (if all source tables changed) or delete specific layers (if only some tables changed).
+### Step 5: Refresh affected tiles
+
+For normal imports, do not truncate the full `tile_cache` table. `TileImpact` converts changed PWS/place bounds into affected z5-z8 tile coordinates with a one-tile edge margin, then enqueues small `TileCacheRefreshJob` batches on the `tile_refresh` queue. Those jobs overwrite affected cached rows; old rows remain readable until replacements are generated.
+
+If an import result explicitly requires a full refresh, the legacy full cache bust plus `TileCacheWarmJob` path is used as a maintenance fallback.
 
 ---
 
@@ -133,23 +137,25 @@ COLUMN_MAP = {
 
 ## Post-Import Steps
 
-These run after `epa_sabs_geoms.geojson` is imported. They generate derived spatial data. Equivalent to the legacy `post_import_scripts.sql`.
+These run after changed geometries are imported. They generate derived spatial data equivalent to the legacy `post_import_scripts.sql`, but normal runs scope work to changed `pwsid`s where possible.
 
 ### 1. Fix invalid geometries
 
 ```sql
 UPDATE service_area_geometries
 SET geom = ST_Buffer(geom, 0)
-WHERE ST_IsValid(geom) = false;
+WHERE ST_IsValid(geom) = false
+  AND pwsid = ANY($1::text[]);
 ```
 
-Run repeatedly until 0 rows are updated.
+Run repeatedly until 0 rows are updated. Full refresh fallbacks can run the same repair globally.
 
 ### 2. Generate centroids
 
 ```sql
 UPDATE service_area_geometries
-SET centroid = ST_PointOnSurface(geom);
+SET centroid = ST_PointOnSurface(geom)
+WHERE pwsid = ANY($1::text[]);
 ```
 
 Uses `ST_PointOnSurface` (not `ST_Centroid`) to guarantee the point falls within the polygon.
@@ -164,47 +170,47 @@ JOIN cartographic_states cs ON ST_Intersects(sag.centroid, cs.geom)
 WHERE pws.pwsid = sag.pwsid;
 ```
 
-### 4. Build county associations
+Scoped runs also add `AND pws.pwsid = ANY($1::text[])`.
+
+### 4. Build place crosswalks
 
 ```sql
-UPDATE public_water_systems pws
-SET counties = sub.counties
-FROM (
-  SELECT sag.pwsid,
-         array_to_string(array_agg(cc.namelsad || ', ' || cc.stusps), '; ') AS counties
-  FROM cartographic_counties cc
-  JOIN service_area_geometries sag ON ST_Intersects(sag.geom, cc.geom)
-  WHERE GeometryType(ST_Intersection(sag.geom, cc.geom)) IN ('POLYGON', 'MULTIPOLYGON')
-  GROUP BY sag.pwsid
-) sub
-WHERE pws.pwsid = sub.pwsid;
-```
-
-### 5. Build place crosswalks
-
-```sql
--- Insert all intersecting place-system pairs
-INSERT INTO place_system_crosswalks (geoid, pwsid)
-SELECT cp.geoid, sag.pwsid
-FROM cartographic_places cp
-JOIN service_area_geometries sag ON ST_Intersects(sag.geom, cp.geom);
-
--- Calculate fractional overlaps
-UPDATE place_system_crosswalks psc
-SET fraction_of_service_area = ST_Area(ST_Intersection(sag.geom, cp.geom)) / ST_Area(sag.geom),
-    fraction_of_place = ST_Area(ST_Intersection(sag.geom, cp.geom)) / ST_Area(cp.geom)
-FROM service_area_geometries sag
-JOIN cartographic_places cp ON ST_Intersects(sag.geom, cp.geom)
-WHERE psc.pwsid = sag.pwsid AND psc.geoid = cp.geoid;
-
--- Remove noise (tiny overlaps at polygon edges)
 DELETE FROM place_system_crosswalks
-WHERE fraction_of_service_area < 0.01 OR fraction_of_place < 0.01;
+WHERE pwsid = ANY($1::text[]);
+
+WITH intersections AS (
+  SELECT
+    cp.geoid,
+    sag.pwsid,
+    ST_Intersection(sag.geom, cp.geom) AS ix_geom,
+    ST_Area(sag.geom) AS sag_area,
+    ST_Area(cp.geom) AS place_area
+  FROM cartographic_places cp
+  JOIN service_area_geometries sag
+    ON sag.geom && cp.geom
+   AND ST_Intersects(sag.geom, cp.geom)
+  WHERE sag.geom IS NOT NULL
+    AND sag.pwsid = ANY($1::text[])
+)
+INSERT INTO place_system_crosswalks
+  (geoid, pwsid, fraction_of_service_area, fraction_of_place, created_at, updated_at)
+SELECT
+  geoid,
+  pwsid,
+  ST_Area(ix_geom) / NULLIF(sag_area, 0),
+  ST_Area(ix_geom) / NULLIF(place_area, 0),
+  NOW(), NOW()
+FROM intersections
+WHERE ST_Area(ix_geom) / NULLIF(sag_area, 0) >= 0.01
+   OR ST_Area(ix_geom) / NULLIF(place_area, 0) >= 0.01
+ON CONFLICT (geoid, pwsid) DO NOTHING;
 ```
 
-### 6. Rebuild indexes
+The method returns affected place geoids so place tiles can be refreshed along with PWS tiles.
 
-Recreate GiST spatial indexes on `service_area_geometries` and cluster the table on the spatial index for query performance.
+### 5. Analyze spatial tables
+
+Normal scoped imports run `ANALYZE service_area_geometries` so the planner sees updated geometry statistics. The full refresh fallback can still rebuild GiST indexes concurrently when a global geometry reload requires it.
 
 ---
 
@@ -230,10 +236,11 @@ Configure a recurring job in `config/recurring.yml`:
 ```yaml
 etl_import:
   class: EtlImportJob
+  queue: etl
   schedule: every day at 12am America/New_York
 ```
 
-The job issues HEAD requests per file and only imports files with updated `Last-Modified` timestamps — safe to run frequently.
+The job runs on the dedicated `etl` queue and has a concurrency limit so imports cannot overlap. It issues HEAD requests per file and only imports files with updated `Last-Modified` timestamps. If a source omits `Last-Modified`, the file imports as changed.
 
 ---
 
@@ -250,38 +257,23 @@ geometry steps) runs roughly as follows:
 | `CartographicBoundaries.load` — 3 TIGER zips via `ogr2ogr` | 5–15 min |
 | `fix_invalid_geometries` + `generate_centroids` | 2–5 min |
 | `assign_state_codes` + `build_place_crosswalks` (national spatial joins) | 10–30 min |
-| `REINDEX` + `ANALYZE` on `service_area_geometries` | 2–10 min |
+| `ANALYZE` on `service_area_geometries` | seconds to minutes |
 | **Total** | **~35–105 min** |
 
 CSV-only runs (no geometry change) complete in seconds to a few minutes and do not trigger
 the steps above.
 
-### Why the App Degrades During a Geometry Import
+### Runtime Behavior During Imports
 
-Two things cause user-facing degradation:
+Imports are designed to keep Puma responsive while data refreshes:
 
-**1. `REINDEX INDEX` takes an `ACCESS EXCLUSIVE` lock** on `service_area_geometries`. While
-the lock is held, every incoming request that reads from that table (map tiles, spatial
-filters) blocks completely. Requests that wait longer than the load balancer timeout (typically
-30–60 s) return a 504. This is the most likely cause of 504 errors observed during an ETL run.
+- `EtlImportJob` runs on the dedicated single-thread `etl` queue.
+- Tile refresh jobs run on the dedicated single-thread `tile_refresh` queue.
+- Existing cached tiles stay readable during normal selective refreshes.
+- Geometry-derived work is scoped to changed systems when import metadata can identify them.
+- Full cache bust/warm remains available only for explicit full-refresh fallbacks.
 
-**2. `bust_tile_cache` fires before geometry steps complete.** The cache is emptied at the
-start of `PostImportSteps`, then `TileCacheWarmJob` is queued immediately. For geometry
-imports, the enrichment steps (centroids, state codes, place crosswalks) haven't run yet when
-the warm job starts — it can warm tiles against incomplete data, and every tile request during
-the 35–105 min enrichment window is a cache miss hitting an already-loaded database.
-
-The correct order for geometry imports is: complete all enrichment steps first, then bust and
-warm. This keeps stale-but-complete tiles serving fast throughout the ETL, and only triggers
-a brief transition window at the very end when the data is actually ready.
-
-### Known Issues / Improvement Opportunities
-
-| Issue | Impact | Fix |
-|---|---|---|
-| `bust_tile_cache` + `TileCacheWarmJob` called before geometry steps complete | Cache misses hit loaded DB for full ETL duration; warm job may cache incomplete data | Move both calls to after `build_place_crosswalks` for geometry imports |
-| `REINDEX INDEX` without `CONCURRENTLY` | `ACCESS EXCLUSIVE` lock blocks all reads during reindex | Use `REINDEX INDEX CONCURRENTLY` outside a transaction; users see old index until new one is ready; no integrity risk, ~2× slower to build |
-| ETL job on `:default` queue | Occupies 1 of 3 SolidQueue threads for ~1 hour; other background work still runs but competes for DB | Add a dedicated `:etl` queue with its own worker block in `config/queue.yml` |
+If health checks still fail during a full national geometry refresh, the next operational step is a separate worker process or ECS service so ETL cannot compete with web requests in the same container.
 
 ---
 
@@ -310,5 +302,3 @@ All import activity is logged with: file URL, row count imported, duration, erro
 | Credentials      | Flat `credentials.py` file | Rails encrypted credentials (`bin/rails credentials:edit`) or environment variables         |
 | S3 access        | HTTP public URLs           | Public HTTPS — no credentials required for reads; IAM only needed if bucket is made private |
 | Schema isolation | Schema name in f-strings   | Rails environments (`development` / `staging` / `production`)                               |
-
-

@@ -8,12 +8,15 @@ module Etl
   # bypassing the HTTPS-only guard that open-uri would silently follow.
   module HttpFetcher
     InsecureUrlError = Class.new(ArgumentError)
+    HttpResponseError = Class.new(StandardError)
 
     private
 
     def fetch_url(url)
       uri = validated_https_uri(url)
-      Net::HTTP.get(uri)
+      response = Net::HTTP.get_response(uri)
+      ensure_success!(response, uri, method: "GET")
+      response.body
     end
 
     # Streams the HTTPS response body to a Tempfile in chunks, never buffering
@@ -26,6 +29,7 @@ module Etl
 
       Net::HTTP.start(uri.host, uri.port, use_ssl: true) do |http|
         http.request_get(uri.request_uri) do |response|
+          ensure_success!(response, uri, method: "GET")
           response.read_body { |chunk| tmpfile.write(chunk) }
         end
       end
@@ -50,6 +54,12 @@ module Etl
         raise InsecureUrlError, "Only HTTPS URLs are permitted, got: #{uri.scheme}://"
       end
       uri
+    end
+
+    def ensure_success!(response, uri, method:)
+      return if response.code.to_i.between?(200, 299)
+
+      raise HttpResponseError, "#{method} #{uri} returned #{response.code} #{response.message}"
     end
   end
 end

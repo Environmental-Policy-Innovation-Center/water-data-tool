@@ -8,7 +8,7 @@ RSpec.describe TileCacheWarmJob, type: :job do
   end
 
   describe "#perform" do
-    it "calls generate_tile! for each layer at every zoom level" do
+    it "warms each layer once it is eligible for the zoom level" do
       # Stub tile_coordinates to return one coord per zoom to keep the test fast.
       # The coordinate math is covered by the #tile_coordinates unit tests below.
       allow_any_instance_of(described_class).to receive(:tile_coordinates).and_return([[0, 0]])
@@ -30,6 +30,42 @@ RSpec.describe TileCacheWarmJob, type: :job do
 
       expect { described_class.perform_now }.not_to raise_error
       expect(call_count).to be > 0
+    end
+
+    it "does not warm public water system tiles for low-zoom overview tiles" do
+      allow_any_instance_of(described_class).to receive(:tile_coordinates).and_return([[0, 0]])
+
+      described_class.perform_now
+
+      expect(TileGenerator).not_to have_received(:generate_tile!).with("pws", 3, 0, 0)
+      expect(TileGenerator).to have_received(:generate_tile!).with("states", 3, 0, 0)
+    end
+
+    it "warms public water system tiles at state selection zooms" do
+      allow_any_instance_of(described_class).to receive(:tile_coordinates).and_return([[0, 0]])
+
+      described_class.perform_now
+
+      expect(TileGenerator).to have_received(:generate_tile!).with("pws", 5, 0, 0)
+      expect(TileGenerator).to have_received(:generate_tile!).with("pws", 6, 0, 0)
+      expect(TileGenerator).to have_received(:generate_tile!).with("pws", 7, 0, 0)
+      expect(TileGenerator).to have_received(:generate_tile!).with("counties", 5, 0, 0)
+      expect(TileGenerator).to have_received(:generate_tile!).with("counties", 6, 0, 0)
+      expect(TileGenerator).to have_received(:generate_tile!).with("counties", 7, 0, 0)
+      expect(TileGenerator).to have_received(:generate_tile!).with("states", 5, 0, 0)
+      expect(TileGenerator).to have_received(:generate_tile!).with("states", 6, 0, 0)
+      expect(TileGenerator).to have_received(:generate_tile!).with("states", 7, 0, 0)
+    end
+
+    it "resumes warming public water system tiles at system browsing zoom" do
+      allow_any_instance_of(described_class).to receive(:tile_coordinates).and_return([[0, 0]])
+
+      described_class.perform_now
+
+      expect(TileGenerator).to have_received(:generate_tile!).with("pws", 8, 0, 0)
+      expect(TileGenerator).to have_received(:generate_tile!).with("places", 8, 0, 0)
+      expect(TileGenerator).to have_received(:generate_tile!).with("counties", 8, 0, 0)
+      expect(TileGenerator).to have_received(:generate_tile!).with("states", 8, 0, 0)
     end
   end
 

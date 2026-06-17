@@ -31,6 +31,20 @@ RSpec.describe Etl::FileImporter do
         expect(importer.call).to eq(:imported)
       end
 
+      it "does not treat arbitrary imported?-responding objects as import results" do
+        raw_result = Class.new do
+          def imported? = true
+        end.new
+
+        allow(importer).to receive(:download).and_return("csv content")
+        allow(importer).to receive(:import!).and_return(raw_result)
+
+        expect(importer.call).to have_attributes(
+          status: :imported,
+          full_refresh_required: true
+        )
+      end
+
       it "records a DataImport entry" do
         allow(importer).to receive(:download).and_return("csv content")
         allow(importer).to receive(:import!)

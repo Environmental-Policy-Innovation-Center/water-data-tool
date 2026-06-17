@@ -92,5 +92,40 @@ RSpec.describe Etl::Importers::EpaSabs do
       expect(pws.pop_cat_5).to be_nil
       expect(pws.service_area_type).to be_nil
     end
+
+    it "returns changed pwsids for inserted rows" do
+      rows = importer.parse(csv_content)
+
+      result = importer.import!(rows)
+
+      expect(result).to have_attributes(
+        status: :imported,
+        changed_pwsids: contain_exactly("VT0000001", "VT0000002", "VT0000003"),
+        changed_layers: ["pws"]
+      )
+    end
+
+    it "does not mark rows changed when map fields are unchanged" do
+      rows = importer.parse(csv_content)
+      importer.import!(rows)
+
+      result = importer.import!(rows.map { |row| row.merge(primacy_agency: "Different agency") })
+
+      expect(result.changed_pwsids).to be_empty
+      expect(result.changed_layers).to be_empty
+    end
+
+    it "marks rows changed when map fields change" do
+      rows = importer.parse(csv_content)
+      importer.import!(rows)
+
+      changed = rows.map { |row|
+        (row[:pwsid] == "VT0000001") ? row.merge(pws_name: "Renamed System") : row
+      }
+      result = importer.import!(changed)
+
+      expect(result.changed_pwsids).to eq(["VT0000001"])
+      expect(result.changed_layers).to eq(["pws"])
+    end
   end
 end
