@@ -91,6 +91,14 @@ RSpec.describe CartographicBoundaries do
         end
       end
 
+      it "does not bust or warm map tiles after a successful boundary refresh" do
+        expect(Etl::PostImportSteps).not_to receive(:bust_tile_cache)
+        expect(Etl::PostImportSteps).not_to receive(:bust_cartographic_boundary_tile_cache)
+        expect(TileCacheWarmJob).not_to receive(:perform_later)
+
+        instance.load
+      end
+
       private
 
       def stub_http_client
