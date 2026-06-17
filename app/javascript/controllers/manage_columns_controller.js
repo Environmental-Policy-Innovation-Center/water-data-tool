@@ -6,17 +6,19 @@ export default class extends Controller {
   static targets = ["button", "dropdown", "form", "columnList", "defaultTemplate"]
 
   #outsideClick = (e) => {
-    if (!this.element.contains(e.target)) this.#close()
+    if (!this.element.contains(e.target)) this.#dismiss()
   }
 
   #onKeydown = (e) => {
-    if (e.key === "Escape") { this.#close(); this.buttonTarget.focus() }
+    if (e.key === "Escape") { this.#dismiss(); this.buttonTarget.focus() }
   }
 
   #onFormChange = () => this.#syncToggleAllLabel()
 
   #sortables = []
   #orderCustomized = false
+  #savedListHtml = null
+  #draggedInCurrentSession = false
 
   connect() {
     document.addEventListener("click", this.#outsideClick)
@@ -33,7 +35,7 @@ export default class extends Controller {
   }
 
   toggle() {
-    this.dropdownTarget.classList.contains("hidden") ? this.#open() : this.#close()
+    this.dropdownTarget.classList.contains("hidden") ? this.#open() : this.#dismiss()
   }
 
   toggleCategoryCollapse(event) {
@@ -111,6 +113,7 @@ export default class extends Controller {
     // Cross-category drag is blocked (no Sortable group option), so same-index = no move.
     if (event.newIndex === event.oldIndex) return
     this.#orderCustomized = true
+    this.#draggedInCurrentSession = true
   }
 
   #restoreDefaultDomOrder() {
@@ -177,6 +180,8 @@ export default class extends Controller {
   #open() {
     const cols = colsFromUrl()
     this.#orderCustomized = cols !== null
+    this.#draggedInCurrentSession = false
+    if (this.hasColumnListTarget) this.#savedListHtml = this.columnListTarget.innerHTML
     // Syncs checkboxes only; DOM list order reflects the last full page load, not URL changes since.
     this.#syncCheckboxesFromUrl(cols)
     this.#syncToggleAllLabel()
@@ -233,6 +238,20 @@ export default class extends Controller {
 
     document.getElementById("manage-columns-toggle-all-icon-on")?.classList.toggle("hidden", !allChecked)
     document.getElementById("manage-columns-toggle-all-icon-off")?.classList.toggle("hidden", allChecked)
+  }
+
+  #dismiss() {
+    if (this.#draggedInCurrentSession) this.#restoreSavedOrder()
+    this.#close()
+  }
+
+  #restoreSavedOrder() {
+    if (!this.hasColumnListTarget || this.#savedListHtml === null) return
+    this.#destroySortables()
+    this.columnListTarget.innerHTML = this.#savedListHtml
+    this.#initSortables()
+    this.#orderCustomized = colsFromUrl() !== null
+    this.#draggedInCurrentSession = false
   }
 
   #close() {
