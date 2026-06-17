@@ -215,13 +215,13 @@
                   data-turbo="false"
                   class="flex flex-col flex-1 min-h-0">
 
-              <div class="flex shrink-0 items-center justify-end pl-3 pr-4 pt-2 pb-1">
+              <div class="flex shrink-0 items-center justify-start pl-3 pr-4 pt-2 pb-1">
                 <%= render UI::CircleButtonComponent.new(
                       id: "manage-columns-toggle-all",
                       aria_label: "Toggle all columns",
                       data_action: "click->manage-columns#toggleAllColumns",
                       label: "Deselect all",
-                      label_position: :left
+                      label_position: :right
                     ) do %>
                   <span id="manage-columns-toggle-all-icon-on">
                     <%= icon "checkbox-circle-on", classes: "size-4 text-neutral-900" %>
