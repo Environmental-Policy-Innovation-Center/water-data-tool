@@ -1,15 +1,5 @@
 # URL State Management
 
-## Status
-
-| Part | Decision | Implementation |
-|---|---|---|
-| POST export for row selection | Done — POST, hybrid inclusion/exclusion model | **Complete** (branch 117) |
-| Zlib+Base64 URL compression for filter + column state | Done — compress into `encoded=` param | **Complete** |
-| Sort/direction as explicit URL params | Done — always explicit, never in blob | **Complete** |
-
----
-
 ## The Problem
 
 User state — filters and column visibility — is encoded in the URL. This is intentional: it makes views bookmarkable and shareable, a core use case. Sort and direction are also persisted in the URL (as explicit params), but page number and search are not — both are ephemeral and reset on every table reload.
@@ -35,7 +25,7 @@ A third related problem: **selected-row exports** previously passed individual P
 
 | Param | What it holds | Notes |
 |---|---|---|
-| `encoded` | Zlib+Base64 blob: `{ filters: {...}, cols: "a,b,c" }` | Omitted entirely when no filters are active AND columns are at default |
+| `encoded` | Zlib+Base64 blob: `{ filters: {...}, cols: "..." }` | Omitted entirely when no filters are active AND columns are at default |
 | `sort` | Sort column key, e.g. `stusps` | Always explicit — never inside the blob |
 | `direction` | `asc` or `desc` | Always explicit — never inside the blob |
 | `page` | **Not in the URL** | Ephemeral — always resets to page 1 on any table reload |
@@ -44,11 +34,32 @@ A third related problem: **selected-row exports** previously passed individual P
 
 ### Blob structure
 
+The blob is a Zlib-compressed, URL-safe Base64-encoded JSON object. It holds two keys:
+
 ```json
-{ "filters": { "gw_sw_code": "GW", "owner_type": ["Local", "Federal"] }, "cols": "pws_name,pwsid,stusps" }
+{
+  "filters": {                        // omitted when no filters active
+    "gw_sw_code": "GW",               // radio filter — single value
+    "owner_type": ["Local", "Federal"] // multi-select filter — array
+  },
+  "cols": "counties,stusps,-pwsid,-grant_eligible"
+  //        ^^^^^^^^  ^^^^^^   ^^^^^^   ^^^^^^^^^^^^^
+  //        visible   visible  hidden   hidden
+  //
+  // Full panel sequence in display order (set by Manage Columns drag-and-drop).
+  // Plain key  → column is visible in the table.
+  // -key       → column is hidden; position preserved for when it's re-enabled.
+  // Omitted entirely when all columns are visible AND in the default YAML order.
+}
 ```
 
-`filters` is omitted when no filters are active. `cols` is omitted when all columns are visible (default). When both are omitted, `encoded=` is dropped entirely — the URL returns to bare `/`.
+**When `cols` is omitted:** all selectable columns are visible in the default order defined in `config/columns.yml`. The server renders the table and panel as if no column state exists.
+
+**When `cols` is present:** the server parses it via `ColumnRegistry.parse_column_state` into two derived lists — visible column keys (drives table headers) and panel col keys (drives Manage Columns panel order and checkbox state). See `app/columns/column_registry.rb`.
+
+**Column order and the `-` prefix** come from the Manage Columns panel. Dragging columns reorders the list; unchecking a column adds the `-` prefix. Clicking "Show Columns" writes the full panel sequence into the blob. "Reset" removes `cols` from the blob entirely (restoring YAML default order, all visible).
+
+`filters` is omitted when no filters are active. When both `filters` and `cols` are omitted, `encoded=` is dropped entirely — the URL returns to bare `/`.
 
 ### When params are added / cleared
 
@@ -57,9 +68,10 @@ A third related problem: **selected-row exports** previously passed individual P
 | Event | Result |
 |---|---|
 | Filter applied | Rebuilt from scratch: set if filters exist OR cols are non-default |
-| Columns changed | Existing blob decoded, `cols` key updated in place, re-encoded |
+| Columns hidden/shown (Show Columns) | Existing blob decoded, `cols` key updated in place with full panel sequence (plain keys for visible, `-key` for hidden), re-encoded |
+| Columns drag-reordered (Show Columns) | Same as above — drag order is reflected in the `cols` key sequence |
 | Reset All filters | Rebuilt with empty FilterState — dropped if cols also at default |
-| Column picker Reset (all cols) | `cols` removed from blob; if no filters remain, `encoded=` dropped |
+| Column picker Reset (all cols, YAML order) | `cols` removed from blob; if no filters remain, `encoded=` dropped |
 
 **`sort` + `direction`**
 
@@ -80,7 +92,9 @@ A third related problem: **selected-row exports** previously passed individual P
 
 The URL is **trailing state, not a driver**. During active use, the flow is always: user action → JS updates internal state → `Turbo.visit` fires → URL updated after. The URL never triggers filtering or column changes mid-session.
 
-The one exception is **initial page load from a shared URL**: `filter_controller.js#restoreFromUrl()` reads `encoded=` (or old-style verbose params) on `connect()`, restores DOM state, and fires the initial table and stats frame requests. After that first load, the URL reverts to being a passive record of current state.
+The one exception is **initial page load from a shared URL**: `filter_controller.js#restoreFromUrl()` reads `encoded=` on `connect()`, restores **filter menu** DOM state via JS (`#restoreDomState`), and fires the initial table and stats frame requests. After that first load, the URL reverts to being a passive record of current state.
+
+**Filters vs columns on reload:** Filter menus are JS-hydrated; the manage-columns panel should be server-rendered from the same blob (idiomatic Hotwire). Data for both is always applied server-side. See `docs/open_items/FILTER_SERVER_RENDER.md` for why the split exists and the long-term refactor plan.
 
 ### Sort
 
@@ -128,7 +142,7 @@ Worst-case compression estimate: filter param names contain heavy repetition (`_
 
 **Human readability:** Not required. Shareable links are important; readable links are not.
 
-### 2. Selected-Row Exports → POST ✓ Complete
+### 2. Selected-Row Exports → POST
 
 When specific rows are selected for export, IDs are submitted via POST body rather than GET query params. Uses a hybrid inclusion/exclusion model — see `docs/EXPORTS.md` for full design.
 
@@ -151,79 +165,6 @@ Filter param names like `synthetic_organic_chemicals_10yr_min` are intentionally
 
 ---
 
-## Current State
-
-- Filter + column state: encoded into single `encoded=` param via Zlib+Base64 — **complete**
-- Sort + direction: explicit URL params (`?sort=x&direction=y`), synced from `#table-query-state` after each frame load — **complete**
-- Selected-row exports: **POST** with hybrid inclusion/exclusion — complete, no cap
-- Verbose params (`gw_sw_code=`, `cols=`, etc.) still accepted as fallback for backwards compatibility
-
----
-
-## Verification Checklist
-
-Run `bin/dev` and open `http://localhost:3000`. These cases can only be verified in a running browser.
-
-#### 1. Core URL behavior
-
-- [x] Apply any filter → URL changes to `?encoded=<blob>` with no verbose params visible
-- [x] Network tab → confirm request to `/table` includes `encoded=` param
-- [x] Reset all filters and restore default columns → URL returns to bare `/` (no params at all)
-- [x] With active filters, copy URL → open in new tab → same filters, columns, and sort are restored exactly
-- [x] Load `/?encoded=garbage` → page loads cleanly with no filters applied, no 500 error
-
-#### 2. Filter state
-
-- [x] **Radio filter** — apply "Ground water only" → apply → reload from URL → filter still active, badge shows 1
-- [x] **Boolean filter** — apply "Open violations" → apply → reload from URL → filter still active
-- [x] **Multi-select array** — apply 2–3 owner types → apply → reload from URL → same owner types selected
-- [x] **Range filter** — drag a histogram slider → apply → reload from URL → slider handles at same position
-- [x] **Place filter** — apply a city/county search → apply → reload from URL → place filter restored
-- [x] Reset all filters → URL drops `encoded=` (or becomes bare `/` if cols also at default)
-- [x] Navigate to page 2+, then apply or reset filters → table reloads on page 1
-
-#### 3. Column state
-
-- [x] Open manage columns → hide 2–3 columns → click Show Columns → URL updates with `cols` key inside blob, table reloads
-- [x] Reload from that URL → same columns hidden, checkboxes reflect correct state
-- [x] With filters active, change columns → URL blob updates in place (filters preserved, cols updated)
-- [x] Restore all columns (Reset) → `cols` key removed from blob; if no filters active, URL becomes bare `/`
-- [x] Open manage columns, make no changes, click Show Columns → **no network request fires**, panel closes
-- [x] Open manage columns, make no changes, click Reset → **no network request fires**, panel closes
-- [x] Navigate to page 2+, then change columns → table reloads on page 1
-
-#### 4. Sort state
-
-- [x] Click a column header → URL gains `?sort=<col>&direction=asc` (explicit params, not inside blob)
-- [x] Click same header again → `direction=desc` in URL
-- [x] Click same header a third time → `sort=` and `direction=` cleared entirely; table returns to default `pws_name ASC` with no sort indicator
-- [x] Click a **different** column header → sort starts at `asc` for that column (does not inherit direction from previous sort)
-- [x] Copy sorted URL → open in new tab → table loads with same sort column and direction
-- [x] Hover over a sortable column header → **no network request fires** (prefetch disabled)
-- [x] Apply filters, then sort → `encoded=` blob holds filters; `sort=` and `direction=` remain as separate explicit params
-- [x] Reset a single filter menu → sort params survive unchanged
-- [x] Reset All filters → sort params survive unchanged
-- [x] Column picker Reset → sort params survive unchanged
-- [x] Sort, then change column visibility → sort params survive; data remains sorted by that column even if it is hidden
-
-#### 5. Combined state (the sharing scenario)
-
-- [x] Apply filters + change columns + sort by a column → copy URL
-- [x] Open URL in a new tab (or incognito) → table shows same filters, same visible columns, same sort order
-- [x] Confirm filter badges match, stats bar reflects filtered count, table is on page 1 (page is never shared)
-
-#### 6. Export
-
-- [x] With filters active, download export → CSV contains only the visible columns (cols respected)
-- [x] With selected rows, download export → POST-based export unaffected by `encoded=`; correct rows exported
-
-#### 7. Stats bar
-
-- [x] Apply filters → stats bar updates to reflect filtered system count
-- [x] Reload from `encoded=` URL → stats bar shows same filtered count on load
-
----
-
 ## What Was Considered and Rejected
 
 | Approach | Why Rejected |
@@ -237,12 +178,9 @@ Run `bin/dev` and open `http://localhost:3000`. These cases can only be verified
 
 ---
 
-## Research Reference
+## Pattern Comparison
 
-For the full pattern comparison matrix (string aliasing, encoding/decoding, index mapping, bitmasking, mixed patterns), see the archived research section below.
-
-<details>
-<summary>Pattern comparison matrix and implementation sketches</summary>
+Approaches evaluated before choosing Zlib+Base64:
 
 | Solution | URL Size | Resiliency to Future Changes | Custom Ordering Support | Maintenance Overhead |
 |---|---|---|---|---|
@@ -251,35 +189,3 @@ For the full pattern comparison matrix (string aliasing, encoding/decoding, inde
 | Index Mapping | Tiny | Low (index shifts break old links) | High | Medium |
 | Mixed Pattern | Small | Medium (inherits index fragility) | High | Medium |
 | Bitmasking | Absolute Smallest | Low (bit removal breaks sequence) | No | High |
-
-**Encoding / Decoding (Zlib + Base64) sketch:**
-
-```ruby
-# app/lib/url_state_codec.rb
-require 'zlib'
-require 'base64'
-require 'json'
-
-module UrlStateCodec
-  def self.decode(str)
-    return {} if str.blank?
-    json = Zlib::Inflate.inflate(Base64.urlsafe_decode64(str))
-    JSON.parse(json)
-  rescue Zlib::Error, ArgumentError, JSON::ParserError
-    {}
-  end
-end
-```
-
-```js
-// JS encode side — pako library (synchronous, zlib format compatible with Ruby)
-import pako from "pako"
-
-export const encodeState = (paramsObj) => {
-  const compressed = pako.deflate(JSON.stringify(paramsObj))
-  return btoa(String.fromCharCode(...compressed))
-    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '')
-}
-```
-
-</details>
