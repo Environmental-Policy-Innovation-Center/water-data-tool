@@ -48,6 +48,24 @@ Export always uses POST (CSRF token, avoids URL length limits). The server has t
 
 **Sort/search state in the DOM.** The server renders current sort/direction/search into a `#table-query-state` span inside the frame on every frame navigation. `export_controller.js` reads from this span so exports match what the user sees; `filter_controller.js` reads it after each frame load to sync sort/direction into the page URL. See `docs/decisions/URL_MANAGEMENT.md` for the full URL state design.
 
+### Manage Columns (`cols=`)
+
+Column visibility and display order persist in the `cols=` URL param (comma-separated keys). Pinned columns (`:check`, `:pws_name`) always render first regardless of `cols=`.
+
+| `cols=` value | Table | Manage Columns panel |
+|---|---|---|
+| Absent | All columns, YAML order | All checked, YAML/category order |
+| Present | Listed keys in param order | Checked keys in param order (category blocks merge when consecutive) |
+| Empty string | Pinned only | Pinned only (all selectable unchecked) |
+
+**Apply model:** The panel is a draft while open. Drag and checkbox changes do not update the table or URL until **Show Columns**. **Reset** restores the server `<template>` (YAML default), checks all boxes, clears `cols=`, and reloads the table frame.
+
+**Reload behavior:** On full page load, `HomeController#index` sets `@visible_col_keys` and `@panel_groups = ColumnRegistry.panel_groups(keys:)` so the panel list matches `cols=` without JS restore. Close/reopen on the same page keeps DOM draft order (no re-render).
+
+**Show Columns / Reset URL build:** Uses `FilterState.toUrlParams()` plus `cols` (not server-rendered hidden filter inputs) so current filters are preserved. See `docs/URL_MANAGEMENT.md` for the filters-vs-columns architecture split.
+
+**Drag-and-drop:** SortableJS — outer list reorders category blocks; inner lists reorder within a category only. Order encoded in `cols=` on submit.
+
 ---
 
 ## Notable Differences from Legacy (PHP + DataTables)
@@ -69,11 +87,14 @@ Export always uses POST (CSRF token, avoids URL length limits). The server has t
 ```
 app/views/home/_table.html.erb              ← table partial (Turbo Frame + all table HTML)
 app/helpers/home_helper.rb                  ← table_sort_link, col_highlight, aria_sort, fmt_* helpers
-app/controllers/home_controller.rb          ← #table action
+app/controllers/home_controller.rb          ← #index (@panel_groups), #table action
+app/columns/column_registry.rb              ← visible, panel_groups, parse_keys
+app/views/home/_manage_columns_list.html.erb
 app/controllers/concerns/sortable.rb        ← SORTABLE_COLUMNS, TABLE_JOINS, sort/search logic (shared by Home + Exports)
 app/javascript/controllers/
   table_frame_controller.js                 ← preserves horizontal scroll across Turbo Frame reloads
   filter_controller.js                      ← reloads data-table Turbo Frame on filter change
+  manage_columns_controller.js              ← column panel draft, SortableJS, Show Columns apply
   export_controller.js                      ← builds and submits POST form on export
   row_selection_controller.js               ← checkbox state, badge, export button disabled state
   selection_state.js                        ← shared selection state module (mode, excluded/included Sets)
@@ -112,7 +133,6 @@ All live in `home_helper.rb` and return `"—"` for nil:
 
 ## Open Items
 
-- **Column reordering** — drag-and-drop will be server-side via `cols=` param (consistent with visibility). `visible_columns` in `HomeController` currently respects `cols=` for filtering only; it will need updating to also respect the param's key order rather than always deferring to YAML order.
 - **Preload optimization** — `HomeController#table` hardcodes all 6 association preloads regardless of which columns are visible. Fix is `@columns.filter_map(&:source).reject { |s| s == :pws }.uniq`. Low-priority cleanup; actual gain is small because preloads cover only 25 rows and PostgreSQL's buffer cache serves repeated queries from memory. See `docs/table_reboot.md` for full context.
 - **Remaining sortable columns** — violation counts, demographics, EJ, funding, watershed require joins; not yet in `SORTABLE_COLUMNS`
 - **"Public Water Utilities in [Place]" dynamic title** — `filter_controller.js` already holds `params.place_name`; `.geo-filter` spans exist in `index.html.erb` and `_filter_menus.html.erb` but nothing writes to them yet. Preferred approach: add a Stimulus value + callback to `filter_controller.js` that updates all `.geo-filter` spans on place filter change

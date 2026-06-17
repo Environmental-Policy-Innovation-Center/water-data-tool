@@ -63,15 +63,3 @@ Not every document needs every section — use judgment. An informal list of sma
 (like `OPEN_WORK_ITEMS.md`) doesn't need this structure. A multi-week migration with
 external dependencies (like `TIGER_ETL_SOURCE_MIGRATION.md`) does.
 
----
-
-## Current Documents
-
-| Document | What it covers |
-|---|---|
-| `ETL_DEPLOY_INVESTIGATION.md` | ETL pipeline stability, 504 root cause, ECS ecosystem map, action plan |
-| `TIGER_ETL_SOURCE_MIGRATION.md` | Migrating `CartographicBoundaries` TIGER source URLs from Census.gov to S3 |
-| `TEXT_COLOR_AUDIT.md` | Neutral color token consistency audit — remaining `gray-*` and off-scale `neutral-*` usages |
-| `DRAG_DROP_SORTABLE_JS.md` | SortableJS implementation guide for drag-and-drop column and category reordering |
-| `NICE_TO_HAVES.md` | Lower-priority improvements and feature gaps not yet ticketed |
-| `REMEMBER_TO.md` | Documentation gaps and things to write up |
