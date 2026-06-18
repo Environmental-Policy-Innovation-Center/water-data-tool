@@ -50,4 +50,18 @@ RSpec.describe Demographic, type: :model do
   describe "validations" do
     it { is_expected.to validate_presence_of(:pwsid) }
   end
+
+  describe "enums" do
+    it "maps most_common_rate_tier keys to the upstream DB strings" do
+      expect(Demographic.most_common_rate_tiers).to eq(
+        "under_125" => "Most people pay < $125 for water & sewer annually",
+        "tier_125_249" => "Most people pay between $125-249 for water & sewer annually",
+        "tier_250_499" => "Most people pay between $250-499 for water & sewer annually",
+        "tier_500_749" => "Most people pay between $500-749 for water & sewer annually",
+        "tier_750_999" => "Most people pay between $750-999 for water & sewer annually",
+        "over_1000" => "Most people pay > $1000 for water & sewer annually",
+        "no_information" => "No Information on annual water & sewer rates"
+      )
+    end
+  end
 end

@@ -12,7 +12,6 @@ direct_params:
   - has_source_protection
   - is_school_or_daycare
   - is_wholesaler
-  - no_rate_info
   - place_geoid
   - place_name
   - state
@@ -202,6 +201,12 @@ sortable_column_groups:
       - other_race_rate
       - mixed_race_rate
       - most_common_rate_tier
+      - water_rate_under_125
+      - water_rate_125_249
+      - water_rate_250_499
+      - water_rate_500_749
+      - water_rate_750_999
+      - water_rate_over_1000
   environmental_justices:
     association: environmental_justice
     columns:
