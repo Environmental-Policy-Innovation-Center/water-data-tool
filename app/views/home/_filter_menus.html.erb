@@ -322,11 +322,11 @@
   <div id="more-filter-grp-4"></div>
   <div id="more-filter-grp-5"></div>
   <div id="container-menu-10-items">
-    <%= render Filters::CategoryComponent.new(label: "Financial", variant: :light) do %>
+    <%= render Filters::CategoryComponent.new(label: "Financial", variant: :default) do %>
       <ul class="my-[6px] mb-[10px] mx-0 list-none px-1">
         <li class="<%= filter_row_classes %>">
           <input type="checkbox" class="toggle" id="more-rate-tier"
-                 data-action="change->filter#toggleSubcat"
+                 data-action="click->filter#toggleRateTierPanel"
                  data-panel-id="subcat-rate-tier">
           <label for="more-rate-tier">Annual water and sewer bill</label>
           <span class="relative ml-1 inline-block cursor-default text-neutral-800"
@@ -341,29 +341,28 @@
                   aria-expanded="false" aria-controls="subcat-rate-tier">
             <%= icon("arrow-down", classes: collapse_toggle_icon_classes) %>
           </button>
-          <div id="subcat-rate-tier" class="hidden pl-2 pb-2" data-subcat-panel>
-            <ul class="space-y-0.5 mt-1 list-none px-1">
-              <li class="<%= filter_row_classes %>"><input type="checkbox" class="toggle default-checked" checked id="rate-tier-lt125">
-                  <label for="rate-tier-lt125">Under $125</label></li>
-              <li class="<%= filter_row_classes %>"><input type="checkbox" class="toggle default-checked" checked id="rate-tier-125-249">
-                  <label for="rate-tier-125-249">$125&#8211;249</label></li>
-              <li class="<%= filter_row_classes %>"><input type="checkbox" class="toggle default-checked" checked id="rate-tier-250-499">
-                  <label for="rate-tier-250-499">$250&#8211;499</label></li>
-              <li class="<%= filter_row_classes %>"><input type="checkbox" class="toggle default-checked" checked id="rate-tier-500-749">
-                  <label for="rate-tier-500-749">$500&#8211;749</label></li>
-              <li class="<%= filter_row_classes %>"><input type="checkbox" class="toggle default-checked" checked id="rate-tier-750-999">
-                  <label for="rate-tier-750-999">$750&#8211;999</label></li>
-              <li class="<%= filter_row_classes %>"><input type="checkbox" class="toggle default-checked" checked id="rate-tier-gt1000">
-                  <label for="rate-tier-gt1000">Over $1,000</label></li>
-              <li class="<%= filter_row_classes %> mt-1 border-t border-neutral-300 pt-1">
-                  <input type="checkbox" class="toggle" id="rate-tier-no-info">
-                  <label for="rate-tier-no-info">No rate info available</label></li>
+          <div id="subcat-rate-tier" class="hidden pb-2" data-subcat-panel>
+            <p class="my-2 ml-[10px] text-[.9em] font-semibold text-neutral-700">Amount paid by most customers</p>
+            <div class="flex my-[10px] ml-[10px] mr-[20px]" role="group" aria-label="Annual water and sewer bill tier">
+              <%= render Filters::RateTierBtnComponent.new(id: "rate-tier-lt125", label: "Under $125", position: :first) %>
+              <%= render Filters::RateTierBtnComponent.new(id: "rate-tier-125-249", label: "$125–249") %>
+              <%= render Filters::RateTierBtnComponent.new(id: "rate-tier-250-499", label: "$250–499") %>
+              <%= render Filters::RateTierBtnComponent.new(id: "rate-tier-500-749", label: "$500–749") %>
+              <%= render Filters::RateTierBtnComponent.new(id: "rate-tier-750-999", label: "$750–999") %>
+              <%= render Filters::RateTierBtnComponent.new(id: "rate-tier-gt1000",  label: "Over $1,000", position: :last) %>
+            </div>
+            <ul class="list-none px-1">
+              <li class="<%= filter_row_classes %>">
+                <input type="checkbox" class="toggle" id="rate-tier-no-info"
+                       data-action="change->filter#onRateTierNoInfoChange">
+                <label for="rate-tier-no-info">Show systems with no available information on rates</label>
+              </li>
             </ul>
           </div>
         </li>
       </ul>
     <% end %>
-    <%= render Filters::CategoryComponent.new(label: "Funding (2021–2025)", variant: :light) do %>
+    <%= render Filters::CategoryComponent.new(label: "Funding (2021–2025)", variant: :default) do %>
       <ul class="my-[6px] mb-[10px] mx-0 list-none px-1">
         <%= render Filters::GroupRangeComponent.new(
               checkbox_id: "more-has-srf-financing", panel_id: "subcat-srf-financing",
@@ -382,7 +381,7 @@
               slider_label: "Amount ($)", format: "currency") %>
       </ul>
     <% end %>
-    <%= render Filters::CategoryComponent.new(label: "Environmental", variant: :light) do %>
+    <%= render Filters::CategoryComponent.new(label: "Environmental", variant: :default) do %>
       <ul class="my-[6px] mb-[10px] mx-0 list-none px-1">
         <li class="<%= filter_row_classes %>">
           <input type="checkbox" class="toggle" id="more-watershed-hazards"
