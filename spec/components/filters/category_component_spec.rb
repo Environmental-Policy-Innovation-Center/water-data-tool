@@ -13,7 +13,7 @@ RSpec.describe Filters::CategoryComponent, type: :component do
     cls = html.at_css("h3")["class"]
     expect(cls).to include("m-0")
     expect(cls).to include("px-[15px]")
-    expect(cls).to include("py-5")
+    expect(cls).to include("pt-3")
     expect(cls).to include("text-base")
   end
 

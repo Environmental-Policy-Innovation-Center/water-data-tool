@@ -62,8 +62,8 @@ RSpec.describe Filters::GroupRangeComponent, type: :component do
 
     include_examples "renders a range filter item"
 
-    it "has a flat layout with no flex wrapper" do
-      expect(html.css(".flex.items-center.justify-between")).to be_empty
+    it "has a flat layout with no flex justify-between wrapper" do
+      expect(html.css(".flex.items-start.justify-between")).to be_empty
     end
 
     it "wires the checkbox to toggleSubcat with data-panel-id" do
@@ -83,8 +83,8 @@ RSpec.describe Filters::GroupRangeComponent, type: :component do
 
     include_examples "renders a range filter item"
 
-    it "wraps label row in a flex justify-between div" do
-      expect(html.css(".flex.items-center.justify-between")).to be_present
+    it "wraps label row in a flex items-start justify-between div" do
+      expect(html.css(".flex.items-start.justify-between")).to be_present
     end
 
     it "renders the checkbox without toggleSubcat data attributes" do

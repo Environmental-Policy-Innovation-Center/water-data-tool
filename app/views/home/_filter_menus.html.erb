@@ -102,7 +102,7 @@
       </ul>
     <% end %>
     <%= render Filters::CategoryComponent.new(label: "Size") do %>
-      <p class="my-2.5 mx-0 px-[15px] py-1.5 text-[0.9em]"><strong class="font-medium">Area in square miles</strong></p>
+      <p class="my-2.5 mx-0 px-[15px] py-1.5 text-sm font-bold text-neutral-700">Area in square miles</p>
       <div class="mb-5">
         <select id="area-min" aria-label="Minimum area (sq mi)" class="toggle-select min-select left bg-white border border-neutral-400 rounded-md py-2.5 px-[18px] w-[40%] ml-[15px] text-[.9em]">
           <option value="0" selected>No minimum</option>
@@ -124,7 +124,7 @@
 <% end %>
 
 <!-- 4. COMPLIANCE -->
-<%= render UI::FilterMenuPanelComponent.new(menu_id: 4) do %>
+<%= render UI::FilterMenuPanelComponent.new(menu_id: 4, width: 390) do %>
   <div id="container-menu-4-items">
     <%= render Filters::CategoryComponent.new(label: "Violations") do %>
       <ul class="my-[6px] mb-[10px] mx-0 list-none px-1">
@@ -311,6 +311,7 @@
 <%= render UI::FilterMenuPanelComponent.new(
       menu_id: 10,
       more_menu: true,
+      width: 450,
       reset_data_action: "click->filter#resetAll",
       reset_label: "Reset All"
     ) do %>
@@ -343,7 +344,7 @@
           </button>
           <div id="subcat-rate-tier" class="hidden pb-2" data-subcat-panel>
             <p class="my-2 ml-[10px] text-[.9em] font-semibold text-neutral-700">Amount paid by most customers</p>
-            <div class="flex my-[10px] ml-[10px] mr-[20px]" role="group" aria-label="Annual water and sewer bill tier">
+            <div class="flex my-[10px] ml-[10px] mr-0" role="group" aria-label="Annual water and sewer bill tier">
               <%= render Filters::RateTierBtnComponent.new(id: "rate-tier-lt125", label: "Under $125", position: :first) %>
               <%= render Filters::RateTierBtnComponent.new(id: "rate-tier-125-249", label: "$125–249") %>
               <%= render Filters::RateTierBtnComponent.new(id: "rate-tier-250-499", label: "$250–499") %>
@@ -353,9 +354,11 @@
             </div>
             <ul class="list-none px-1">
               <li class="<%= filter_row_classes %>">
-                <input type="checkbox" class="toggle" id="rate-tier-no-info"
-                       data-action="change->filter#onRateTierNoInfoChange">
-                <label for="rate-tier-no-info">Show systems with no available information on rates</label>
+                <div class="flex items-start">
+                  <input type="checkbox" class="toggle mt-0.5 shrink-0" id="rate-tier-no-info"
+                         data-action="change->filter#onRateTierNoInfoChange">
+                  <label for="rate-tier-no-info" class="leading-snug">Show systems with no available information on rates</label>
+                </div>
               </li>
             </ul>
           </div>
@@ -437,10 +440,10 @@
 <% end %>
 
 <!-- 5. POPULATION -->
-<%= render UI::FilterMenuPanelComponent.new(menu_id: 5) do %>
-  <div id="container-menu-5-items" class="min-w-[450px]">
+<%= render UI::FilterMenuPanelComponent.new(menu_id: 5, width: 450) do %>
+  <div id="container-menu-5-items">
     <%= render Filters::CategoryComponent.new(label: "Population size") do %>
-      <div class="flex my-[10px] ml-[10px] mr-[20px]">
+      <div class="flex my-[10px] ml-[15px] mr-[15px]">
         <%= render Filters::PopSizeGroupComponent.new(id: "pop-very-small", label: "Very small",  sublabel: "500 or less",      pop_number: 1, position: :first) %>
         <%= render Filters::PopSizeGroupComponent.new(id: "pop-small",      label: "Small",       sublabel: "501 - 3,300",      pop_number: 2) %>
         <%= render Filters::PopSizeGroupComponent.new(id: "pop-medium",     label: "Medium",      sublabel: "3,301 - 10,000",   pop_number: 3) %>
@@ -449,7 +452,7 @@
       </div>
     <% end %>
     <%= render Filters::CategoryComponent.new(label: "Density") do %>
-      <p class="my-2.5 mx-0 px-[15px] py-1.5 text-[0.9em]"><strong class="font-medium">People per square mile</strong></p>
+      <p class="my-2.5 mx-0 px-[15px] py-1.5 text-sm font-bold text-neutral-700">People per square mile</p>
       <div class="mb-5">
         <select id="density-min" aria-label="Minimum density (people/sq mi)" class="toggle-select min-select left bg-white border border-neutral-400 rounded-md py-2.5 px-[18px] w-[40%] ml-[15px] text-[.9em]">
           <option value="0" selected>No minimum</option>

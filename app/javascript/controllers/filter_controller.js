@@ -679,12 +679,12 @@ export default class extends Controller {
         }, 0)
 
     // 1 for the parent checkbox + 1 per selected tier/option
-    const countRateTierFilters = (group) =>
-      RATE_TIER_FILTERS.filter(f => f.group === group)
-        .reduce((sum, f) => {
-          const items = Array.isArray(p[f.param]) ? p[f.param].length : 0
-          return sum + (items > 0 ? 1 + items : 0)
-        }, 0)
+    const countRateTierFilters = (group) => {
+      const f = RATE_TIER_FILTERS.find(f => f.group === group)
+      if (!f) return 0
+      const items = Array.isArray(p[f.param]) ? p[f.param].length : 0
+      return items > 0 ? 1 + items : 0
+    }
 
     const countForGroup = (group) =>
       countKeys(GROUP_KEYS[group] || [])

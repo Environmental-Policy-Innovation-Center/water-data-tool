@@ -1,17 +1,19 @@
 <li class="<%= helpers.filter_row_classes %> [&_input.rounded-checkbox]:h-[35px] [&_input.rounded-checkbox]:w-[35px]">
   <% if @nested %>
-    <div class="flex items-center justify-between">
-      <div>
-        <input type="checkbox" class="toggle" id="<%= @checkbox_id %>">
-        <label for="<%= @checkbox_id %>"><%= @label %></label>
-        <span class="relative ml-1 inline-block cursor-default text-neutral-800"
-              data-controller="tooltip"
-              data-tooltip-text-value="<%= @tooltip_text %>"
-              data-action="mouseenter->tooltip#show mouseleave->tooltip#hide">
-          <%= helpers.icon "info", classes: "h-3.5 w-3.5 inline align-middle" %>
-        </span>
+    <div class="flex items-start justify-between">
+      <div class="flex items-start flex-1 min-w-0">
+        <input type="checkbox" class="toggle mt-0.5 shrink-0" id="<%= @checkbox_id %>">
+        <div class="flex-1 min-w-0 leading-snug">
+          <label for="<%= @checkbox_id %>"><%= @label %></label>
+          <span class="relative ml-1 inline-block cursor-default text-neutral-800"
+                data-controller="tooltip"
+                data-tooltip-text-value="<%= @tooltip_text %>"
+                data-action="mouseenter->tooltip#show mouseleave->tooltip#hide">
+            <%= helpers.icon "info", classes: "h-3.5 w-3.5 inline align-middle" %>
+          </span>
+        </div>
       </div>
-      <button type="button" class="<%= helpers.filter_info_button_classes %>"
+      <button type="button" class="<%= helpers.filter_info_button_classes %> shrink-0 mt-0.5"
               data-action="click->filter#toggleSubcatPanel"
               data-panel-id="<%= @panel_id %>"
               aria-expanded="false"
@@ -20,23 +22,27 @@
       </button>
     </div>
   <% else %>
-    <input type="checkbox" class="toggle" id="<%= @checkbox_id %>"
-           data-action="change->filter#toggleSubcat"
-           data-panel-id="<%= @panel_id %>">
-    <label for="<%= @checkbox_id %>"><%= @label %></label>
-    <span class="relative ml-1 inline-block cursor-default text-neutral-800"
-          data-controller="tooltip"
-          data-tooltip-text-value="<%= @tooltip_text %>"
-          data-action="mouseenter->tooltip#show mouseleave->tooltip#hide">
-      <%= helpers.icon "info", classes: "h-3.5 w-3.5 inline align-middle" %>
-    </span>
-    <button type="button" class="ml-1 text-neutral-400 [@media(hover:hover)]:hover:text-neutral-600"
-            data-action="click->filter#toggleSubcatPanel"
-            data-panel-id="<%= @panel_id %>"
-            aria-expanded="false"
-            aria-controls="<%= @panel_id %>">
-      <%= helpers.icon("arrow-down", classes: helpers.collapse_toggle_icon_classes) %>
-    </button>
+    <div class="flex items-start">
+      <input type="checkbox" class="toggle mt-0.5 shrink-0" id="<%= @checkbox_id %>"
+             data-action="change->filter#toggleSubcat"
+             data-panel-id="<%= @panel_id %>">
+      <div class="flex-1 min-w-0 leading-snug">
+        <label for="<%= @checkbox_id %>"><%= @label %></label>
+        <span class="relative ml-1 inline-block cursor-default text-neutral-800"
+              data-controller="tooltip"
+              data-tooltip-text-value="<%= @tooltip_text %>"
+              data-action="mouseenter->tooltip#show mouseleave->tooltip#hide">
+          <%= helpers.icon "info", classes: "h-3.5 w-3.5 inline align-middle" %>
+        </span>
+        <button type="button" class="ml-1 text-neutral-400 [@media(hover:hover)]:hover:text-neutral-600"
+                data-action="click->filter#toggleSubcatPanel"
+                data-panel-id="<%= @panel_id %>"
+                aria-expanded="false"
+                aria-controls="<%= @panel_id %>">
+          <%= helpers.icon("arrow-down", classes: helpers.collapse_toggle_icon_classes) %>
+        </button>
+      </div>
+    </div>
   <% end %>
   <%= render "home/slider_panel", panel_id: @panel_id, field: @field,
              min_input_id: @min_input_id, max_input_id: @max_input_id, label: @slider_label, format: @format %>

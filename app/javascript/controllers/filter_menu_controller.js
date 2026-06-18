@@ -32,16 +32,20 @@ export default class extends Controller {
     if (!isOpen) {
       const mapRect = document.getElementById("container-map").getBoundingClientRect()
       const btnRect = btn.getBoundingClientRect()
+      const menuBtns = document.querySelectorAll(".filter-menu-btn")
+      const lastMenuBtn = menuBtns.length ? menuBtns[menuBtns.length - 1] : null
+      const moreBtnRect = lastMenuBtn ? lastMenuBtn.getBoundingClientRect() : mapRect
 
-      // Show first so offsetWidth is accurate, then clamp to avoid right-edge overflow
       menu.style.left = "0"
       menu.classList.remove("hidden")
       btn.classList.add("active")
       btn.setAttribute("aria-expanded", "true")
 
-      const leftPos = btnRect.left - mapRect.left
-      const maxLeft = mapRect.width - menu.offsetWidth - 10
-      menu.style.left = `${Math.max(0, Math.min(leftPos, maxLeft))}px`
+      const menuW = menu.offsetWidth
+      const rightBoundary = moreBtnRect.right - mapRect.left
+      const naturalLeft = btnRect.left - mapRect.left
+      const maxLeft = rightBoundary - menuW
+      menu.style.left = `${Math.max(0, Math.min(naturalLeft, maxLeft))}px`
     }
   }
 

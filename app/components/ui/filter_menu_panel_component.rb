@@ -2,7 +2,7 @@ class UI::FilterMenuPanelComponent < ViewComponent::Base
   include ApplicationHelper
 
   CONTAINER_BASE_CLASSES = "filter-dropdown filter-menu-scroll absolute top-[72px] z-[1001] " \
-    "bg-white border-t-0 min-w-[350px] rounded-[15px] " \
+    "bg-white border-t-0 rounded-[15px] " \
     "shadow-[1px_4px_12px_rgba(51,51,51,0.3)] max-h-[calc(100vh-350px)] " \
     "overflow-y-auto hidden".freeze
 
@@ -18,14 +18,19 @@ class UI::FilterMenuPanelComponent < ViewComponent::Base
     "bg-brand-primary px-7 py-2 text-sm text-white no-underline mx-2 my-1.5 min-h-11 " \
     "md:hover:brightness-110 #{FOCUS_RING_CLASSES}".freeze
 
-  def initialize(menu_id:, more_menu: false, reset_data_action: "click->filter#reset", reset_label: "Reset")
+  def initialize(menu_id:, more_menu: false, width: 350, reset_data_action: "click->filter#reset", reset_label: "Reset")
     @menu_id = menu_id
     @more_menu = more_menu
+    @width = width
     @reset_data_action = reset_data_action
     @reset_label = reset_label
   end
 
   def container_classes
-    class_names(CONTAINER_BASE_CLASSES, @more_menu && "filter-dropdown-more #{FILTERS_MENU_MOBILE_CLASSES}")
+    class_names(CONTAINER_BASE_CLASSES, @more_menu && "filter-dropdown-more overflow-x-hidden #{FILTERS_MENU_MOBILE_CLASSES}")
+  end
+
+  def container_style
+    "width: #{@width}px"
   end
 end

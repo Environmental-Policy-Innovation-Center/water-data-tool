@@ -1,5 +1,5 @@
 class Filters::CategoryComponent < ViewComponent::Base
-  BASE_HEADING_CLASSES = "m-0 px-[15px] py-5 text-base".freeze
+  BASE_HEADING_CLASSES = "m-0 px-[15px] pt-3 text-base".freeze
   # Default: gray bar in its own panel; auto-switches to light when JS moves it into the More panel.
   DEFAULT_VARIANT_CLASSES = "font-medium text-white bg-[#989898] " \
     "[.filter-dropdown-more_&]:font-bold [.filter-dropdown-more_&]:text-neutral-900 [.filter-dropdown-more_&]:bg-white".freeze
