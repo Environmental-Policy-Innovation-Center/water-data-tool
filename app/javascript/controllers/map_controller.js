@@ -22,6 +22,7 @@ const MODE_STATE = "state"
 const MODE_SYSTEMS = "systems"
 const EMPTY_PWS_FILTER = ["in", "pwsid", ""]
 const EMPTY_STATE_FILTER = ["==", ["get", "geoid"], ""]
+const HOVER_STATE_EXPR = ["boolean", ["feature-state", "hover"], false]
 const REGION_STATES = {
   AK: { stusps: "AK", name: "Alaska", geoid: "02" },
   HI: { stusps: "HI", name: "Hawaii", geoid: "15" },
@@ -78,7 +79,9 @@ export default class extends Controller {
     if (window.location.hostname === "localhost") window.mapDebug = this.map
     this.hoverPopup = null
     this.stateHoverPopup = null
+    this.hoveredStateId = null
     this.hoveredPwsid = null
+    this._stateLeaveTimer = null
     this.selectedState = null
     this.filteredPwsids = null
     this.mapMode = MODE_NATION
@@ -92,6 +95,7 @@ export default class extends Controller {
   }
 
   disconnect() {
+    this.#cancelStateLeaveTimer()
     document.removeEventListener("filters:changed", this.boundOnFiltersChanged)
     if (this.map) {
       this.map.remove()
@@ -213,7 +217,8 @@ export default class extends Controller {
 
     this.map.addSource("wdt", {
       type: "vector",
-      tiles: [tileUrl]
+      tiles: [tileUrl],
+      promoteId: { states: "geoid", counties: "geoid", places: "geoid", pws: "pwsid" }
     })
   }
 
@@ -230,8 +235,8 @@ export default class extends Controller {
       "source-layer": "states",
       layout: { visibility: "visible" },
       paint: {
-        "fill-color": "#fff",
-        "fill-opacity": 0,
+        "fill-color": ["case", HOVER_STATE_EXPR, "rgb(78, 163, 36)", "#fff"],
+        "fill-opacity": ["case", HOVER_STATE_EXPR, 0.2, 0],
         "fill-outline-color": "#eee"
       }
     }, firstLineId)
@@ -265,19 +270,19 @@ export default class extends Controller {
 
     // ── Hover / filter highlight layers ────────────────────────────────────────
 
+    // Hover border driven by feature-state — line layers don't have the fill-outline-color
+    // tile-boundary artifact, and feature-state means no filter management needed here.
     this.map.addLayer({
-      id: "states_hover",
-      type: "fill",
+      id: "states_hover_outline",
+      type: "line",
       source: "wdt",
       "source-layer": "states",
       layout: { visibility: "visible" },
       paint: {
-        "fill-color": "rgb(78, 163, 36)",
-        "fill-opacity": 0.2,
-        "fill-outline-color": "#999"
-      },
-      filter: EMPTY_STATE_FILTER
-    })
+        "line-color": "#999",
+        "line-width": ["case", HOVER_STATE_EXPR, 1, 0]
+      }
+    }, firstLineId)
 
     this.map.addLayer({
       id: "states_filter",
@@ -372,11 +377,21 @@ export default class extends Controller {
     this.map.on("mousemove", "states", (e) => {
       if (this.#systemsModeActive()) return
 
+      // Cancel any pending mouseleave clear — cursor is still over a state feature.
+      this.#cancelStateLeaveTimer()
+
       const props = this.#statePropsFromEvent(e)
       if (!props) return
 
       this.map.getCanvas().style.cursor = "pointer"
-      this.map.setFilter("states_hover", ["==", ["get", "geoid"], props.geoid])
+      if (props.geoid !== this.hoveredStateId) {
+        this.#clearStateHover()
+        this.hoveredStateId = props.geoid
+        this.map.setFeatureState(
+          { source: "wdt", sourceLayer: "states", id: this.hoveredStateId },
+          { hover: true }
+        )
+      }
 
       if (this.#shouldShowStatePrompt(props)) {
         this.#showStatePrompt(e.lngLat)
@@ -386,9 +401,14 @@ export default class extends Controller {
     })
 
     this.map.on("mouseleave", "states", () => {
-      this.map.getCanvas().style.cursor = ""
-      this.map.setFilter("states_hover", EMPTY_STATE_FILTER)
-      this.#removeStatePrompt()
+      // Debounce the clear so a cursor crossing a tile-boundary gap between two states
+      // doesn't produce a visible flicker (mousemove on the next state cancels this).
+      this._stateLeaveTimer = setTimeout(() => {
+        this._stateLeaveTimer = null
+        this.map.getCanvas().style.cursor = ""
+        this.#clearStateHover()
+        this.#removeStatePrompt()
+      }, 80)
     })
 
     this.map.on("click", "states", (e) => {
@@ -579,7 +599,7 @@ export default class extends Controller {
     this.mapMode = MODE_NATION
     this.map.setMaxZoom(NATION_MAX_ZOOM)
     this.map.setFilter("states_filter", EMPTY_STATE_FILTER)
-    this.map.setFilter("states_hover", EMPTY_STATE_FILTER)
+    this.#clearStateHover()
     this.map.setFilter("pws_hover", EMPTY_PWS_FILTER)
     this.#removeStatePrompt()
     this.#removeSystemPopups()
@@ -598,7 +618,7 @@ export default class extends Controller {
     this.element.dataset.selectedState = state.stusps
     this.element.dataset.selectedStateName = state.name
     this.mapMode = this.#systemsModeActive() ? MODE_SYSTEMS : MODE_STATE
-    this.map.setFilter("states_hover", EMPTY_STATE_FILTER)
+    this.#clearStateHover()
     this.map.setFilter("states_filter", this.#stateBoundaryFilter(state))
     this.map.setFilter("pws_hover", EMPTY_PWS_FILTER)
     this.#removeSystemPopups()
@@ -647,6 +667,21 @@ export default class extends Controller {
       stusps: filters.state,
       name: filters.state_name || filters.state
     }, { syncStateFilter: false })
+  }
+
+  #cancelStateLeaveTimer() {
+    if (!this._stateLeaveTimer) return
+    clearTimeout(this._stateLeaveTimer)
+    this._stateLeaveTimer = null
+  }
+
+  #clearStateHover() {
+    if (this.hoveredStateId === null) return
+    this.map.setFeatureState(
+      { source: "wdt", sourceLayer: "states", id: this.hoveredStateId },
+      { hover: false }
+    )
+    this.hoveredStateId = null
   }
 
   #stateBoundaryFilter(state) {
