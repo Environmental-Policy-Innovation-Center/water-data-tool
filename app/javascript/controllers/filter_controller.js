@@ -22,14 +22,15 @@ const PRIMACY_TYPE_MAP = {
   "primacy-type-tribal": "Tribal",
 }
 
-const RATE_TIER_VALUE_MAP = {
-  "rate-tier-125-249": "$125-249",
-  "rate-tier-250-499": "$250-499",
-  "rate-tier-500-749": "$500-749",
-  "rate-tier-750-999": "$750-999",
-  "rate-tier-gt1000": ">$1000",
-  "rate-tier-lt125": "<$125",
+const RATE_TIER_BTN_MAP = {
+  "rate-tier-lt125":   "under_125",
+  "rate-tier-125-249": "tier_125_249",
+  "rate-tier-250-499": "tier_250_499",
+  "rate-tier-500-749": "tier_500_749",
+  "rate-tier-750-999": "tier_750_999",
+  "rate-tier-gt1000":  "over_1000",
 }
+const RATE_TIER_ID_MAP = Object.fromEntries(Object.entries(RATE_TIER_BTN_MAP).map(([id, v]) => [v, id]))
 
 // Filter ↔ DOM wiring (IDs, value maps). Canonical param/column keys: config/filters.yml → FilterRegistry,
 // embedded as #filter-registry-config JSON — extend FilterRegistry when adding backend-facing keys.
@@ -118,8 +119,7 @@ const FILTERS = [
 
   // ── More (menu 10) ───────────────────────────────────────────────────────
   // ── Financial ─────────────────────────────────────────────────────────────
-  { type: "group", group: 10, param: "most_common_rate_tier", valueMap: RATE_TIER_VALUE_MAP },
-  { type: "bool",  group: 10, id: "rate-tier-no-info", param: "no_rate_info", value: "true" },
+  { type: "rate_tier", group: 10, param: "most_common_rate_tier" },
 
   // ── Funding (alphabetical by param_min) ───────────────────────────────────
   { type: "range", group: 10, parentId: "more-has-srf-financing",          panelId: "subcat-srf-financing",    param_min: "times_funded_min",                 param_max: "times_funded_max",                 minInputId: "min-srf-financing",    maxInputId: "max-srf-financing" },
@@ -138,6 +138,7 @@ const FILTERS = [
 
 const GROUP_TYPE_FILTERS   = FILTERS.filter(f => f.type === "group")
 const POP_CAT_FILTERS      = FILTERS.filter(f => f.type === "pop_cat")
+const RATE_TIER_FILTERS    = FILTERS.filter(f => f.type === "rate_tier")
 const SUBCAT_PANEL_FILTERS = FILTERS.filter(f => f.type === "subcat_panel")
 const RANGE_FILTERS        = FILTERS.filter(f => f.type === "range")
 const RANGE_SELECT_FILTERS = FILTERS.filter(f => f.type === "range_select")
@@ -229,6 +230,26 @@ export default class extends Controller {
     event.currentTarget.classList.toggle("active")
   }
 
+  toggleRateTierPanel(event) {
+    event.preventDefault()
+    const panelId = event.currentTarget.dataset.panelId
+    const panel = panelId && document.getElementById(panelId)
+    if (!panel) return
+    panel.classList.toggle("hidden")
+    this.#setToggleArrow(panelId, !panel.classList.contains("hidden"))
+    event.currentTarget.checked = this.#rateTierHasSelection()
+  }
+
+  toggleRateTier(event) {
+    event.preventDefault()
+    event.currentTarget.classList.toggle("active")
+    this.#syncRateTierParent()
+  }
+
+  onRateTierNoInfoChange() {
+    this.#syncRateTierParent()
+  }
+
   reset(event) {
     event.preventDefault()
     const menu = event.currentTarget.closest(".filter-dropdown")
@@ -249,6 +270,7 @@ export default class extends Controller {
     if (checkbox.checked) {
       panel.classList.remove("hidden")
       this.#setToggleArrow(panelId, true)
+      this.#loadSlider(panel)
       panel.querySelectorAll("input[type='checkbox']").forEach(cb => { cb.checked = true })
       filter?.subcats.forEach(s => {
         if (!s.sliderPanelId) return
@@ -303,6 +325,16 @@ export default class extends Controller {
     }
   }
 
+  #rateTierHasSelection() {
+    return Object.keys(RATE_TIER_BTN_MAP).some(id => document.getElementById(id)?.classList.contains("active"))
+      || document.getElementById("rate-tier-no-info")?.checked
+  }
+
+  #syncRateTierParent() {
+    const parentCb = document.getElementById("more-rate-tier")
+    if (parentCb) parentCb.checked = this.#rateTierHasSelection()
+  }
+
   #hideAndResetSlider(sliderPanel) {
     if (!sliderPanel) return
     sliderPanel.classList.add("hidden")
@@ -353,6 +385,7 @@ export default class extends Controller {
     menu.querySelectorAll("select.min-select").forEach(s => { s.selectedIndex = 0 })
     menu.querySelectorAll("select.max-select").forEach(s => { s.selectedIndex = s.options.length - 1 })
     menu.querySelectorAll(".pop-size-box").forEach(b => b.classList.remove("active"))
+    menu.querySelectorAll(".rate-tier-box").forEach(b => b.classList.remove("active"))
     const placeInput = menu.querySelector("#place-geoid")
     if (placeInput) placeInput.value = ""
     const placeText = menu.querySelector(".js-place-search")
@@ -382,6 +415,13 @@ export default class extends Controller {
           if (checked.length > 0 && checked.length < all.length) {
             p[f.param] = checked.map(el => f.valueMap[el.id])
           }
+          break
+        }
+        case "rate_tier": {
+          const activeBtns = Object.keys(RATE_TIER_BTN_MAP).filter(id => document.getElementById(id)?.classList.contains("active"))
+          const noInfo = document.getElementById("rate-tier-no-info")?.checked
+          const selected = [...activeBtns.map(id => RATE_TIER_BTN_MAP[id]), ...(noInfo ? ["no_information"] : [])]
+          if (selected.length > 0) p[f.param] = selected
           break
         }
         case "select": {
@@ -495,6 +535,22 @@ export default class extends Controller {
             const el = document.querySelector(`.${cls}`)
             if (el) el.classList.add("active")
           })
+          break
+        }
+        case "rate_tier": {
+          if (!params[f.param]) break
+          params[f.param].forEach(val => {
+            if (val === "no_information") {
+              const el = document.getElementById("rate-tier-no-info")
+              if (el) el.checked = true
+            } else {
+              const id = RATE_TIER_ID_MAP[val]
+              if (id) document.getElementById(id)?.classList.add("active")
+            }
+          })
+          document.getElementById("subcat-rate-tier")?.classList.remove("hidden")
+          this.#setToggleArrow("subcat-rate-tier", true)
+          this.#syncRateTierParent()
           break
         }
         case "place": {
@@ -622,10 +678,19 @@ export default class extends Controller {
           return sum + (activeSubcats.length > 0 ? 1 + activeSubcats.length : 0)
         }, 0)
 
+    // 1 for the parent checkbox + 1 per selected tier/option
+    const countRateTierFilters = (group) =>
+      RATE_TIER_FILTERS.filter(f => f.group === group)
+        .reduce((sum, f) => {
+          const items = Array.isArray(p[f.param]) ? p[f.param].length : 0
+          return sum + (items > 0 ? 1 + items : 0)
+        }, 0)
+
     const countForGroup = (group) =>
       countKeys(GROUP_KEYS[group] || [])
         + countArrayFilters(GROUP_TYPE_FILTERS, group)
         + countArrayFilters(POP_CAT_FILTERS, group)
+        + countRateTierFilters(group)
         + countMinMaxFilters(RANGE_FILTERS, group)
         + countMinMaxFilters(RANGE_SELECT_FILTERS, group)
         + countSubcatPanelFilters(group)
