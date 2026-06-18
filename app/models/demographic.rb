@@ -46,4 +46,14 @@ class Demographic < ApplicationRecord
   belongs_to :public_water_system, foreign_key: "pwsid", primary_key: "pwsid", inverse_of: :demographic
 
   validates :pwsid, presence: true
+
+  enum :most_common_rate_tier, {
+    under_125: "Most people pay < $125 for water & sewer annually",
+    tier_125_249: "Most people pay between $125-249 for water & sewer annually",
+    tier_250_499: "Most people pay between $250-499 for water & sewer annually",
+    tier_500_749: "Most people pay between $500-749 for water & sewer annually",
+    tier_750_999: "Most people pay between $750-999 for water & sewer annually",
+    over_1000: "Most people pay > $1000 for water & sewer annually",
+    no_information: "No Information on annual water & sewer rates"
+  }
 end

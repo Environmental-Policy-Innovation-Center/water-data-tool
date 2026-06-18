@@ -721,6 +721,72 @@ columns:
     csv_label: "Annual water and sewer bill"
     sql_expr: d.most_common_rate_tier
 
+  - key: water_rate_under_125
+    label: "Under $125"
+    sort: water_rate_under_125
+    format: pct
+    format_opts: {}
+    size: default
+    source: demographic
+    category: demographics
+    csv_label: "Annual bill: under $125 (%)"
+    sql_expr: d.water_rate_under_125
+
+  - key: water_rate_125_249
+    label: "$125–249"
+    sort: water_rate_125_249
+    format: pct
+    format_opts: {}
+    size: default
+    source: demographic
+    category: demographics
+    csv_label: "Annual bill: $125–249 (%)"
+    sql_expr: d.water_rate_125_249
+
+  - key: water_rate_250_499
+    label: "$250–499"
+    sort: water_rate_250_499
+    format: pct
+    format_opts: {}
+    size: default
+    source: demographic
+    category: demographics
+    csv_label: "Annual bill: $250–499 (%)"
+    sql_expr: d.water_rate_250_499
+
+  - key: water_rate_500_749
+    label: "$500–749"
+    sort: water_rate_500_749
+    format: pct
+    format_opts: {}
+    size: default
+    source: demographic
+    category: demographics
+    csv_label: "Annual bill: $500–749 (%)"
+    sql_expr: d.water_rate_500_749
+
+  - key: water_rate_750_999
+    label: "$750–999"
+    sort: water_rate_750_999
+    format: pct
+    format_opts: {}
+    size: default
+    source: demographic
+    category: demographics
+    csv_label: "Annual bill: $750–999 (%)"
+    sql_expr: d.water_rate_750_999
+
+  - key: water_rate_over_1000
+    label: "Over $1,000"
+    sort: water_rate_over_1000
+    format: pct
+    format_opts: {}
+    size: default
+    source: demographic
+    category: demographics
+    csv_label: "Annual bill: over $1,000 (%)"
+    sql_expr: d.water_rate_over_1000
+
   # Environmental justice
   - key: cejst_disadvantaged_pct
     label: "Disadvantaged area"

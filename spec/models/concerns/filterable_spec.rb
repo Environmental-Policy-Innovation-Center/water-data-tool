@@ -378,31 +378,31 @@ RSpec.describe Filterable, type: :model do
       let!(:no_tier) { create(:public_water_system) }
 
       before do
-        create(:demographic, public_water_system: low_tier, pwsid: low_tier.pwsid, most_common_rate_tier: "$125-249")
-        create(:demographic, public_water_system: high_tier, pwsid: high_tier.pwsid, most_common_rate_tier: "$500-749")
-        create(:demographic, public_water_system: no_tier, pwsid: no_tier.pwsid, most_common_rate_tier: nil)
+        create(:demographic, public_water_system: low_tier, pwsid: low_tier.pwsid, most_common_rate_tier: :tier_125_249)
+        create(:demographic, public_water_system: high_tier, pwsid: high_tier.pwsid, most_common_rate_tier: :tier_500_749)
+        create(:demographic, public_water_system: no_tier, pwsid: no_tier.pwsid, most_common_rate_tier: :no_information)
       end
 
       it "filters by a single rate tier" do
-        results = PublicWaterSystem.apply_filters(most_common_rate_tier: ["$125-249"])
+        results = PublicWaterSystem.apply_filters(most_common_rate_tier: ["tier_125_249"])
         expect(results).to include(low_tier)
         expect(results).not_to include(high_tier, no_tier)
       end
 
       it "ORs multiple rate tiers" do
-        results = PublicWaterSystem.apply_filters(most_common_rate_tier: ["$125-249", "$500-749"])
+        results = PublicWaterSystem.apply_filters(most_common_rate_tier: ["tier_125_249", "tier_500_749"])
         expect(results).to include(low_tier, high_tier)
         expect(results).not_to include(no_tier)
       end
 
-      it "includes null-rate systems when no_rate_info is true" do
-        results = PublicWaterSystem.apply_filters(no_rate_info: "true")
+      it "filters by the no_information rate tier" do
+        results = PublicWaterSystem.apply_filters(most_common_rate_tier: ["no_information"])
         expect(results).to include(no_tier)
         expect(results).not_to include(low_tier, high_tier)
       end
 
-      it "ORs rate tier with no_rate_info" do
-        results = PublicWaterSystem.apply_filters(most_common_rate_tier: ["$125-249"], no_rate_info: "true")
+      it "ORs rate tier with no_information" do
+        results = PublicWaterSystem.apply_filters(most_common_rate_tier: ["tier_125_249", "no_information"])
         expect(results).to include(low_tier, no_tier)
         expect(results).not_to include(high_tier)
       end
