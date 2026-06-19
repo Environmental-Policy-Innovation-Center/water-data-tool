@@ -47,12 +47,7 @@
         <li class="<%= filter_row_classes %>">
           <input type="checkbox" class="toggle" id="has-source-water-protection">
           <label for="has-source-water-protection">Has source protection</label>
-          <span class="relative ml-1 inline-block cursor-default"
-                data-controller="tooltip"
-                data-tooltip-text-value="<%= filter_tooltips['source_protection'] %>"
-                data-action="mouseenter->tooltip#show mouseleave->tooltip#hide">
-            <%= icon "info", classes: "h-3.5 w-3.5 inline align-middle" %>
-          </span>
+          <%= tooltip_icon(filter_tooltips["source_protection"]) %>
         </li>
       </ul>
     <% end %>
@@ -92,12 +87,7 @@
         <li class="<%= filter_row_classes %>">
           <input type="checkbox" class="toggle" id="is-wholesaler">
           <label for="is-wholesaler">Wholesaler</label>
-          <span class="relative ml-1 inline-block cursor-default"
-                data-controller="tooltip"
-                data-tooltip-text-value="<%= filter_tooltips['wholesaler'] %>"
-                data-action="mouseenter->tooltip#show mouseleave->tooltip#hide">
-            <%= icon "info", classes: "h-3.5 w-3.5 inline align-middle" %>
-          </span>
+          <%= tooltip_icon(filter_tooltips["wholesaler"]) %>
         </li>
       </ul>
     <% end %>

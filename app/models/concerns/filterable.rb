@@ -121,7 +121,8 @@ module Filterable
 
       tiers = Array(params[:most_common_rate_tier]).select(&:present?)
       if tiers.any?
-        db_values = tiers.filter_map { |t| Demographic.most_common_rate_tiers[t] }
+        tier_map = Demographic.most_common_rate_tiers
+        db_values = tiers.filter_map { |t| tier_map[t] }
         scope = scope.where(dem_t[:most_common_rate_tier].in(db_values))
       end
 
