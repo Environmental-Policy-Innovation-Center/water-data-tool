@@ -30,7 +30,7 @@ A third related problem: **selected-row exports** previously passed individual P
 | `direction` | `asc` or `desc` | Always explicit — never inside the blob |
 | `page` | **Not in the URL** | Ephemeral — always resets to page 1 on any table reload |
 | `search` | **Not in the URL** | Ephemeral — stored in `#table-query-state` DOM span for export only |
-| `view` | **Not yet in the URL** | Active section (map/table/etc.) driven by `nav_controller.js#show()` on click — on page load, nothing calls `show()`, so the URL param would be ignored without additional connect-time logic to read it and apply the DOM state |
+| `view` | **Deferred — not yet in the URL** | Active section (map/table/etc.) driven by `nav_controller.js#show()` on click. Implementing this cleanly requires the filter server-render refactor first: today, initial page state is restored by client-side JS in `filter_controller#connect()`; adding a second controller doing the same for `view=` creates cross-controller coordination risk (double table frame load). After the server-render refactor, `HomeController#index` decodes all URL state once and the template renders the correct section in the initial HTML — no connect-time coordination needed. See `docs/open_items/FILTER_SERVER_RENDER.md`. |
 
 ### Blob structure
 
