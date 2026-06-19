@@ -4,7 +4,7 @@
 <!-- 1. SOURCE -->
 <%= render UI::FilterMenuPanelComponent.new(menu_id: 1) do %>
   <div id="container-menu-1-items">
-    <%= render Filters::CategoryComponent.new(label: "Primary type") do %>
+    <%= render Filters::CategoryComponent.new(label: "Primary type", tooltip_text: filter_tooltips["primary_type"]) do %>
       <ul class="my-[6px] mb-[10px] mx-0 list-none px-1">
         <li class="<%= filter_row_classes %>"><input type="radio" name="water-source" id="ws-both" checked="checked" data-default><label for="ws-both">Both ground and surface</label></li>
         <li class="<%= filter_row_classes %>"><input type="radio" name="water-source" id="ws-ground"><label for="ws-ground">Ground only</label></li>
@@ -44,7 +44,16 @@
     <% end %>
     <%= render Filters::CategoryComponent.new(label: "Protection") do %>
       <ul class="my-[6px] mb-[10px] mx-0 list-none px-1">
-        <li class="<%= filter_row_classes %>"><input type="checkbox" class="toggle" id="has-source-water-protection"><label for="has-source-water-protection">Has source protection</label></li>
+        <li class="<%= filter_row_classes %>">
+          <input type="checkbox" class="toggle" id="has-source-water-protection">
+          <label for="has-source-water-protection">Has source protection</label>
+          <span class="relative ml-1 inline-block cursor-default"
+                data-controller="tooltip"
+                data-tooltip-text-value="<%= filter_tooltips['source_protection'] %>"
+                data-action="mouseenter->tooltip#show mouseleave->tooltip#hide">
+            <%= icon "info", classes: "h-3.5 w-3.5 inline align-middle" %>
+          </span>
+        </li>
       </ul>
     <% end %>
   </div>
@@ -80,7 +89,16 @@
     <% end %>
     <%= render Filters::CategoryComponent.new(label: "Distribution") do %>
       <ul class="my-[6px] mb-[10px] mx-0 list-none px-1">
-        <li class="<%= filter_row_classes %>"><input type="checkbox" class="toggle" id="is-wholesaler"><label for="is-wholesaler">Wholesaler</label></li>
+        <li class="<%= filter_row_classes %>">
+          <input type="checkbox" class="toggle" id="is-wholesaler">
+          <label for="is-wholesaler">Wholesaler</label>
+          <span class="relative ml-1 inline-block cursor-default"
+                data-controller="tooltip"
+                data-tooltip-text-value="<%= filter_tooltips['wholesaler'] %>"
+                data-action="mouseenter->tooltip#show mouseleave->tooltip#hide">
+            <%= icon "info", classes: "h-3.5 w-3.5 inline align-middle" %>
+          </span>
+        </li>
       </ul>
     <% end %>
     <%= render Filters::CategoryComponent.new(label: "Facility type") do %>
@@ -94,7 +112,7 @@
 <!-- 3. BOUNDARIES -->
 <%= render UI::FilterMenuPanelComponent.new(menu_id: 3) do %>
   <div id="container-menu-3-items">
-    <%= render Filters::CategoryComponent.new(label: "Type") do %>
+    <%= render Filters::CategoryComponent.new(label: "Type", tooltip_text: filter_tooltips["boundary_type"]) do %>
       <ul class="my-[6px] mb-[10px] mx-0 list-none px-1">
         <li class="<%= filter_row_classes %>"><input type="radio" name="boundary-type" id="bt-both" checked="checked" data-default><label for="bt-both">Both modeled and system sourced</label></li>
         <li class="<%= filter_row_classes %>"><input type="radio" name="boundary-type" id="bt-modeled"><label for="bt-modeled">Modeled only</label></li>
@@ -124,9 +142,9 @@
 <% end %>
 
 <!-- 4. COMPLIANCE -->
-<%= render UI::FilterMenuPanelComponent.new(menu_id: 4, width: 390) do %>
+<%= render UI::FilterMenuPanelComponent.new(menu_id: 4, width_class: "w-[390px]") do %>
   <div id="container-menu-4-items">
-    <%= render Filters::CategoryComponent.new(label: "Violations") do %>
+    <%= render Filters::CategoryComponent.new(label: "Violations", tooltip_text: filter_tooltips["violations"]) do %>
       <ul class="my-[6px] mb-[10px] mx-0 list-none px-1">
         <li class="<%= filter_row_classes %>"><input type="checkbox" class="toggle" id="compliance-open-violations"><label for="compliance-open-violations">Open violations</label></li>
         <li class="<%= filter_row_classes %>">
@@ -299,7 +317,7 @@
         </li>
       </ul>
     <% end %>
-    <%= render Filters::CategoryComponent.new(label: "Notices") do %>
+    <%= render Filters::CategoryComponent.new(label: "Notices", tooltip_text: filter_tooltips["boil_water_notices"]) do %>
       <ul class="my-[6px] mb-[10px] mx-0 list-none px-1">
         <li class="<%= filter_row_classes %>"><input type="checkbox" class="toggle" disabled="disabled" id="boil-water-notices"><label class="text-[#888]" for="boil-water-notices">Boil water notices <span class="bwn-disabled-txt">(data unavailable <span class="geo-filter"></span>)</span></label></li>
       </ul>
@@ -311,7 +329,7 @@
 <%= render UI::FilterMenuPanelComponent.new(
       menu_id: 10,
       more_menu: true,
-      width: 450,
+      width_class: "w-[450px]",
       reset_data_action: "click->filter#resetAll",
       reset_label: "Reset All"
     ) do %>
@@ -323,14 +341,14 @@
   <div id="more-filter-grp-4"></div>
   <div id="more-filter-grp-5"></div>
   <div id="container-menu-10-items">
-    <%= render Filters::CategoryComponent.new(label: "Financial", variant: :default) do %>
+    <%= render Filters::CategoryComponent.new(label: "Financial", variant: :default, tooltip_text: filter_tooltips["annual_water_sewer_bill"]) do %>
       <ul class="my-[6px] mb-[10px] mx-0 list-none px-1">
         <li class="<%= filter_row_classes %>">
           <input type="checkbox" class="toggle" id="more-rate-tier"
                  data-action="click->filter#toggleRateTierPanel"
                  data-panel-id="subcat-rate-tier">
           <label for="more-rate-tier">Annual water and sewer bill</label>
-          <span class="relative ml-1 inline-block cursor-default text-neutral-800"
+          <span class="relative ml-1 inline-block cursor-default"
                 data-controller="tooltip"
                 data-tooltip-text-value="<%= filter_tooltips['annual_water_sewer_bill'] %>"
                 data-action="mouseenter->tooltip#show mouseleave->tooltip#hide">
@@ -365,7 +383,7 @@
         </li>
       </ul>
     <% end %>
-    <%= render Filters::CategoryComponent.new(label: "Funding (2021–2025)", variant: :default) do %>
+    <%= render Filters::CategoryComponent.new(label: "Funding (2021–2025)", variant: :default, tooltip_text: filter_tooltips["funding_2021_2025"]) do %>
       <ul class="my-[6px] mb-[10px] mx-0 list-none px-1">
         <%= render Filters::GroupRangeComponent.new(
               checkbox_id: "more-has-srf-financing", panel_id: "subcat-srf-financing",
@@ -391,7 +409,7 @@
                  data-action="change->filter#toggleSubcat"
                  data-panel-id="subcat-watershed-hazards">
           <label for="more-watershed-hazards">Potential watershed hazards</label>
-          <span class="relative ml-1 inline-block cursor-default text-neutral-800"
+          <span class="relative ml-1 inline-block cursor-default"
                 data-controller="tooltip"
                 data-tooltip-text-value="<%= filter_tooltips['watershed_hazards'] %>"
                 data-action="mouseenter->tooltip#show mouseleave->tooltip#hide">
@@ -440,9 +458,9 @@
 <% end %>
 
 <!-- 5. POPULATION -->
-<%= render UI::FilterMenuPanelComponent.new(menu_id: 5, width: 450) do %>
+<%= render UI::FilterMenuPanelComponent.new(menu_id: 5, width_class: "w-[450px]") do %>
   <div id="container-menu-5-items">
-    <%= render Filters::CategoryComponent.new(label: "Population size") do %>
+    <%= render Filters::CategoryComponent.new(label: "Population size", tooltip_text: filter_tooltips["population_size"]) do %>
       <div class="flex my-[10px] ml-[15px] mr-[15px]">
         <%= render Filters::PopSizeGroupComponent.new(id: "pop-very-small", label: "Very small",  sublabel: "500 or less",      pop_number: 1, position: :first) %>
         <%= render Filters::PopSizeGroupComponent.new(id: "pop-small",      label: "Small",       sublabel: "501 - 3,300",      pop_number: 2) %>
