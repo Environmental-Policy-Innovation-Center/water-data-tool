@@ -678,7 +678,7 @@ export default class extends Controller {
           return sum + (activeSubcats.length > 0 ? 1 + activeSubcats.length : 0)
         }, 0)
 
-    // 1 for the parent checkbox + 1 per selected tier/option
+    // 1 for the parent checkbox + 1 per selected tier/option (unlike pop_cat, which has no parent checkbox in the badge)
     const countRateTierFilters = (group) => {
       const f = RATE_TIER_FILTERS.find(f => f.group === group)
       if (!f) return 0

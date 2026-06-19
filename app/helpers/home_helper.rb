@@ -22,6 +22,14 @@ module HomeHelper
     EXPORTS_TOOLTIPS
   end
 
+  def tooltip_icon(text)
+    content_tag(:span, class: "relative ml-1 inline-block cursor-default",
+      data: {controller: "tooltip", tooltip_text_value: text,
+             action: "mouseenter->tooltip#show mouseleave->tooltip#hide"}) do
+      icon("info", classes: "h-3.5 w-3.5 inline align-middle")
+    end
+  end
+
   def hidden_inputs_for_params(except: [])
     safe_join(
       request.query_parameters.except(*except).flat_map do |k, v|
