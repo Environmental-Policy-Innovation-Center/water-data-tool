@@ -6,9 +6,9 @@ module HomeHelper
     .map(&:symbolize_keys)
     .freeze
 
-  FILTER_TOOLTIPS = YAML.safe_load_file(Rails.root.join("config/tooltips.yml"))
-    .fetch("filter_menus")
-    .freeze
+  TOOLTIPS = YAML.safe_load_file(Rails.root.join("config/tooltips.yml")).freeze
+  FILTER_TOOLTIPS = TOOLTIPS.fetch("filter_menus").freeze
+  EXPORTS_TOOLTIPS = TOOLTIPS.fetch("exports").freeze
 
   def datasets
     DATASETS
@@ -16,6 +16,10 @@ module HomeHelper
 
   def filter_tooltips
     FILTER_TOOLTIPS
+  end
+
+  def exports_tooltips
+    EXPORTS_TOOLTIPS
   end
 
   def hidden_inputs_for_params(except: [])

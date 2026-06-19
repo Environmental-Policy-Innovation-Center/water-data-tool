@@ -32,9 +32,8 @@ export default class extends Controller {
     if (!isOpen) {
       const mapRect = document.getElementById("container-map").getBoundingClientRect()
       const btnRect = btn.getBoundingClientRect()
-      const menuBtns = document.querySelectorAll(".filter-menu-btn")
-      const lastMenuBtn = menuBtns.length ? menuBtns[menuBtns.length - 1] : null
-      const moreBtnRect = lastMenuBtn ? lastMenuBtn.getBoundingClientRect() : mapRect
+      const moreBtn = document.getElementById("container-menu-btn-10")
+      const moreBtnRect = moreBtn ? moreBtn.getBoundingClientRect() : mapRect
 
       menu.style.left = "0"
       menu.classList.remove("hidden")

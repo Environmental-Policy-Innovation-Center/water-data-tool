@@ -36,7 +36,7 @@ const RATE_TIER_ID_MAP = Object.fromEntries(Object.entries(RATE_TIER_BTN_MAP).ma
 // embedded as #filter-registry-config JSON — extend FilterRegistry when adding backend-facing keys.
 // Per-entry key order: type → group → id (if any) → param | parentId → panelId → param_min → param_max → …rest.
 // subcat rows: id → param_min → param_max → minInputId → maxInputId → sliderPanelId (column-aligned within each subcats: [] block).
-// Types: 'radio' | 'bool' | 'group' | 'range_select' | 'pop_cat' | 'place' | 'subcat_panel' | 'range'
+// Types: 'radio' | 'bool' | 'group' | 'range_select' | 'pop_cat' | 'rate_tier' | 'place' | 'subcat_panel' | 'range'
 const FILTERS = [
   // ── Source (menu 1) ──────────────────────────────────────────────────────
   { type: "radio", group: 1, param: "gw_sw_code", ids: { "ws-ground": "Groundwater", "ws-surface": "Surface Water" } },
