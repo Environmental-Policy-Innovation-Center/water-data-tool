@@ -1,6 +1,7 @@
 import { Controller } from "@hotwired/stimulus"
 import * as FilterState from "filter_state"
 import { syncStatsFrame } from "stats_frame"
+import { syncToUrl } from "url_sync"
 
 const DESKTOP_US_BOUNDS = [[-125.5, 23.5], [-65.5, 49.5]]
 const VIEWPORT_PADDING = 20
@@ -89,7 +90,9 @@ export default class extends Controller {
     this.geocoderRequestSequence = 0
 
     this.boundOnFiltersChanged = this.#onFiltersChanged.bind(this)
+    this.boundOnResetAll = this.#onResetAll.bind(this)
     document.addEventListener("filters:changed", this.boundOnFiltersChanged)
+    document.addEventListener("filter:reset-all", this.boundOnResetAll)
 
     this.map.on("load", () => this.#onLoad())
   }
@@ -97,6 +100,7 @@ export default class extends Controller {
   disconnect() {
     this.#cancelStateLeaveTimer()
     document.removeEventListener("filters:changed", this.boundOnFiltersChanged)
+    document.removeEventListener("filter:reset-all", this.boundOnResetAll)
     if (this.map) {
       this.map.remove()
       this.map = null
@@ -174,7 +178,10 @@ export default class extends Controller {
 
     this.#fitDefaultView({ duration: 0 })
 
-    this.map.once("idle", () => this.#hideLoadingMask())
+    this.map.once("idle", () => {
+      if (this.selectedState) this.#fitToState(this.selectedState.stusps)
+      this.#hideLoadingMask()
+    })
   }
 
   #addControls() {
@@ -418,11 +425,14 @@ export default class extends Controller {
       if (!props) return
 
       const wasNationMode = this.mapMode === MODE_NATION
+      const switchingState = !!this.selectedState && this.selectedState.stusps !== props.stusps
       this.#selectState(props)
       this.#removeStatePrompt()
 
-      if (wasNationMode) {
-        this.map.flyTo({ center: e.lngLat, zoom: Math.max(this.map.getZoom(), STATE_ENTRY_ZOOM) })
+      if (wasNationMode || switchingState || this.map.getZoom() < STATE_ENTRY_ZOOM) {
+        if (!this.#fitToState(props.stusps)) {
+          this.map.flyTo({ center: e.lngLat, zoom: Math.max(this.map.getZoom(), STATE_ENTRY_ZOOM) })
+        }
       }
     })
 
@@ -543,6 +553,11 @@ export default class extends Controller {
     })
   }
 
+  #onResetAll() {
+    if (!this.selectedState && !FilterState.get().state) return
+    this.#enterNationMode({ fitDefault: false, resetMaxZoom: false })
+  }
+
   async #onFiltersChanged() {
     if (!this.map?.getLayer("pws")) return
 
@@ -591,13 +606,13 @@ export default class extends Controller {
     this.activeFilterRequest = null
   }
 
-  #enterNationMode({ fitDefault = true, syncStateFilter = true } = {}) {
+  #enterNationMode({ fitDefault = true, syncStateFilter = true, resetMaxZoom = true } = {}) {
     const hadStateScope = !!this.selectedState || !!FilterState.get().state || !!FilterState.get().state_name
     this.selectedState = null
     delete this.element.dataset.selectedState
     delete this.element.dataset.selectedStateName
     this.mapMode = MODE_NATION
-    this.map.setMaxZoom(NATION_MAX_ZOOM)
+    if (resetMaxZoom) this.map.setMaxZoom(NATION_MAX_ZOOM)
     this.map.setFilter("states_filter", EMPTY_STATE_FILTER)
     this.#clearStateHover()
     this.map.setFilter("pws_hover", EMPTY_PWS_FILTER)
@@ -657,6 +672,26 @@ export default class extends Controller {
       name: props.name || props.stusps,
       geoid: props.geoid || null
     }
+  }
+
+  #fitToState(stusps) {
+    const features = this.map.querySourceFeatures("wdt", {
+      sourceLayer: "states",
+      filter: ["==", "stusps", stusps]
+    })
+    if (!features.length) return false
+
+    const bounds = new window.mapboxgl.LngLatBounds()
+    features.forEach(({ geometry }) => {
+      const polygons = geometry.type === "MultiPolygon"
+        ? geometry.coordinates
+        : [geometry.coordinates]
+      polygons.forEach(rings => rings[0].forEach(c => bounds.extend(c)))
+    })
+
+    if (bounds.isEmpty()) return false
+    this.map.fitBounds(bounds, { padding: 60 })
+    return true
   }
 
   #restoreStateFromFilter() {
@@ -724,7 +759,7 @@ export default class extends Controller {
       state: state.stusps,
       state_name: state.name
     })
-    this.#syncFiltersToUrl()
+    syncToUrl()
     document.dispatchEvent(new CustomEvent("filters:changed"))
   }
 
@@ -733,14 +768,8 @@ export default class extends Controller {
     delete filters.state
     delete filters.state_name
     FilterState.set(filters)
-    this.#syncFiltersToUrl()
+    syncToUrl()
     document.dispatchEvent(new CustomEvent("filters:changed"))
-  }
-
-  #syncFiltersToUrl() {
-    const url = new URL(window.location)
-    url.search = FilterState.toUrlParams().toString()
-    history.replaceState({}, "", url)
   }
 
   async #lookupState(center) {
