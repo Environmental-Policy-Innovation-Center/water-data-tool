@@ -30,8 +30,8 @@ filter_menus:
   stage_2_disinfectants: "Violations for stage 2 disinfectants occur when public water systems exceed the maximum exposures for total trihalomethanes and haloacetic acids, byproducts in water disinfected with chlorine or chloramine."
 
   # Population — Change
-  population_change: "Population change shows the percent change in total population served by the water system over the most recent census period."
-  income_change: "Median household income change shows the percent change in median household income for the service area over the most recent census period."
+  population_change: "Population change shows the percent change in total population served by the water system from 2021 & 2011."
+  income_change: "Median household income change shows the percent change in median household income for the service area from 2021 & 2011."
 
   # Population — Socioeconomics
   poverty_rate: "Poverty rate is the percentage of households in the service area living below the federal poverty level."

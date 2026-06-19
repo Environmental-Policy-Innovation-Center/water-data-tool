@@ -263,7 +263,7 @@ histogram_field_groups:
     model_key: environmental_justice
     columns:
       - {name: cejst_disadvantaged_pct,   format: percent}
-      - {name: cvi_overall_score,         format: percent}
+      - {name: cvi_overall_score,         format: count}
       - {name: svi_overall_pctl,          format: percent}
   funding_summary:
     model_key: funding_summary

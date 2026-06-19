@@ -596,12 +596,12 @@
               checkbox_id: "more-svi", panel_id: "subcat-svi",
               label: "Social Vulnerability Index (SVI)", tooltip_text: filter_tooltips["svi"],
               field: "svi_overall_pctl", min_input_id: "min-svi", max_input_id: "max-svi",
-              slider_label: "Percentile of the population", format: "percent") %>
+              slider_label: "Estimated vulnerability as a percentile", format: "percent") %>
         <%= render Filters::GroupRangeComponent.new(
               checkbox_id: "more-cvi", panel_id: "subcat-cvi",
               label: "Climate Vulnerability Index (CVI)", tooltip_text: filter_tooltips["cvi"],
               field: "cvi_overall_score", min_input_id: "min-cvi", max_input_id: "max-cvi",
-              slider_label: "Percentile of vulnerability", format: "percent") %>
+              slider_label: "Estimated vulnerability score") %>
       </ul>
     <% end %>
   </div>

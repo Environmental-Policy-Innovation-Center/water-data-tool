@@ -813,12 +813,12 @@ columns:
   - key: cvi_overall_score
     label: "Climate Vulnerability Index"
     sort: cvi_overall_score
-    format: pct
+    format: num
     format_opts: {}
     size: default
     source: environmental_justice
     category: environmental_justice
-    csv_label: "Climate Vulnerability Index (%)"
+    csv_label: "Climate Vulnerability Index"
     sql_expr: ej.cvi_overall_score
 
   # Funding
