@@ -106,8 +106,8 @@ Use **Actions → Refresh Cartographic Boundaries → Run workflow** to reload t
 | Input | Description |
 |---|---|
 | `target_environment` | `staging`, `production`, or `preview` |
-| `scale_service_down` | Scale the web service to zero while the task runs (staging/production only; ignored for preview) |
-| `confirm` | Type `refresh-<env>-boundaries` exactly. Append `-with-downtime` if `scale_service_down` is true. |
+| `scale_service_down` | Scale the staging web service to zero while the task runs. Required for preview (the constrained instances don't have enough free memory otherwise); optional for staging/production. |
+| `confirm` | Type `refresh-<env>-boundaries` exactly. Append `-with-downtime` if `scale_service_down` is true (e.g. `refresh-preview-boundaries-with-downtime`). |
 
 **How it works:**
 
