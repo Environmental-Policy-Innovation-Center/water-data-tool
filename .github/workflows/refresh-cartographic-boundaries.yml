@@ -147,7 +147,7 @@ jobs:
             --arg name "$CONTAINER_NAME" \
             --arg code "CartographicBoundaries.load; Etl::PostImportSteps.bust_cartographic_boundary_tile_cache; TileCacheWarmJob.perform_now(max_zoom: 5, layers: %w[states counties places])" \
             --argjson env "$ENV_OVERRIDE" \
-            '{containerOverrides:[{name:$name,command:["./bin/rails","runner",$code]} | if ($env | length) > 0 then . + {environment:$env} else . end]}')
+            '{memory:"1024",containerOverrides:[{name:$name,command:["./bin/rails","runner",$code]} | if ($env | length) > 0 then . + {environment:$env} else . end]}')
 
           RUN_ARGS=(
             --cluster "$ECS_CLUSTER"
@@ -201,7 +201,7 @@ jobs:
             --arg name "$CONTAINER_NAME" \
             --arg code "$VERIFY_CODE" \
             --argjson env "$ENV_OVERRIDE" \
-            '{containerOverrides:[{name:$name,command:["./bin/rails","runner",$code]} | if ($env | length) > 0 then . + {environment:$env} else . end]}')
+            '{memory:"1024",containerOverrides:[{name:$name,command:["./bin/rails","runner",$code]} | if ($env | length) > 0 then . + {environment:$env} else . end]}')
 
           RUN_ARGS=(
             --cluster "$ECS_CLUSTER"
