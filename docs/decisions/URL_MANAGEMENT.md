@@ -81,7 +81,7 @@ The blob is a Zlib-compressed, URL-safe Base64-encoded JSON object. It holds two
 | Third click on sorted column → frame loads | `#table-query-state` has empty sort; params deleted from URL |
 | Reset All filters | Sort params **unchanged** — sort is independent of filter state |
 | Column picker Reset | Sort params **unchanged** — sort is independent of column visibility |
-| Filter applied | `#syncToUrl()` reads existing sort and re-sets it — sort preserved |
+| Filter applied | `syncToUrl()` (`url_sync.js`) reads existing sort and re-sets it — sort preserved |
 | Column visibility changed | `#updateUrl()` only touches `encoded`; sort params untouched |
 
 ---
