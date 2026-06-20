@@ -102,13 +102,13 @@ jobs:
             --output json | jq -c .)
 
           SCALEABLE="true"
-          SECRETS_OVERRIDE="[]"
+          ENV_OVERRIDE="[]"
           if [ "$TARGET_ENV" = "preview" ]; then
             SCALEABLE="false"
-            DB_SECRET_ARN=$(aws secretsmanager describe-secret \
+            DB_URL=$(aws secretsmanager get-secret-value \
               --secret-id "ep/wdt/dev/database_url" \
-              --query 'ARN' --output text)
-            SECRETS_OVERRIDE=$(jq -cn --arg arn "${DB_SECRET_ARN}:preview::" '[{name:"DATABASE_URL",valueFrom:$arn}]')
+              --query 'SecretString' --output text | jq -r '.preview')
+            ENV_OVERRIDE=$(jq -cn --arg url "$DB_URL" '[{name:"DATABASE_URL",value:$url}]')
           fi
 
           {
@@ -118,7 +118,7 @@ jobs:
             echo "desired_count=$DESIRED_COUNT"
             echo "placement_constraints=$PLACEMENT_CONSTRAINTS"
             echo "scaleable=$SCALEABLE"
-            echo "secrets_override=$SECRETS_OVERRIDE"
+            echo "env_override=$ENV_OVERRIDE"
           } >> "$GITHUB_OUTPUT"
 
       - name: Scale service down
@@ -141,13 +141,13 @@ jobs:
           TASK_DEF: ${{ steps.target.outputs.task_definition }}
           CONTAINER_NAME: ${{ steps.target.outputs.container_name }}
           PLACEMENT_CONSTRAINTS: ${{ steps.target.outputs.placement_constraints }}
-          SECRETS_OVERRIDE: ${{ steps.target.outputs.secrets_override }}
+          ENV_OVERRIDE: ${{ steps.target.outputs.env_override }}
         run: |
           OVERRIDES=$(jq -cn \
             --arg name "$CONTAINER_NAME" \
             --arg code "CartographicBoundaries.load; Etl::PostImportSteps.bust_cartographic_boundary_tile_cache; TileCacheWarmJob.perform_now(max_zoom: 5, layers: %w[states counties places])" \
-            --argjson secrets "$SECRETS_OVERRIDE" \
-            '{containerOverrides:[{name:$name,command:["./bin/rails","runner",$code]} | if ($secrets | length) > 0 then . + {secrets:$secrets} else . end]}')
+            --argjson env "$ENV_OVERRIDE" \
+            '{containerOverrides:[{name:$name,command:["./bin/rails","runner",$code]} | if ($env | length) > 0 then . + {environment:$env} else . end]}')
 
           RUN_ARGS=(
             --cluster "$ECS_CLUSTER"
@@ -193,15 +193,15 @@ jobs:
           TASK_DEF: ${{ steps.target.outputs.task_definition }}
           CONTAINER_NAME: ${{ steps.target.outputs.container_name }}
           PLACEMENT_CONSTRAINTS: ${{ steps.target.outputs.placement_constraints }}
-          SECRETS_OVERRIDE: ${{ steps.target.outputs.secrets_override }}
+          ENV_OVERRIDE: ${{ steps.target.outputs.env_override }}
         run: |
           VERIFY_CODE='counts = {cartographic_states: CartographicState.count, cartographic_counties: CartographicCounty.count, cartographic_places: CartographicPlace.count}; abort("Missing cartographic boundary rows: #{counts}") if counts.values.any?(&:zero?); tiles = {states_z3: TileGenerator.generate_tile("states", 3, 1, 3).bytesize, states_z4: TileGenerator.generate_tile("states", 4, 4, 6).bytesize, boundaries_z5: TileGenerator.generate_tile("counties", 5, 8, 12).bytesize}; abort("Empty boundary verification tile: #{tiles}") if tiles.values.any?(&:zero?); puts({counts: counts, tiles: tiles}.to_json)'
 
           OVERRIDES=$(jq -cn \
             --arg name "$CONTAINER_NAME" \
             --arg code "$VERIFY_CODE" \
-            --argjson secrets "$SECRETS_OVERRIDE" \
-            '{containerOverrides:[{name:$name,command:["./bin/rails","runner",$code]} | if ($secrets | length) > 0 then . + {secrets:$secrets} else . end]}')
+            --argjson env "$ENV_OVERRIDE" \
+            '{containerOverrides:[{name:$name,command:["./bin/rails","runner",$code]} | if ($env | length) > 0 then . + {environment:$env} else . end]}')
 
           RUN_ARGS=(
             --cluster "$ECS_CLUSTER"
