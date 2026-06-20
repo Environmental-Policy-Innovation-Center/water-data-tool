@@ -10,13 +10,14 @@ on:
         options:
           - staging
           - production
+          - preview
       scale_service_down:
-        description: "Temporarily scale the web service to zero while the one-off task runs"
+        description: "Temporarily scale the web service to zero while the one-off task runs (staging/production only, ignored for preview)"
         required: true
         type: boolean
         default: false
       confirm:
-        description: 'Type "refresh-<env>-boundaries"; append "-with-downtime" when scale_service_down is true'
+        description: 'Type "refresh-staging-boundaries", "refresh-production-boundaries", or "refresh-preview-boundaries"; append "-with-downtime" when scale_service_down is true (staging/production only)'
         required: true
 
 concurrency:
@@ -27,7 +28,7 @@ jobs:
   refresh:
     if: vars.AWS_DEPLOY_ENABLED == 'true'
     runs-on: ubuntu-latest
-    environment: ${{ github.event.inputs.target_environment }}
+    environment: ${{ github.event.inputs.target_environment == 'preview' && 'pr-previews' || github.event.inputs.target_environment }}
     permissions:
       id-token: write
       contents: read
@@ -43,7 +44,7 @@ jobs:
       - name: Validate confirmation input
         run: |
           EXPECTED="refresh-${TARGET_ENV}-boundaries"
-          if [ "$SCALE_SERVICE_DOWN" = "true" ]; then
+          if [ "$TARGET_ENV" != "preview" ] && [ "$SCALE_SERVICE_DOWN" = "true" ]; then
             EXPECTED="${EXPECTED}-with-downtime"
           fi
 
@@ -55,13 +56,15 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          role-to-assume: ${{ github.event.inputs.target_environment == 'preview' && secrets.AWS_PR_DEPLOY_ROLE_ARN || secrets.AWS_DEPLOY_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Resolve ECS target
         id: target
         run: |
-          if [ "$TARGET_ENV" = "staging" ]; then
+          # preview borrows the staging task definition — same app image, DATABASE_URL is
+          # overridden in the task overrides below to point at the shared preview database.
+          if [ "$TARGET_ENV" = "staging" ] || [ "$TARGET_ENV" = "preview" ]; then
             SERVICE="$ECS_SERVICE_STAGING"
           elif [ "$TARGET_ENV" = "production" ]; then
             SERVICE="$ECS_SERVICE_PROD"
@@ -98,16 +101,28 @@ jobs:
             --query 'services[0].placementConstraints' \
             --output json | jq -c .)
 
+          SCALEABLE="true"
+          SECRETS_OVERRIDE="[]"
+          if [ "$TARGET_ENV" = "preview" ]; then
+            SCALEABLE="false"
+            DB_SECRET_ARN=$(aws secretsmanager describe-secret \
+              --secret-id "ep/wdt/dev/database_url" \
+              --query 'ARN' --output text)
+            SECRETS_OVERRIDE=$(jq -cn --arg arn "${DB_SECRET_ARN}:preview::" '[{name:"DATABASE_URL",valueFrom:$arn}]')
+          fi
+
           {
             echo "service=$SERVICE"
             echo "task_definition=$TASK_DEF"
             echo "container_name=$CONTAINER_NAME"
             echo "desired_count=$DESIRED_COUNT"
             echo "placement_constraints=$PLACEMENT_CONSTRAINTS"
+            echo "scaleable=$SCALEABLE"
+            echo "secrets_override=$SECRETS_OVERRIDE"
           } >> "$GITHUB_OUTPUT"
 
       - name: Scale service down
-        if: github.event.inputs.scale_service_down == 'true'
+        if: github.event.inputs.scale_service_down == 'true' && steps.target.outputs.scaleable == 'true'
         run: |
           aws ecs update-service \
             --cluster "$ECS_CLUSTER" \
@@ -126,11 +141,13 @@ jobs:
           TASK_DEF: ${{ steps.target.outputs.task_definition }}
           CONTAINER_NAME: ${{ steps.target.outputs.container_name }}
           PLACEMENT_CONSTRAINTS: ${{ steps.target.outputs.placement_constraints }}
+          SECRETS_OVERRIDE: ${{ steps.target.outputs.secrets_override }}
         run: |
           OVERRIDES=$(jq -cn \
             --arg name "$CONTAINER_NAME" \
             --arg code "CartographicBoundaries.load; Etl::PostImportSteps.bust_cartographic_boundary_tile_cache; TileCacheWarmJob.perform_now(max_zoom: 5, layers: %w[states counties places])" \
-            '{containerOverrides:[{name:$name, command:["./bin/rails","runner",$code]}]}')
+            --argjson secrets "$SECRETS_OVERRIDE" \
+            '{containerOverrides:[{name:$name,command:["./bin/rails","runner",$code]} | if ($secrets | length) > 0 then . + {secrets:$secrets} else . end]}')
 
           RUN_ARGS=(
             --cluster "$ECS_CLUSTER"
@@ -176,12 +193,15 @@ jobs:
           TASK_DEF: ${{ steps.target.outputs.task_definition }}
           CONTAINER_NAME: ${{ steps.target.outputs.container_name }}
           PLACEMENT_CONSTRAINTS: ${{ steps.target.outputs.placement_constraints }}
+          SECRETS_OVERRIDE: ${{ steps.target.outputs.secrets_override }}
         run: |
           VERIFY_CODE='counts = {cartographic_states: CartographicState.count, cartographic_counties: CartographicCounty.count, cartographic_places: CartographicPlace.count}; abort("Missing cartographic boundary rows: #{counts}") if counts.values.any?(&:zero?); tiles = {states_z3: TileGenerator.generate_tile("states", 3, 1, 3).bytesize, states_z4: TileGenerator.generate_tile("states", 4, 4, 6).bytesize, boundaries_z5: TileGenerator.generate_tile("counties", 5, 8, 12).bytesize}; abort("Empty boundary verification tile: #{tiles}") if tiles.values.any?(&:zero?); puts({counts: counts, tiles: tiles}.to_json)'
+
           OVERRIDES=$(jq -cn \
             --arg name "$CONTAINER_NAME" \
             --arg code "$VERIFY_CODE" \
-            '{containerOverrides:[{name:$name, command:["./bin/rails","runner",$code]}]}')
+            --argjson secrets "$SECRETS_OVERRIDE" \
+            '{containerOverrides:[{name:$name,command:["./bin/rails","runner",$code]} | if ($secrets | length) > 0 then . + {secrets:$secrets} else . end]}')
 
           RUN_ARGS=(
             --cluster "$ECS_CLUSTER"
@@ -247,7 +267,7 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
       - name: Restore service desired count
-        if: always() && github.event.inputs.scale_service_down == 'true' && steps.target.outputs.service != '' && steps.target.outputs.desired_count != ''
+        if: always() && github.event.inputs.scale_service_down == 'true' && steps.target.outputs.scaleable == 'true' && steps.target.outputs.service != '' && steps.target.outputs.desired_count != ''
         run: |
           aws ecs update-service \
             --cluster "$ECS_CLUSTER" \

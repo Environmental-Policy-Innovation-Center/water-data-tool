@@ -97,6 +97,28 @@ Use **Actions → Teardown PR Environment → Run workflow** to destroy a single
 
 The workflow tears down the AWS infrastructure, then closes the PR and leaves a comment.
 
+### Refresh cartographic boundaries
+
+Use **Actions → Refresh Cartographic Boundaries → Run workflow** to reload the `cartographic_states`, `cartographic_counties`, and `cartographic_places` tables from the TIGER source data and bust the tile cache. Supports staging, production, and preview.
+
+**Inputs:**
+
+| Input | Description |
+|---|---|
+| `target_environment` | `staging`, `production`, or `preview` |
+| `scale_service_down` | Scale the web service to zero while the task runs (staging/production only; ignored for preview) |
+| `confirm` | Type `refresh-<env>-boundaries` exactly. Append `-with-downtime` if `scale_service_down` is true. |
+
+**How it works:**
+
+1. Resolves the ECS task definition from the staging or production service (preview borrows staging's task definition).
+2. For preview: looks up the `ep/wdt/dev/database_url` secret ARN and injects it as a `DATABASE_URL` override, pointing the task at the shared preview database instead of staging's.
+3. Runs a one-off ECS task with `CartographicBoundaries.load` and tile cache busting.
+4. Runs a second verification task to confirm row counts and tile byte sizes are non-zero.
+5. Optionally restores the service's desired count if it was scaled down.
+
+The job summary shows the task ARNs, environment, and the row counts from the verification step.
+
 ### Sweep stale PR environments
 
 Use **Actions → Teardown Stale PR Environments → Run workflow** to bulk-destroy all PR environments whose last commit is older than a threshold. Requires `pr-teardowns` environment approval.
