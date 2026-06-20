@@ -38,6 +38,16 @@ RSpec.describe "filter_controller state preservation" do
           if (cols !== null) state.cols = cols
           return Buffer.from(JSON.stringify(state)).toString("base64url")
         }
+
+        function syncToUrl() {
+          const url = new URL(window.location)
+          const filters = FilterState.get()
+          url.search = ""
+          if (Object.keys(filters).length > 0) {
+            url.searchParams.set("encoded", buildEncodedParam({ filters }))
+          }
+          history.replaceState({}, "", url)
+        }
       JS
       file.write(script)
       file.flush

@@ -31,9 +31,12 @@ const REGION_STATES = {
   GU: { stusps: "GU", name: "Guam", geoid: "66" },
   MP: { stusps: "MP", name: "Northern Mariana Islands", geoid: "69" }
 }
+const STATE_FIT_BOUNDS = {
+  HI: [[-160.5, 18.5], [-154.5, 22.3]]
+}
 const REGION_CAMERAS = {
   AK: { center: [-149.504, 61.342], zoom: 4.9, settleZoom: 5 },
-  HI: { center: [-157.856, 21.305], zoom: 4.9, settleZoom: 6 },
+  HI: { center: [-157.0, 20.5], zoom: 4.9, settleZoom: 7 },
   PR: { center: [-66.590, 18.220], zoom: 5, settleZoom: 8 },
   GU: { center: [144.794, 13.444], zoom: 7, settleZoom: 10 },
   MP: { center: [145.674, 15.180], zoom: 7, settleZoom: 9 }
@@ -79,6 +82,8 @@ export default class extends Controller {
     // Dev convenience: mapDebug.getZoom(), mapDebug.getCenter(), etc. in browser console.
     if (window.location.hostname === "localhost") window.mapDebug = this.map
     this.hoverPopup = null
+    this.clickPopup = null
+    this.pinnedPwsid = null
     this.stateHoverPopup = null
     this.hoveredStateId = null
     this.hoveredPwsid = null
@@ -415,7 +420,7 @@ export default class extends Controller {
         this.map.getCanvas().style.cursor = ""
         this.#clearStateHover()
         this.#removeStatePrompt()
-      }, 80)
+      }, 100)
     })
 
     this.map.on("click", "states", (e) => {
@@ -452,6 +457,8 @@ export default class extends Controller {
         this.hoverPopup.remove()
         this.hoverPopup = null
       }
+
+      if (props.pwsid === this.pinnedPwsid) return
 
       const html = this.#buildHoverHtml(props)
       this.hoverPopup = new window.mapboxgl.Popup({
@@ -509,8 +516,30 @@ export default class extends Controller {
       }
 
       if (this.clickPopup) this.clickPopup.remove()
-      this.clickPopup = null
-      this.#openReport(props.pwsid)
+
+      this.pinnedPwsid = props.pwsid
+      this.clickPopup = new window.mapboxgl.Popup({
+        closeButton: true,
+        closeOnClick: false,
+        className: "min-w-[280px]",
+        maxWidth: "400px"
+      })
+        .setLngLat(e.lngLat)
+        .setHTML(this.#buildPopupHtml(props, { showReport: true }))
+        .addTo(this.map)
+
+      this.clickPopup.on("close", () => {
+        this.clickPopup = null
+        this.pinnedPwsid = null
+      })
+    })
+
+    // Dismiss pinned card when clicking off any PWS polygon
+    this.map.on("click", (e) => {
+      if (!this.clickPopup) return
+      if (!this.map.queryRenderedFeatures(e.point, { layers: ["pws"] }).length) {
+        this.clickPopup.remove()
+      }
     })
 
   }
@@ -556,6 +585,12 @@ export default class extends Controller {
   #onResetAll() {
     if (!this.selectedState && !FilterState.get().state) return
     this.#enterNationMode({ fitDefault: false, resetMaxZoom: false })
+    if (this.map.getZoom() > NATION_MAX_ZOOM) {
+      this.map.easeTo({ zoom: NATION_MAX_ZOOM, duration: 400 })
+      this.map.once("moveend", () => this.map.setMaxZoom(NATION_MAX_ZOOM))
+    } else {
+      this.map.setMaxZoom(NATION_MAX_ZOOM)
+    }
   }
 
   async #onFiltersChanged() {
@@ -675,14 +710,28 @@ export default class extends Controller {
   }
 
   #fitToState(stusps) {
+    const leftInset = this.#sidebarLeftInset()
+    const padding = leftInset ? { top: 60, bottom: 60, right: 60, left: leftInset + 60 } : 60
+    const fitOptions = { padding, maxZoom: SYSTEMS_ENTRY_ZOOM - 0.01 }
+
+    if (STATE_FIT_BOUNDS[stusps]) {
+      this.map.fitBounds(STATE_FIT_BOUNDS[stusps], fitOptions)
+      return true
+    }
+
     const features = this.map.querySourceFeatures("wdt", {
       sourceLayer: "states",
       filter: ["==", "stusps", stusps]
     })
     if (!features.length) return false
 
+    // querySourceFeatures returns one entry per tile, so dedup by feature id
+    // to avoid iterating the same geometry multiple times for large states.
+    const seen = new Set()
     const bounds = new window.mapboxgl.LngLatBounds()
-    features.forEach(({ geometry }) => {
+    features.forEach(({ id, geometry }) => {
+      if (id !== undefined && seen.has(id)) return
+      if (id !== undefined) seen.add(id)
       const polygons = geometry.type === "MultiPolygon"
         ? geometry.coordinates
         : [geometry.coordinates]
@@ -690,7 +739,7 @@ export default class extends Controller {
     })
 
     if (bounds.isEmpty()) return false
-    this.map.fitBounds(bounds, { padding: 60 })
+    this.map.fitBounds(bounds, fitOptions)
     return true
   }
 
@@ -818,22 +867,11 @@ export default class extends Controller {
       this.clickPopup.remove()
       this.clickPopup = null
     }
-  }
-
-  #openReport(pwsid) {
-    const overlay = document.getElementById("container-report")
-    if (overlay) overlay.classList.remove("hidden")
-
-    if (document.querySelector("turbo-frame#report-body")) {
-      Turbo.visit(this.#reportPath(pwsid), {frame: "report-body"})
-    }
+    this.pinnedPwsid = null
   }
 
   #buildHoverHtml(props) {
-    return this.#buildPopupHtml(props, {
-      showReport: this.#systemsModeActive(),
-      reportLabel: "Click to Open Report"
-    })
+    return this.#buildPopupHtml(props)
   }
 
   #buildPopupHtml(props, { showType = false, showReport = false, reportLabel = "View Full Report" } = {}) {
