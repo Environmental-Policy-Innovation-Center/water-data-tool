@@ -139,12 +139,16 @@ These layers are visually transparent. Their only purpose is to provide a click/
 
 ### Geography highlight layers
 
-These layers show visual feedback when the user hovers or clicks on a state, county, or place. They are controlled by `map.setFilter()` — default filter `["in", "geoid", ""]` hides them entirely.
+These layers show visual feedback when the user hovers or clicks on a state, county, or place.
+
+`states_hover` is controlled by `map.setFeatureState()` — on `mousemove`, the hovered state feature gets `{ hover: true }` written into its GPU-side state store (keyed by FIPS `geoid` via `promoteId`); on `mouseleave` (debounced 100ms) the state is cleared. This approach updates all tile fragments of the same state in a single render frame, avoiding the patchy fill that a `setFilter` approach produces.
+
+`states_filter`, `counties_filter`, and `places_filter` are controlled by `map.setFilter()` — default filter `["in", "geoid", ""]` hides them entirely.
 
 | Layer id | Source layer | Type | Color | Triggered by |
 |---|---|---|---|---|
-| `states_hover` | `states` | fill | Green (`rgb(78,163,36)`), 20% opacity | Mouse over a state |
-| `states_filter` | `states` | line | Black, 2px | Click on a state |
+| `states_hover` | `states` | fill | Green (`rgb(78,163,36)`), 20% opacity | Mouse over a state (`setFeatureState`) |
+| `states_filter` | `states` | line | Black, 2px | Click on a state (`setFilter`) |
 | `counties_filter` | `counties` | line | Green (`rgb(78,163,36)`), 2px | *(reserved — not currently triggered by UI)* |
 | `places_filter` | `places` | line | Green (`rgb(78,163,36)`), 2px | *(reserved — not currently triggered by UI)* |
 
@@ -175,9 +179,9 @@ These layers render the actual drinking water system data.
 
 | Event | Layer | Result |
 |---|---|---|
-| `mousemove` on `states` | `states` | Cursor → pointer; `states_hover` filter set to that state's `geoid` (green fill) |
-| `mouseleave` from `states` | `states` | Cursor reset; `states_hover` filter cleared |
-| `click` on `states` | `states` | `states_hover` cleared; `states_filter` border set to that state's `geoid` |
+| `mousemove` on `states` | `states` | Cursor → pointer; `setFeatureState({ hover: true })` on that state's feature (green fill via `states_hover`) |
+| `mouseleave` from `states` | `states` | Cursor reset; feature-state cleared (100ms debounced to prevent flicker at tile boundaries) |
+| `click` on `states` | `states` | `states_hover` feature-state cleared; `states_filter` border set to that state's `geoid` via `setFilter` |
 
 **Note:** Clicking a state draws a border outline but does not apply a data filter. State-level data filtering is done through the Boundaries filter in the filter bar, not by clicking on the map.
 
@@ -274,7 +278,7 @@ These are called by nav/button elements outside the map canvas:
 |---|---|
 | `zoom48()` | Clears geocoder input; calls `#fitDefaultView` (same framing as initial load) |
 | `zoomAk()` | Flies to Alaska (`-149.504, 61.342`, zoom ~5) |
-| `zoomHi()` | Flies to Hawaii (`-157.856, 21.305`, zoom ~6) |
+| `zoomHi()` | Flies to Hawaii (`-157.0, 20.5`, zoom ~5) |
 | `zoomPr()` | Flies to Puerto Rico (`-66.590, 18.220`, zoom 8) |
 | `zoomGu()` | Flies to Guam (`144.794, 13.444`, zoom 10) |
 | `zoomMp()` | Flies to Northern Mariana Islands (`145.674, 15.180`, zoom 9) |
@@ -288,7 +292,7 @@ These are called by nav/button elements outside the map canvas:
 | `states` | Visible (transparent) | Never |
 | `counties` | Visible (transparent) | Never |
 | `places` | Visible at zoom ≥ 8 (transparent) | Zoom |
-| `states_hover` | Hidden (empty filter) | Mouse enters/leaves a state |
+| `states_hover` | Hidden (no feature-state set) | Mouse enters/leaves a state |
 | `states_filter` | Hidden (empty filter) | User clicks a state |
 | `counties_filter` | Hidden (empty filter) | *(not currently triggered)* |
 | `places_filter` | Hidden (empty filter) | *(not currently triggered)* |
