@@ -47,7 +47,7 @@ RSpec.describe "Reports", type: :request do
         expect(response.body).to include("<title>Clearwater Co — Utility Report</title>")
       end
 
-      it "renders print and back-to-map controls" do
+      it "renders print and back-to-map controls when not navigating from the map" do
         pws = create(:public_water_system)
 
         get report_path(pwsid: pws.pwsid)
@@ -57,6 +57,16 @@ RSpec.describe "Reports", type: :request do
         expect(response.body).to include('aria-label="Back to map"')
         expect(response.body).to include('href="/"')
         expect(response.body).to include('data-turbo="false"')
+      end
+
+      it "renders a close button when navigating from a same-host page" do
+        pws = create(:public_water_system)
+
+        get report_path(pwsid: pws.pwsid), headers: {"Referer" => root_url}
+
+        expect(response.body).to include('id="tt-print-report"')
+        expect(response.body).to include('aria-label="Close report"')
+        expect(response.body).to include("history.back()")
       end
 
       context "with report body content" do

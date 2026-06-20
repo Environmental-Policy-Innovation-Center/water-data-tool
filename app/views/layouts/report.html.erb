@@ -29,14 +29,23 @@
         ) do %>
       <%= icon "print", classes: "h-4 w-4" %>
     <% end %>
-    <%= link_to root_path,
-          class: class_names(
-            UI::CircleButtonComponent::BASE_CLASSES,
-            "fixed top-[30px] right-5 print:hidden no-underline"
-          ),
-          aria: {label: "Back to map"},
-          data: {turbo: false} do %>
-      <%= icon "explore", classes: "h-4 w-4" %>
+    <% if @from_map %>
+      <button type="button"
+              class="<%= class_names(UI::CircleButtonComponent::BASE_CLASSES, "fixed top-[30px] right-5 print:hidden motion-reduce:transition-none") %>"
+              aria-label="Close report"
+              onclick="history.length > 1 ? history.back() : (window.location.href = '<%= root_path %>')">
+        <%= icon "close", classes: "h-4 w-4" %>
+      </button>
+    <% else %>
+      <%= link_to root_path,
+            class: class_names(
+              UI::CircleButtonComponent::BASE_CLASSES,
+              "fixed top-[30px] right-5 print:hidden no-underline"
+            ),
+            aria: {label: "Back to map"},
+            data: {turbo: false} do %>
+        <%= icon "explore", classes: "h-4 w-4" %>
+      <% end %>
     <% end %>
 
     <%# Page content shell for standalone visits (direct URL only). %>
