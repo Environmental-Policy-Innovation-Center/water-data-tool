@@ -16,6 +16,15 @@ VERMONT_STATE_WKT = "MULTIPOLYGON(((-73.5 42.7, -71.5 42.7, -71.5 45.2, -73.5 45
 RSpec.describe Etl::PostImportSteps do
   let(:conn) { ApplicationRecord.connection }
 
+  it "loads without resolving the PostgreSQL array OID at file load time" do
+    source = Rails.root.join("app/services/etl/post_import_steps.rb")
+
+    hide_const("Etl::PostImportSteps")
+    hide_const("ActiveRecord::ConnectionAdapters::PostgreSQL")
+
+    expect { silence_warnings { load source } }.not_to raise_error
+  end
+
   def insert_geometry(pwsid, wkt)
     conn.execute(<<~SQL)
       INSERT INTO service_area_geometries (pwsid, geom, created_at, updated_at)

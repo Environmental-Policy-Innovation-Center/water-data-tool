@@ -27,9 +27,19 @@ RSpec.describe TileGenerator do
     end
   end
 
+  describe ".layer_simplification_tolerance" do
+    it "keeps public water systems visible at the national zoom-in boundary" do
+      expect(described_class.layer_simplification_tolerance("pws", 4)).to eq(0.01)
+    end
+
+    it "keeps coarse simplification for low-zoom boundary layers" do
+      expect(described_class.layer_simplification_tolerance("states", 4)).to eq(0.05)
+    end
+  end
+
   describe ".layers_for_zoom" do
-    it "returns only states before state selection is available" do
-      expect(described_class.layers_for_zoom(4)).to eq(%w[states])
+    it "includes service areas before state selection is available" do
+      expect(described_class.layers_for_zoom(4)).to eq(%w[pws states])
     end
 
     it "adds service areas at state selection zooms" do

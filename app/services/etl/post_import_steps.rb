@@ -70,7 +70,6 @@ module Etl
     # Repair invalid geometries using ST_Buffer trick. Runs until none remain
     # or until MAX_REPAIR_ITERATIONS is reached (guard against pathological data).
     MAX_REPAIR_ITERATIONS = 10
-    PWSID_ARRAY_TYPE = ActiveRecord::ConnectionAdapters::PostgreSQL::OID::Array.new(ActiveModel::Type::String.new)
 
     def fix_invalid_geometries(pwsids: nil)
       all_valid = false
@@ -221,9 +220,13 @@ module Etl
         ActiveRecord::Relation::QueryAttribute.new(
           "pwsids",
           Array(pwsids).compact.uniq,
-          PWSID_ARRAY_TYPE
+          pwsid_array_type
         )
       ]
+    end
+
+    def pwsid_array_type
+      ActiveRecord::ConnectionAdapters::PostgreSQL::OID::Array.new(ActiveModel::Type::String.new)
     end
   end
 end

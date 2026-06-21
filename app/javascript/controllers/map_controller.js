@@ -12,7 +12,7 @@ const MOBILE_DEFAULT_ZOOM = 2
 const DESKTOP_MIN_ZOOM = 3
 const MOBILE_MIN_ZOOM = 2
 const NATION_MAX_ZOOM = 4.75
-const SERVICE_AREAS_MIN_ZOOM = 5
+const SERVICE_AREAS_MIN_ZOOM = MOBILE_MIN_ZOOM
 const STATE_ENTRY_ZOOM = 6
 const STATE_EXIT_ZOOM = 4.55
 const SYSTEMS_ENTRY_ZOOM = 8
@@ -370,13 +370,21 @@ export default class extends Controller {
     // ── States hover / click ──────────────────────────────────────────────────
 
     this.map.on("mousemove", "states", (e) => {
-      if (this.#systemsModeActive()) return
-
       const props = this.#statePropsFromEvent(e)
       if (!props) return
+      if (this.#systemsModeActive() && this.#stateIsSelected(props)) {
+        this.map.setFilter("states_hover", EMPTY_STATE_FILTER)
+        this.#removeStatePrompt()
+        return
+      }
+      if (!this.#stateHoverEnabled(props)) return
 
       this.map.getCanvas().style.cursor = "pointer"
-      this.map.setFilter("states_hover", ["==", ["get", "geoid"], props.geoid])
+      if (this.#stateIsSelected(props)) {
+        this.map.setFilter("states_hover", EMPTY_STATE_FILTER)
+      } else {
+        this.map.setFilter("states_hover", ["==", ["get", "geoid"], props.geoid])
+      }
 
       if (this.#shouldShowStatePrompt(props)) {
         this.#showStatePrompt(e.lngLat)
@@ -392,10 +400,11 @@ export default class extends Controller {
     })
 
     this.map.on("click", "states", (e) => {
-      if (this.#systemsModeActive()) return
+      if (this.#handleRenderedPwsClick(e)) return
 
       const props = this.#statePropsFromEvent(e)
       if (!props) return
+      if (!this.#stateClickEnabled(props)) return
 
       const wasNationMode = this.mapMode === MODE_NATION
       this.#selectState(props)
@@ -459,29 +468,10 @@ export default class extends Controller {
 
     this.map.on("zoomend", () => this.#syncModeFromZoom())
 
-    // ── PWS polygon click → detail popup with "View Full Report" ───────────
+    // ── PWS polygon click ───────────────────────────────────────────────────
 
-    this.map.on("click", "pws", (e) => {
-      if (!this.selectedState) return
-
-      if (!this.#systemsModeActive()) {
-        this.map.flyTo({ center: e.lngLat, zoom: 8.5 })
-        return
-      }
-
-      const props = e.features[0].properties
-      if (!props.pwsid) return
-
-      // Remove hover popup so it doesn't overlap
-      if (this.hoverPopup) {
-        this.hoverPopup.remove()
-        this.hoverPopup = null
-      }
-
-      if (this.clickPopup) this.clickPopup.remove()
-      this.clickPopup = null
-      this.#openReport(props.pwsid)
-    })
+    this.map.on("click", "pws", (e) => this.#handlePwsClick(e))
+    this.map.on("click", (e) => this.#handleRenderedPwsClick(e))
 
   }
 
@@ -625,6 +615,79 @@ export default class extends Controller {
     return !!this.selectedState && this.map.getZoom() >= SYSTEMS_ENTRY_ZOOM
   }
 
+  #handleRenderedPwsClick(event) {
+    if (this.#pwsClickAlreadyHandled(event)) return true
+    if (!this.map?.getLayer("pws")) return false
+    if (typeof this.map.queryRenderedFeatures !== "function") return false
+
+    const box = this.#pwsClickHitBox(event)
+    if (!box) return false
+
+    const feature = this.map.queryRenderedFeatures(box, { layers: ["pws"] })[0]
+    if (!feature) return false
+
+    return this.#handlePwsClick({ ...event, features: [feature] })
+  }
+
+  #handlePwsClick(event) {
+    if (this.#pwsClickAlreadyHandled(event)) return true
+
+    const props = event.features?.[0]?.properties
+    if (!props?.pwsid) return false
+
+    if (!this.selectedState) {
+      if (!props.stusps) return false
+
+      this.#markPwsClickHandled(event)
+      this.#selectState({ stusps: props.stusps, name: props.stusps })
+      this.map.flyTo({ center: event.lngLat, zoom: 8.5 })
+      return true
+    }
+
+    this.#markPwsClickHandled(event)
+
+    if (!this.#systemsModeActive()) {
+      this.map.flyTo({ center: event.lngLat, zoom: 8.5 })
+      return true
+    }
+
+    this.#removeSystemPopups()
+    this.#openReport(props.pwsid)
+    return true
+  }
+
+  #pwsClickHitBox(event) {
+    const point = event?.point
+    if (!point) return null
+
+    const tolerance = 5
+    return [
+      [point.x - tolerance, point.y - tolerance],
+      [point.x + tolerance, point.y + tolerance]
+    ]
+  }
+
+  #pwsClickAlreadyHandled(event) {
+    return !!(event?.__wdtPwsClickHandled || event?.originalEvent?.__wdtPwsClickHandled)
+  }
+
+  #markPwsClickHandled(event) {
+    if (event) event.__wdtPwsClickHandled = true
+    if (event?.originalEvent) event.originalEvent.__wdtPwsClickHandled = true
+  }
+
+  #stateHoverEnabled(props) {
+    return !this.#systemsModeActive() || !this.#stateIsSelected(props)
+  }
+
+  #stateClickEnabled(props) {
+    return !this.#systemsModeActive() || !this.#stateIsSelected(props)
+  }
+
+  #stateIsSelected(props) {
+    return !!this.selectedState && props.stusps === this.selectedState.stusps
+  }
+
   #statePropsFromEvent(event) {
     return this.#normalizeStateProps(event?.features?.[0]?.properties)
   }
@@ -663,7 +726,12 @@ export default class extends Controller {
   }
 
   #pwsFilterExpression() {
-    if (!this.selectedState) return EMPTY_PWS_FILTER
+    if (!this.selectedState) {
+      if (this.filteredPwsids === null) return null
+      if (this.filteredPwsids.length === 0) return EMPTY_PWS_FILTER
+
+      return ["in", "pwsid", ...this.filteredPwsids]
+    }
 
     const stateExpr = ["==", "stusps", this.selectedState.stusps]
     if (this.filteredPwsids === null) return stateExpr
@@ -723,7 +791,7 @@ export default class extends Controller {
   }
 
   #shouldShowStatePrompt(props) {
-    return this.mapMode === MODE_NATION || props.stusps !== this.selectedState?.stusps
+    return this.mapMode === MODE_NATION || !this.#stateIsSelected(props)
   }
 
   #showStatePrompt(lngLat) {
@@ -733,7 +801,7 @@ export default class extends Controller {
         closeOnClick: false,
         className: "map-state-hover",
         maxWidth: "240px"
-      }).setHTML('<span class="text-sm font-medium">Select a state to learn more</span>')
+      }).setHTML('<span class="block px-4 py-3 text-sm font-medium">Select a state to learn more</span>')
     }
 
     this.stateHoverPopup.setLngLat(lngLat).addTo(this.map)
