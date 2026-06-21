@@ -1175,7 +1175,7 @@ RSpec.describe "map_controller state selection" do
     run_node_script(script)
   end
 
-  it "lets a nationally visible service area select its state and zoom in" do
+  it "lets a nationally visible service area select its state at the state selection level" do
     script = <<~JS
       const fs = require("fs")
       class Controller {}
@@ -1271,7 +1271,7 @@ RSpec.describe "map_controller state selection" do
       if (filterStateCurrent.state !== "CO") throw new Error(`expected service area click to select CO, got ${filterStateCurrent.state}`)
       if (!dispatchedEvents.includes("filters:changed")) throw new Error("expected filters:changed from service area state selection")
       const finalFlyTo = mapStub.flyToCalls.at(-1)
-      if (finalFlyTo?.zoom !== 8.5) throw new Error(`expected service area click to zoom to 8.5, got ${finalFlyTo?.zoom}`)
+      if (finalFlyTo?.zoom !== 6) throw new Error(`expected service area click to zoom to 6, got ${finalFlyTo?.zoom}`)
       if (visitedReports.length > 0) throw new Error(`expected no report visit, got ${visitedReports.join(", ")}`)
       const expectedPwsFilter = JSON.stringify(["==", "stusps", "CO"])
       const actualPwsFilter = JSON.stringify(mapStub.filters.pws)
@@ -1379,7 +1379,7 @@ RSpec.describe "map_controller state selection" do
 
       if (filterStateCurrent.state !== "CO") throw new Error(`expected rendered service area click to select CO, got ${filterStateCurrent.state}`)
       const finalFlyTo = mapStub.flyToCalls.at(-1)
-      if (finalFlyTo?.zoom !== 8.5) throw new Error(`expected rendered service area click to zoom to 8.5, got ${finalFlyTo?.zoom}`)
+      if (finalFlyTo?.zoom !== 6) throw new Error(`expected rendered service area click to zoom to 6, got ${finalFlyTo?.zoom}`)
       if (visitedReports.length > 0) throw new Error(`expected no report visit, got ${visitedReports.join(", ")}`)
     JS
 
@@ -1638,7 +1638,7 @@ RSpec.describe "map_controller state selection" do
 
       if (filterStateCurrent.state !== "CO") throw new Error(`expected overlapping service area click to select CO, got ${filterStateCurrent.state}`)
       const finalFlyTo = mapStub.flyToCalls.at(-1)
-      if (finalFlyTo?.zoom !== 8.5) throw new Error(`expected overlapping service area click to zoom to 8.5, got ${finalFlyTo?.zoom}`)
+      if (finalFlyTo?.zoom !== 6) throw new Error(`expected overlapping service area click to zoom to 6, got ${finalFlyTo?.zoom}`)
     JS
 
     run_node_script(script)
