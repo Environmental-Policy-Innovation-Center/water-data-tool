@@ -1,6 +1,16 @@
 module HomeHelper
   BLANK_DISPLAY = "—"
 
+  RATE_TIER_LABELS = {
+    "under_125" => "Most pay under $125",
+    "tier_125_249" => "Most pay $125–$249",
+    "tier_250_499" => "Most pay $250–$499",
+    "tier_500_749" => "Most pay $500–$749",
+    "tier_750_999" => "Most pay $750–$999",
+    "over_1000" => "Most pay over $1,000",
+    "no_information" => "No information"
+  }.freeze
+
   DATASETS = YAML.safe_load_file(Rails.root.join("config/datasets.yml"))
     .fetch("datasets")
     .map(&:symbolize_keys)
@@ -48,6 +58,10 @@ module HomeHelper
 
   def fmt_str(val)
     val.presence || BLANK_DISPLAY
+  end
+
+  def fmt_rate_tier(val)
+    RATE_TIER_LABELS.fetch(val, BLANK_DISPLAY)
   end
 
   def fmt_bool(val)
@@ -154,6 +168,7 @@ module HomeHelper
     when :dec then fmt_dec(value, **opts)
     when :pct then fmt_pct(value, **opts)
     when :cur then fmt_cur(value, **opts)
+    when :rate_tier then fmt_rate_tier(value)
     else fmt_str(value)
     end
   end

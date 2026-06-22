@@ -13,6 +13,6 @@
     {label: "Over 61", value: demographic.age_over_61_rate ? number_to_percentage(demographic.age_over_61_rate, precision: 1) : "N/A"},
     {label: "People of Color", value: demographic.poc_rate ? number_to_percentage(demographic.poc_rate, precision: 1) : "N/A"},
     {label: "Renter-Occupied", value: demographic.renter_rate ? number_to_percentage(demographic.renter_rate, precision: 1) : "N/A"},
-    {label: "Most Common Rate Tier", value: demographic.most_common_rate_tier || "N/A"}
+    {label: "Most Common Rate Tier", value: HomeHelper::RATE_TIER_LABELS.fetch(demographic.most_common_rate_tier, "N/A")}
   ] : []
 ) %>

@@ -98,6 +98,13 @@ RSpec.describe HomeHelper, type: :helper do
       expect(helper.format_cell_value(1_000, :cur, {})).to include("1,000")
     end
 
+    it "formats :rate_tier via RATE_TIER_LABELS" do
+      expect(helper.format_cell_value("under_125", :rate_tier, {})).to eq("Most pay under $125")
+      expect(helper.format_cell_value("tier_250_499", :rate_tier, {})).to eq("Most pay $250–$499")
+      expect(helper.format_cell_value("no_information", :rate_tier, {})).to eq("No information")
+      expect(helper.format_cell_value(nil, :rate_tier, {})).to eq("—")
+    end
+
     it "falls through to fmt_str for unknown formats" do
       expect(helper.format_cell_value("val", :unknown, {})).to eq("val")
     end

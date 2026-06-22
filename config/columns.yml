@@ -713,7 +713,7 @@ columns:
   - key: most_common_rate_tier
     label: "Annual water & sewer bill"
     sort: most_common_rate_tier
-    format: str
+    format: rate_tier
     format_opts: {}
     size: default
     source: demographic
