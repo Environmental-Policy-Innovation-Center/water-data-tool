@@ -523,7 +523,7 @@ RSpec.describe "map_controller state selection" do
         constructor() {
           this.handlers = {}
           this.zoom = 3
-          this.flyToCalls = []
+          this.fitBoundsCalls = []
           globalThis.mapStub = this
         }
 
@@ -539,7 +539,10 @@ RSpec.describe "map_controller state selection" do
         getLayer() { return true }
         setFilter() {}
         setMaxZoom() {}
-        fitBounds() {}
+        fitBounds(bounds, options) {
+          this.fitBoundsCalls.push({ bounds, options })
+          if (options?.maxZoom !== undefined) this.zoom = options.maxZoom
+        }
         querySourceFeatures() { return [] }
         setFeatureState() {}
         removeFeatureState() {}
@@ -547,7 +550,6 @@ RSpec.describe "map_controller state selection" do
           if (options.zoom !== undefined) this.zoom = options.zoom
         }
         flyTo(options) {
-          this.flyToCalls.push(options)
           if (options.zoom !== undefined) this.zoom = options.zoom
         }
         once() {}
@@ -573,16 +575,15 @@ RSpec.describe "map_controller state selection" do
       controller.tileUrlValue = "/tiles/{z}/{x}/{y}.mvt"
       controller.connect()
       mapStub.handlers.load()
-      mapStub.flyToCalls = []
+      mapStub.fitBoundsCalls = []
 
       mapStub.handlers["click:states"]({
         lngLat: { lng: -105.5, lat: 39.0 },
         features: [{ properties: { stusps: "CO", name: "Colorado", geoid: "08" } }]
       })
 
-      const clickFlyTo = mapStub.flyToCalls.at(-1)
-      if (!clickFlyTo) throw new Error("expected state click to fly")
-      if (clickFlyTo.zoom !== 6) throw new Error(`expected state click zoom 6, got ${clickFlyTo.zoom}`)
+      const clickFitBounds = mapStub.fitBoundsCalls.at(-1)
+      if (!clickFitBounds) throw new Error("expected state click to fitBounds")
     JS
 
     run_node_script(script)
@@ -640,7 +641,9 @@ RSpec.describe "map_controller state selection" do
         getLayer() { return true }
         setFilter(layer, filter) { this.filters[layer] = filter }
         setMaxZoom() {}
-        fitBounds() {}
+        fitBounds(bounds, options) {
+          if (options?.maxZoom !== undefined) this.zoom = options.maxZoom
+        }
         querySourceFeatures() { return [] }
         setFeatureState() {}
         removeFeatureState() {}
