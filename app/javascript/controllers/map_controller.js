@@ -31,6 +31,8 @@ const REGION_STATES = {
   GU: { stusps: "GU", name: "Guam", geoid: "66" },
   MP: { stusps: "MP", name: "Northern Mariana Islands", geoid: "69" }
 }
+// PostGIS-derived bounding boxes for state zoom-to-fit. Static because state borders never change,
+// an API call adds latency, and querySourceFeatures only covers tiles already in the viewport.
 const STATE_FIT_BOUNDS = {
   AL: [[-88.47, 30.22], [-84.89, 35.01]],
   AR: [[-94.62, 33.0],  [-89.64, 36.5]],
@@ -143,6 +145,7 @@ export default class extends Controller {
     this.hoveredStateId = null
     this.hoveredPwsid = null
     this._stateLeaveTimer = null
+    this._pwsClickHandled = false
     this.selectedState = null
     this.filteredPwsids = null
     this.mapMode = MODE_NATION
@@ -572,6 +575,7 @@ export default class extends Controller {
 
       if (this.clickPopup) this.clickPopup.remove()
 
+      this._pwsClickHandled = true
       this.pinnedPwsid = props.pwsid
       this.clickPopup = new window.mapboxgl.Popup({
         closeButton: true,
@@ -589,12 +593,16 @@ export default class extends Controller {
       })
     })
 
-    // Dismiss pinned card when clicking off any PWS polygon
-    this.map.on("click", (e) => {
+    // Dismiss pinned card when clicking off any PWS polygon.
+    // The pws-layer click handler above fires first and sets _pwsClickHandled so we
+    // never call queryRenderedFeatures for clicks that already landed on a PWS feature.
+    this.map.on("click", () => {
       if (!this.clickPopup) return
-      if (!this.map.queryRenderedFeatures(e.point, { layers: ["pws"] }).length) {
-        this.clickPopup.remove()
+      if (this._pwsClickHandled) {
+        this._pwsClickHandled = false
+        return
       }
+      this.clickPopup.remove()
     })
 
   }

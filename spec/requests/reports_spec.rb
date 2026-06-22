@@ -66,7 +66,7 @@ RSpec.describe "Reports", type: :request do
 
         expect(response.body).to include('id="tt-print-report"')
         expect(response.body).to include('aria-label="Close report"')
-        expect(response.body).to include("history.back()")
+        expect(response.body).to include('data-action="click->report#back"')
       end
 
       context "with report body content" do
