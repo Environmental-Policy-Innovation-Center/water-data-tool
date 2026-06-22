@@ -1,5 +1,15 @@
 # Filter State Hydration — Current Fragility & Server-Render Refactor
 
+> **Coordinate with the config consolidation (`docs/CONFIG_AUDIT.md`).** That effort
+> introduces `config/fields.yml` as the single source of truth for filters — exactly
+> the "single source of truth" this doc lists as a desired outcome. They converge:
+> this refactor's core (server-render `_filter_menus.html.erb` from decoded state) and
+> the manifest's final step (generate that ERB from `fields.yml`) are **the same work
+> and should be done once.** When picking this up, build the server-rendered menu as a
+> loop over the manifest rather than hand-converting the ~598 ERB lines. See
+> CONFIG_AUDIT §7 (interaction) and §8 Phase 5 (the convergence). The manifest's
+> back-end phases (0–4) are independent and ideally land first.
+
 ---
 
 ## Product Impact Summary
