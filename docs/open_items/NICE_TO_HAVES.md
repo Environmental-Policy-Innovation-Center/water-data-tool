@@ -38,7 +38,7 @@ Would run post-import and report to a Slack channel or log. Useful for catching 
 (Slack channel, CloudWatch alarm, etc.) with the EPIC team before implementing.
 
 ---
-
+TODO - AUDIT AND DELETE IF DONE
 ### Filters: Known Gaps
 
 These are missing features surfaced during development — not critical but noticeable:
@@ -62,7 +62,7 @@ defaults around branding. Before the project is considered stable: confirm base 
 verify brand values are intentional, and remove any stale comments.
 
 ---
-
+TODO - AUDIT AND DELETE IF DONE
 ### Data Table: Sort Options
 
 Verify whether all intended sort options are implemented. At some point this was noted as

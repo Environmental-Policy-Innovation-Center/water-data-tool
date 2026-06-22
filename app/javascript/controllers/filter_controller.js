@@ -233,13 +233,21 @@ export default class extends Controller {
   }
 
   toggleRateTierPanel(event) {
-    event.preventDefault()
-    const panelId = event.currentTarget.dataset.panelId
+    const checkbox = event.currentTarget
+    const panelId = checkbox.dataset.panelId
     const panel = panelId && document.getElementById(panelId)
     if (!panel) return
-    panel.classList.toggle("hidden")
-    this.#setToggleArrow(panelId, !panel.classList.contains("hidden"))
-    event.currentTarget.checked = this.#rateTierHasSelection()
+
+    if (!checkbox.checked) {
+      Object.keys(RATE_TIER_BTN_MAP).forEach(id => document.getElementById(id)?.classList.remove("active"))
+      const noInfo = document.getElementById("rate-tier-no-info")
+      if (noInfo) noInfo.checked = false
+      this.#syncRateTierParent()
+    } else {
+      panel.classList.toggle("hidden")
+      this.#setToggleArrow(panelId, !panel.classList.contains("hidden"))
+      checkbox.checked = false
+    }
   }
 
   toggleRateTier(event) {
