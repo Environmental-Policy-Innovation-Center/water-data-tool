@@ -359,6 +359,19 @@ which today's classes already follow), `FILE_IMPORTERS`/`FILE_EXTENSIONS` could 
 explicit through the Phase 4 cutover; collapse in Phase 6 if we want one source of truth. Worth
 documenting the file-naming convention there.
 
+### Export-SQL derivation — drop hand-written `value_sql` + table aliases ✅ DONE
+The manifest no longer carries a `value_sql` per column. All 77 export expressions were plain
+`<alias>.<column>` (zero computed), so `FieldRegistry` now **derives** the export expression as
+`#{Model.table_name}.#{db_column || key}` (`export_sql`). Two columns whose name ≠ DB column got an
+explicit `db_column:` (`epa_report → detailed_facility_report`, `symbology_field → service_area_type`),
+and `epa_report` gained the `model: public_water_system` it had been missing. Export inclusion is now
+signalled by "has a model" — only the value-less `check` column (no model) is skipped, exactly as before.
+`PublicWaterSystemExporter` was switched from short JOIN aliases (`d`/`td`/`ej`/`vs`/`bws`/`fs`/`wh`/`pws`)
+to full table names so the derived `table.column` resolves directly. Safety: a characterization check
+confirmed `derived == current value_sql` for every column before removal; the value-based
+`column_registry_spec` csv/geojson assertions (now full table names) + the real-DB exporter spec guard the
+output. Result: 77 fewer hand-written config lines and no alias map for the data team to memorize.
+
 ### Phase 5 — Layout files + front-end generation = execute the FSR refactor (the convergence)
 - [ ] Author `config/filter_layout.yml` (§8.4): the ordered, **nested** menu → section →
       filter → sub-filter tree, referencing field keys. Seed it from the current `menu`/

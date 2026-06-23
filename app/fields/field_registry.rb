@@ -34,6 +34,10 @@ class FieldRegistry
     def filter_param = (filter && filter[:param_base]) || filter_column
     def sort_param = display && display[:sort]&.to_s
     def histogram_col = (histogram && histogram[:column]&.to_sym) || column
+
+    # Qualified "table.column" for CSV / GeoJSON export; nil for value-less columns
+    # with no model (e.g. the row-selection checkbox), which are not exported.
+    def export_sql = table && "#{table}.#{column}"
   end
 
   def self.fields
@@ -133,7 +137,7 @@ class FieldRegistry
       source: src,
       category: d[:category]&.to_sym,
       csv_label: d[:csv_label],
-      sql_expr: d[:value_sql]
+      sql_expr: f.export_sql
     )
   end
   private_class_method :build_table_column

@@ -12,7 +12,7 @@ class PublicWaterSystemExporter
   def to_csv_stream(cols: nil)
     col_map = ColumnRegistry.csv_columns(keys: cols)
     # Always prepend pwsid as the batch index key; the _pwsid_idx alias prevents a duplicate-column collision when Utility ID is also visible.
-    col_sql = (["pws.pwsid AS _pwsid_idx"] + col_map.values).join(", ")
+    col_sql = (["public_water_systems.pwsid AS _pwsid_idx"] + col_map.values).join(", ")
 
     Enumerator.new do |stream|
       stream << CSV.generate_line(col_map.keys)
@@ -58,13 +58,13 @@ class PublicWaterSystemExporter
 
   # SAFETY: all values are from frozen constants — never extend with user-supplied input.
   ASSOCIATION_JOINS = <<~SQL.freeze
-    LEFT JOIN violations_summaries   vs  ON vs.pwsid  = pws.pwsid
-    LEFT JOIN boil_water_summaries   bws ON bws.pwsid = pws.pwsid
-    LEFT JOIN demographics           d   ON d.pwsid   = pws.pwsid
-    LEFT JOIN trend_data             td  ON td.pwsid  = pws.pwsid
-    LEFT JOIN environmental_justices ej  ON ej.pwsid  = pws.pwsid
-    LEFT JOIN funding_summaries      fs  ON fs.pwsid  = pws.pwsid
-    LEFT JOIN watershed_hazards      wh  ON wh.pwsid  = pws.pwsid
+    LEFT JOIN violations_summaries   ON violations_summaries.pwsid   = public_water_systems.pwsid
+    LEFT JOIN boil_water_summaries   ON boil_water_summaries.pwsid   = public_water_systems.pwsid
+    LEFT JOIN demographics           ON demographics.pwsid           = public_water_systems.pwsid
+    LEFT JOIN trend_data             ON trend_data.pwsid             = public_water_systems.pwsid
+    LEFT JOIN environmental_justices ON environmental_justices.pwsid = public_water_systems.pwsid
+    LEFT JOIN funding_summaries      ON funding_summaries.pwsid      = public_water_systems.pwsid
+    LEFT JOIN watershed_hazards      ON watershed_hazards.pwsid      = public_water_systems.pwsid
   SQL
 
   def properties_sql
@@ -90,18 +90,18 @@ class PublicWaterSystemExporter
     quoted = ApplicationRecord.connection.quote(last_pwsid)
     ApplicationRecord.connection.execute(<<~SQL)
       SELECT
-        pws.pwsid,
+        public_water_systems.pwsid,
         json_build_object(
           'type', 'Feature',
           'geometry', ST_AsGeoJSON(sag.geom)::json,
           'properties', #{properties_sql}
         )::text AS feature
-      FROM public_water_systems pws
-      INNER JOIN (#{filtered_ids_sql}) filtered ON filtered.pwsid = pws.pwsid
-      LEFT JOIN service_area_geometries sag ON sag.pwsid = pws.pwsid
+      FROM public_water_systems
+      INNER JOIN (#{filtered_ids_sql}) filtered ON filtered.pwsid = public_water_systems.pwsid
+      LEFT JOIN service_area_geometries sag ON sag.pwsid = public_water_systems.pwsid
       #{ASSOCIATION_JOINS}
-      WHERE pws.pwsid > #{quoted}
-      ORDER BY pws.pwsid
+      WHERE public_water_systems.pwsid > #{quoted}
+      ORDER BY public_water_systems.pwsid
       LIMIT #{BATCH_SIZE}
     SQL
   end
@@ -111,9 +111,9 @@ class PublicWaterSystemExporter
     quoted_ids = pwsids.map { |id| conn.quote(id) }.join(", ")
     conn.execute(<<~SQL)
       SELECT #{col_sql}
-      FROM public_water_systems pws
+      FROM public_water_systems
       #{ASSOCIATION_JOINS}
-      WHERE pws.pwsid IN (#{quoted_ids})
+      WHERE public_water_systems.pwsid IN (#{quoted_ids})
     SQL
   end
 end
