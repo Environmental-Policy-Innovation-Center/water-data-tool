@@ -9,8 +9,9 @@ RSpec.describe ColumnRegistry do
     expect(ColumnRegistry.columns).to be_an(Array)
   end
 
-  it "loads all columns defined in the YAML config" do
-    expected = YAML.safe_load_file(Rails.root.join("config/columns.yml"))["columns"].size
+  it "surfaces every manifest field that has a display block" do
+    fields = YAML.safe_load_file(Rails.root.join("config/fields.yml"))["fields"]
+    expected = fields.count { |_key, attrs| attrs.key?("display") }
     expect(ColumnRegistry.columns.size).to eq(expected)
   end
 
@@ -206,7 +207,7 @@ RSpec.describe ColumnRegistry do
 
     it "splits category blocks when col_keys interleave different categories" do
       health_key = ColumnRegistry.columns.find { |c| c.category == :violations }&.key
-      expect(health_key).not_to be_nil, "expected columns.yml to have at least one :violations column"
+      expect(health_key).not_to be_nil, "expected the manifest to have at least one :violations column"
       groups = ColumnRegistry.panel_groups(col_keys: ["stusps", health_key.to_s, "pwsid"])
       category_groups = groups.select { |g| g[:type] == :category }
       expect(category_groups.size).to be >= 2

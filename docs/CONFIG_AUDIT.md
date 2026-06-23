@@ -309,11 +309,27 @@ Two specs that make every later phase safe (`spec/fields/field_registry_spec.rb`
       whose headers are known); remaining files' headers land in Phase 4. Custom-case
       register (§8.1) still to be annotated.
 
-### Phase 3 — Cut server-side consumers over to `FieldRegistry`
-- [ ] Point (or reduce) `ColumnRegistry`, `FilterRegistry`, the histogram config, and
-      `HomeHelper` tooltips at `FieldRegistry`.
-- [ ] Delete the now-redundant sections of `columns.yml`, `filters.yml`, `tooltips.yml`.
-- [ ] Parity spec guards the swap. No ERB/JS change yet.
+### Phase 3 — Cut server-side consumers over to `FieldRegistry` ✅ DONE (scoped)
+Cut over only the concerns the manifest can **fully own** so the legacy source can be
+*deleted* (true single source), not merely mirrored. Anything whose `filters.yml` section
+still feeds a second consumer is deferred to avoid split-brain (two files defining the same
+param names) — those move atomically in Phase 5.
+- [x] `ColumnRegistry` now reads `columns` + `categories` from `FieldRegistry`; **`config/columns.yml`
+      deleted** (its only consumer was `ColumnRegistry`). All behavior (panel groups, visibility,
+      CSV/GeoJSON export) is unchanged — it operates on the column list, now manifest-sourced.
+- [x] `HistogramsController` reads histogram config straight from `FieldRegistry`; **`histogram_field_groups`
+      removed from `config/filters.yml`** and `FilterRegistry.histogram_field_config` deleted (histogram
+      config is a manifest concern, not a filter-param one — no pass-through left behind).
+- [x] Backstop: `column_registry_spec` (value-based) guards the manifest columns transitively via the
+      delegating `ColumnRegistry`; `field_registry_spec` owns the histogram-config characterization. The
+      now-tautological column/category/histogram parity examples were dropped; **permit-args + sortable-map
+      parity stays** (still cross-checks the independent `filters.yml`).
+- [x] `config/environments/development.rb` watches `config/fields.yml` (was `columns.yml`).
+- **Deferred to Phase 5** (entangled — `filters.yml` sections feed `Filterable`/`Sortable`/`client_payload`,
+      not just the permit/sort projections the manifest models): `permit_arguments`, `sortable_columns` +
+      `sortable_table_joins`, the range-column groups, violations subcats, and `client_payload`.
+- **Not applicable**: `HomeHelper` tooltips + `tooltips.yml` stay as-is by design (§8.2 — concept-keyed,
+      not 1:1 with fields). No ERB/JS change.
 
 ### Phase 4 — ETL routing via a generic importer
 - [ ] Add a generic importer that consumes `FieldRegistry.etl_mapping` for flat-map
@@ -511,7 +527,7 @@ Also: **don't reuse the name `filters.yml`** (the legacy file being retired) —
 | 2 | Expand `fields.yml` to all groups + core PWS controls | 2 | ✅ done | no |
 | 3 | Grow `FieldRegistry` to reproduce every server view | 2 | ✅ done | no |
 | 4 | Register + annotate all custom cases in-manifest (§8.1) | 2/4 | ◻ todo | no |
-| 5 | Cut `ColumnRegistry`/`FilterRegistry` over; delete redundant YAML | 3 | ◻ todo | no |
+| 5 | Cut `ColumnRegistry` + histogram config over; delete `columns.yml` + `histogram_field_groups` | 3 | ✅ done (permit/sortable deferred to P5) | no |
 | 6 | Add remaining ETL `source:` headers + generic importer from `etl_mapping` | 4 | ◻ todo (demo+trend done) | no |
 | 7 | Author `filter_layout.yml` (nested) + layout backstop spec; remove `menu`/`section` tags from manifest | 5 | ◻ todo | **yes — is FSR** |
 | 8 | Generate filter-menu ERB from `filter_layout.yml` × `fields.yml` + server-render state | 5 | ◻ todo | **yes — is FSR** |

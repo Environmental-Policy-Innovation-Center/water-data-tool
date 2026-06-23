@@ -1,19 +1,15 @@
 # frozen_string_literal: true
 
-# Phase 2 of docs/CONFIG_AUDIT.md — single per-field manifest (config/fields.yml).
+# Single per-field manifest (config/fields.yml) — see docs/CONFIG_AUDIT.md.
 #
-# Reproduces every server-side view currently split across ColumnRegistry (table
-# columns + categories) and FilterRegistry (permit args, sortable map, histogram
-# config) — plus the ETL field→model routing. (Tooltips stay in tooltips.yml; see
-# CONFIG_AUDIT §8.2.) A parity spec
-# (spec/fields/field_registry_spec.rb) asserts this output equals the legacy
-# registries field-for-field, so consumers can be cut over safely (Phase 3).
-#
-# Not yet wired into the live app; it runs alongside the existing registries until
-# the parity spec is green across the whole manifest.
+# The source of truth for table columns + categories, histogram config, and ETL
+# field→model routing. ColumnRegistry (columns) and HistogramsController (histogram config)
+# read from here. The remaining filter concerns (permit args, sortable map) still derive from
+# config/filters.yml and are cross-checked against this manifest by the parity spec until
+# they move over (Phase 5). Tooltips stay in tooltips.yml (CONFIG_AUDIT §8.2).
 class FieldRegistry
   # Manifest `model:` symbol → ActiveRecord class name (resolved lazily for histogram
-  # config + invariant checks). Mirrors FilterRegistry::HISTOGRAM_MODELS.
+  # config + invariant checks).
   MODEL_CLASSES = {
     public_water_system: "PublicWaterSystem",
     violations_summary: "ViolationsSummary",
@@ -90,10 +86,13 @@ class FieldRegistry
     fields.select(&:sort_param).to_h { |f| [f.sort_param, f.table.to_s] }
   end
 
-  # { column_sym => { model: Class, format: "..." } } — reproduces FilterRegistry.histogram_field_config.
+  # { column_sym => { model: Class, format: "..." } } — consumed by HistogramsController.
   def self.histogram_field_config
-    fields.select(&:histogram).to_h do |f|
-      [f.histogram_col, {model: MODEL_CLASSES.fetch(f.model).constantize, format: f.histogram[:format]}]
+    fields.select(&:histogram).each_with_object({}) do |f, config|
+      config[f.histogram_col] = {
+        model: model_class(f.model),
+        format: f.histogram[:format]
+      }
     end
   end
 
@@ -101,9 +100,10 @@ class FieldRegistry
   def self.etl_mapping
     fields.each_with_object({}) do |f, by_file|
       next unless f.source
-      file = f.source[:file].to_sym
-      (by_file[file] ||= Hash.new { |h, k| h[k] = [] })[f.model] <<
-        {db_column: f.column, header: f.source[:header], cast: f.cast}
+
+      by_model = (by_file[f.source[:file].to_sym] ||= {})
+      by_model[f.model] ||= []
+      by_model[f.model] << {db_column: f.column, header: f.source[:header], cast: f.cast}
     end
   end
 
@@ -127,12 +127,18 @@ class FieldRegistry
   end
   private_class_method :build_table_column
 
-  # columns.yml uses :pws for the base PublicWaterSystem; association name otherwise.
+  # The :pws source marks the base PublicWaterSystem; association name otherwise.
   def self.default_source(model)
     return nil if model.nil?
     (model == :public_water_system) ? :pws : model
   end
   private_class_method :default_source
+
+  # Resolves a manifest `model:` symbol to its ActiveRecord class.
+  def self.model_class(model_sym)
+    MODEL_CLASSES.fetch(model_sym).constantize
+  end
+  private_class_method :model_class
 
   def self.config
     @config ||= YAML.safe_load_file(Rails.root.join("config/fields.yml"), symbolize_names: true)
@@ -144,7 +150,7 @@ class FieldRegistry
   # for all models including the irregular trend_datum → trend_data.
   def self.table_for(model_sym)
     return nil if model_sym.nil?
-    (@table_for ||= {})[model_sym] ||= MODEL_CLASSES.fetch(model_sym).constantize.table_name.to_sym
+    (@table_for ||= {})[model_sym] ||= model_class(model_sym).table_name.to_sym
   end
   private_class_method :table_for
 

@@ -2,12 +2,13 @@
 
 require "rails_helper"
 
-# Phase 0 + Phase 2 of docs/CONFIG_AUDIT.md.
+# Backstop for the config consolidation — see docs/CONFIG_AUDIT.md.
 #
-# The PARITY block is the cutover backstop: it asserts FieldRegistry reproduces the
-# legacy ColumnRegistry + FilterRegistry output field-for-field, so Phase 3 can point
-# the live consumers at the manifest with confidence. The INVARIANTS block is the
-# durable safety net that survives consolidation.
+# Table columns are consumed from the manifest by ColumnRegistry (guarded by
+# column_registry_spec); histogram config is owned and tested here. The parity block stays
+# meaningful only for the concerns not yet cut over — permit args + sortable map still derive
+# from config/filters.yml, so it cross-checks the manifest against drift until Phase 5. The
+# invariants are the durable safety net that survives consolidation.
 RSpec.describe FieldRegistry do
   before do
     FieldRegistry.reload!
@@ -15,17 +16,7 @@ RSpec.describe FieldRegistry do
     FilterRegistry.reload!
   end
 
-  describe "parity with ColumnRegistry (table columns)" do
-    it "reproduces every column, in order, identically" do
-      expect(FieldRegistry.column_records).to eq(ColumnRegistry.columns)
-    end
-
-    it "reproduces the category list, in order" do
-      expect(FieldRegistry.categories).to eq(ColumnRegistry.categories)
-    end
-  end
-
-  describe "parity with FilterRegistry (filters)" do
+  describe "parity with FilterRegistry (filters.yml — not yet cut over)" do
     it "permits exactly the same scalar param keys" do
       expect(scalar_permit_keys(FieldRegistry.permit_arguments))
         .to eq(scalar_permit_keys(FilterRegistry.permit_arguments))
@@ -39,9 +30,15 @@ RSpec.describe FieldRegistry do
     it "reproduces the sortable column → table map" do
       expect(FieldRegistry.sortable_columns).to eq(FilterRegistry.sortable_columns)
     end
+  end
 
-    it "reproduces the histogram field config" do
-      expect(FieldRegistry.histogram_field_config).to eq(FilterRegistry.histogram_field_config)
+  describe ".histogram_field_config (sole source — consumed by HistogramsController)" do
+    it "maps each histogram column to its model and display format" do
+      cfg = FieldRegistry.histogram_field_config
+      expect(cfg[:poverty_rate]).to eq({model: Demographic, format: "percent"})
+      expect(cfg[:median_household_income]).to eq({model: Demographic, format: "currency"})
+      expect(cfg[:population_pct_change_capped]).to eq({model: TrendDatum, format: "percent_change"})
+      expect(cfg[:paperwork_violations_5yr]).to eq({model: ViolationsSummary, format: "count"})
     end
   end
 
