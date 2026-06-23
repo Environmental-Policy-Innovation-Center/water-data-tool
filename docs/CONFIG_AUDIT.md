@@ -165,7 +165,7 @@ not blocked by ingestion — it's blocked by the field being scattered across 9 
 The one piece that stays code is `filterable.rb`'s SQL semantics. A manifest can
 declare `filter.kind: range|bool|group|geo` and route to a generic applier for the
 ~90% common case, leaving only genuinely special filters (boil-water, place, bounds)
-as bespoke methods.
+as custom methods.
 
 ---
 
@@ -223,7 +223,7 @@ importers for their *transform* — but they still declare their destination `mo
 in the manifest, so the manifest stays authoritative for "where does this field
 live." A generic, manifest-driven importer handles the flat-map majority; special
 importers are the bounded exception. Mirrors the filter story: generic applier for
-the common case, bespoke code for genuinely special ones.
+the common case, custom code for genuinely special ones.
 
 > **Out of scope — map config.** `map_controller.js` holds `REGION_STATES`,
 > `STATE_FIT_BOUNDS`, `REGION_CAMERAS`, and inline MapLibre layer/paint definitions.
@@ -332,13 +332,32 @@ param names) — those move atomically in Phase 5.
       not 1:1 with fields). No ERB/JS change.
 
 ### Phase 4 — ETL routing via a generic importer
-- [ ] Add a generic importer that consumes `FieldRegistry.etl_mapping` for flat-map
-      source files (the majority).
-- [ ] Keep bespoke importers only for the structurally special files (geojson stream,
-      `GROUP BY` aggregation, derived columns) — but have them **declare their
-      destination + `custom:` annotation** in the manifest (§8.1).
-- [ ] Spec: every (source file → model) the importers write is either covered by
-      `etl_mapping` or carries a declared `custom:` annotation — **no silent gaps.**
+- [x] `Etl::Importers::Generic` consumes `FieldRegistry.etl_mapping` for the 8 flat-map files.
+- [x] Completed manifest `source:` coverage (incl. ~20 **ingest-only** source-only fields) +
+      `custom_imports` register declaring the 5 structurally-special files (model + reason).
+- [x] **Characterization backstop** (`generic_spec`): the generic importer reproduces every
+      flat-map importer's parsed rows byte-for-byte on its fixture.
+- [x] **No-silent-gaps spec**: every `FILE_IMPORTERS` file is classified exactly once —
+      generic (`etl_mapping`) or custom (`custom_imports`).
+- [x] **Cutover (DONE):** `FILE_IMPORTERS` routes the 8 flat-map files through `Generic`; the 8
+      flat-map importer classes + their specs are deleted (`app/services/etl/importers/` is now
+      `generic` + the 5 custom ones). `generic_spec` is value-based + covers `import!` routing;
+      `zeitwerk:check` clean. Full suite green.
+
+**Decoupling / risk note:** everything except the cutover is *additive config* — it changes no
+live ingestion. The manifest's `source:` axis **describes** ingestion; `FILE_IMPORTERS`
+**executes** it. So the descriptive config (source blocks, ingest-only fields, `custom_imports`,
+the generic importer, the specs) can be kept and banked even if we never flip execution to
+generic — the flat-map importers keep running and the characterization spec keeps proving the
+generic one *could* replace them. The cutover is the only step that needs dev intervention.
+
+**Phase 6 candidate — derive the importer registry:** after cutover, `FILE_IMPORTERS` is
+redundant with `etl_mapping` ∪ `custom_imports`. With a file-naming convention (source-file stem
+= `file_key` = manifest `source.file`; custom importers = `Etl::Importers::#{file_key.camelize}`,
+which today's classes already follow), `FILE_IMPORTERS`/`FILE_EXTENSIONS` could be derived
+(generic ⇒ `Generic`; custom ⇒ camelized class; default `.csv`, exceptions declared). Keep them
+explicit through the Phase 4 cutover; collapse in Phase 6 if we want one source of truth. Worth
+documenting the file-naming convention there.
 
 ### Phase 5 — Layout files + front-end generation = execute the FSR refactor (the convergence)
 - [ ] Author `config/filter_layout.yml` (§8.4): the ordered, **nested** menu → section →
@@ -350,6 +369,10 @@ param names) — those move atomically in Phase 5.
       appears in the layout exactly once *or* is marked backend-only; no orphans/dupes.
 - [ ] Generate `_filter_menus.html.erb` from `filter_layout.yml` × `fields.yml` **and**
       server-render filter state from decoded URL state in the same pass.
+- [ ] **Add a default/initial-state designation for filters** (e.g. a `default:` — default range,
+      pre-selected option, active-on-load). Decide where it lives: manifest `filter:` block vs.
+      the layout file (initial UI state is arguably presentation). Wire it into the
+      server-rendered initial state. *(Raised during Phase 4; nothing consumes it until here.)*
 - [ ] Delete `#restoreDomState`; slim `FILTERS[]` to interaction-only.
 - [ ] Add request-spec coverage per control type + `view=` URL support (FSR Phase 3).
 - [ ] Close out `docs/open_items/FILTER_SERVER_RENDER.md`.
@@ -360,7 +383,7 @@ param names) — those move atomically in Phase 5.
 ### Phase 6 — Portal / CSV-driven config
 - [ ] Manifest override source (CSV record or admin portal) — a thin CRUD layer that
       writes/overrides `fields.yml`.
-- [ ] Generic filter applier driven by `filter.kind`; bespoke SQL only for special filters.
+- [ ] Generic filter applier driven by `filter.kind`; custom SQL only for special filters.
 
 ---
 
@@ -526,15 +549,16 @@ Also: **don't reuse the name `filters.yml`** (the legacy file being retired) —
 | 1 | Parity/golden-master spec vs current registries | 0 | ✅ done | no |
 | 2 | Expand `fields.yml` to all groups + core PWS controls | 2 | ✅ done | no |
 | 3 | Grow `FieldRegistry` to reproduce every server view | 2 | ✅ done | no |
-| 4 | Register + annotate all custom cases in-manifest (§8.1) | 2/4 | ◻ todo | no |
+| 4 | Register custom cases in-manifest (`custom_imports`, §8.1) + no-silent-gaps spec | 2/4 | ✅ done | no |
 | 5 | Cut `ColumnRegistry` + histogram config over; delete `columns.yml` + `histogram_field_groups` | 3 | ✅ done (permit/sortable deferred to P5) | no |
-| 6 | Add remaining ETL `source:` headers + generic importer from `etl_mapping` | 4 | ◻ todo (demo+trend done) | no |
+| 6 | ETL `source:` coverage (all 8 generic files) + `Generic` importer + cutover | 4 | ✅ done | no |
 | 7 | Author `filter_layout.yml` (nested) + layout backstop spec; remove `menu`/`section` tags from manifest | 5 | ◻ todo | **yes — is FSR** |
 | 8 | Generate filter-menu ERB from `filter_layout.yml` × `fields.yml` + server-render state | 5 | ◻ todo | **yes — is FSR** |
 | 9 | Delete `#restoreDomState`, slim `FILTERS[]`, add request specs, `view=` | 5 | ◻ todo | **yes — is FSR** |
 | 10 | Port `rate_tier` control into the manifest + layout | 5 | ◻ todo | partial |
 | 11 | Portal / CSV override layer + generic filter applier | 6 | ◻ todo | no |
 | 12 | *(Optional)* `table_layout.yml` for explicit column/category order | 5/6 | ◻ todo | no |
+| 13 | **How-to / decision tree: "adding a data point"** — flat-map vs custom, migration-needed?, new-column-on-existing-file vs new-file vs new-table; the surfacing axes (display/filter/histogram). Likely `docs/ADDING_A_FIELD.md` | docs | ◻ todo | no |
 
 ---
 

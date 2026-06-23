@@ -8,27 +8,35 @@ module Etl
     # Backward-compatible alias — existing code and specs reference this constant.
     InsecureUrlError = Etl::HttpFetcher::InsecureUrlError
 
-    # Maps the filename stem to the importer class.
+    # Maps the filename stem to the importer class. Flat column→header→cast files are
+    # driven entirely by the manifest (config/fields.yml) through Etl::Importers::Generic;
+    # the rest keep a custom importer (see FieldRegistry.custom_imports for the reasons).
     FILE_IMPORTERS = {
+      # Custom importers — structurally special (aggregation, geometry stream, derived columns).
       "epa_sabs" => Etl::Importers::EpaSabs,
       "epa_sabs_geoms" => Etl::Importers::EpaSabsGeoms,
       "sdwis_viols" => Etl::Importers::SdwisViols,
-      "epa_sabs_xwalk" => Etl::Importers::EpaSabsXwalk,
-      "xwalk_pct_change_10yr" => Etl::Importers::XwalkPctChange10yr,
-      "cejst" => Etl::Importers::Cejst,
-      "ejscreen" => Etl::Importers::Ejscreen,
-      "svi" => Etl::Importers::Svi,
-      "cvi" => Etl::Importers::Cvi,
-      "national_bwn_highlevel_summary" => Etl::Importers::NationalBwnHighlevelSummary,
-      "pwsid_funded_highlevel_summary" => Etl::Importers::PwsidFundedHighlevelSummary,
       "pwsid_npdes_usts_rmps_imp" => Etl::Importers::PwsidNpdesUstsRmpsImp,
-      "sabs_pwsid_county" => Etl::Importers::SabsPwsidCounty
+      "sabs_pwsid_county" => Etl::Importers::SabsPwsidCounty,
+      # Generic (manifest-driven) importers.
+      "epa_sabs_xwalk" => Etl::Importers::Generic,
+      "xwalk_pct_change_10yr" => Etl::Importers::Generic,
+      "cejst" => Etl::Importers::Generic,
+      "ejscreen" => Etl::Importers::Generic,
+      "svi" => Etl::Importers::Generic,
+      "cvi" => Etl::Importers::Generic,
+      "national_bwn_highlevel_summary" => Etl::Importers::Generic,
+      "pwsid_funded_highlevel_summary" => Etl::Importers::Generic
     }.freeze
 
     FILE_EXTENSIONS = {
+      # Custom importers.
       "epa_sabs" => ".csv",
       "epa_sabs_geoms" => ".geojson",
       "sdwis_viols" => ".csv",
+      "pwsid_npdes_usts_rmps_imp" => ".csv",
+      "sabs_pwsid_county" => ".csv",
+      # Generic (manifest-driven) importers.
       "epa_sabs_xwalk" => ".csv",
       "xwalk_pct_change_10yr" => ".csv",
       "cejst" => ".csv",
@@ -36,9 +44,7 @@ module Etl
       "svi" => ".csv",
       "cvi" => ".csv",
       "national_bwn_highlevel_summary" => ".csv",
-      "pwsid_funded_highlevel_summary" => ".csv",
-      "pwsid_npdes_usts_rmps_imp" => ".csv",
-      "sabs_pwsid_county" => ".csv"
+      "pwsid_funded_highlevel_summary" => ".csv"
     }.freeze
 
     def initialize(force: false, only: nil)
