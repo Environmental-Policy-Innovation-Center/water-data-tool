@@ -2,32 +2,28 @@
 # SINGLE FIELD MANIFEST — read by FieldRegistry (app/fields/field_registry.rb).
 # See docs/CONFIG_AUDIT.md.
 #
-# The source of truth for table columns + categories, histogram config, and ETL
-# field→model routing. The remaining filter concerns (permit args, sortable map) still
-# live in filters.yml and are cross-checked against this manifest by the parity spec
-# until they move over (Phase 5).
+# The catalog of every data field: where each one is loaded from and how it's shown.
+# (Filtering and sorting still read config/filters.yml for now — see docs/CONFIG_AUDIT.md.)
 #
-# This manifest is a "WHAT IS SURFACED" list, not a "what exists" list. The DB ingests
-# more columns than appear here (see docs/CONFIG_AUDIT §8.3); a field is added here only
-# when product decides to surface it as a table column, a filter, and/or a histogram.
+# This lists what the app SHOWS, not everything in the database — the data pipeline loads
+# more columns than appear here. A field is added when we choose to load it and/or show it.
 #
-# A field is surfaced along up to three INDEPENDENT axes — each signalled by the presence
-# of its block (omission = not surfaced on that axis):
-#   display   → shown as a data-table column
-#   filter    → filterable (and, if it has menu/section, shown as a filter-menu control)
+# Each field can include up to four blocks — add a block to turn that on, omit it to leave it off:
+#   source    → loaded from a source file (a field may be source-only: loaded but not shown anywhere)
+#   display   → shown as a column in the data table
+#   filter    → can be filtered on
 #   histogram → has a histogram
-# (A field may be filterable via URL but have no menu control: filter present, menu absent.)
 #
 # ── CANONICAL ENTRY SHAPE — keys ALWAYS appear in this order; omit any block/key a field
 #    does not have. Omission is the signal; we do not pad with nils. ──────────────────────
 #
-#   poverty_rate:                       # field key — unique id; defaults to the db column name
-#     model: demographic                # AR model = storage + ETL upsert target; SQL table derived (Model.table_name)
-#     db_column: poverty_rate           # column on the model's table (OMIT when == field key)
-#     source:                           # ETL ingestion (omit if header unknown / custom transform — see §8.1)
-#       file: epa_sabs_xwalk            #   source file stem
-#       header: hh_below_pov_per        #   raw CSV column header
-#       cast: decimal                   #   integer | decimal | string | score | bool
+#   poverty_rate:                       # the name we store this column as (used throughout the app)
+#     model: demographic                # which table it's stored in / loaded into
+#     db_column: poverty_rate           # the real DB column, only if it differs from the name above (usually omit)
+#     source:                           # how it's loaded from the data feed (omit → not loaded here; or a custom loader, see custom_imports)
+#       file: epa_sabs_xwalk            #   source file name (no extension)
+#       header: "hh_below_pov_per"      #   the column's exact name in that CSV — always quoted, copied verbatim
+#       cast: decimal                   #   value type: integer | decimal | string | score (0–1 → %) | bool (omit → keep raw text)
 #     display:                          # TABLE COLUMN (omit → not shown in the data table)
 #       label: "Households below poverty line"  #   <th> header text
 #       sort: poverty_rate              #   sort param (omit → not sortable); may differ from key (capped trends)
@@ -72,6 +68,15 @@ categories:
   - {key: environmental_justice, label: "Environmental Justice"}
   - {key: funding,               label: "Funding"}
   - {key: watershed_hazards,     label: "Watershed Hazards"}
+
+# Source files that need special handling on load — combining rows, geometry, or computed
+# values — instead of a plain column-to-column copy. Each lists the table it fills and why.
+custom_imports:
+  epa_sabs:                  {model: public_water_system, reason: "computes the state code from the PWSID; tracks which systems changed"}
+  epa_sabs_geoms:            {model: public_water_system, reason: "GeoJSON geometry file, not a flat CSV"}
+  sdwis_viols:               {model: violations_summary,  reason: "rolls raw violation rows up into 5- and 10-year totals"}
+  pwsid_npdes_usts_rmps_imp: {model: watershed_hazard,    reason: "sums the per-HUC12 watershed rows into one row per system"}
+  sabs_pwsid_county:         {model: public_water_system, reason: "combines the counties served into one deduplicated list per system"}
 
 fields:
   # ── Row selection / identity (pinned, ungrouped) ───────────────────────────
@@ -293,200 +298,281 @@ fields:
   # ── Boil water ─────────────────────────────────────────────────────────────
   total_notices:
     model: boil_water_summary
+    source: {file: national_bwn_highlevel_summary, header: "total_bwn", cast: integer}
     display: {label: "Boil water notices", sort: total_notices, format: num, category: violations, csv_label: "Boil water notices", value_sql: bws.total_notices}
     filter: {kind: range, param_base: boil_water_notices, coercion: integer, menu: compliance, section: notices}
+
+  # Loaded but not shown (boil-water columns).
+  first_advisory_date:
+    model: boil_water_summary
+    source: {file: national_bwn_highlevel_summary, header: "date_of_first_advisory", cast: string}
+
+  last_advisory_date:
+    model: boil_water_summary
+    source: {file: national_bwn_highlevel_summary, header: "date_of_last_advisory", cast: string}
+
+  state_reporting_year_min:
+    model: boil_water_summary
+    source: {file: national_bwn_highlevel_summary, header: "min_reporting_year_for_state", cast: string}
+
+  state_reporting_year_max:
+    model: boil_water_summary
+    source: {file: national_bwn_highlevel_summary, header: "max_reporting_year_for_state", cast: string}
+
+  state:
+    model: boil_water_summary
+    source: {file: national_bwn_highlevel_summary, header: "state", cast: string}
+
+  tooltip_text:
+    model: boil_water_summary
+    source: {file: national_bwn_highlevel_summary, header: "data_tool_tip", cast: string}
+
+  download_url:
+    model: boil_water_summary
+    source: {file: national_bwn_highlevel_summary, header: "download_link", cast: string}
+
+  date_range_display:
+    model: boil_water_summary
+    source: {file: national_bwn_highlevel_summary, header: "clean_date_range", cast: string}
 
   # ── Demographics ───────────────────────────────────────────────────────────
   total_population:
     model: demographic
-    source: {file: epa_sabs_xwalk, header: total_pop, cast: integer}
+    source: {file: epa_sabs_xwalk, header: "total_pop", cast: integer}
     display: {label: "Population size", sort: total_population, format: num, category: demographics, csv_label: "Population size", value_sql: d.total_population}
     filter: {kind: range, coercion: decimal}
     histogram: {format: count}
 
   population_density:
     model: demographic
-    source: {file: epa_sabs_xwalk, header: epic_pop_density, cast: decimal}
+    source: {file: epa_sabs_xwalk, header: "epic_pop_density", cast: decimal}
     display: {label: "Population density (per sq mi)", sort: population_density, format: dec, format_opts: {precision: 0}, category: demographics, csv_label: "Population density (people per square mile)", value_sql: d.population_density}
     filter: {kind: range, param_base: density, coercion: decimal, menu: population, section: density}
 
   population_pct_change:
     model: trend_datum
-    source: {file: xwalk_pct_change_10yr, header: total_pop_pct_change_2011_2021, cast: decimal}
+    source: {file: xwalk_pct_change_10yr, header: "total_pop_pct_change_2011_2021", cast: decimal}
     display: {label: "Population change (10yr)", sort: population_pct_change_capped, format: pct, format_opts: {precision: 1}, category: demographics, csv_label: "Change in people in the last 10 years (%)", value_sql: td.population_pct_change}
     filter: {kind: range, column: population_pct_change_capped, param_base: population_pct_change_capped, coercion: decimal, menu: population, section: change}
     histogram: {format: percent_change, column: population_pct_change_capped}
 
   mhi_pct_change:
     model: trend_datum
-    source: {file: xwalk_pct_change_10yr, header: mhi_pct_change_2011_2021, cast: decimal}
+    source: {file: xwalk_pct_change_10yr, header: "mhi_pct_change_2011_2021", cast: decimal}
     display: {label: "Income change (10yr)", sort: mhi_pct_change_capped, format: pct, format_opts: {precision: 1}, category: demographics, csv_label: "Change in income in the last 10 years (%)", value_sql: td.mhi_pct_change}
     filter: {kind: range, column: mhi_pct_change_capped, param_base: mhi_pct_change_capped, coercion: decimal, menu: population, section: change}
     histogram: {format: percent_change, column: mhi_pct_change_capped}
 
+  # Loaded but not shown. The _capped columns are capped versions of the change metrics
+  # above (population_pct_change / mhi_pct_change), used by the charts and filters.
+  population_pct_change_capped:
+    model: trend_datum
+    source: {file: xwalk_pct_change_10yr, header: "total_pop_pct_change_2011_2021_cap", cast: decimal}
+
+  mhi_pct_change_capped:
+    model: trend_datum
+    source: {file: xwalk_pct_change_10yr, header: "mhi_pct_change_2011_2021_cap", cast: decimal}
+
+  unemployment_pct_change:
+    model: trend_datum
+    source: {file: xwalk_pct_change_10yr, header: "laborforce_unemployed_pct_change_2011_2021", cast: decimal}
+
+  lowest_quintile_pct_change:
+    model: trend_datum
+    source: {file: xwalk_pct_change_10yr, header: "hh_inc_lowest_quintile_pct_change_2011_2021", cast: decimal}
+
+  households_pct_change:
+    model: trend_datum
+    source: {file: xwalk_pct_change_10yr, header: "hh_total_pct_change_2011_2021", cast: decimal}
+
+  poverty_pct_change:
+    model: trend_datum
+    source: {file: xwalk_pct_change_10yr, header: "hh_below_pov_pct_change_2011_2021", cast: decimal}
+
+  poc_pct_change:
+    model: trend_datum
+    source: {file: xwalk_pct_change_10yr, header: "poc_alone_per_pct_change_2011_2021", cast: decimal}
+
+  population_in_poverty_pct_change:
+    model: trend_datum
+    source: {file: xwalk_pct_change_10yr, header: "pop_in_pov_per_pct_change_2011_2021", cast: decimal}
+
+  income_change_flag:
+    model: trend_datum
+    source: {file: xwalk_pct_change_10yr, header: "income_change_flag", cast: string}
+
+  population_change_flag:
+    model: trend_datum
+    source: {file: xwalk_pct_change_10yr, header: "population_change_flag", cast: string}
+
   poverty_rate:
     model: demographic
-    source: {file: epa_sabs_xwalk, header: hh_below_pov_per, cast: decimal}
+    source: {file: epa_sabs_xwalk, header: "hh_below_pov_per", cast: decimal}
     display: {label: "Households below poverty line", sort: poverty_rate, format: pct, category: demographics, csv_label: "Households below the poverty line (%)", value_sql: d.poverty_rate}
     filter: {kind: range, coercion: decimal, menu: population, section: socioeconomics}
     histogram: {format: percent}
 
   unemployment_rate:
     model: demographic
-    source: {file: epa_sabs_xwalk, header: laborforce_unemployed_per, cast: decimal}
+    source: {file: epa_sabs_xwalk, header: "laborforce_unemployed_per", cast: decimal}
     display: {label: "Unemployment", sort: unemployment_rate, format: pct, category: demographics, csv_label: "Unemployment (%)", value_sql: d.unemployment_rate}
     filter: {kind: range, coercion: decimal, menu: population, section: socioeconomics}
     histogram: {format: percent}
 
   median_household_income:
     model: demographic
-    source: {file: epa_sabs_xwalk, header: mhi, cast: integer}
+    source: {file: epa_sabs_xwalk, header: "mhi", cast: integer}
     display: {label: "Median household income", sort: median_household_income, format: cur, category: demographics, csv_label: "Annual median household income ($)", value_sql: d.median_household_income}
     filter: {kind: range, coercion: decimal, menu: population, section: socioeconomics}
     histogram: {format: currency}
 
+  # Loaded but not shown.
+  household_income_lowest_quintile:
+    model: demographic
+    source: {file: epa_sabs_xwalk, header: "hh_inc_lowest_quintile", cast: integer}
+
   bachelors_degree_rate:
     model: demographic
-    source: {file: epa_sabs_xwalk, header: bachelors_per, cast: decimal}
+    source: {file: epa_sabs_xwalk, header: "bachelors_per", cast: decimal}
     display: {label: "Higher education attainment", sort: bachelors_degree_rate, format: pct, category: demographics, csv_label: "Higher education attainment (%)", value_sql: d.bachelors_degree_rate}
     filter: {kind: range, coercion: decimal, menu: population, section: socioeconomics}
     histogram: {format: percent}
 
   age_under_5_rate:
     model: demographic
-    source: {file: epa_sabs_xwalk, header: ageunder_5_per, cast: decimal}
+    source: {file: epa_sabs_xwalk, header: "ageunder_5_per", cast: decimal}
     display: {label: "Children under 5", sort: age_under_5_rate, format: pct, category: demographics, csv_label: "Children under 5 (%)", value_sql: d.age_under_5_rate}
     filter: {kind: range, coercion: decimal, menu: population, section: socioeconomics}
     histogram: {format: percent}
 
   age_over_61_rate:
     model: demographic
-    source: {file: epa_sabs_xwalk, header: age_over_61_per, cast: decimal}
+    source: {file: epa_sabs_xwalk, header: "age_over_61_per", cast: decimal}
     display: {label: "Elderly over 61", sort: age_over_61_rate, format: pct, category: demographics, csv_label: "Elderly over 61 (%)", value_sql: d.age_over_61_rate}
     filter: {kind: range, coercion: decimal, menu: population, section: socioeconomics}
     histogram: {format: percent}
 
   poc_rate:
     model: demographic
-    source: {file: epa_sabs_xwalk, header: poc_alone_per, cast: decimal}
+    source: {file: epa_sabs_xwalk, header: "poc_alone_per", cast: decimal}
     display: {label: "People of color", sort: poc_rate, format: pct, category: demographics, csv_label: "People of color (%)", value_sql: d.poc_rate}
     filter: {kind: range, coercion: decimal, menu: population, section: race_ethnicity}
     histogram: {format: percent}
 
   white_rate:
     model: demographic
-    source: {file: epa_sabs_xwalk, header: white_alone_per, cast: decimal}
+    source: {file: epa_sabs_xwalk, header: "white_alone_per", cast: decimal}
     display: {label: "White", sort: white_rate, format: pct, category: demographics, csv_label: "White (%)", value_sql: d.white_rate}
     filter: {kind: range, coercion: decimal, menu: population, section: race_ethnicity}
     histogram: {format: percent}
 
   black_rate:
     model: demographic
-    source: {file: epa_sabs_xwalk, header: black_alone_per, cast: decimal}
+    source: {file: epa_sabs_xwalk, header: "black_alone_per", cast: decimal}
     display: {label: "Black", sort: black_rate, format: pct, category: demographics, csv_label: "Black (%)", value_sql: d.black_rate}
     filter: {kind: range, coercion: decimal, menu: population, section: race_ethnicity}
     histogram: {format: percent}
 
   aian_rate:
     model: demographic
-    source: {file: epa_sabs_xwalk, header: AIAN_alone_per, cast: decimal}
+    source: {file: epa_sabs_xwalk, header: "AIAN_alone_per", cast: decimal}
     display: {label: "American Indian & Alaskan Native", sort: aian_rate, format: pct, category: demographics, csv_label: "American Indian and Alaskan Native (%)", value_sql: d.aian_rate}
     filter: {kind: range, coercion: decimal, menu: population, section: race_ethnicity}
     histogram: {format: percent}
 
   napi_rate:
     model: demographic
-    source: {file: epa_sabs_xwalk, header: NAPI_alone_per, cast: decimal}
+    source: {file: epa_sabs_xwalk, header: "NAPI_alone_per", cast: decimal}
     display: {label: "Native Hawaiian & Pacific Islander", sort: napi_rate, format: pct, category: demographics, csv_label: "Native Hawaiian and Pacific Islanders (%)", value_sql: d.napi_rate}
     filter: {kind: range, coercion: decimal, menu: population, section: race_ethnicity}
     histogram: {format: percent}
 
   asian_rate:
     model: demographic
-    source: {file: epa_sabs_xwalk, header: asian_alone_per, cast: decimal}
+    source: {file: epa_sabs_xwalk, header: "asian_alone_per", cast: decimal}
     display: {label: "Asian", sort: asian_rate, format: pct, category: demographics, csv_label: "Asian (%)", value_sql: d.asian_rate}
     filter: {kind: range, coercion: decimal, menu: population, section: race_ethnicity}
     histogram: {format: percent}
 
   hispanic_rate:
     model: demographic
-    source: {file: epa_sabs_xwalk, header: hisp_alone_per, cast: decimal}
+    source: {file: epa_sabs_xwalk, header: "hisp_alone_per", cast: decimal}
     display: {label: "Latino/a", sort: hispanic_rate, format: pct, category: demographics, csv_label: "Latino/a (%)", value_sql: d.hispanic_rate}
     filter: {kind: range, coercion: decimal, menu: population, section: race_ethnicity}
     histogram: {format: percent}
 
   other_race_rate:
     model: demographic
-    source: {file: epa_sabs_xwalk, header: other_alone_per, cast: decimal}
+    source: {file: epa_sabs_xwalk, header: "other_alone_per", cast: decimal}
     display: {label: "Other race", sort: other_race_rate, format: pct, category: demographics, csv_label: "Other (%)", value_sql: d.other_race_rate}
     filter: {kind: range, coercion: decimal, menu: population, section: race_ethnicity}
     histogram: {format: percent}
 
   mixed_race_rate:
     model: demographic
-    source: {file: epa_sabs_xwalk, header: mixed_alone_per, cast: decimal}
+    source: {file: epa_sabs_xwalk, header: "mixed_alone_per", cast: decimal}
     display: {label: "Mixed race", sort: mixed_race_rate, format: pct, category: demographics, csv_label: "Mixed race (%)", value_sql: d.mixed_race_rate}
     filter: {kind: range, coercion: decimal, menu: population, section: race_ethnicity}
     histogram: {format: percent}
 
   most_common_rate_tier:
     model: demographic
-    source: {file: epa_sabs_xwalk, header: most_common_rate_tidy, cast: string}
+    source: {file: epa_sabs_xwalk, header: "most_common_rate_tidy"} # raw passthrough (no cast) to match the custom importer
     display: {label: "Annual water & sewer bill", sort: most_common_rate_tier, format: str, category: demographics, csv_label: "Annual water and sewer bill", value_sql: d.most_common_rate_tier}
     filter: {kind: multiselect, param: most_common_rate_tier, menu: more, section: financial}
 
   water_rate_under_125:
     model: demographic
-    source: {file: epa_sabs_xwalk, header: water_rate_less_125_per, cast: decimal}
+    source: {file: epa_sabs_xwalk, header: "water_rate_less_125_per", cast: decimal}
     display: {label: "Under $125", sort: water_rate_under_125, format: pct, category: demographics, csv_label: "Annual bill: under $125 (%)", value_sql: d.water_rate_under_125}
 
   water_rate_125_249:
     model: demographic
-    source: {file: epa_sabs_xwalk, header: water_rate_between_125_249_per, cast: decimal}
+    source: {file: epa_sabs_xwalk, header: "water_rate_between_125_249_per", cast: decimal}
     display: {label: "$125–249", sort: water_rate_125_249, format: pct, category: demographics, csv_label: "Annual bill: $125–249 (%)", value_sql: d.water_rate_125_249}
 
   water_rate_250_499:
     model: demographic
-    source: {file: epa_sabs_xwalk, header: water_rate_between_250_499_per, cast: decimal}
+    source: {file: epa_sabs_xwalk, header: "water_rate_between_250_499_per", cast: decimal}
     display: {label: "$250–499", sort: water_rate_250_499, format: pct, category: demographics, csv_label: "Annual bill: $250–499 (%)", value_sql: d.water_rate_250_499}
 
   water_rate_500_749:
     model: demographic
-    source: {file: epa_sabs_xwalk, header: water_rate_between_500_749_per, cast: decimal}
+    source: {file: epa_sabs_xwalk, header: "water_rate_between_500_749_per", cast: decimal}
     display: {label: "$500–749", sort: water_rate_500_749, format: pct, category: demographics, csv_label: "Annual bill: $500–749 (%)", value_sql: d.water_rate_500_749}
 
   water_rate_750_999:
     model: demographic
-    source: {file: epa_sabs_xwalk, header: water_rate_between_750_999_per, cast: decimal}
+    source: {file: epa_sabs_xwalk, header: "water_rate_between_750_999_per", cast: decimal}
     display: {label: "$750–999", sort: water_rate_750_999, format: pct, category: demographics, csv_label: "Annual bill: $750–999 (%)", value_sql: d.water_rate_750_999}
 
   water_rate_over_1000:
     model: demographic
-    source: {file: epa_sabs_xwalk, header: water_rate_over_1000_per, cast: decimal}
+    source: {file: epa_sabs_xwalk, header: "water_rate_over_1000_per", cast: decimal}
     display: {label: "Over $1,000", sort: water_rate_over_1000, format: pct, category: demographics, csv_label: "Annual bill: over $1,000 (%)", value_sql: d.water_rate_over_1000}
 
   # Demographics — filter/histogram only (no table column)
   no_health_insurance_rate:
     model: demographic
-    source: {file: epa_sabs_xwalk, header: no_health_insurance_per, cast: decimal}
+    source: {file: epa_sabs_xwalk, header: "no_health_insurance_per", cast: decimal}
     filter: {kind: range, coercion: decimal}
     histogram: {format: percent}
 
   owner_rate:
     model: demographic
-    source: {file: epa_sabs_xwalk, header: hh_own_home_per, cast: decimal}
+    source: {file: epa_sabs_xwalk, header: "hh_own_home_per", cast: decimal}
     filter: {kind: range, coercion: decimal}
     histogram: {format: percent}
 
   renter_rate:
     model: demographic
-    source: {file: epa_sabs_xwalk, header: hh_rent_home_per, cast: decimal}
+    source: {file: epa_sabs_xwalk, header: "hh_rent_home_per", cast: decimal}
     filter: {kind: range, coercion: decimal}
     histogram: {format: percent}
 
   population_in_poverty_rate:
     model: demographic
-    source: {file: epa_sabs_xwalk, header: pop_in_pov_per, cast: decimal}
+    source: {file: epa_sabs_xwalk, header: "pop_in_pov_per", cast: decimal}
     filter: {kind: range, coercion: decimal}
     histogram: {format: percent}
 
@@ -502,39 +588,79 @@ fields:
   # ── Environmental justice ──────────────────────────────────────────────────
   cejst_disadvantaged_pct:
     model: environmental_justice
+    source: {file: cejst, header: "a_int.identified_as_disadvantaged", cast: score}
     display: {label: "Disadvantaged area", sort: cejst_disadvantaged_pct, format: pct, category: environmental_justice, csv_label: "Disadvantaged area (%)", value_sql: ej.cejst_disadvantaged_pct}
     filter: {kind: range, coercion: decimal, menu: population, section: vulnerability}
     histogram: {format: percent}
 
   svi_overall_pctl:
     model: environmental_justice
+    source: {file: svi, header: "pw_int_pop.rpl_themes", cast: score}
     display: {label: "Social Vulnerability Index", sort: svi_overall_pctl, format: pct, category: environmental_justice, csv_label: "Social Vulnerability Index (%)", value_sql: ej.svi_overall_pctl}
     filter: {kind: range, coercion: decimal, menu: population, section: vulnerability}
     histogram: {format: percent}
 
   cvi_overall_score:
     model: environmental_justice
+    source: {file: cvi, header: "a_int.overall_cvi_score", cast: score}
     display: {label: "Climate Vulnerability Index", sort: cvi_overall_score, format: num, category: environmental_justice, csv_label: "Climate Vulnerability Index", value_sql: ej.cvi_overall_score}
     filter: {kind: range, coercion: decimal, menu: population, section: vulnerability}
     histogram: {format: count}
 
+  # Loaded but not shown (EJ columns).
+  cejst_lead_paint_indicator:
+    model: environmental_justice
+    source: {file: cejst, header: "pw_int_hh.percent_pre_1960s_housing_lead_paint_indicator", cast: integer}
+
+  cejst_low_life_expectancy_pctl:
+    model: environmental_justice
+    source: {file: cejst, header: "pw_int_pop.low_life_expectancy_percentile", cast: decimal}
+
+  ejscreen_drinking_water:
+    model: environmental_justice
+    source: {file: ejscreen, header: "a_int.dwater", cast: decimal}
+
+  ejscreen_disability_rate:
+    model: environmental_justice
+    source: {file: ejscreen, header: "pw_ext_pop.disability", cast: decimal}
+
+  cvi_redlining:
+    model: environmental_justice
+    source: {file: cvi, header: "pw_int_hh.redlining", cast: decimal}
+
+  cvi_life_expectancy:
+    model: environmental_justice
+    source: {file: cvi, header: "pw_int_pop.life_expectancy", cast: decimal}
+
+  cvi_cancer_risk:
+    model: environmental_justice
+    source: {file: cvi, header: "pw_int_pop.cancer", cast: decimal}
+
   # ── Funding ────────────────────────────────────────────────────────────────
   times_funded:
     model: funding_summary
+    source: {file: pwsid_funded_highlevel_summary, header: "times_funded", cast: integer}
     display: {label: "SRF financing (2021–2025) — times received", sort: times_funded, format: num, category: funding, csv_label: "State revolving fund financing (2021 - 2025) - times received", value_sql: fs.times_funded}
     filter: {kind: range, coercion: decimal, menu: more, section: funding}
     histogram: {format: count}
 
   total_srf_assistance:
     model: funding_summary
+    source: {file: pwsid_funded_highlevel_summary, header: "total_srf_assistance", cast: decimal}
     display: {label: "SRF assistance (2021–2025)", sort: total_srf_assistance, format: cur, format_opts: {precision: 2}, category: funding, csv_label: "State revolving fund assistance (2021 - 2025) - amount received ($)", value_sql: fs.total_srf_assistance}
     filter: {kind: range, coercion: decimal, menu: more, section: funding}
     histogram: {format: currency}
 
   total_principal_forgiveness:
     model: funding_summary
+    source: {file: pwsid_funded_highlevel_summary, header: "total_principal_forgiveness", cast: decimal}
     display: {label: "SRF principal forgiveness (2021–2025)", sort: total_principal_forgiveness, format: cur, format_opts: {precision: 2}, category: funding, csv_label: "State revolving fund principal forgiveness (2021 - 2025) - amount forgiven ($)", value_sql: fs.total_principal_forgiveness}
     filter: {kind: range, coercion: decimal, menu: more, section: funding}
+
+  # Loaded but not shown.
+  median_srf_assistance:
+    model: funding_summary
+    source: {file: pwsid_funded_highlevel_summary, header: "median_srf_assistance", cast: decimal}
     histogram: {format: currency}
 
   # ── Watershed hazards ──────────────────────────────────────────────────────

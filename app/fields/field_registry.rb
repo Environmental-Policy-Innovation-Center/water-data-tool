@@ -86,6 +86,11 @@ class FieldRegistry
     fields.select(&:sort_param).to_h { |f| [f.sort_param, f.table.to_s] }
   end
 
+  # Resolves a manifest `model:` symbol to its ActiveRecord class.
+  def self.model_class(model_sym)
+    MODEL_CLASSES.fetch(model_sym).constantize
+  end
+
   # { column_sym => { model: Class, format: "..." } } — consumed by HistogramsController.
   def self.histogram_field_config
     fields.select(&:histogram).each_with_object({}) do |f, config|
@@ -94,6 +99,12 @@ class FieldRegistry
         format: f.histogram[:format]
       }
     end
+  end
+
+  # { file_sym => { model:, reason: } } — source files that keep a custom importer
+  # because their ingestion isn't a flat column→header→cast map (see CONFIG_AUDIT §8.1).
+  def self.custom_imports
+    config.fetch(:custom_imports, {})
   end
 
   # ── ETL field→model routing derived from the manifest ───────────────────────
@@ -133,12 +144,6 @@ class FieldRegistry
     (model == :public_water_system) ? :pws : model
   end
   private_class_method :default_source
-
-  # Resolves a manifest `model:` symbol to its ActiveRecord class.
-  def self.model_class(model_sym)
-    MODEL_CLASSES.fetch(model_sym).constantize
-  end
-  private_class_method :model_class
 
   def self.config
     @config ||= YAML.safe_load_file(Rails.root.join("config/fields.yml"), symbolize_names: true)
