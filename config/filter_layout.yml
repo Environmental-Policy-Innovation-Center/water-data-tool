@@ -1,0 +1,124 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# FILTER MENU LAYOUT — read by FilterLayout (app/filters/filter_layout.rb).
+# See docs/CONFIG_AUDIT.md §8.4 and the filter taxonomy in docs/FILTERING.md.
+#
+# Placement, order, and nesting of the filter menus. The manifest (config/fields.yml)
+# owns what each filter IS (kind, label, format, param); this file owns how filters
+# are ARRANGED. Terms follow the filter taxonomy (docs/FILTERING.md):
+#
+#   Menu       → topic tab (Source, Attributes, Boundaries, Compliance, Population, More)
+#   Category   → a named header within a menu; groups related filters, no param of its own
+#   Filter     → a toggleable filter option within a category
+#   Sub-filter → a more specific option nested under a filter
+#
+# Each menu → ordered categories → ordered filters. A filter is either:
+#   - a field key (a filterable field in fields.yml), or
+#   - { filter_key: [ ordered sub-filter field keys ] } — a parent filter that reveals
+#     nested sub-filters (the 5yr/10yr violation filters and More → Watershed hazards;
+#     these share the JS `subcat_panel` type). The filter_key is a layout-only id.
+#
+# A filterable field with no menu control (e.g. total_population) does not appear here —
+# absence means "backend-only". The backstop spec (spec/filters/filter_layout_spec.rb)
+# asserts every menu-tagged field appears here exactly once and that each field's
+# menu/category matches its manifest tags — no drift. (The manifest's interim level-2 tag
+# is `section:`, slated for removal in Phase 5; it maps 1:1 to Category here.)
+# ─────────────────────────────────────────────────────────────────────────────
+
+version: 1
+
+menus:
+  source:
+    label: "Source"
+    categories:
+      primary_type: [gw_sw_code]
+      place:        [place_geoid]
+      protection:   [source_water_protection_code]
+
+  attributes:
+    label: "Attributes"
+    categories:
+      ownership:     [owner_type]
+      authority:     [primacy_type]
+      distribution:  [is_wholesaler]
+      facility_type: [is_school_or_daycare]
+
+  boundaries:
+    label: "Boundaries"
+    categories:
+      boundary_type: [symbology_field]
+      size:          [area_sq_miles]
+
+  compliance:
+    label: "Compliance"
+    categories:
+      violations:
+        - open_health_viol
+        - health_5yr:
+            - groundwater_rule_5yr
+            - surface_water_treatment_5yr
+            - lead_and_copper_5yr
+            - radionuclides_5yr
+            - inorganic_chemicals_5yr
+            - synthetic_organic_chemicals_5yr
+            - volatile_organic_chemicals_5yr
+            - total_coliform_5yr
+            - stage_1_disinfectants_5yr
+            - stage_2_disinfectants_5yr
+        - health_10yr:
+            - groundwater_rule_10yr
+            - surface_water_treatment_10yr
+            - lead_and_copper_10yr
+            - radionuclides_10yr
+            - inorganic_chemicals_10yr
+            - synthetic_organic_chemicals_10yr
+            - volatile_organic_chemicals_10yr
+            - total_coliform_10yr
+            - stage_1_disinfectants_10yr
+            - stage_2_disinfectants_10yr
+        - paperwork_violations_5yr
+        - paperwork_violations_10yr
+      notices: [total_notices]
+
+  population:
+    label: "Population"
+    categories:
+      population_size: [pop_cat_5]
+      density:         [population_density]
+      change:          [population_pct_change, mhi_pct_change]
+      socioeconomics:
+        - poverty_rate
+        - unemployment_rate
+        - median_household_income
+        - bachelors_degree_rate
+        - age_under_5_rate
+        - age_over_61_rate
+      race_ethnicity:
+        - poc_rate
+        - white_rate
+        - black_rate
+        - aian_rate
+        - napi_rate
+        - asian_rate
+        - hispanic_rate
+        - other_race_rate
+        - mixed_race_rate
+      vulnerability:
+        - cejst_disadvantaged_pct
+        - svi_overall_pctl
+        - cvi_overall_score
+
+  more:
+    label: "More"
+    categories:
+      financial: [most_common_rate_tier]
+      funding:
+        - times_funded
+        - total_srf_assistance
+        - total_principal_forgiveness
+      environmental:
+        - watershed_hazards:
+            - num_facilities
+            - permit_effluent_violations
+            - open_underground_storage_tanks
+            - risk_management_plan_facilities
+            - impaired_streams_303d
