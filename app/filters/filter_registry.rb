@@ -8,16 +8,10 @@ class FilterRegistry
 
   def self.reload!
     @config = nil
-    @histogram_field_config = nil
     @sortable_columns = nil
     @sortable_table_joins = nil
     @client_payload_json = nil
     config
-  end
-
-  # PublicWaterSystems::HistogramsController — field name => { model:, min_threshold?: } from config/filters.yml + HISTOGRAM_MODELS.
-  def self.histogram_field_config
-    @histogram_field_config ||= build_histogram_field_config
   end
 
   # HomeController — flat { "column" => "table_name" } hash derived from sortable_column_groups.
@@ -133,28 +127,6 @@ class FilterRegistry
     config[:density_range].values_at(:min_key, :max_key).map(&:to_sym)
   end
   private_class_method :density_range_keys
-
-  # Maps histogram_field_groups.model_key to ActiveRecord model classes.
-  HISTOGRAM_MODELS = {
-    demographics: Demographic,
-    environmental_justice: EnvironmentalJustice,
-    funding_summary: FundingSummary,
-    trend_datum: TrendDatum,
-    violations_summary: ViolationsSummary,
-    watershed_hazard: WatershedHazard
-  }.freeze
-
-  def self.build_histogram_field_config
-    config[:histogram_field_groups].each_with_object({}) do |(_group_key, group), fields|
-      model = HISTOGRAM_MODELS.fetch(group[:model_key].to_sym)
-      group[:columns].each do |col|
-        col_name = col[:name].to_sym
-        col_kwargs = col.except(:name)
-        fields[col_name] = {model: model, **col_kwargs}
-      end
-    end
-  end
-  private_class_method :build_histogram_field_config
 
   def self.build_sortable_columns
     config[:sortable_column_groups].each_with_object({}) do |(table, group), hash|

@@ -38,22 +38,6 @@ RSpec.describe FilterRegistry do
     end
   end
 
-  describe ".histogram_field_config" do
-    it "maps columns to models, formats, and group-level extras" do
-      cfg = described_class.histogram_field_config
-      expect(cfg[:poverty_rate]).to eq({model: Demographic, format: "percent"})
-      expect(cfg[:median_household_income]).to eq({model: Demographic, format: "currency"})
-      expect(cfg[:population_pct_change_capped]).to eq({model: TrendDatum, format: "percent_change"})
-      expect(cfg[:paperwork_violations_5yr]).to eq({model: ViolationsSummary, format: "count"})
-    end
-
-    it "includes every demographic range column from config" do
-      cols = described_class.demographic_range_columns
-      cfg = described_class.histogram_field_config
-      cols.each { |c| expect(cfg).to have_key(c) }
-    end
-  end
-
   def permit_flat_keys(args)
     args.flat_map do |x|
       case x

@@ -1,12 +1,14 @@
 # frozen_string_literal: true
 
+# Table-column behavior — panel groups, visibility, CSV/GeoJSON export. The column
+# definitions come from the manifest via FieldRegistry (config/fields.yml).
 class ColumnRegistry
   def self.columns
-    @columns ||= load_columns
+    @columns ||= FieldRegistry.column_records
   end
 
   def self.categories
-    @categories ||= load_categories
+    @categories ||= FieldRegistry.categories
   end
 
   def self.columns_by_category
@@ -15,7 +17,7 @@ class ColumnRegistry
 
   ColumnState = Data.define(:panel_col_keys, :visible_col_keys)
 
-  # panel_col_keys:   nil = YAML default; Array<String> of raw keys, "-key" = hidden
+  # panel_col_keys:   nil = manifest default; Array<String> of raw keys, "-key" = hidden
   # visible_col_keys: nil = all visible; Array<Symbol> of checked column keys only
   def self.parse_column_state(raw)
     return ColumnState.new(panel_col_keys: nil, visible_col_keys: nil) if raw.nil?
@@ -35,11 +37,11 @@ class ColumnRegistry
     end
   end
 
-  # col_keys: nil → YAML default (all columns, definition order).
+  # col_keys: nil → manifest default (all columns, definition order).
   # col_keys: [] → empty panel (pinned-only scenario).
   # col_keys: Array<String> → panel follows that order; "-key" entries are included as hidden.
   def self.panel_groups(col_keys: nil)
-    return yaml_panel_groups if col_keys.nil?
+    return default_panel_groups if col_keys.nil?
     return [] if col_keys.empty?
 
     selectable_by_key = columns.reject(&:pinned).index_by { |c| c.key.to_s }
@@ -47,7 +49,7 @@ class ColumnRegistry
     build_groups(ordered_cols).freeze
   end
 
-  # Pinned columns always included; keys: nil returns all columns in YAML order.
+  # Pinned columns always included; keys: nil returns all columns in manifest order.
   def self.visible(keys: nil)
     return columns if keys.nil?
     pinned, selectable = columns.partition(&:pinned)
@@ -61,12 +63,12 @@ class ColumnRegistry
   end
 
   def self.reload!
-    @yaml_config = nil
+    FieldRegistry.reload!
     @columns = nil
     @categories = nil
     @columns_by_category = nil
     @categories_by_key = nil
-    @yaml_panel_groups = nil
+    @default_panel_groups = nil
     columns
     categories
   end
@@ -91,44 +93,15 @@ class ColumnRegistry
     end
   end
 
-  def self.yaml_config
-    @yaml_config ||= YAML.safe_load_file(Rails.root.join("config/columns.yml"), symbolize_names: true)
-  end
-  private_class_method :yaml_config
-
-  def self.load_categories
-    (yaml_config[:categories] || []).map { |c| CategoryDef.new(key: c[:key].to_sym, label: c[:label]) }.freeze
-  end
-  private_class_method :load_categories
-
-  def self.load_columns
-    yaml_config[:columns].map do |attrs|
-      TableColumn.new(
-        key: attrs[:key].to_sym,
-        label: attrs[:label],
-        sort: attrs[:sort]&.to_s,
-        format: attrs[:format].to_sym,
-        format_opts: (attrs[:format_opts] || {}).transform_keys(&:to_sym),
-        size: attrs[:size].to_sym,
-        row_header: attrs[:row_header] || false,
-        pinned: attrs[:pinned] || false,
-        source: attrs[:source]&.to_sym,
-        csv_label: attrs[:csv_label],
-        sql_expr: attrs[:sql_expr],
-        category: attrs[:category]&.to_sym
-      )
-    end.freeze
-  end
-  private_class_method :load_columns
-
-  def self.yaml_panel_groups
-    @yaml_panel_groups ||= begin
-      ordered = (columns_by_category[nil] || []) +
-        categories.flat_map { |cat| columns_by_category[cat.key] || [] }
-      build_groups(ordered).freeze
+  # Default panel order: ungrouped columns first, then each category's columns in manifest order.
+  def self.default_panel_groups
+    @default_panel_groups ||= begin
+      ungrouped = columns_by_category[nil] || []
+      grouped = categories.flat_map { |cat| columns_by_category[cat.key] || [] }
+      build_groups(ungrouped + grouped).freeze
     end
   end
-  private_class_method :yaml_panel_groups
+  private_class_method :default_panel_groups
 
   def self.categories_by_key
     @categories_by_key ||= categories.index_by(&:key)

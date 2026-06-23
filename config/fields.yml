@@ -1,14 +1,11 @@
 # ─────────────────────────────────────────────────────────────────────────────
-# SINGLE FIELD MANIFEST — Phase 2 of docs/CONFIG_AUDIT.md.
+# SINGLE FIELD MANIFEST — read by FieldRegistry (app/fields/field_registry.rb).
+# See docs/CONFIG_AUDIT.md.
 #
-# Unifies what is currently split across columns.yml (table columns), filters.yml
-# (range/sortable/histogram/permit), and the ETL importers (source header → model).
-# Read by FieldRegistry (app/fields/field_registry.rb). A parity spec
-# (spec/fields/field_registry_spec.rb) asserts FieldRegistry reproduces the legacy
-# ColumnRegistry + FilterRegistry output field-for-field.
-#
-# NOT yet consumed by the live app — runs alongside the legacy registries until the
-# parity spec is green and consumers are cut over (Phase 3).
+# The source of truth for table columns + categories, histogram config, and ETL
+# field→model routing. The remaining filter concerns (permit args, sortable map) still
+# live in filters.yml and are cross-checked against this manifest by the parity spec
+# until they move over (Phase 5).
 #
 # This manifest is a "WHAT IS SURFACED" list, not a "what exists" list. The DB ingests
 # more columns than appear here (see docs/CONFIG_AUDIT §8.3); a field is added here only
