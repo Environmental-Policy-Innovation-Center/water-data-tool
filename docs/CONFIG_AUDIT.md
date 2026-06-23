@@ -373,13 +373,21 @@ confirmed `derived == current value_sql` for every column before removal; the va
 output. Result: 77 fewer hand-written config lines and no alias map for the data team to memorize.
 
 ### Phase 5 — Layout files + front-end generation = execute the FSR refactor (the convergence)
-- [ ] Author `config/filter_layout.yml` (§8.4): the ordered, **nested** menu → section →
-      filter → sub-filter tree, referencing field keys. Seed it from the current `menu`/
-      `section` tags + the subcat nesting in `_filter_menus.html.erb`.
-- [ ] Remove the interim `menu`/`section` tags from `fields.yml` (placement now lives only
-      in the layout file).
-- [ ] Add the **layout backstop spec**: every layout key ∈ manifest; every filterable field
-      appears in the layout exactly once *or* is marked backend-only; no orphans/dupes.
+- [x] **Author `config/filter_layout.yml`** (§8.4): the ordered, **nested** menu → section →
+      filter → sub-filter tree, referencing field keys. Seeded from the current `menu`/`section`
+      tags + the subcat nesting in `_filter_menus.html.erb` (the two 5yr/10yr violation panels and
+      the watershed-hazards panel — the nesting flat tags can't express). Read by `FilterLayout`
+      (app/filters/filter_layout.rb): `placements` (ordered leaf `Placement`s with menu/section/parent),
+      `field_keys`. **Additive only** — nothing consumes it yet; the live ERB is unchanged.
+- [x] **Layout backstop spec** (`spec/filters/filter_layout_spec.rb`): the layout references every
+      menu-tagged filter field **exactly once** (no orphans/dupes) and places each under the menu/section
+      its manifest tags declare; panels are layout-only ids, never field keys. The 5 menu-less filter
+      fields (`total_population`, `no_health_insurance_rate`, `owner_rate`, `renter_rate`,
+      `population_in_poverty_rate`) are backend-only and correctly absent.
+- [ ] Remove the interim `menu`/`section` tags from `fields.yml` (placement now lives only in the
+      layout file). **Blocked-by:** the backstop currently cross-checks the layout *against* those tags;
+      remove them only once the menu ERB is generated from the layout (so the layout becomes authoritative
+      and the spec's invariant switches from tag-parity to manifest-membership).
 - [ ] Generate `_filter_menus.html.erb` from `filter_layout.yml` × `fields.yml` **and**
       server-render filter state from decoded URL state in the same pass.
 - [ ] **Add a default/initial-state designation for filters** (e.g. a `default:` — default range,
@@ -453,18 +461,23 @@ actually renders tooltips) is generated from the manifest.
 
 ---
 
-## 8.3 The manifest is a "what is surfaced" list, not a "what exists" list
+## 8.3 The manifest is a "surfaced or ingested" list, not a "what exists" list
 
-`fields.yml` describes what the app **surfaces**, not the full database schema. A field
-is added only when product decides to expose it as a table column, a filter, and/or a
-histogram. **Column visibility (and filter/histogram exposure) is therefore a
-product-driven decision** that whoever edits `fields.yml` must have an answer for.
+`fields.yml` describes every field the app **surfaces or ingests** — not the full database
+schema. A field belongs here when it is shown as a table column, filtered on, drawn as a
+histogram, **or** loaded from a source file; it earns its place by having at least one of the
+four blocks (`source` / `display` / `filter` / `histogram`). A field is added only when we
+choose to ingest and/or surface it, so **exposure is a product-driven decision** whoever edits
+`fields.yml` must have an answer for. The pipeline loads more columns than appear here.
 
-Three independent surfacing axes, each signalled by the presence of its block:
-`display` (table column), `filter` (filterable; + `menu`/`section` ⇒ a menu control),
-`histogram`. A field can have any subset — e.g. `total_population` is a column + histogram
-but has **no** menu control; `cejst_disadvantaged_pct` is a column whose filter lives under
-the *Population → Vulnerability* menu even though its table category is Environmental Justice.
+Four independent axes, each signalled by the presence of its block: `source` (ingested from a
+file — may be the *only* block, i.e. ingest-only/source-only), `display` (table column), `filter`
+(filterable; placement + grouping then live in `filter_layout.yml`, §8.4), `histogram`. A field
+can have any subset — e.g. `total_population` is a column + histogram but has **no** menu control;
+`cejst_disadvantaged_pct` is a column whose filter lives under the *Population → Vulnerability*
+menu even though its table category is Environmental Justice; ~20 fields are source-only (ingested,
+never surfaced). **Menus, categories, and parent-filters are not fields and never appear here** —
+they live only in `filter_layout.yml`.
 
 **When is a field NOT column-shaped at all?** Rule of thumb: *does it have a single,
 readable per-PWS value?* If not, it never gets a `display` block regardless of product
@@ -552,6 +565,37 @@ Also: **don't reuse the name `filters.yml`** (the legacy file being retired) —
 
 **Current state:** the `menu`/`section` tags in `fields.yml` are interim seed data for
 `filter_layout.yml`. They are removed in Phase 5 when the layout file is authored.
+
+### Taxonomy (terms used everywhere — see docs/FILTERING.md)
+
+`Menu` (L1) → `Category` (L2) → `Filter` (L3) → `Sub-filter` (L4) → `Range` (L5). **Filter**,
+not "Group": "Open violations" is a filter; "Health violations (5yr)" is a filter that *also*
+reveals sub-filters — and L4 being "Sub-**filter**" implies L3 is a Filter. (The JS `group`
+control-type and `GroupRangeComponent` are a separate *control-type* axis, not the L3 taxonomy
+level.) In `filter_layout.yml` the manifest's interim L2 tag `section:` maps 1:1 to `Category`.
+
+### Where filter copy & state live (decided — applied in the generator step)
+
+**One discriminator, no exceptions: does it have a manifest record?** A filterable value (an L3
+filter or L4 sub-filter) has a record in `fields.yml`. Menus, categories, and parent-filters
+(`health_5yr`, `watershed_hazards`) do **not** — they are layout-only grouping / check-all tools.
+
+- **Has a record → all its copy & state live in the manifest** `filter:` block: the menu `label`,
+  the `tooltip` ref (into `tooltips.yml`), the `default` / initial state, and — for radio /
+  multiselect — the ordered `options` (each `value` + `label` + `default`). Note `filter.label` is
+  the MENU label, a separate key from the table `display.label` (the two differ ≈half the time).
+- **No record → its copy & state live in `filter_layout.yml`**: the menu / category / parent-filter
+  `label`, `tooltip` ref, and `default` / `select_all`.
+
+The **layout always owns the tree** — which menu/category a filter sits in, the order of filters /
+categories / sub-filters, and the nesting. It does *not* reach inside a filter to reorder its
+options (option order is intrinsic to the field → manifest). **`tooltips.yml` always owns the
+tooltip text.**
+
+So: **field → manifest, container → layout, text → tooltips.yml.** One rule, no per-field special
+cases, every setting in exactly one file — and the check-all containers keep their behavior via the
+layout's `select_all`. *These keys are added in the generator step (Phase 5 increment 2), not the
+initial placement-only `filter_layout.yml`.*
 
 ---
 

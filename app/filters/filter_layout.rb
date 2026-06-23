@@ -1,0 +1,60 @@
+# frozen_string_literal: true
+
+# Reads config/filter_layout.yml — the ordered, nested arrangement of the filter
+# menus (see docs/CONFIG_AUDIT.md §8.4 and the taxonomy in docs/FILTERING.md). The
+# manifest (FieldRegistry) owns what each filter *is*; this owns where each filter is
+# *placed*. Fields are referenced by key.
+class FilterLayout
+  # One filter control's placement, in taxonomy terms (docs/FILTERING.md):
+  # `menu` (level 1) → `category` (level 2) → filter (level 3) → sub-filter (level 4).
+  # `parent` is the parent filter key a sub-filter nests under, or nil when the field is
+  # itself a top-level filter.
+  Placement = Data.define(:key, :menu, :category, :parent)
+
+  def self.menus
+    @menus ||= config.fetch(:menus)
+  end
+
+  # Every leaf field placement, in layout order (filters with sub-filters are flattened
+  # to their sub-filters).
+  def self.placements
+    @placements ||= menus.flat_map do |menu_key, menu|
+      menu.fetch(:categories).flat_map do |category_key, filters|
+        filters.flat_map { |filter| placements_for(filter, menu_key, category_key) }
+      end
+    end.freeze
+  end
+
+  # The field keys referenced by the layout, in order.
+  def self.field_keys
+    placements.map(&:key)
+  end
+
+  def self.reload!
+    @config = nil
+    @menus = nil
+    @placements = nil
+    placements
+  end
+
+  # A filter is a field key (String) sitting directly in its category, or a
+  # { filter_key => [sub-filter keys] } Hash whose sub-filters nest under that filter.
+  def self.placements_for(filter, menu_key, category_key)
+    case filter
+    when String
+      [Placement.new(key: filter.to_sym, menu: menu_key, category: category_key, parent: nil)]
+    when Hash
+      filter.flat_map do |filter_key, subfilters|
+        subfilters.map { |key| Placement.new(key: key.to_sym, menu: menu_key, category: category_key, parent: filter_key) }
+      end
+    else
+      raise "unexpected filter_layout filter: #{filter.inspect}"
+    end
+  end
+  private_class_method :placements_for
+
+  def self.config
+    @config ||= YAML.safe_load_file(Rails.root.join("config/filter_layout.yml"), symbolize_names: true)
+  end
+  private_class_method :config
+end

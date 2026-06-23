@@ -2,17 +2,20 @@
 # SINGLE FIELD MANIFEST — read by FieldRegistry (app/fields/field_registry.rb).
 # See docs/CONFIG_AUDIT.md.
 #
-# The catalog of every data field: where each one is loaded from and how it's shown.
-# (Filtering and sorting still read config/filters.yml for now — see docs/CONFIG_AUDIT.md.)
-#
-# This lists what the app SHOWS, not everything in the database — the data pipeline loads
-# more columns than appear here. A field is added when we choose to load it and/or show it.
-#
-# Each field can include up to four blocks — add a block to turn that on, omit it to leave it off:
-#   source    → loaded from a source file (a field may be source-only: loaded but not shown anywhere)
+# WHAT BELONGS HERE: every data field the app SURFACES or INGESTS — i.e. every field that is
+# shown as a table column, filtered on, drawn as a histogram, OR loaded from a source file.
+# This is NOT the full database schema: the pipeline loads more columns than appear here, and a
+# field is added only when we choose to ingest and/or surface it. A field earns a place by having
+# at least one of the four blocks below; omit a block to leave that capability off:
+#   source    → loaded from a source file (a field may be source-only: ingested but not surfaced)
 #   display   → shown as a column in the data table
-#   filter    → can be filtered on
+#   filter    → filterable (this makes it a Filter / Sub-filter; its MENU placement + grouping
+#               live in config/filter_layout.yml, not here — see docs/CONFIG_AUDIT.md §8.4)
 #   histogram → has a histogram
+#
+# Menus, categories, and parent-filters (filter grouping / check-all tools) are NOT fields and do
+# NOT appear here — they live only in config/filter_layout.yml.
+# (Filtering and sorting still also read config/filters.yml for now — see docs/CONFIG_AUDIT.md.)
 #
 # ── CANONICAL ENTRY SHAPE — keys ALWAYS appear in this order; omit any block/key a field
 #    does not have. Omission is the signal; we do not pad with nils. ──────────────────────
