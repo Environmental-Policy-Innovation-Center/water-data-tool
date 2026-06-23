@@ -12,5 +12,5 @@ TableColumn = Data.define(
   #   nil = no model data needed (column renders without reading a value)
   :category,    # Symbol or nil — groups this column under a named category in the column picker
   :csv_label,   # String or nil — verbose CSV column header (intentionally differs from :label)
-  :sql_expr     # String or nil — raw SQL expression used by CSV and GeoJSON exports (e.g. "pws.pwsid")
+  :sql_expr     # String or nil — qualified "table.column" for CSV and GeoJSON exports (e.g. "public_water_systems.pwsid"); nil for non-exported columns
 )

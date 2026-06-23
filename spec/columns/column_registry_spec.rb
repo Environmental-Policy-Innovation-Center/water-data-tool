@@ -226,12 +226,12 @@ RSpec.describe ColumnRegistry do
     end
 
     it "uses sql_expr as value for non-boolean columns" do
-      expect(result["Utility Name"]).to eq("pws.pws_name")
+      expect(result["Utility Name"]).to eq("public_water_systems.pws_name")
     end
 
     it "appends ::text to sql_expr for bool-format columns" do
-      expect(result["Wholesaler"]).to eq("pws.is_wholesaler::text")
-      expect(result["Grant eligible"]).to eq("pws.is_grant_eligible::text")
+      expect(result["Wholesaler"]).to eq("public_water_systems.is_wholesaler::text")
+      expect(result["Grant eligible"]).to eq("public_water_systems.is_grant_eligible::text")
     end
 
     it "excludes columns without sql_expr" do
@@ -259,8 +259,8 @@ RSpec.describe ColumnRegistry do
     end
 
     it "uses sql_expr as value without ::text for boolean columns" do
-      expect(result["is_wholesaler"]).to eq("pws.is_wholesaler")
-      expect(result["source_water_protection_code"]).to eq("pws.source_water_protection_code")
+      expect(result["is_wholesaler"]).to eq("public_water_systems.is_wholesaler")
+      expect(result["source_water_protection_code"]).to eq("public_water_systems.source_water_protection_code")
     end
 
     it "excludes columns without sql_expr" do
