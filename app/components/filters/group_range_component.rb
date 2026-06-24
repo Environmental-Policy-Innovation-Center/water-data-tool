@@ -11,4 +11,11 @@ class Filters::GroupRangeComponent < ViewComponent::Base
     @nested = nested
     @format = format
   end
+
+  # Range state derived from the URL (server-render). "Active" = a min or max is set.
+  def min_value = helpers.filter_range_value(@field, :min)
+
+  def max_value = helpers.filter_range_value(@field, :max)
+
+  def active? = min_value.present? || max_value.present?
 end

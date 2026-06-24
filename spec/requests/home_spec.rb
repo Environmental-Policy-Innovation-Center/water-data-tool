@@ -70,6 +70,7 @@ RSpec.describe "Home", type: :request do
     def label_text(id) = dom.at_css("##{id}")&.text
     def selected_option(id) = dom.at_css("##{id} option[selected]")&.attr("value")
     def has_class?(id, klass) = dom.at_css("##{id}")&.attr("class").to_s.split.include?(klass)
+    def input_value(id) = dom.at_css("##{id}")&.attr("value")
 
     context "radio filters" do
       it "checks the default radio when the param is absent" do
@@ -196,6 +197,38 @@ RSpec.describe "Home", type: :request do
         get root_path, params: {encoded: encode_state({"filters" => {"most_common_rate_tier" => ["no_information"]}})}
         expect(checked?("rate-tier-no-info")).to be(true)
         expect(checked?("more-rate-tier")).to be(true)
+      end
+    end
+
+    context "range sliders (GroupRangeComponent)" do
+      it "leaves a range row collapsed, unchecked, and empty when absent" do
+        get root_path
+        expect(checked?("more-poverty-rate")).to be(false)
+        expect(has_class?("subcat-poverty-rate", "hidden")).to be(true)
+        expect(input_value("min-poverty-rate")).to eq("")
+        expect(input_value("max-poverty-rate")).to eq("")
+      end
+
+      it "restores a standalone range: checkbox, expanded panel, and min/max values" do
+        get root_path, params: {encoded: encode_state({"filters" => {"poverty_rate_min" => "10", "poverty_rate_max" => "50"}})}
+        expect(checked?("more-poverty-rate")).to be(true)
+        expect(has_class?("subcat-poverty-rate", "hidden")).to be(false)
+        expect(input_value("min-poverty-rate")).to eq("10")
+        expect(input_value("max-poverty-rate")).to eq("50")
+      end
+
+      it "activates a range when only the min bound is set" do
+        get root_path, params: {encoded: encode_state({"filters" => {"poverty_rate_min" => "10"}})}
+        expect(checked?("more-poverty-rate")).to be(true)
+        expect(input_value("min-poverty-rate")).to eq("10")
+        expect(input_value("max-poverty-rate")).to eq("")
+      end
+
+      it "restores a nested health sub-filter range (groundwater_rule_5yr)" do
+        get root_path, params: {encoded: encode_state({"filters" => {"groundwater_rule_5yr_min" => "2"}})}
+        expect(checked?("viols-groundwater-5yr")).to be(true)
+        expect(has_class?("slider-groundwater-5yr", "hidden")).to be(false)
+        expect(input_value("min-groundwater-5yr")).to eq("2")
       end
     end
   end
