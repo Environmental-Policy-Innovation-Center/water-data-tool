@@ -181,6 +181,7 @@ export default class extends Controller {
     document.getElementById("data-table")?.addEventListener("turbo:frame-load", this.#onTableFrameLoad)
     this.#restoreFromUrl()
     this.#updateBadges()
+    this.#updateGeoTitle()
   }
 
   disconnect() {
@@ -196,6 +197,7 @@ export default class extends Controller {
     SelectionState.clear()
     syncToUrl()
     this.#updateBadges()
+    this.#updateGeoTitle()
     document.dispatchEvent(new CustomEvent("filters:changed"))
     this.dispatch("applied")
     this.#reloadStatsFrame()
@@ -704,6 +706,13 @@ export default class extends Controller {
     }
 
     this.#setBadge(document.querySelector(".container-filter-count-menu-10"), moreCount)
+  }
+
+  #updateGeoTitle() {
+    const filters = FilterState.get()
+    const geoName = filters.place_name || filters.state_name || null
+    const text = geoName ? `in ${geoName}` : ""
+    document.querySelectorAll(".geo-filter").forEach(el => { el.textContent = text })
   }
 
   #setBadge(badge, count) {

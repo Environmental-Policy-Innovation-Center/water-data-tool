@@ -158,6 +158,5 @@ All live in `home_helper.rb` and return `"—"` for nil:
 
 - **Preload optimization** — `HomeController#table` hardcodes all 6 association preloads regardless of which columns are visible. Fix is `@columns.filter_map(&:source).reject { |s| s == :pws }.uniq`. Low-priority cleanup; actual gain is small because preloads cover only 25 rows and PostgreSQL's buffer cache serves repeated queries from memory. See `docs/table_reboot.md` for full context.
 - **Remaining sortable columns** — violation counts, demographics, EJ, funding, watershed require joins; not yet in `SORTABLE_COLUMNS`
-- **"Public Water Utilities in [Place]" dynamic title** — `filter_controller.js` already holds `params.place_name`; `.geo-filter` spans exist in `index.html.erb` and `_filter_menus.html.erb` but nothing writes to them yet. Preferred approach: add a Stimulus value + callback to `filter_controller.js` that updates all `.geo-filter` spans on place filter change
 - **Spec gaps** — nil numeric/string render as `"—"` not fully covered; full column-header sweep spec not written
 - **`water_tool.css` migration** — several table layout rules (`#container-table`, `turbo-frame#data-table`, `.table-header`, `.btn-export`) still use legacy CSS; migrate to Tailwind utilities when deprecating that file
