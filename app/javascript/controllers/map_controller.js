@@ -760,7 +760,9 @@ export default class extends Controller {
 
       this.#markPwsClickHandled(event)
       this.#selectState({ stusps: props.stusps, name: props.stusps })
-      this.map.flyTo({ center: event.lngLat, zoom: Math.max(this.map.getZoom(), STATE_ENTRY_ZOOM) })
+      if (!this.#fitToState(props.stusps)) {
+        this.map.flyTo({ center: event.lngLat, zoom: Math.max(this.map.getZoom(), STATE_ENTRY_ZOOM) })
+      }
       return true
     }
 

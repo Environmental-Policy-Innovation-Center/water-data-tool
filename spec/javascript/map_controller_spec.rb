@@ -131,7 +131,11 @@ RSpec.describe "map_controller state selection" do
         setFilter(layer, filter) { this.filters[layer] = filter }
         setFeatureState(feature, state) { this.featureStateCalls.push({ feature, state }) }
         setMaxZoom() {}
-        fitBounds() {}
+        fitBounds(bounds, options) {
+          this.fitBoundsCalls ||= []
+          this.fitBoundsCalls.push({ bounds, options })
+          if (options?.maxZoom !== undefined) this.zoom = options.maxZoom
+        }
         querySourceFeatures() { return [] }
         queryRenderedFeatures() { return [] }
         jumpTo(options) { if (options.zoom !== undefined) this.zoom = options.zoom }
@@ -1462,8 +1466,10 @@ RSpec.describe "map_controller state selection" do
 
       if (filterStateCurrent.state !== "CO") throw new Error(`expected service area click to select CO, got ${filterStateCurrent.state}`)
       if (!dispatchedEvents.includes("filters:changed")) throw new Error("expected filters:changed from service area state selection")
-      const finalFlyTo = mapStub.flyToCalls.at(-1)
-      if (finalFlyTo?.zoom !== 6) throw new Error(`expected service area click to zoom to 6, got ${finalFlyTo?.zoom}`)
+      const clickFitBounds = mapStub.fitBoundsCalls?.at(-1)
+      if (!clickFitBounds) throw new Error("expected service area click to fitBounds")
+      if (clickFitBounds.options?.maxZoom !== 7.99) throw new Error(`expected canonical state fit maxZoom 7.99, got ${clickFitBounds.options?.maxZoom}`)
+      if (mapStub.flyToCalls.length !== 0) throw new Error(`expected no flyTo fallback when state bounds exist, got ${JSON.stringify(mapStub.flyToCalls)}`)
       if (visitedReports.length > 0) throw new Error(`expected no report visit, got ${visitedReports.join(", ")}`)
       const expectedPwsFilter = JSON.stringify(["==", "stusps", "CO"])
       const actualPwsFilter = JSON.stringify(mapStub.filters.pws)
@@ -1492,8 +1498,10 @@ RSpec.describe "map_controller state selection" do
       })
 
       if (filterStateCurrent.state !== "CO") throw new Error(`expected rendered service area click to select CO, got ${filterStateCurrent.state}`)
-      const finalFlyTo = mapStub.flyToCalls.at(-1)
-      if (finalFlyTo?.zoom !== 6) throw new Error(`expected rendered service area click to zoom to 6, got ${finalFlyTo?.zoom}`)
+      const clickFitBounds = mapStub.fitBoundsCalls?.at(-1)
+      if (!clickFitBounds) throw new Error("expected rendered service area click to fitBounds")
+      if (clickFitBounds.options?.maxZoom !== 7.99) throw new Error(`expected canonical state fit maxZoom 7.99, got ${clickFitBounds.options?.maxZoom}`)
+      if (mapStub.flyToCalls.length !== 0) throw new Error(`expected no flyTo fallback when rendered state bounds exist, got ${JSON.stringify(mapStub.flyToCalls)}`)
       if (visitedReports.length > 0) throw new Error(`expected no report visit, got ${visitedReports.join(", ")}`)
     JS
     script = map_controller_script(zoom: 4, map_methods: map_methods, body: body)
@@ -1675,8 +1683,12 @@ RSpec.describe "map_controller state selection" do
       })
 
       if (filterStateCurrent.state !== "CO") throw new Error(`expected overlapping service area click to select CO, got ${filterStateCurrent.state}`)
-      const finalFlyTo = mapStub.flyToCalls.at(-1)
-      if (finalFlyTo?.zoom !== 6) throw new Error(`expected overlapping service area click to zoom to 6, got ${finalFlyTo?.zoom}`)
+      const clickFitBounds = mapStub.fitBoundsCalls?.at(-1)
+      if (!clickFitBounds) throw new Error("expected overlapping service area click to fitBounds")
+      if (JSON.stringify(clickFitBounds.bounds) !== JSON.stringify([[-109.06, 36.99], [-102.04, 41.0]])) {
+        throw new Error(`expected overlapping click to land on Colorado bounds, got ${JSON.stringify(clickFitBounds.bounds)}`)
+      }
+      if (mapStub.flyToCalls.length !== 0) throw new Error(`expected no flyTo fallback when overlap resolves to Colorado, got ${JSON.stringify(mapStub.flyToCalls)}`)
     JS
     script = map_controller_script(zoom: 4, map_methods: map_methods, body: body)
 
