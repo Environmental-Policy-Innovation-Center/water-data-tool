@@ -26,7 +26,7 @@ module Etl
       if geometry_pwsids.any?
         fix_invalid_geometries(pwsids: geometry_pwsids)
         generate_centroids(pwsids: geometry_pwsids)
-        CartographicBoundaries.load unless CartographicBoundaries.loaded?
+        CartographicBoundaries.load
         assign_state_codes(pwsids: geometry_pwsids)
         analyze_spatial_tables
         affected_place_geoids = build_place_crosswalks(pwsids: geometry_pwsids)
