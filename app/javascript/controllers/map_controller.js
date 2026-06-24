@@ -154,8 +154,10 @@ export default class extends Controller {
 
     this.boundOnFiltersChanged = this.#onFiltersChanged.bind(this)
     this.boundOnResetAll = this.#onResetAll.bind(this)
+    this.boundOnReportClick = this.#onReportClick.bind(this)
     document.addEventListener("filters:changed", this.boundOnFiltersChanged)
     document.addEventListener("filter:reset-all", this.boundOnResetAll)
+    document.addEventListener("click", this.boundOnReportClick)
 
     this.map.on("load", () => this.#onLoad())
   }
@@ -164,6 +166,7 @@ export default class extends Controller {
     this.#cancelStateLeaveTimer()
     document.removeEventListener("filters:changed", this.boundOnFiltersChanged)
     document.removeEventListener("filter:reset-all", this.boundOnResetAll)
+    document.removeEventListener("click", this.boundOnReportClick)
     if (this.map) {
       this.map.remove()
       this.map = null
@@ -535,7 +538,7 @@ export default class extends Controller {
 
       if (props.pwsid === this.pinnedPwsid) return
 
-      const html = this.#buildHoverHtml(props)
+      const html = this.#buildPopupHtml(props)
       this.hoverPopup = new window.mapboxgl.Popup({
         closeButton: false,
         className: "min-w-[280px]",
@@ -574,7 +577,11 @@ export default class extends Controller {
     // ── PWS polygon click ───────────────────────────────────────────────────
 
     this.map.on("click", "pws", (e) => this.#handlePwsClick(e))
-    this.map.on("click", (e) => this.#handleRenderedPwsClick(e))
+    this.map.on("click", (e) => {
+      if (this.#handleRenderedPwsClick(e)) return
+      if (this.clickPopup) this.clickPopup.remove()
+    })
+
 
   }
 
@@ -718,7 +725,11 @@ export default class extends Controller {
     if (!this.selectedState) return
 
     if (this.map.getZoom() < STATE_EXIT_ZOOM) {
-      this.#enterNationMode({ fitDefault: false })
+      // Keep selectedState intact on zoom-out so the URL and PWS filter stay scoped to this state.
+      this.mapMode = MODE_NATION
+      this.#clearStateHover()
+      this.map.getCanvas().style.cursor = ""
+      this.#removeStatePrompt()
       return
     }
 
@@ -773,8 +784,27 @@ export default class extends Controller {
       return true
     }
 
-    this.#removeSystemPopups()
-    this.#openReport(props.pwsid)
+    if (this.hoverPopup) {
+      this.hoverPopup.remove()
+      this.hoverPopup = null
+    }
+    if (this.clickPopup) this.clickPopup.remove()
+
+    this.pinnedPwsid = props.pwsid
+    this.clickPopup = new window.mapboxgl.Popup({
+      closeButton: true,
+      closeOnClick: false,
+      className: "min-w-[280px]",
+      maxWidth: "400px"
+    })
+      .setLngLat(event.lngLat)
+      .setHTML(this.#buildPopupHtml(props, { showReport: true }))
+      .addTo(this.map)
+
+    this.clickPopup.on("close", () => {
+      this.clickPopup = null
+      this.pinnedPwsid = null
+    })
     return true
   }
 
@@ -990,14 +1020,6 @@ export default class extends Controller {
     this.pinnedPwsid = null
   }
 
-  #buildHoverHtml(props) {
-    if (this.#systemsModeActive()) {
-      return this.#buildPopupHtml(props, { showReport: true, reportLabel: "Click to Open Report" })
-    }
-
-    return this.#buildPopupHtml(props)
-  }
-
   #buildPopupHtml(props, { showType = false, showReport = false, reportLabel = "View Full Report" } = {}) {
     const root = this.popupTemplateTarget.content.firstElementChild.cloneNode(true)
 
@@ -1023,7 +1045,10 @@ export default class extends Controller {
       const link = root.querySelector(".js-view-report")
       if (link) {
         link.textContent = reportLabel
-        if (props.pwsid) link.href = this.#reportPath(props.pwsid)
+        if (props.pwsid) {
+          link.href = this.#reportPath(props.pwsid)
+          link.dataset.pwsid = props.pwsid
+        }
       }
     }
 
@@ -1032,6 +1057,16 @@ export default class extends Controller {
 
   #reportPath(pwsid) {
     return `/public_water_systems/${encodeURIComponent(pwsid)}/report`
+  }
+
+  #onReportClick(e) {
+    const link = e.target?.closest?.(".js-view-report")
+    if (!link) return
+    e.preventDefault()
+    const pwsid = link.dataset.pwsid
+    if (!pwsid) return
+    this.#removeSystemPopups()
+    this.#openReport(pwsid)
   }
 
   #openReport(pwsid) {

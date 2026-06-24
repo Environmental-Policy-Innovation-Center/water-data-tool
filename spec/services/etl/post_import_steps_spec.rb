@@ -19,9 +19,6 @@ RSpec.describe Etl::PostImportSteps do
   it "loads without resolving the PostgreSQL array OID at file load time" do
     source = Rails.root.join("app/services/etl/post_import_steps.rb")
 
-    hide_const("Etl::PostImportSteps")
-    hide_const("ActiveRecord::ConnectionAdapters::PostgreSQL")
-
     expect { silence_warnings { load source } }.not_to raise_error
   end
 

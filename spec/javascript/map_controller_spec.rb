@@ -1558,7 +1558,7 @@ RSpec.describe "map_controller state selection" do
             textContent: ""
           }))
           this.reportVisible = false
-          this.reportLink = { textContent: "View Full Report", href: "#" }
+          this.reportLink = { textContent: "View Full Report", href: "#", dataset: {} }
         }
 
         cloneNode() { return new PopupRoot() }
@@ -1581,6 +1581,7 @@ RSpec.describe "map_controller state selection" do
         setLngLat() { return this }
         addTo() { return this }
         remove() {}
+        on() {}
       }
 
       class MapStub {
@@ -1650,13 +1651,24 @@ RSpec.describe "map_controller state selection" do
         } }]
       }
 
+      // Hover shows the card without a report link.
       mapStub.handlers["mousemove:pws"](pwsEvent)
       if (!hoverHtml?.includes("Clear Creek Water")) throw new Error(`expected system hover details, got ${hoverHtml}`)
-      if (!hoverHtml.includes("Click to Open Report")) throw new Error(`expected hover to invite opening the report, got ${hoverHtml}`)
+      if (hoverHtml.includes("View Full Report")) throw new Error(`hover should not show report link, got ${hoverHtml}`)
 
+      // First click pins the card with the "View Full Report" link.
       mapStub.handlers["click:pws"](pwsEvent)
-      if (visitedReports.length !== 1) throw new Error(`expected one system report visit, got ${visitedReports.join(", ")}`)
-      if (visitedReports[0] !== "/public_water_systems/CO0000001/report") throw new Error(`expected system report path, got ${visitedReports[0]}`)
+      if (!hoverHtml?.includes("View Full Report")) throw new Error(`expected pinned popup with report link, got ${hoverHtml}`)
+      if (visitedReports.length !== 0) throw new Error("first click should pin, not open the report")
+
+      // Clicking the report link in the pinned popup opens the report.
+      const reportLink = { dataset: { pwsid: "CO0000001" } }
+      controller.boundOnReportClick({
+        target: { closest: (sel) => sel === ".js-view-report" ? reportLink : null },
+        preventDefault: () => {}
+      })
+      if (visitedReports.length !== 1) throw new Error(`expected one report visit, got ${visitedReports.join(", ")}`)
+      if (visitedReports[0] !== "/public_water_systems/CO0000001/report") throw new Error(`expected report path, got ${visitedReports[0]}`)
       if (reportOverlayHidden) throw new Error("expected report overlay to be shown")
     JS
 
