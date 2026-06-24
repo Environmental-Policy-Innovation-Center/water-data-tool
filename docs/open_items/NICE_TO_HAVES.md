@@ -38,19 +38,10 @@ Would run post-import and report to a Slack channel or log. Useful for catching 
 (Slack channel, CloudWatch alarm, etc.) with the EPIC team before implementing.
 
 ---
-TODO - AUDIT AND DELETE IF DONE
+
 ### Filters: Known Gaps
 
-These are missing features surfaced during development — not critical but noticeable:
-
-- **Info tooltips** — partially implemented. Still missing tooltips on some headline category
-  types (Primary Type, Type, Violations) and the Wholesaler filter category type. Tooltip copy
-  is already defined in `tooltips.yml` — just needs to be wired up.
-- **Annual Water & Sewer Bill** — missing a "No information available" checkbox option.
-  Currently the no-data systems are not surfaceable. This needs to be pulled out of the scale
-  choices and become its own standalone checkbox — confirm exact behavior before implementing.
-- **Boil Water Summary filtering** — `BoilWaterSummary` data is imported and displayed but
-  there is no filter for it yet.
+- **Boil Water Summary filtering** — placeholder checkbox exists in the Notices filter UI but is disabled (`data unavailable`). The filter is not yet functional.
 
 
 ---
@@ -60,14 +51,6 @@ These are missing features surfaced during development — not critical but noti
 `app/assets/tailwind/application.css` has some leftover notes and may have unconfirmed
 defaults around branding. Before the project is considered stable: confirm base defaults,
 verify brand values are intentional, and remove any stale comments.
-
----
-TODO - AUDIT AND DELETE IF DONE
-### Data Table: Sort Options
-
-Verify whether all intended sort options are implemented. At some point this was noted as
-potentially incomplete ("maybe done?"). Confirm against the expected column list and close
-this out either by implementing the gaps or deleting this item.
 
 ---
 

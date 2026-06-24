@@ -24,6 +24,8 @@ export default class extends Controller {
     clearTimeout(this._debounce)
     const term = this.inputTarget.value.trim()
     if (term.length < 2) {
+      // Only clear immediately if a search is already active — avoids a no-op request
+      // when the user types a single character with no prior search in effect.
       if (SearchState.get()) this.#applySearch(term)
       return
     }
@@ -39,5 +41,6 @@ export default class extends Controller {
   #clearSearch() {
     this.inputTarget.value = ""
     SearchState.clear()
+    syncToUrl()
   }
 }

@@ -38,9 +38,8 @@ A scratchpad for docs housekeeping — things to write, update, remove, or decid
 - `DRAG_DROP_SORTABLE_JS.md` — keep as open item or move to nice-to-have?
 
 ### Verify / Check
-TODO - AUDIT AND DELETE IF DONE
-- **Filter gaps** — tooltips (Primary Type, Type, Violations, Wholesaler), Annual Water & Sewer Bill checkbox, Boil Water Summary filter
-- **Table sort options** — confirm all expected sort columns are implemented and working
+
+- **Boil Water Summary filter** — placeholder exists in Notices UI but is disabled; confirm when filter is implemented
 
 ### Other
 
