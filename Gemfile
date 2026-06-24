@@ -12,7 +12,7 @@ gem "bootsnap", "~> 1.24.5", require: false
 gem "importmap-rails", "~> 2.2.3"
 
 # The modern asset pipeline for Rails [https://github.com/rails/propshaft]
-gem "propshaft", "~> 1.3.1"
+gem "propshaft", "~> 1.3.2"
 
 # Use the database-backed adapters for Rails.cache, Active Job, and Action Cable
 gem "solid_cable", "~> 3.0.12"
