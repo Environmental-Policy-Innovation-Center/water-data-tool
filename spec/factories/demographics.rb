@@ -72,6 +72,6 @@ FactoryBot.define do
     water_rate_500_749 { 14.8 }
     water_rate_750_999 { 5.3 }
     water_rate_over_1000 { 2.2 }
-    most_common_rate_tier { "$250–499" }
+    most_common_rate_tier { :tier_250_499 }
   end
 end

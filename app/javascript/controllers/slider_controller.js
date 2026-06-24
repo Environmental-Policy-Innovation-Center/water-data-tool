@@ -695,7 +695,7 @@ export default class extends Controller {
     if (fmt === "percent") return `${r}%`
     if (fmt === "percent_change") return `${r > 0 ? "+" : ""}${r}%`
     if (fmt === "currency") return `$${r.toLocaleString("en-US")}`
-    return r.toLocaleString("en-US")
+    return r.toLocaleString("en-US") // default: plain integer (count, score, or unrecognized format)
   }
 
   // Shows the formatted value when the user has explicitly typed into an input (#minSet / #maxSet),
@@ -770,6 +770,6 @@ export default class extends Controller {
       return `${sign}${r.toLocaleString("en-US")}%`
     }
     if (fmt === "currency") return "$" + r.toLocaleString("en-US")
-    return r.toLocaleString("en-US")
+    return r.toLocaleString("en-US") // default: plain integer (count, score, or unrecognized format)
   }
 }

@@ -108,20 +108,20 @@ Listed bottom → top as actually rendered, not in code insertion order:
 
 | # | Layer id | Type | Source layer | Purpose | Insertion |
 |---|---|---|---|---|---|
-| 1 | `states` | fill | `states` | Transparent hit area for state hover/click | before `firstLineId` |
+| 1 | `states` | fill | `states` | Hit area for state hover/click; hover fill driven by feature-state | before `firstLineId` |
 | 2 | `counties` | fill | `counties` | Transparent hit area for county hover/click | before `firstLineId` |
 | 3 | `places` | fill (minzoom 8) | `places` | Transparent hit area for place hover/click | before `firstLineId` |
 | 4 | `pws` | fill | `pws` | Main PWS polygon fill (green, 20% opacity) | before `firstLineId` |
 | 5 | `pws_hover` | line | `pws` | Thicker black stroke on hovered PWS polygon | before `firstLineId` |
+| 6 | `states_hover_outline` | line | `states` | Grey border outline while mousing over a state (feature-state driven) | before `firstLineId` |
 | — | *(roads & labels from base style)* | — | — | — | — |
-| 6 | `states_hover` | fill | `states` | Green fill while mousing over a state | appended to top |
 | 7 | `states_filter` | line | `states` | Black border outline after clicking a state | appended to top |
 | 8 | `counties_filter` | line | `counties` | Green border on selected county *(not yet triggered)* | appended to top |
 | 9 | `places_filter` | line | `places` | Green border on selected place *(not yet triggered)* | appended to top |
 | 10 | `pws_outline` | line (minzoom 8) | `pws` | Thin black stroke at street-level zoom | appended to top |
 | 11 | `selected_pws` | line | `pws` | Red stroke on clicked PWS polygon | appended to top |
 
-**Why this order matters for `pws_hover`:** the hover border (row 5) sits below roads — road labels can overdraw it at low zoom, but this is acceptable because hover is only active at zoom ≥ 5 and becomes less ambiguous at higher zoom. All selection and filter highlights (rows 6–11) are above roads and are always unobscured.
+**Why this order matters:** `pws_hover` and `states_hover_outline` (rows 5–6) sit below roads — road labels can overdraw them at low zoom, which is acceptable since hover is only meaningful at higher zoom. The hover fill on `states` (row 1) is driven by `feature-state` expressions baked into its paint properties rather than a separate layer, so it also sits below roads. Selection and filter highlights (rows 7–11) are above roads and always unobscured.
 
 Detailed paint properties, visibility rules, and interaction triggers for each group are in the sections below.
 
@@ -131,7 +131,7 @@ These layers are visually transparent. Their only purpose is to provide a click/
 
 | Layer id | Source layer | Type | Visible? | Paint |
 |---|---|---|---|---|
-| `states` | `states` | fill | Always | Transparent fill, `#eee` outline |
+| `states` | `states` | fill | Always | Hover: green fill (`rgb(78,163,36)`) 20% opacity via feature-state; default: transparent. `#eee` outline always. |
 | `counties` | `counties` | fill | Always | Transparent fill, `#eee` outline |
 | `places` | `places` | fill | minzoom 8 | Transparent fill, `#eee` outline |
 
@@ -139,12 +139,19 @@ These layers are visually transparent. Their only purpose is to provide a click/
 
 ### Geography highlight layers
 
-These layers show visual feedback when the user hovers or clicks on a state, county, or place. They are controlled by `map.setFilter()` — default filter `["in", "geoid", ""]` hides them entirely.
+These layers show visual feedback when the user hovers or clicks on a state, county, or place.
+
+State hover is driven by `map.setFeatureState()` — on `mousemove`, the hovered state feature gets `{ hover: true }` written into its GPU-side state store (keyed by FIPS `geoid` via `promoteId`); on `mouseleave` (debounced 100ms) the state is cleared. This approach updates all tile fragments of the same state in a single render frame, avoiding the patchy fill that a `setFilter` approach produces.
+
+The green fill on hover is a paint expression on the base `states` layer itself (`["case", HOVER_STATE_EXPR, ...]`). The `states_hover_outline` line layer shows a grey border using the same `HOVER_STATE_EXPR` — its `line-width` is 1 when hover is true, 0 otherwise (no separate filter needed).
+
+`states_filter`, `counties_filter`, and `places_filter` are controlled by `map.setFilter()` — default filter `["in", "geoid", ""]` hides them entirely.
 
 | Layer id | Source layer | Type | Color | Triggered by |
 |---|---|---|---|---|
-| `states_hover` | `states` | fill | Green (`rgb(78,163,36)`), 20% opacity | Mouse over a state |
-| `states_filter` | `states` | line | Black, 2px | Click on a state |
+| `states` (hover paint) | `states` | fill | Green (`rgb(78,163,36)`), 20% opacity | Mouse over a state (`setFeatureState`) |
+| `states_hover_outline` | `states` | line | Grey (`#999`), 1px | Mouse over a state (`setFeatureState`) |
+| `states_filter` | `states` | line | Black, 2px | Click on a state (`setFilter`) |
 | `counties_filter` | `counties` | line | Green (`rgb(78,163,36)`), 2px | *(reserved — not currently triggered by UI)* |
 | `places_filter` | `places` | line | Green (`rgb(78,163,36)`), 2px | *(reserved — not currently triggered by UI)* |
 
@@ -175,9 +182,11 @@ These layers render the actual drinking water system data.
 
 | Event | Layer | Result |
 |---|---|---|
-| `mousemove` on `states` | `states` | Cursor → pointer; `states_hover` filter set to that state's `geoid` (green fill) |
-| `mouseleave` from `states` | `states` | Cursor reset; `states_hover` filter cleared |
-| `click` on `states` | `states` | `states_hover` cleared; `states_filter` border set to that state's `geoid` |
+| `mousemove` on `states` | `states` | Cursor → pointer; `setFeatureState({ hover: true })` on that state's feature (green fill via `states_hover`) |
+| `mouseleave` from `states` | `states` | Cursor reset; feature-state cleared (100ms debounced to prevent flicker at tile boundaries) |
+| `click` on `states` | `states` | `states_hover` feature-state cleared; `states_filter` border set to that state's `geoid` via `setFilter` |
+
+**State zoom-to-fit:** On click, `#fitToState` looks up the state's bounding box in the `STATE_FIT_BOUNDS` constant (PostGIS-derived, hardcoded in JS). A static lookup is used instead of an API call (50–150ms latency on every click) or `querySourceFeatures` (`querySourceFeatures` only returns geometry for tiles already in the browser viewport — unreliable for adjacent or off-screen states). State borders are legally fixed, so the data is stable. AK is omitted from the table because its bbox crosses the antimeridian; it falls back to `REGION_CAMERAS`.
 
 **Note:** Clicking a state draws a border outline but does not apply a data filter. State-level data filtering is done through the Boundaries filter in the filter bar, not by clicking on the map.
 
@@ -207,7 +216,7 @@ Active only at zoom ≥ 5 (below that, systems are too small to distinguish).
 | Zoom | Event | Result |
 |---|---|---|
 | < 8 | Click `pws` | `flyTo` center at click location, zoom 8.5 (zoom in to make polygon clickable) |
-| ≥ 8 | Click `pws` | Hover popup removed; `selected_pws` (red border) shown on that system; click popup opened |
+| ≥ 8 | Click `pws` | Hover popup removed; pinned click popup opened at click location |
 
 **Click popup content:**
 - Utility Name
@@ -216,21 +225,18 @@ Active only at zoom ≥ 5 (below that, systems are too small to distinguish).
 - Type (symbology_field)
 - Service connections
 - Customers served
-- "View Full Report" — real link to `/public_water_systems/{pwsid}/report` (URL-encoded `pwsid`; copyable from popup)
+- "View Full Report" — link to `/public_water_systems/{pwsid}/report`
+
+The click popup stays pinned (hover popup is suppressed for the pinned system). Clicking anywhere off a PWS polygon dismisses it. Clicking a different PWS replaces it.
 
 **View Full Report (from click popup)**
 
-Wired in `map_controller.js` (popup DOM is outside Stimulus). Same report URL for overlay and standalone page; behavior depends on how the link is opened:
+The link opens the standalone report page (`layouts/report.html.erb`). The report page detects whether it was navigated to from the same app (via `request.referer` host check) and renders different controls accordingly:
 
-| How the link is opened | Result |
+| Context | Controls shown |
 |---|---|
-| Normal left click | `preventDefault`; `#container-report` overlay shown; report fetched into `turbo-frame#report-body` via `Turbo.visit` (map page stays on `/`, filters and zoom unchanged) |
-| Cmd/Ctrl+click, middle-click, or open in new tab | Browser follows the URL → full report page (`layouts/report.html.erb`) with print and back-to-map |
-| Copy link and paste in browser | Same as new tab — standalone report page |
-
-Overlay (`#container-report`): print and close (X) buttons; report body inside the turbo frame. Standalone report page: print and back-to-map link (no close button).
-
-When the click popup is closed: `selected_pws` layer hidden, popup reference cleared.
+| Navigated from the app (map popup click) | Print + close (X) button — clicking X calls `history.back()` to return to the map |
+| Direct URL / new tab / copy-paste | Print + back-to-map icon link (`link_to root_path`) |
 
 ---
 
@@ -274,7 +280,7 @@ These are called by nav/button elements outside the map canvas:
 |---|---|
 | `zoom48()` | Clears geocoder input; calls `#fitDefaultView` (same framing as initial load) |
 | `zoomAk()` | Flies to Alaska (`-149.504, 61.342`, zoom ~5) |
-| `zoomHi()` | Flies to Hawaii (`-157.856, 21.305`, zoom ~6) |
+| `zoomHi()` | Flies to Hawaii (`-157.0, 20.5`, zoom ~5) |
 | `zoomPr()` | Flies to Puerto Rico (`-66.590, 18.220`, zoom 8) |
 | `zoomGu()` | Flies to Guam (`144.794, 13.444`, zoom 10) |
 | `zoomMp()` | Flies to Northern Mariana Islands (`145.674, 15.180`, zoom 9) |
@@ -288,7 +294,7 @@ These are called by nav/button elements outside the map canvas:
 | `states` | Visible (transparent) | Never |
 | `counties` | Visible (transparent) | Never |
 | `places` | Visible at zoom ≥ 8 (transparent) | Zoom |
-| `states_hover` | Hidden (empty filter) | Mouse enters/leaves a state |
+| `states_hover_outline` | Hidden (line-width 0, no feature-state set) | Mouse enters/leaves a state |
 | `states_filter` | Hidden (empty filter) | User clicks a state |
 | `counties_filter` | Hidden (empty filter) | *(not currently triggered)* |
 | `places_filter` | Hidden (empty filter) | *(not currently triggered)* |

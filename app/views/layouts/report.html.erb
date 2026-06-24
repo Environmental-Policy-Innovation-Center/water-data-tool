@@ -18,6 +18,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Public+Sans:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
 
     <%= stylesheet_link_tag "tailwind", "data-turbo-track": "reload" %>
+    <%= javascript_importmap_tags %>
   </head>
 
   <body class="bg-white font-sans text-gray-800" data-controller="report">
@@ -29,14 +30,24 @@
         ) do %>
       <%= icon "print", classes: "h-4 w-4" %>
     <% end %>
-    <%= link_to root_path,
-          class: class_names(
-            UI::CircleButtonComponent::BASE_CLASSES,
-            "fixed top-[30px] right-5 print:hidden no-underline"
-          ),
-          aria: {label: "Back to map"},
-          data: {turbo: false} do %>
-      <%= icon "explore", classes: "h-4 w-4" %>
+    <% if @from_map %>
+      <button type="button"
+              class="<%= class_names(UI::CircleButtonComponent::BASE_CLASSES, "fixed top-[30px] right-5 print:hidden motion-reduce:transition-none") %>"
+              aria-label="Close report"
+              data-action="click->report#back"
+              data-fallback-url="<%= root_path %>">
+        <%= icon "close", classes: "h-4 w-4" %>
+      </button>
+    <% else %>
+      <%= link_to root_path,
+            class: class_names(
+              UI::CircleButtonComponent::BASE_CLASSES,
+              "fixed top-[30px] right-5 print:hidden no-underline"
+            ),
+            aria: {label: "Back to map"},
+            data: {turbo: false} do %>
+        <%= icon "explore", classes: "h-4 w-4" %>
+      <% end %>
     <% end %>
 
     <%# Page content shell for standalone visits (direct URL only). %>

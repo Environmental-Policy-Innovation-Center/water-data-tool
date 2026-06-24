@@ -1,0 +1,8 @@
+<div class="flex m-4">
+  <%= render Filters::RateTierBtnComponent.new(id: "preview-rate-tier-lt125",   label: "Under $125",  position: :first) %>
+  <%= render Filters::RateTierBtnComponent.new(id: "preview-rate-tier-125-249", label: "$125–249") %>
+  <%= render Filters::RateTierBtnComponent.new(id: "preview-rate-tier-250-499", label: "$250–499") %>
+  <%= render Filters::RateTierBtnComponent.new(id: "preview-rate-tier-500-749", label: "$500–749") %>
+  <%= render Filters::RateTierBtnComponent.new(id: "preview-rate-tier-750-999", label: "$750–999") %>
+  <%= render Filters::RateTierBtnComponent.new(id: "preview-rate-tier-gt1000",  label: "Over $1,000", position: :last) %>
+</div>

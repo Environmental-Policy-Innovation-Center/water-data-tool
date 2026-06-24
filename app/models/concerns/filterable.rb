@@ -99,7 +99,6 @@ module Filterable
       demographic_cols_active = cols.any? { |col| params[:"#{col}_min"].present? || params[:"#{col}_max"].present? }
       demographic_cols_active ||= params[:density_min].present? || params[:density_max].present?
       demographic_cols_active ||= Array(params[:most_common_rate_tier]).any?(&:present?)
-      demographic_cols_active ||= params[:no_rate_info] == "true"
 
       if demographic_cols_active
         scope, joined = left_join_once(scope, joined, :demographic)
@@ -121,12 +120,10 @@ module Filterable
       scope = scope.where(dem_t[:population_density].lteq(params[:density_max].to_d)) if params[:density_max].present?
 
       tiers = Array(params[:most_common_rate_tier]).select(&:present?)
-      no_info = params[:no_rate_info] == "true"
-      if tiers.any? || no_info
-        tier_predicate = tiers.any? ? dem_t[:most_common_rate_tier].in(tiers) : nil
-        empty_value_predicate = no_info ? dem_t[:most_common_rate_tier].eq(nil).or(dem_t[:most_common_rate_tier].eq("")) : nil
-        rate_tier_predicate = [tier_predicate, empty_value_predicate].compact.inject { |m, c| m.or(c) }
-        scope = scope.where(rate_tier_predicate)
+      if tiers.any?
+        tier_map = Demographic.most_common_rate_tiers
+        db_values = tiers.filter_map { |t| tier_map[t] }
+        scope = scope.where(dem_t[:most_common_rate_tier].in(db_values))
       end
 
       [scope, joined]

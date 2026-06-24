@@ -1,6 +1,7 @@
 import { Controller } from "@hotwired/stimulus"
 import * as FilterState from "filter_state"
 import { syncStatsFrame } from "stats_frame"
+import { syncToUrl } from "url_sync"
 
 const DESKTOP_US_BOUNDS = [[-125.5, 23.5], [-65.5, 49.5]]
 const VIEWPORT_PADDING = 20
@@ -22,6 +23,7 @@ const MODE_STATE = "state"
 const MODE_SYSTEMS = "systems"
 const EMPTY_PWS_FILTER = ["in", "pwsid", ""]
 const EMPTY_STATE_FILTER = ["==", ["get", "geoid"], ""]
+const HOVER_STATE_EXPR = ["boolean", ["feature-state", "hover"], false]
 const REGION_STATES = {
   AK: { stusps: "AK", name: "Alaska", geoid: "02" },
   HI: { stusps: "HI", name: "Hawaii", geoid: "15" },
@@ -29,9 +31,69 @@ const REGION_STATES = {
   GU: { stusps: "GU", name: "Guam", geoid: "66" },
   MP: { stusps: "MP", name: "Northern Mariana Islands", geoid: "69" }
 }
+// PostGIS-derived bounding boxes for state zoom-to-fit. Static because state borders never change,
+// an API call adds latency, and querySourceFeatures only covers tiles already in the viewport.
+const STATE_FIT_BOUNDS = {
+  AL: [[-88.47, 30.22], [-84.89, 35.01]],
+  AR: [[-94.62, 33.0],  [-89.64, 36.5]],
+  AS: [[-171.09, -14.55], [-168.14, -11.05]],
+  AZ: [[-114.82, 31.33], [-109.05, 37.0]],
+  CA: [[-124.41, 32.53], [-114.13, 42.01]],
+  CO: [[-109.06, 36.99], [-102.04, 41.0]],
+  CT: [[-73.73, 40.98], [-71.79, 42.05]],
+  DC: [[-77.12, 38.79], [-76.91, 39.0]],
+  DE: [[-75.79, 38.45], [-75.05, 39.84]],
+  FL: [[-87.63, 24.52], [-80.03, 31.0]],
+  GA: [[-85.61, 30.36], [-80.84, 35.0]],
+  GU: [[144.62, 13.23],  [144.96, 13.65]],
+  HI: [[-160.5, 18.5],  [-154.5, 22.3]],
+  IA: [[-96.64, 40.38], [-90.14, 43.5]],
+  ID: [[-117.24, 41.99], [-111.04, 49.0]],
+  IL: [[-91.51, 36.97], [-87.5, 42.51]],
+  IN: [[-88.1, 37.77],  [-84.78, 41.76]],
+  KS: [[-102.05, 36.99], [-94.59, 40.0]],
+  KY: [[-89.57, 36.5],  [-81.96, 39.15]],
+  LA: [[-94.04, 28.93], [-88.82, 33.02]],
+  MA: [[-73.51, 41.24], [-69.93, 42.89]],
+  MD: [[-79.49, 37.91], [-75.05, 39.72]],
+  ME: [[-71.08, 42.98], [-66.95, 47.46]],
+  MI: [[-90.42, 41.7],  [-82.41, 48.24]],
+  MN: [[-97.24, 43.5],  [-89.49, 49.38]],
+  MO: [[-95.77, 36.0],  [-89.1, 40.61]],
+  MP: [[144.89, 14.11], [146.06, 20.55]],
+  MS: [[-91.66, 30.18], [-88.1, 35.0]],
+  MT: [[-116.05, 44.36], [-104.04, 49.0]],
+  NC: [[-84.32, 33.84], [-75.46, 36.59]],
+  ND: [[-104.05, 45.94], [-96.55, 49.0]],
+  NE: [[-104.05, 40.0], [-95.31, 43.0]],
+  NH: [[-72.56, 42.7],  [-70.61, 45.31]],
+  NJ: [[-75.56, 38.93], [-73.89, 41.36]],
+  NM: [[-109.05, 31.33], [-103.0, 37.0]],
+  NV: [[-120.01, 35.0], [-114.04, 42.0]],
+  NY: [[-79.76, 40.5],  [-71.86, 45.02]],
+  OH: [[-84.82, 38.4],  [-80.52, 41.98]],
+  OK: [[-103.0, 33.62], [-94.43, 37.0]],
+  OR: [[-124.57, 41.99], [-116.46, 46.29]],
+  PA: [[-80.52, 39.72], [-74.69, 42.27]],
+  PR: [[-67.95, 17.88], [-65.22, 18.52]],
+  RI: [[-71.86, 41.15], [-71.12, 42.02]],
+  SC: [[-83.35, 32.04], [-78.55, 35.22]],
+  SD: [[-104.06, 42.48], [-96.44, 45.95]],
+  TN: [[-90.31, 34.98], [-81.65, 36.68]],
+  TX: [[-106.65, 25.84], [-93.51, 36.5]],
+  UT: [[-114.05, 37.0], [-109.04, 42.0]],
+  VA: [[-83.68, 36.54], [-75.24, 39.47]],
+  VI: [[-65.09, 17.67], [-64.57, 18.42]],
+  VT: [[-73.44, 42.73], [-71.46, 45.02]],
+  WA: [[-124.76, 45.54], [-116.92, 49.0]],
+  WI: [[-92.89, 42.49], [-86.81, 47.08]],
+  WV: [[-82.64, 37.2],  [-77.72, 40.64]],
+  WY: [[-111.05, 40.99], [-104.05, 45.01]]
+  // AK omitted — bbox crosses the antimeridian; REGION_CAMERAS handles it
+}
 const REGION_CAMERAS = {
   AK: { center: [-149.504, 61.342], zoom: 4.9, settleZoom: 5 },
-  HI: { center: [-157.856, 21.305], zoom: 4.9, settleZoom: 6 },
+  HI: { center: [-157.0, 20.5], zoom: 4.9, settleZoom: 7 },
   PR: { center: [-66.590, 18.220], zoom: 5, settleZoom: 8 },
   GU: { center: [144.794, 13.444], zoom: 7, settleZoom: 10 },
   MP: { center: [145.674, 15.180], zoom: 7, settleZoom: 9 }
@@ -77,8 +139,13 @@ export default class extends Controller {
     // Dev convenience: mapDebug.getZoom(), mapDebug.getCenter(), etc. in browser console.
     if (window.location.hostname === "localhost") window.mapDebug = this.map
     this.hoverPopup = null
+    this.clickPopup = null
+    this.pinnedPwsid = null
     this.stateHoverPopup = null
+    this.hoveredStateId = null
     this.hoveredPwsid = null
+    this._stateLeaveTimer = null
+    this._pwsClickHandled = false
     this.selectedState = null
     this.filteredPwsids = null
     this.mapMode = MODE_NATION
@@ -86,13 +153,17 @@ export default class extends Controller {
     this.geocoderRequestSequence = 0
 
     this.boundOnFiltersChanged = this.#onFiltersChanged.bind(this)
+    this.boundOnResetAll = this.#onResetAll.bind(this)
     document.addEventListener("filters:changed", this.boundOnFiltersChanged)
+    document.addEventListener("filter:reset-all", this.boundOnResetAll)
 
     this.map.on("load", () => this.#onLoad())
   }
 
   disconnect() {
+    this.#cancelStateLeaveTimer()
     document.removeEventListener("filters:changed", this.boundOnFiltersChanged)
+    document.removeEventListener("filter:reset-all", this.boundOnResetAll)
     if (this.map) {
       this.map.remove()
       this.map = null
@@ -170,7 +241,10 @@ export default class extends Controller {
 
     this.#fitDefaultView({ duration: 0 })
 
-    this.map.once("idle", () => this.#hideLoadingMask())
+    this.map.once("idle", () => {
+      if (this.selectedState) this.#fitToState(this.selectedState.stusps)
+      this.#hideLoadingMask()
+    })
   }
 
   #addControls() {
@@ -213,7 +287,8 @@ export default class extends Controller {
 
     this.map.addSource("wdt", {
       type: "vector",
-      tiles: [tileUrl]
+      tiles: [tileUrl],
+      promoteId: { states: "geoid", counties: "geoid", places: "geoid", pws: "pwsid" }
     })
   }
 
@@ -230,8 +305,8 @@ export default class extends Controller {
       "source-layer": "states",
       layout: { visibility: "visible" },
       paint: {
-        "fill-color": "#fff",
-        "fill-opacity": 0,
+        "fill-color": ["case", HOVER_STATE_EXPR, "rgb(78, 163, 36)", "#fff"],
+        "fill-opacity": ["case", HOVER_STATE_EXPR, 0.2, 0],
         "fill-outline-color": "#eee"
       }
     }, firstLineId)
@@ -265,19 +340,19 @@ export default class extends Controller {
 
     // ── Hover / filter highlight layers ────────────────────────────────────────
 
+    // Hover border driven by feature-state — line layers don't have the fill-outline-color
+    // tile-boundary artifact, and feature-state means no filter management needed here.
     this.map.addLayer({
-      id: "states_hover",
-      type: "fill",
+      id: "states_hover_outline",
+      type: "line",
       source: "wdt",
       "source-layer": "states",
       layout: { visibility: "visible" },
       paint: {
-        "fill-color": "rgb(78, 163, 36)",
-        "fill-opacity": 0.2,
-        "fill-outline-color": "#999"
-      },
-      filter: EMPTY_STATE_FILTER
-    })
+        "line-color": "#999",
+        "line-width": ["case", HOVER_STATE_EXPR, 1, 0]
+      }
+    }, firstLineId)
 
     this.map.addLayer({
       id: "states_filter",
@@ -370,20 +445,24 @@ export default class extends Controller {
     // ── States hover / click ──────────────────────────────────────────────────
 
     this.map.on("mousemove", "states", (e) => {
+      // Cancel any pending mouseleave clear — cursor is still over a state feature.
+      this.#cancelStateLeaveTimer()
       const props = this.#statePropsFromEvent(e)
       if (!props) return
       if (this.#systemsModeActive() && this.#stateIsSelected(props)) {
-        this.map.setFilter("states_hover", EMPTY_STATE_FILTER)
         this.#removeStatePrompt()
         return
       }
       if (!this.#stateHoverEnabled(props)) return
 
       this.map.getCanvas().style.cursor = "pointer"
-      if (this.#stateIsSelected(props)) {
-        this.map.setFilter("states_hover", EMPTY_STATE_FILTER)
-      } else {
-        this.map.setFilter("states_hover", ["==", ["get", "geoid"], props.geoid])
+      if (props.geoid !== this.hoveredStateId) {
+        this.#clearStateHover()
+        this.hoveredStateId = props.geoid
+        this.map.setFeatureState(
+          { source: "wdt", sourceLayer: "states", id: this.hoveredStateId },
+          { hover: true }
+        )
       }
 
       if (this.#shouldShowStatePrompt(props)) {
@@ -394,9 +473,14 @@ export default class extends Controller {
     })
 
     this.map.on("mouseleave", "states", () => {
-      this.map.getCanvas().style.cursor = ""
-      this.map.setFilter("states_hover", EMPTY_STATE_FILTER)
-      this.#removeStatePrompt()
+      // Debounce the clear so a cursor crossing a tile-boundary gap between two states
+      // doesn't produce a visible flicker (mousemove on the next state cancels this).
+      this._stateLeaveTimer = setTimeout(() => {
+        this._stateLeaveTimer = null
+        this.map.getCanvas().style.cursor = ""
+        this.#clearStateHover()
+        this.#removeStatePrompt()
+      }, 100)
     })
 
     this.map.on("click", "states", (e) => {
@@ -407,11 +491,14 @@ export default class extends Controller {
       if (!this.#stateClickEnabled(props)) return
 
       const wasNationMode = this.mapMode === MODE_NATION
+      const switchingState = !!this.selectedState && this.selectedState.stusps !== props.stusps
       this.#selectState(props)
       this.#removeStatePrompt()
 
-      if (wasNationMode) {
-        this.map.flyTo({ center: e.lngLat, zoom: Math.max(this.map.getZoom(), STATE_ENTRY_ZOOM) })
+      if (wasNationMode || switchingState || this.map.getZoom() < STATE_ENTRY_ZOOM) {
+        if (!this.#fitToState(props.stusps)) {
+          this.map.flyTo({ center: e.lngLat, zoom: Math.max(this.map.getZoom(), STATE_ENTRY_ZOOM) })
+        }
       }
     })
 
@@ -431,6 +518,8 @@ export default class extends Controller {
         this.hoverPopup.remove()
         this.hoverPopup = null
       }
+
+      if (props.pwsid === this.pinnedPwsid) return
 
       const html = this.#buildHoverHtml(props)
       this.hoverPopup = new window.mapboxgl.Popup({
@@ -513,6 +602,17 @@ export default class extends Controller {
     })
   }
 
+  #onResetAll() {
+    if (!this.selectedState && !FilterState.get().state) return
+    this.#enterNationMode({ fitDefault: false, resetMaxZoom: false })
+    if (this.map.getZoom() > NATION_MAX_ZOOM) {
+      this.map.easeTo({ zoom: NATION_MAX_ZOOM, duration: 400 })
+      this.map.once("moveend", () => this.map.setMaxZoom(NATION_MAX_ZOOM))
+    } else {
+      this.map.setMaxZoom(NATION_MAX_ZOOM)
+    }
+  }
+
   async #onFiltersChanged() {
     if (!this.map?.getLayer("pws")) return
 
@@ -561,15 +661,15 @@ export default class extends Controller {
     this.activeFilterRequest = null
   }
 
-  #enterNationMode({ fitDefault = true, syncStateFilter = true } = {}) {
+  #enterNationMode({ fitDefault = true, syncStateFilter = true, resetMaxZoom = true } = {}) {
     const hadStateScope = !!this.selectedState || !!FilterState.get().state || !!FilterState.get().state_name
     this.selectedState = null
     delete this.element.dataset.selectedState
     delete this.element.dataset.selectedStateName
     this.mapMode = MODE_NATION
-    this.map.setMaxZoom(NATION_MAX_ZOOM)
+    if (resetMaxZoom) this.map.setMaxZoom(NATION_MAX_ZOOM)
     this.map.setFilter("states_filter", EMPTY_STATE_FILTER)
-    this.map.setFilter("states_hover", EMPTY_STATE_FILTER)
+    this.#clearStateHover()
     this.map.setFilter("pws_hover", EMPTY_PWS_FILTER)
     this.#removeStatePrompt()
     this.#removeSystemPopups()
@@ -588,7 +688,7 @@ export default class extends Controller {
     this.element.dataset.selectedState = state.stusps
     this.element.dataset.selectedStateName = state.name
     this.mapMode = this.#systemsModeActive() ? MODE_SYSTEMS : MODE_STATE
-    this.map.setFilter("states_hover", EMPTY_STATE_FILTER)
+    this.#clearStateHover()
     this.map.setFilter("states_filter", this.#stateBoundaryFilter(state))
     this.map.setFilter("pws_hover", EMPTY_PWS_FILTER)
     this.#removeSystemPopups()
@@ -702,6 +802,40 @@ export default class extends Controller {
     }
   }
 
+  #fitToState(stusps) {
+    const leftInset = this.#sidebarLeftInset()
+    const padding = leftInset ? { top: 60, bottom: 60, right: 60, left: leftInset + 60 } : 60
+    const fitOptions = { padding, maxZoom: SYSTEMS_ENTRY_ZOOM - 0.01 }
+
+    if (STATE_FIT_BOUNDS[stusps]) {
+      this.map.fitBounds(STATE_FIT_BOUNDS[stusps], fitOptions)
+      return true
+    }
+
+    const features = this.map.querySourceFeatures("wdt", {
+      sourceLayer: "states",
+      filter: ["==", "stusps", stusps]
+    })
+    if (!features.length) return false
+
+    // querySourceFeatures returns one entry per tile, so dedup by feature id
+    // to avoid iterating the same geometry multiple times for large states.
+    const seen = new Set()
+    const bounds = new window.mapboxgl.LngLatBounds()
+    features.forEach(({ id, geometry }) => {
+      if (id !== undefined && seen.has(id)) return
+      if (id !== undefined) seen.add(id)
+      const polygons = geometry.type === "MultiPolygon"
+        ? geometry.coordinates
+        : [geometry.coordinates]
+      polygons.forEach(rings => rings[0].forEach(c => bounds.extend(c)))
+    })
+
+    if (bounds.isEmpty()) return false
+    this.map.fitBounds(bounds, fitOptions)
+    return true
+  }
+
   #restoreStateFromFilter() {
     const filters = FilterState.get()
     if (!filters.state) return
@@ -710,6 +844,21 @@ export default class extends Controller {
       stusps: filters.state,
       name: filters.state_name || filters.state
     }, { syncStateFilter: false })
+  }
+
+  #cancelStateLeaveTimer() {
+    if (!this._stateLeaveTimer) return
+    clearTimeout(this._stateLeaveTimer)
+    this._stateLeaveTimer = null
+  }
+
+  #clearStateHover() {
+    if (this.hoveredStateId === null) return
+    this.map.setFeatureState(
+      { source: "wdt", sourceLayer: "states", id: this.hoveredStateId },
+      { hover: false }
+    )
+    this.hoveredStateId = null
   }
 
   #stateBoundaryFilter(state) {
@@ -757,7 +906,7 @@ export default class extends Controller {
       state: state.stusps,
       state_name: state.name
     })
-    this.#syncFiltersToUrl()
+    syncToUrl()
     document.dispatchEvent(new CustomEvent("filters:changed"))
   }
 
@@ -766,14 +915,8 @@ export default class extends Controller {
     delete filters.state
     delete filters.state_name
     FilterState.set(filters)
-    this.#syncFiltersToUrl()
+    syncToUrl()
     document.dispatchEvent(new CustomEvent("filters:changed"))
-  }
-
-  #syncFiltersToUrl() {
-    const url = new URL(window.location)
-    url.search = FilterState.toUrlParams().toString()
-    history.replaceState({}, "", url)
   }
 
   async #lookupState(center) {
@@ -822,22 +965,15 @@ export default class extends Controller {
       this.clickPopup.remove()
       this.clickPopup = null
     }
-  }
-
-  #openReport(pwsid) {
-    const overlay = document.getElementById("container-report")
-    if (overlay) overlay.classList.remove("hidden")
-
-    if (document.querySelector("turbo-frame#report-body")) {
-      Turbo.visit(this.#reportPath(pwsid), {frame: "report-body"})
-    }
+    this.pinnedPwsid = null
   }
 
   #buildHoverHtml(props) {
-    return this.#buildPopupHtml(props, {
-      showReport: this.#systemsModeActive(),
-      reportLabel: "Click to Open Report"
-    })
+    if (this.#systemsModeActive()) {
+      return this.#buildPopupHtml(props, { showReport: true, reportLabel: "Click to Open Report" })
+    }
+
+    return this.#buildPopupHtml(props)
   }
 
   #buildPopupHtml(props, { showType = false, showReport = false, reportLabel = "View Full Report" } = {}) {
@@ -874,6 +1010,12 @@ export default class extends Controller {
 
   #reportPath(pwsid) {
     return `/public_water_systems/${encodeURIComponent(pwsid)}/report`
+  }
+
+  #openReport(pwsid) {
+    const overlay = document.getElementById("container-report")
+    overlay?.classList.remove("hidden")
+    Turbo.visit(this.#reportPath(pwsid), { frame: "report-body" })
   }
 
   #firstLineLayerId() {

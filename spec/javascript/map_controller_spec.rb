@@ -6,6 +6,12 @@ RSpec.describe "map_controller state selection" do
   def run_node_script(script)
     Tempfile.create(["map-controller-state-selection", ".js"]) do |file|
       file.write(<<~JS)
+        function syncToUrl() {
+          const url = new URL(window.location)
+          url.search = new URLSearchParams(FilterState.get()).toString()
+          history.replaceState({}, "", url)
+        }
+
         function syncStatsFrame() {
           const frame = document.querySelector("turbo-frame#stats-bar")
           if (!frame) return
@@ -91,6 +97,9 @@ RSpec.describe "map_controller state selection" do
         setFilter() {}
         setMaxZoom() {}
         fitBounds() {}
+        querySourceFeatures() { return [] }
+        setFeatureState() {}
+        removeFeatureState() {}
         jumpTo(options) { if (options.zoom !== undefined) this.zoom = options.zoom }
         flyTo(options) { if (options.zoom !== undefined) this.zoom = options.zoom }
         once() {}
@@ -314,6 +323,9 @@ RSpec.describe "map_controller state selection" do
         setFilter(layer, filter) { this.filters[layer] = filter }
         setMaxZoom(value) { this.maxZoom = value }
         fitBounds() {}
+        querySourceFeatures() { return [] }
+        setFeatureState() {}
+        removeFeatureState() {}
         jumpTo(options) { if (options.zoom !== undefined) this.zoom = options.zoom }
         flyTo(options) { if (options.zoom !== undefined) this.zoom = options.zoom }
         once() {}
@@ -399,6 +411,8 @@ RSpec.describe "map_controller state selection" do
       controller.map = {
         setMaxZoom: () => {},
         setFilter: () => {},
+        setFeatureState: () => {},
+        removeFeatureState: () => {},
         getLayer: () => true,
         fitBounds: () => {},
         flyTo: () => {}
@@ -461,6 +475,8 @@ RSpec.describe "map_controller state selection" do
         getZoom: () => 3,
         getLayer: () => true,
         setFilter: () => {},
+        setFeatureState: () => {},
+        removeFeatureState: () => {},
         setMaxZoom: () => { controller.selectedState = null },
         flyTo: () => { flyToCalled = true },
         once: (_event, callback) => callback()
@@ -508,7 +524,7 @@ RSpec.describe "map_controller state selection" do
         constructor() {
           this.handlers = {}
           this.zoom = 3
-          this.flyToCalls = []
+          this.fitBoundsCalls = []
           globalThis.mapStub = this
         }
 
@@ -524,12 +540,17 @@ RSpec.describe "map_controller state selection" do
         getLayer() { return true }
         setFilter() {}
         setMaxZoom() {}
-        fitBounds() {}
+        fitBounds(bounds, options) {
+          this.fitBoundsCalls.push({ bounds, options })
+          if (options?.maxZoom !== undefined) this.zoom = options.maxZoom
+        }
+        querySourceFeatures() { return [] }
+        setFeatureState() {}
+        removeFeatureState() {}
         jumpTo(options) {
           if (options.zoom !== undefined) this.zoom = options.zoom
         }
         flyTo(options) {
-          this.flyToCalls.push(options)
           if (options.zoom !== undefined) this.zoom = options.zoom
         }
         once() {}
@@ -555,16 +576,15 @@ RSpec.describe "map_controller state selection" do
       controller.tileUrlValue = "/tiles/{z}/{x}/{y}.mvt"
       controller.connect()
       mapStub.handlers.load()
-      mapStub.flyToCalls = []
+      mapStub.fitBoundsCalls = []
 
       mapStub.handlers["click:states"]({
         lngLat: { lng: -105.5, lat: 39.0 },
         features: [{ properties: { stusps: "CO", name: "Colorado", geoid: "08" } }]
       })
 
-      const clickFlyTo = mapStub.flyToCalls.at(-1)
-      if (!clickFlyTo) throw new Error("expected state click to fly")
-      if (clickFlyTo.zoom !== 6) throw new Error(`expected state click zoom 6, got ${clickFlyTo.zoom}`)
+      const clickFitBounds = mapStub.fitBoundsCalls.at(-1)
+      if (!clickFitBounds) throw new Error("expected state click to fitBounds")
     JS
 
     run_node_script(script)
@@ -622,7 +642,12 @@ RSpec.describe "map_controller state selection" do
         getLayer() { return true }
         setFilter(layer, filter) { this.filters[layer] = filter }
         setMaxZoom() {}
-        fitBounds() {}
+        fitBounds(bounds, options) {
+          if (options?.maxZoom !== undefined) this.zoom = options.maxZoom
+        }
+        querySourceFeatures() { return [] }
+        setFeatureState() {}
+        removeFeatureState() {}
         jumpTo(options) {
           if (options.zoom !== undefined) this.zoom = options.zoom
         }
@@ -812,6 +837,7 @@ RSpec.describe "map_controller state selection" do
           this.handlers = {}
           this.zoom = 8.5
           this.filters = []
+          this.featureStateCalls = []
           this.canvas = { style: {} }
           globalThis.mapStub = this
         }
@@ -827,6 +853,7 @@ RSpec.describe "map_controller state selection" do
         setPaintProperty() {}
         getLayer() { return true }
         setFilter(layer, filter) { this.filters.push([layer, filter]) }
+        setFeatureState(feature, state) { this.featureStateCalls.push({ feature, state }) }
         setMaxZoom() {}
         fitBounds() {}
         jumpTo(options) { if (options.zoom !== undefined) this.zoom = options.zoom }
@@ -862,16 +889,14 @@ RSpec.describe "map_controller state selection" do
 
       mapStub.zoom = 8.5
       mapStub.handlers.zoomend()
-      mapStub.filters = [["states_hover", ["==", ["get", "geoid"], "53"]]]
+      mapStub.featureStateCalls = []
       mapStub.handlers["mousemove:states"]({
         lngLat: { lng: -105.5, lat: 39.0 },
         features: [{ properties: { stusps: "CO", name: "Colorado", geoid: "08" } }]
       })
 
-      const hoverUpdates = mapStub.filters.filter(([layer]) => layer === "states_hover")
-      const expectedClear = JSON.stringify(["==", ["get", "geoid"], ""])
-      const actualFinalHover = JSON.stringify(hoverUpdates.at(-1)?.[1])
-      if (actualFinalHover !== expectedClear) throw new Error(`expected selected-state hover to clear stale fill, got ${actualFinalHover}`)
+      const hoverCalls = mapStub.featureStateCalls.filter(({ state }) => state.hover === true)
+      if (hoverCalls.length > 0) throw new Error("expected selected-state hover to stay cleared in systems mode")
     JS
 
     run_node_script(script)
@@ -935,6 +960,7 @@ RSpec.describe "map_controller state selection" do
         setPaintProperty() {}
         getLayer() { return true }
         setFilter() {}
+        setFeatureState() {}
         setMaxZoom() {}
         fitBounds() {}
         jumpTo(options) { if (options.zoom !== undefined) this.zoom = options.zoom }
@@ -1112,6 +1138,7 @@ RSpec.describe "map_controller state selection" do
           this.zoom = 8.5
           this.canvas = { style: {} }
           this.filters = []
+          this.featureStateCalls = []
           globalThis.mapStub = this
         }
 
@@ -1126,8 +1153,11 @@ RSpec.describe "map_controller state selection" do
         setPaintProperty() {}
         getLayer() { return true }
         setFilter(layer, filter) { this.filters.push([layer, filter]) }
+        setFeatureState(feature, state) { this.featureStateCalls.push({ feature, state }) }
+        removeFeatureState(feature) {}
         setMaxZoom() {}
         fitBounds() {}
+        querySourceFeatures() { return [] }
         jumpTo(options) { if (options.zoom !== undefined) this.zoom = options.zoom }
         flyTo(options) { if (options.zoom !== undefined) this.zoom = options.zoom }
         once() {}
@@ -1160,15 +1190,14 @@ RSpec.describe "map_controller state selection" do
       mapStub.zoom = 8.5
       mapStub.handlers.zoomend()
 
-      mapStub.filters = []
+      mapStub.featureStateCalls = []
       mapStub.handlers["mousemove:states"]({
         lngLat: { lng: -105.5, lat: 39.0 },
         features: [{ properties: { stusps: "CO", name: "Colorado", geoid: "08" } }]
       })
 
-      const stateHoverUpdates = mapStub.filters.filter(([layer]) => layer === "states_hover")
-      const selectedHoverUpdates = stateHoverUpdates.filter(([_layer, filter]) => JSON.stringify(filter) === JSON.stringify(["==", ["get", "geoid"], "08"]))
-      if (selectedHoverUpdates.length > 0) throw new Error("expected systems mode not to apply selected-state hover fill")
+      const hoverCalls = mapStub.featureStateCalls.filter(({ state }) => state.hover === true)
+      if (hoverCalls.length > 0) throw new Error("expected systems mode to ignore state hover (setFeatureState with hover:true was called)")
       if (mapStub.canvas.style.cursor === "pointer") throw new Error("expected state hover not to own the cursor in systems mode")
     JS
 
@@ -1705,6 +1734,9 @@ RSpec.describe "map_controller state selection" do
         setFilter() {}
         setMaxZoom() {}
         fitBounds() {}
+        querySourceFeatures() { return [] }
+        setFeatureState() {}
+        removeFeatureState() {}
         jumpTo(options) { if (options.zoom !== undefined) this.zoom = options.zoom }
         flyTo(options) {
           this.flyToCalls.push(options)

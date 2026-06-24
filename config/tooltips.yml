@@ -1,4 +1,22 @@
 filter_menus:
+  # Source — categories
+  primary_type: "The source of your water can affect its quality and safety. Most of the drinking water in the U.S. comes from reservoirs, lakes, rivers, or water under the ground."
+  source_protection: "Source water protections safeguard, maintain, and improve the quality and/or quantity of drinking water. Please note the availability of this data varies by state."
+  wholesaler: "Wholesalers treat source water and then provide some or all of that water to other public water systems."
+
+  # Boundaries — categories
+  boundary_type: "Service area boundaries show the extent of the area served by a water system. Modeled systems are estimated based on the quality of available data."
+
+  # Compliance — categories
+  violations: "Violations occur when a water system fails to meet drinking water standards. Systems with violations, especially health-based ones, can face penalties and are required to notify customers."
+  boil_water_notices: "Boil water notices are issued when there is a potential for bacterial contamination in the tap water, often due to issues like loss of pressure from main breaks, equipment failure, or flooding. These can be planned or unplanned."
+
+  # Population — categories
+  population_size: "The Environmental Protection Agency classifies public water systems into five size categories based on population served."
+
+  # More — categories
+  funding_2021_2025: "The Drinking Water State Revolving Fund program assists public water systems in financing the cost of drinking water infrastructure projects needed to achieve or maintain compliance with Safe Drinking Water Act. Data here comes from EPA's SRF Portal."
+
   # Violations - Count
   groundwater_rule: "The ground water rule provides protection against microbial pathogens in public water systems using ground water sources."
   surface_water_treatment: "The surface water treatment rules require water systems to filter and disinfect surface water sources."
@@ -12,14 +30,14 @@ filter_menus:
   stage_2_disinfectants: "Violations for stage 2 disinfectants occur when public water systems exceed the maximum exposures for total trihalomethanes and haloacetic acids, byproducts in water disinfected with chlorine or chloramine."
 
   # Population — Change
-  population_change: "Population change shows the percent change in total population served by the water system over the most recent census period."
-  income_change: "Median household income change shows the percent change in median household income for the service area over the most recent census period."
+  population_change: "Population change shows the percent change in total population served by the water system from 2021 & 2011."
+  income_change: "Median household income change shows the percent change in median household income for the service area from 2021 & 2011."
 
   # Population — Socioeconomics
   poverty_rate: "Poverty rate is the percentage of households in the service area living below the federal poverty level."
   unemployment_rate: "Unemployment rate is the percentage of the labor force in the service area that is unemployed and actively seeking work."
   median_household_income: "Median household income is the midpoint income for all households in the service area, based on the most recent Census data."
-  higher_education: "Higher education rate is the percentage of residents 25 and older in the service area who hold a bachelor's degree or higher."
+  higher_education: "Higher education rate is the percentage of the population whose highest level of educational attainment is a bachelor's degree."
   children_under_5: "Children under 5 is the percentage of the service area population aged 4 years and younger, a group with heightened sensitivity to water quality issues."
   elderly_over_61: "Elderly population is the percentage of the service area population aged 61 and older, a group with increased vulnerability to water quality impacts."
 
@@ -55,45 +73,6 @@ filter_menus:
   risk_management_facilities: "Facilities that handle hazardous substances are required to have a risk management plan. This shows the number of facilities with risk management plans in the water system's source watershed."
   impaired_streams: "Depending on water quality measurements, a waterbody may be impaired or threatened. This shows the number of impaired or threatened streams within a water system's source watershed. Note, there may be state to state differences in this data."
 
-# System / profile context (legacy #tt-* on summary cards and similar)
-system:
-  source: "The source of your water can affect its quality and safety. Most of the drinking water in the U.S. comes from reservoirs, lakes, rivers, or water under the ground."
-  protection: "Source water protections safeguard, maintain, and improve the quality and/or quantity of drinking water. Please note the availability of this data varies by state."
-  wholesaler: "Wholesalers treat source water and then provide some or all of that water to other public water systems."
-  service_area_type: "Service area boundaries show the extent of the area served by a water system. Modeled systems are estimated based on the quality of available data."
-  violations: "Violations occur when a water system fails to meet drinking water standards. Systems with violations, especially health-based ones, can face penalties and are required to notify customers."
-  boil_water_notices: "Boil water notices are issued when there is a potential for bacterial contamination in the tap water, often due to issues like loss of pressure from main breaks, equipment failure, or flooding. These can be planned or unplanned."
-  system_size: "The Environmental Protection Agency classifies public water systems into five size categories based on population served."
-
-# Equity & vulnerability indices (legacy #tt-disadvantaged-area, etc.)
-equity_and_vulnerability:
-  disadvantaged_area: "The Climate and Economic Justice Screening Tool identified areas that are overburdened and underserved."
-  social_vulnerability_index: "The Centers for Disease Control Social Vulnerability Index shows which communities are especially at risk during public health emergencies or other disasters."
-  climate_vulnerability_index: "The US Climate Vulnerability Index identifies communities that face the greatest challenges from climate change."
-
-# Billing & infrastructure funding
-billing_and_funding:
-  annual_water_sewer_bill: "Annual water and sewer bill data comes from the Census. Data here represents the mode or most common rate paid by the service population and does not represent direct water system rates."
-  drinking_water_srf: "The Drinking Water State Revolving Fund program assists public water systems in financing the cost of drinking water infrastructure projects needed to achieve or maintain compliance with Safe Drinking Water Act. Data here comes from EPA's SRF Portal."
-
-# Source watershed / hazard filters (legacy #tt-watershed-hazards and related)
-watershed:
-  filters_intro: "These filters can be used to evaluate potential environmental hazards within the watershed the system is pulling from."
-  source_water_connections: "This variable shows the number of source water connections, ground and surface, this water system has, as found in EPA's How's My Waterway."
-  pollution_permits_with_breaches: "Discharge points are permitted to regulate contaminants released into the environment. This shows the number of permits with violations in the water system's source watershed."
-  underground_storage_tanks: "Underground storage tanks are often safe, but some may leak into the environment. This shows the number of active underground storage tanks in the water system's source watershed."
-  risk_management_plan_facilities: "Facilities that handle hazardous substances are required to have a risk management plan. This shows the number of facilities with risk management plans in the water system's source watershed."
-  streams_impaired_or_threatened: "Depending on water quality measurements, a waterbody may be impaired or threatened. This shows the number of impaired or threatened streams within a water system's source watershed. Note, there may be state to state differences in this data."
-
 # Data export affordances
 exports:
   geojson: "GeoJSON files can be exported here by state and additional filtering. Full data downloads are also available on the Downloads page."
-
-# Short UI chrome strings
-ui:
-  print_report: "Print report"
-  close_report: "Close report"
-
-# Dev/demo: requires allowHTML + interactive tooltip behavior in the client
-examples:
-  link_with_html: "Tooltip example with a <a href=\"#\" target=\"_blank\">link</a> and <em>light</em> <strong>html formatting</strong> should the need ever arise."

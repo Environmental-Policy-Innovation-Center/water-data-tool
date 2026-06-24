@@ -33,6 +33,13 @@ RSpec.describe Filters::CategoryComponent, type: :component do
       expect(cls).to include("[.filter-dropdown-more_&]:text-neutral-900")
       expect(cls).to include("[.filter-dropdown-more_&]:bg-white")
     end
+
+    it "includes More-panel padding overrides to tighten heading spacing in the More menu" do
+      render_inline(component)
+      cls = html.at_css("h3")["class"]
+      expect(cls).to include("[.filter-dropdown-more_&]:pt-3")
+      expect(cls).to include("[.filter-dropdown-more_&]:pb-0")
+    end
   end
 
   context "light variant" do
@@ -44,6 +51,31 @@ RSpec.describe Filters::CategoryComponent, type: :component do
       expect(cls).to include("text-neutral-900")
       expect(cls).to include("bg-white")
       expect(cls).to include("font-bold")
+    end
+  end
+
+  context "without tooltip_text" do
+    it "renders no tooltip icon" do
+      render_inline(component)
+      expect(html.at_css("[data-controller='tooltip']")).to be_nil
+    end
+  end
+
+  context "with tooltip_text" do
+    subject(:component) { described_class.new(label: "Violations", tooltip_text: "Some tooltip copy") }
+
+    it "renders a tooltip span inside the heading" do
+      render_inline(component)
+      span = html.at_css("h3 [data-controller='tooltip']")
+      expect(span).to be_present
+      expect(span["data-tooltip-text-value"]).to eq("Some tooltip copy")
+    end
+
+    it "includes mouseenter/mouseleave actions" do
+      render_inline(component)
+      span = html.at_css("h3 [data-controller='tooltip']")
+      expect(span["data-action"]).to include("mouseenter->tooltip#show")
+      expect(span["data-action"]).to include("mouseleave->tooltip#hide")
     end
   end
 

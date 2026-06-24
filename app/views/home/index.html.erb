@@ -191,6 +191,12 @@
                 <input type="radio" name="file-type" id="file-geojson" value="geojson"
                        class="file-geojson m-0" data-export-target="format">
                 <label for="file-geojson" class="file-geojson">.geojson</label>
+                <span class="relative inline-block cursor-default"
+                      data-controller="tooltip"
+                      data-tooltip-text-value="<%= exports_tooltips['geojson'] %>"
+                      data-action="mouseenter->tooltip#show mouseleave->tooltip#hide">
+                  <%= icon "info", classes: "h-3.5 w-3.5 inline align-middle" %>
+                </span>
               </span>
             </span>
           </div>
