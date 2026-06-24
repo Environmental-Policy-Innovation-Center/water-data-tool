@@ -646,6 +646,8 @@ export default class extends Controller {
   }
 
   #onResetAll() {
+    const geocoderInput = document.querySelector(".mapboxgl-ctrl-geocoder--input")
+    if (geocoderInput) geocoderInput.value = ""
     if (!this.selectedState && !FilterState.get().state) return
     this.#enterNationMode({ fitDefault: false, resetMaxZoom: false })
     if (this.map.getZoom() > NATION_MAX_ZOOM) {

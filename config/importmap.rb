@@ -10,6 +10,7 @@ pin_all_from "app/javascript/controllers", under: "controllers"
 pin "url_state_codec", to: "url_state_codec.js"
 pin "url_sync", to: "url_sync.js"
 pin "filter_state", to: "filter_state.js"
+pin "search_state", to: "search_state.js"
 pin "stats_frame", to: "stats_frame.js"
 pin "selection_state", to: "selection_state.js"
 

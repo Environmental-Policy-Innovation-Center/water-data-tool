@@ -1,5 +1,6 @@
 import { Controller } from "@hotwired/stimulus"
 import * as FilterState from "filter_state"
+import * as SearchState from "search_state"
 import * as SelectionState from "selection_state"
 import { colsFromUrl } from "url_state_codec"
 
@@ -28,17 +29,17 @@ export default class extends Controller {
     if (!csrfToken) { console.error("CSRF token not found"); return }
     append("authenticity_token", csrfToken)
 
-    // Sort, direction, and search are rendered into the DOM by the server on each frame render.
+    // Sort and direction are rendered into the DOM by the server on each frame render.
     // They live in the Turbo Frame URL (not window.location), so they must be read from the DOM.
     const queryState = document.getElementById("table-query-state")
     const sort = queryState?.dataset.sort
     const direction = queryState?.dataset.direction
-    const search = queryState?.dataset.search
 
     if (SelectionState.isAllMode()) {
       for (const [key, value] of new URLSearchParams(FilterState.toUrlParams())) {
         append(key, value)
       }
+      const search = SearchState.get()
       if (search) append("search", search)
       if (!SelectionState.isAllChecked()) {
         SelectionState.getExcludedIds().forEach(id => append("exclude_pwsids[]", id))

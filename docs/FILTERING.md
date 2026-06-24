@@ -29,6 +29,20 @@ Design rationale and a phased checklist for the registry work live in [REFACTOR_
 
 ---
 
+## Table Search
+
+Table search is a separate mechanism from the faceted filter system — it is **not** a `Filterable` filter, not in `FilterRegistry`, and not in the `FILTERS` array in `filter_controller.js`. It runs as a post-filter `ILIKE` query via `Sortable#apply_search` after `apply_filters` has already narrowed the scope.
+
+**State:** The search term lives in `SearchState` (a separate singleton from `FilterState`) and is encoded into `?encoded=` as a top-level `"search"` key alongside `"filters"` and `"cols"`. `HomeController#table` reads it from `decoded_state["search"]` independently of `filter_params`.
+
+**Scope:** Searches across `pws_name`, `pwsid`, `stusps`, and `counties` using case-insensitive `ILIKE`. Applied to the already-filtered scope — search narrows within whatever the faceted filters return, not the full dataset. Zero results is expected and correct when search and geographic filters conflict; the search input itself (with the browser's native × clear) is the primary visual affordance. The table `<caption>` also describes the active search term but is `sr-only` (screen readers only).
+
+**Lifecycle:** Written to `SearchState` on debounce (300ms, 2-character minimum). Unaffected by filter Apply (lives outside `FilterState`). Cleared by Reset All (`filter:reset-all` event). Does not affect the map endpoint.
+
+**What it is not:** Unlike the "Place" filter (Source menu), which filters by a census place geoid and affects both map and table, the search term only affects the table. It is not a faceted dimension and carries no badge count.
+
+---
+
 ## Taxonomy
 
 Five levels describe every filter option in the system. Use these terms consistently in code, comments, and documentation.

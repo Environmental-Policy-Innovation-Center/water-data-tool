@@ -5,14 +5,14 @@
   <span id="table-query-state"
         data-sort="<%= params[:sort] %>"
         data-direction="<%= params[:direction] %>"
-        data-search="<%= params[:search] %>"></span>
+        data-search="<%= @search_term %>"></span>
 
   <%# Single scroll region handles both axes; sticky <th top-0> sticks within this container %>
   <div class="table-scroll overflow-auto flex-1 min-h-0" role="region" aria-label="Public water systems data" tabindex="0">
     <%# border-separate (not border-collapse) is required; border-collapse prevents sticky cells from painting over scrolled content %>
     <table class="border-separate border-spacing-0 text-sm">
       <caption class="sr-only">
-        Public water systems — <%= @pagy.count %> total<%= params[:search].present? ? ", filtered by search: #{h params[:search]}" : "" %>
+        Public water systems — <%= @pagy.count %> total<%= @search_term.present? ? ", filtered by search: #{h @search_term}" : "" %>
       </caption>
       <thead>
         <tr>
