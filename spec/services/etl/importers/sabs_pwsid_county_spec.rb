@@ -66,6 +66,14 @@ RSpec.describe Etl::Importers::SabsPwsidCounty do
       expect(PublicWaterSystem.find_by(pwsid: "UNKNOWN999")).to be_nil
     end
 
+    it "returns an import result without tile refresh layers" do
+      result = importer.import!(rows)
+
+      expect(result).to eq(
+        Etl::ImportResult.imported(file_key: "sabs_pwsid_county", changed_layers: [])
+      )
+    end
+
     context "when a pwsid has only blank county_served rows in the CSV" do
       let!(:pws_with_existing_counties) { create(:public_water_system, pwsid: "VT0000006", counties: "Existing County, VT") }
 
