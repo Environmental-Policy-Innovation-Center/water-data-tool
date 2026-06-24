@@ -36,7 +36,7 @@ RSpec.describe TileImpact do
     expect(impacts.keys).to all(match(/\Apws:\d+\z/))
     expected_zooms = (0..described_class::MAX_ZOOM).select { |z| TileGenerator.layers_for_zoom(z).include?("pws") }
     expect(impacts.keys.map { |key| key.split(":").last.to_i }).to contain_exactly(*expected_zooms)
-    expect(impacts.values.flatten(1).uniq.size).to eq(impacts.values.flatten(1).size)
+    expect(impacts.values).to all(satisfy { |coords| coords.uniq.size == coords.size })
   end
 
   it "includes adjacent edge tiles via the configured margin" do
