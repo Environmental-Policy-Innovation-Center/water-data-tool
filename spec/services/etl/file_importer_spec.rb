@@ -9,7 +9,7 @@ RSpec.describe Etl::FileImporter do
       end
 
       def import!(rows)
-        # no-op in test subclass
+        imported_result
       end
     end
   end
@@ -25,13 +25,13 @@ RSpec.describe Etl::FileImporter do
 
   describe "#call" do
     context "when no prior import exists for this file_url" do
-      it "downloads and imports the file, returning :imported" do
+      it "downloads and imports the file, returning an ImportResult" do
         allow(importer).to receive(:download).and_return("csv content")
-        expect(importer).to receive(:import!).once
-        expect(importer.call).to eq(:imported)
+        expect(importer).to receive(:import!).once.and_call_original
+        expect(importer.call).to have_attributes(status: :imported, file_key: "data")
       end
 
-      it "does not treat arbitrary imported?-responding objects as import results" do
+      it "raises when import! returns an arbitrary imported?-responding object" do
         raw_result = Class.new do
           def imported? = true
         end.new
@@ -39,21 +39,18 @@ RSpec.describe Etl::FileImporter do
         allow(importer).to receive(:download).and_return("csv content")
         allow(importer).to receive(:import!).and_return(raw_result)
 
-        expect(importer.call).to have_attributes(
-          status: :imported,
-          full_refresh_required: true
-        )
+        expect { importer.call }.to raise_error(Etl::FileImporter::InvalidImportResultError)
       end
 
       it "records a DataImport entry" do
         allow(importer).to receive(:download).and_return("csv content")
-        allow(importer).to receive(:import!)
+        allow(importer).to receive(:import!).and_call_original
         expect { importer.call }.to change(DataImport, :count).by(1)
       end
 
       it "stores the correct file_url on the DataImport record" do
         allow(importer).to receive(:download).and_return("csv content")
-        allow(importer).to receive(:import!)
+        allow(importer).to receive(:import!).and_call_original
         importer.call
         expect(DataImport.last.file_url).to eq(file_url)
       end
@@ -66,9 +63,9 @@ RSpec.describe Etl::FileImporter do
 
       let(:last_updated) { 2.hours.ago }
 
-      it "skips the import, returning :skipped" do
+      it "skips the import, returning a skipped ImportResult" do
         expect(importer).not_to receive(:download)
-        expect(importer.call).to eq(:skipped)
+        expect(importer.call).to have_attributes(status: :skipped, file_key: "data")
       end
 
       it "does not create a new DataImport record" do
@@ -85,7 +82,7 @@ RSpec.describe Etl::FileImporter do
 
       it "downloads and imports the file" do
         allow(importer).to receive(:download).and_return("csv content")
-        expect(importer).to receive(:import!).once
+        expect(importer).to receive(:import!).once.and_call_original
         importer.call
       end
     end
@@ -101,7 +98,7 @@ RSpec.describe Etl::FileImporter do
 
       it "imports even when file has not changed" do
         allow(importer).to receive(:download).and_return("csv content")
-        expect(importer).to receive(:import!).once
+        expect(importer).to receive(:import!).once.and_call_original
         importer.call
       end
     end
@@ -120,6 +117,30 @@ RSpec.describe Etl::FileImporter do
         expect { importer.call }.to raise_error(Etl::FileImporter::EmptyImportError)
         expect(DataImport.count).to eq(0)
       end
+    end
+  end
+
+  describe "result helpers" do
+    it "lets subclasses return imported results with metadata" do
+      result = importer.send(
+        :imported_result,
+        changed_pwsids: ["VT0000001", "VT0000001"],
+        changed_layers: ["pws"]
+      )
+
+      expect(result).to have_attributes(
+        file_key: "data",
+        status: :imported,
+        changed_pwsids: ["VT0000001"],
+        changed_layers: ["pws"]
+      )
+    end
+
+    it "lets subclasses return skipped results" do
+      expect(importer.send(:skipped_result)).to have_attributes(
+        file_key: "data",
+        status: :skipped
+      )
     end
   end
 

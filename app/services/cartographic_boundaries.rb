@@ -57,6 +57,7 @@ class CartographicBoundaries
 
     LAYERS.each { |layer| load_layer(layer, tmp_dir, conn, pg_conn_string, pg_password) }
     record_import
+    Etl::ImportResult.imported(file_key: IMPORT_FILE_URL, full_refresh_required: true)
   end
 
   private

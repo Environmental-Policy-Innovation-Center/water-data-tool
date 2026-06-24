@@ -137,6 +137,7 @@ RSpec.describe Etl::PostImportSteps do
   describe ".call" do
     before do
       insert_state("VT", VERMONT_STATE_WKT)
+      allow(CartographicBoundaries).to receive(:loaded?).and_return(true)
       allow(CartographicBoundaries).to receive(:load)
       allow(described_class).to receive(:rebuild_spatial_indexes)
       allow(TileCacheWarmJob).to receive(:perform_later)
@@ -146,6 +147,15 @@ RSpec.describe Etl::PostImportSteps do
       expect(TileCacheWarmJob).not_to receive(:perform_later)
       expect(CartographicBoundaries).not_to receive(:load)
       described_class.call(imported_files: [])
+    end
+
+    it "raises when normal ETL omits import result metadata" do
+      expect { described_class.call }.to raise_error(ArgumentError, /import_results/)
+    end
+
+    it "raises when import_results contains non-ImportResult metadata" do
+      expect { described_class.call(import_results: [:imported]) }
+        .to raise_error(ArgumentError, /Etl::ImportResult/)
     end
 
     it "busts tile cache and warms tiles for non-geometry imports" do
@@ -176,6 +186,16 @@ RSpec.describe Etl::PostImportSteps do
 
       expect(TileImpact).to have_received(:for_pwsids).with(["VT0000001"], layers: ["pws"])
       expect(TileImpact).to have_received(:enqueue_refreshes).with(impacts)
+    end
+
+    it "does not enqueue tile work for non-map imports with changed pwsids but no changed layers" do
+      result = Etl::ImportResult.imported(file_key: "sdwis_viols", changed_pwsids: ["VT0000001"], changed_layers: [])
+
+      expect(TileImpact).not_to receive(:for_pwsids)
+      expect(TileImpact).not_to receive(:enqueue_refreshes)
+      expect(TileCacheWarmJob).not_to receive(:perform_later)
+
+      described_class.call(import_results: [result])
     end
 
     it "uses the full refresh path when imported result metadata requires it" do
@@ -214,7 +234,6 @@ RSpec.describe Etl::PostImportSteps do
       expect(calls).to eq([
         [:fix_invalid_geometries, ["VT0000001"]],
         [:generate_centroids, ["VT0000001"]],
-        [:load_boundaries, nil],
         [:assign_state_codes, ["VT0000001"]],
         [:analyze_spatial_tables, nil],
         [:build_place_crosswalks, ["VT0000001"]]
@@ -252,10 +271,48 @@ RSpec.describe Etl::PostImportSteps do
       )
     end
 
-    it "loads CartographicBoundaries for geometry imports even when boundaries are already loaded" do
+    it "does not reload CartographicBoundaries for selective geometry imports when boundaries are already loaded" do
       allow(CartographicBoundaries).to receive(:loaded?).and_return(true)
+      result = Etl::ImportResult.imported(
+        file_key: "epa_sabs_geoms",
+        changed_pwsids: ["VT0000001"],
+        changed_layers: %w[pws places],
+        geometry_changed: true
+      )
+
+      allow(described_class).to receive(:fix_invalid_geometries)
+      allow(described_class).to receive(:generate_centroids)
+      allow(described_class).to receive(:assign_state_codes)
+      allow(described_class).to receive(:analyze_spatial_tables)
+      allow(described_class).to receive(:build_place_crosswalks).and_return([])
+      allow(TileImpact).to receive(:for_pwsids).and_return({})
+      allow(TileImpact).to receive(:for_place_geoids).and_return({})
+      allow(TileImpact).to receive(:enqueue_refreshes)
+
+      expect(CartographicBoundaries).not_to receive(:load)
+      described_class.call(import_results: [result])
+    end
+
+    it "loads CartographicBoundaries for selective geometry imports when boundaries are missing" do
+      allow(CartographicBoundaries).to receive(:loaded?).and_return(false)
+      result = Etl::ImportResult.imported(
+        file_key: "epa_sabs_geoms",
+        changed_pwsids: ["VT0000001"],
+        changed_layers: %w[pws places],
+        geometry_changed: true
+      )
+
+      allow(described_class).to receive(:fix_invalid_geometries)
+      allow(described_class).to receive(:generate_centroids)
+      allow(described_class).to receive(:assign_state_codes)
+      allow(described_class).to receive(:analyze_spatial_tables)
+      allow(described_class).to receive(:build_place_crosswalks).and_return([])
+      allow(TileImpact).to receive(:for_pwsids).and_return({})
+      allow(TileImpact).to receive(:for_place_geoids).and_return({})
+      allow(TileImpact).to receive(:enqueue_refreshes)
+
       expect(CartographicBoundaries).to receive(:load)
-      described_class.call(imported_files: ["epa_sabs_geoms"])
+      described_class.call(import_results: [result])
     end
 
     it "busts tile cache and warms tiles after geometry enrichment completes" do

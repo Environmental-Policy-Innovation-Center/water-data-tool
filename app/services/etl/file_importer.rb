@@ -3,10 +3,10 @@ module Etl
     include Etl::HttpFetcher
 
     EmptyImportError = Class.new(StandardError)
+    InvalidImportResultError = Class.new(StandardError)
 
     # Backward-compatible alias — existing code and specs reference this constant.
     InsecureUrlError = Etl::HttpFetcher::InsecureUrlError
-    LEGACY_IMPORT_STATUSES = [:imported, :skipped].freeze
 
     def initialize(file_url:, last_updated:, force: false)
       @file_url = file_url
@@ -19,7 +19,7 @@ module Etl
 
       unless needs_import?
         log("[ETL] #{filename}: skipped (unchanged since last import)")
-        return Etl::ImportResult.skipped(file_key: file_key)
+        return skipped_result
       end
 
       log("[ETL] #{filename}: downloading...")
@@ -32,18 +32,29 @@ module Etl
       rows = parse(content)
       validate!(rows)
       result = import!(rows)
+      validate_import_result!(result)
       record_import
       log("[ETL] #{filename}: import complete")
-      return result if import_result?(result)
+      result
+    end
 
-      Etl::ImportResult.imported(file_key: file_key, full_refresh_required: true)
+    protected
+
+    def validate_import_result!(result)
+      return if result.is_a?(Etl::ImportResult)
+
+      raise InvalidImportResultError, "#{self.class}#import! must return Etl::ImportResult, got #{result.class}"
+    end
+
+    def imported_result(**metadata)
+      Etl::ImportResult.imported(file_key: file_key, **metadata)
+    end
+
+    def skipped_result
+      Etl::ImportResult.skipped(file_key: file_key)
     end
 
     private
-
-    def import_result?(result)
-      result.is_a?(Etl::ImportResult) || LEGACY_IMPORT_STATUSES.include?(result)
-    end
 
     def needs_import?
       return true if @force

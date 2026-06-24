@@ -15,8 +15,8 @@ RSpec.describe Etl::ImportResult do
     expect(result.previous_geometry_bboxes).to eq([[-73, 44, -72, 45]])
   end
 
-  it "keeps symbol equality for existing importer specs and call sites" do
-    expect(described_class.imported(file_key: "epa_sabs")).to eq(:imported)
-    expect(described_class.skipped(file_key: "epa_sabs")).to eq(:skipped)
+  it "does not compare equal to legacy status symbols" do
+    expect(described_class.imported(file_key: "epa_sabs")).not_to eq(:imported)
+    expect(described_class.skipped(file_key: "epa_sabs")).not_to eq(:skipped)
   end
 end

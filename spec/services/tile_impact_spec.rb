@@ -75,9 +75,19 @@ RSpec.describe TileImpact do
   it "enqueues refresh jobs in bounded batches" do
     allow(TileCacheRefreshJob).to receive(:perform_later)
 
-    described_class.enqueue_refreshes({"pws:5" => [[1, 2], [3, 4], [5, 6]]}, batch_size: 2)
+    job_count = described_class.enqueue_refreshes({"pws:5" => [[1, 2], [3, 4], [5, 6]]}, batch_size: 2)
 
     expect(TileCacheRefreshJob).to have_received(:perform_later).with(layer: "pws", z: 5, coords: [[1, 2], [3, 4]])
     expect(TileCacheRefreshJob).to have_received(:perform_later).with(layer: "pws", z: 5, coords: [[5, 6]])
+    expect(job_count).to eq(2)
+  end
+
+  it "returns zero refresh jobs for empty impacts" do
+    allow(TileCacheRefreshJob).to receive(:perform_later)
+
+    job_count = described_class.enqueue_refreshes({})
+
+    expect(TileCacheRefreshJob).not_to have_received(:perform_later)
+    expect(job_count).to eq(0)
   end
 end

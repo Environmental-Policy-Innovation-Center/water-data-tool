@@ -138,6 +138,17 @@ RSpec.describe CartographicBoundaries do
         expect(import.imported_at).to be_within(5.seconds).of(Time.current)
       end
 
+      it "returns an imported ImportResult after the audit row is recorded" do
+        result = instance.load
+
+        expect(result).to have_attributes(
+          file_key: "cartographic-boundaries",
+          status: :imported,
+          full_refresh_required: true
+        )
+        expect(DataImport.last.file_url).to eq("cartographic-boundaries")
+      end
+
       private
 
       def fake_zip_tempfile

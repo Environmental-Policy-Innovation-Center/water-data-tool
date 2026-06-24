@@ -24,13 +24,13 @@ module Etl
       end
 
       def import!(rows)
-        return Etl::ImportResult.imported(file_key: file_key) if rows.empty?
+        return imported_result if rows.empty?
 
         known_pwsids = PublicWaterSystem.where(pwsid: rows.map { |r| r[:pwsid] }).pluck(:pwsid).to_set
         valid_rows = rows.select { |r| known_pwsids.include?(r[:pwsid]) }
 
         PublicWaterSystem.upsert_all(valid_rows, unique_by: :pwsid, update_only: [:counties]) if valid_rows.any?
-        Etl::ImportResult.imported(file_key: file_key)
+        imported_result
       end
     end
   end
