@@ -281,6 +281,18 @@ RSpec.describe "Home", type: :request do
       expect(response.body).not_to include("Blue River Authority")
     end
 
+    it "includes the search term in the sr-only caption" do
+      create(:public_water_system, pws_name: "Aloha Water District")
+      get table_path, params: {encoded: encode_state({"search" => "aloha"})}
+      expect(response.body).to include("filtered by search: aloha")
+    end
+
+    it "omits the search phrase from the sr-only caption when no search is active" do
+      create(:public_water_system, pws_name: "Aloha Water District")
+      get table_path
+      expect(response.body).not_to include("filtered by search:")
+    end
+
     it "sorts null values last when sorting ascending" do
       create(:public_water_system, pws_name: "Null System", area_sq_miles: nil)
       create(:public_water_system, pws_name: "Data System", area_sq_miles: 10.0)
