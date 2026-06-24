@@ -353,7 +353,7 @@ export default class extends Controller {
       layout: { visibility: "visible" },
       paint: {
         "line-color": "#999",
-        "line-width": ["case", HOVER_STATE_EXPR, 1, 0]
+        "line-width": ["case", HOVER_STATE_EXPR, 2, 0]
       }
     }, firstLineId)
 
