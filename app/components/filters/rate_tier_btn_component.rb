@@ -8,17 +8,19 @@ class Filters::RateTierBtnComponent < ViewComponent::Base
     "[&.active]:bg-[#eff6ea] [&.active]:!text-black [&.active]:!border-l [&.active]:!border-[#66a03b] " \
     "#{FOCUS_RING_CLASSES}".freeze
 
-  def initialize(id:, label:, position: :middle)
+  def initialize(id:, label:, position: :middle, active: false)
     @id = id
     @label = label
     @position = position
+    @active = active
   end
 
   def button_classes
-    case @position
+    positioned = case @position
     when :first then class_names(BASE_CLASSES, "border-l rounded-l-[10px]")
     when :last then class_names(BASE_CLASSES, "rounded-r-[10px]")
     else BASE_CLASSES
     end
+    class_names(positioned, "active" => @active)
   end
 end

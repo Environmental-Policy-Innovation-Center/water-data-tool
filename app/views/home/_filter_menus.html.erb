@@ -114,18 +114,10 @@
       <p class="my-2.5 mx-0 px-[15px] py-1.5 text-sm font-bold text-neutral-700">Area in square miles</p>
       <div class="mb-5">
         <select id="area-min" aria-label="Minimum area (sq mi)" class="toggle-select min-select left bg-white border border-neutral-400 rounded-md py-2.5 px-[18px] w-[40%] ml-[15px] text-[.9em]">
-          <option value="0" selected>No minimum</option>
-          <option value="1">1</option><option value="2">2</option><option value="4">4</option>
-          <option value="5">5</option><option value="10">10</option><option value="15">15</option>
-          <option value="20">20</option><option value="25">25</option><option value="50">50</option>
-          <option value="100">100</option><option value="250">250</option><option value="500">500</option>
+          <%= range_select_options(steps: HomeHelper::AREA_STEPS, param: "area", bound: :min) %>
         </select>
         <select id="area-max" aria-label="Maximum area (sq mi)" class="toggle-select max-select right bg-white border border-neutral-400 rounded-md py-2.5 px-[18px] w-[40%] ml-[15px] text-[.9em]">
-          <option value="1">1</option><option value="2">2</option><option value="4">4</option>
-          <option value="5">5</option><option value="10">10</option><option value="15">15</option>
-          <option value="20">20</option><option value="25">25</option><option value="50">50</option>
-          <option value="100">100</option><option value="250">250</option><option value="500">500</option>
-          <option value="999999" selected>No maximum</option>
+          <%= range_select_options(steps: HomeHelper::AREA_STEPS, param: "area", bound: :max) %>
         </select>
       </div>
     <% end %>
@@ -334,10 +326,11 @@
   <div id="container-menu-10-items">
     <%= render Filters::CategoryComponent.new(label: "Financial", variant: :default, tooltip_text: filter_tooltips["annual_water_sewer_bill"]) do %>
       <ul class="my-[6px] mb-[10px] mx-0 list-none px-1">
+        <% rate_tier_on = filter_active?("most_common_rate_tier") %>
         <li class="<%= filter_row_classes %>">
           <input type="checkbox" class="toggle" id="more-rate-tier"
                  data-action="change->filter#toggleRateTierPanel"
-                 data-panel-id="subcat-rate-tier">
+                 data-panel-id="subcat-rate-tier" <%= checked_if rate_tier_on %>>
           <label for="more-rate-tier">Annual water and sewer bill</label>
           <span class="relative ml-1 inline-block cursor-default"
                 data-controller="tooltip"
@@ -348,24 +341,24 @@
           <button type="button" class="<%= filter_info_button_classes %>"
                   data-action="click->filter#toggleSubcatPanel"
                   data-panel-id="subcat-rate-tier"
-                  aria-expanded="false" aria-controls="subcat-rate-tier">
-            <%= icon("arrow-down", classes: collapse_toggle_icon_classes) %>
+                  aria-expanded="<%= rate_tier_on %>" aria-controls="subcat-rate-tier">
+            <%= icon("arrow-down", classes: collapse_toggle_icon_classes(expanded: rate_tier_on)) %>
           </button>
-          <div id="subcat-rate-tier" class="hidden pb-2" data-subcat-panel>
+          <div id="subcat-rate-tier" class="<%= rate_tier_on ? "pb-2" : "hidden pb-2" %>" data-subcat-panel>
             <p class="my-2 ml-[10px] text-[.9em] font-semibold text-neutral-700">Amount paid by most customers</p>
             <div class="flex my-[10px] ml-[10px] mr-0" role="group" aria-label="Annual water and sewer bill tier">
-              <%= render Filters::RateTierBtnComponent.new(id: "rate-tier-lt125", label: "Under $125", position: :first) %>
-              <%= render Filters::RateTierBtnComponent.new(id: "rate-tier-125-249", label: "$125–249") %>
-              <%= render Filters::RateTierBtnComponent.new(id: "rate-tier-250-499", label: "$250–499") %>
-              <%= render Filters::RateTierBtnComponent.new(id: "rate-tier-500-749", label: "$500–749") %>
-              <%= render Filters::RateTierBtnComponent.new(id: "rate-tier-750-999", label: "$750–999") %>
-              <%= render Filters::RateTierBtnComponent.new(id: "rate-tier-gt1000",  label: "Over $1,000", position: :last) %>
+              <%= render Filters::RateTierBtnComponent.new(id: "rate-tier-lt125", label: "Under $125", position: :first, active: filter_checked?("most_common_rate_tier", "under_125")) %>
+              <%= render Filters::RateTierBtnComponent.new(id: "rate-tier-125-249", label: "$125–249", active: filter_checked?("most_common_rate_tier", "tier_125_249")) %>
+              <%= render Filters::RateTierBtnComponent.new(id: "rate-tier-250-499", label: "$250–499", active: filter_checked?("most_common_rate_tier", "tier_250_499")) %>
+              <%= render Filters::RateTierBtnComponent.new(id: "rate-tier-500-749", label: "$500–749", active: filter_checked?("most_common_rate_tier", "tier_500_749")) %>
+              <%= render Filters::RateTierBtnComponent.new(id: "rate-tier-750-999", label: "$750–999", active: filter_checked?("most_common_rate_tier", "tier_750_999")) %>
+              <%= render Filters::RateTierBtnComponent.new(id: "rate-tier-gt1000",  label: "Over $1,000", position: :last, active: filter_checked?("most_common_rate_tier", "over_1000")) %>
             </div>
             <ul class="list-none px-1">
               <li class="<%= filter_row_classes %>">
                 <div class="flex items-start">
                   <input type="checkbox" class="toggle mt-0.5 shrink-0" id="rate-tier-no-info"
-                         data-action="change->filter#onRateTierNoInfoChange">
+                         data-action="change->filter#onRateTierNoInfoChange" <%= checked_if filter_checked?("most_common_rate_tier", "no_information") %>>
                   <label for="rate-tier-no-info" class="leading-snug">Show systems with no available information on rates</label>
                 </div>
               </li>
@@ -464,18 +457,10 @@
       <p class="my-2.5 mx-0 px-[15px] py-1.5 text-sm font-bold text-neutral-700">People per square mile</p>
       <div class="mb-5">
         <select id="density-min" aria-label="Minimum density (people/sq mi)" class="toggle-select min-select left bg-white border border-neutral-400 rounded-md py-2.5 px-[18px] w-[40%] ml-[15px] text-[.9em]">
-          <option value="0" selected>No minimum</option>
-          <option value="1">1</option><option value="10">10</option><option value="20">20</option>
-          <option value="50">50</option><option value="100">100</option><option value="250">250</option>
-          <option value="500">500</option><option value="1000">1000</option><option value="2000">2000</option>
-          <option value="4000">4000</option><option value="8000">8000</option><option value="10000">10000</option>
+          <%= range_select_options(steps: HomeHelper::DENSITY_STEPS, param: "density", bound: :min) %>
         </select>
         <select id="density-max" aria-label="Maximum density (people/sq mi)" class="toggle-select max-select right bg-white border border-neutral-400 rounded-md py-2.5 px-[18px] w-[40%] ml-[15px] text-[.9em]">
-          <option value="1">1</option><option value="10">10</option><option value="20">20</option>
-          <option value="50">50</option><option value="100">100</option><option value="250">250</option>
-          <option value="500">500</option><option value="1000">1000</option><option value="2000">2000</option>
-          <option value="4000">4000</option><option value="8000">8000</option><option value="10000">10000</option>
-          <option value="999999" selected>No maximum</option>
+          <%= range_select_options(steps: HomeHelper::DENSITY_STEPS, param: "density", bound: :max) %>
         </select>
       </div>
     <% end %>

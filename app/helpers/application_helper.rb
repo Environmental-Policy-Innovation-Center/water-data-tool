@@ -41,7 +41,11 @@ module ApplicationHelper
     end
   end
 
-  def collapse_toggle_icon_classes = COLLAPSE_TOGGLE_ICON_CLASSES
+  # The chevron defaults to -rotate-90 (collapsed); drop it to render the expanded state.
+  def collapse_toggle_icon_classes(expanded: false)
+    expanded ? COLLAPSE_TOGGLE_ICON_CLASSES.sub(" -rotate-90", "") : COLLAPSE_TOGGLE_ICON_CLASSES
+  end
+
   def download_states = DOWNLOAD_STATES
   def filter_info_button_classes = FILTER_INFO_BUTTON_CLASSES
   def filter_row_classes = FILTER_ROW_CLASSES

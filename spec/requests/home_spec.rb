@@ -68,6 +68,8 @@ RSpec.describe "Home", type: :request do
     def dom = Nokogiri::HTML(response.body)
     def checked?(id) = dom.at_css("##{id}")&.attr("checked").present?
     def label_text(id) = dom.at_css("##{id}")&.text
+    def selected_option(id) = dom.at_css("##{id} option[selected]")&.attr("value")
+    def has_class?(id, klass) = dom.at_css("##{id}")&.attr("class").to_s.split.include?(klass)
 
     context "radio filters" do
       it "checks the default radio when the param is absent" do
@@ -147,6 +149,53 @@ RSpec.describe "Home", type: :request do
         expect(checked?("primacy-type-state")).to be(true)
         expect(checked?("primacy-type-tribal")).to be(false)
         expect(checked?("primacy-type-territory")).to be(false)
+      end
+    end
+
+    context "range selects (area / density)" do
+      it "selects the no-min / no-max sentinels when the params are absent" do
+        get root_path
+        expect(selected_option("area-min")).to eq("0")
+        expect(selected_option("area-max")).to eq("999999")
+        expect(selected_option("density-min")).to eq("0")
+        expect(selected_option("density-max")).to eq("999999")
+      end
+
+      it "restores the area min/max selections" do
+        get root_path, params: {encoded: encode_state({"filters" => {"area_min" => "5", "area_max" => "100"}})}
+        expect(selected_option("area-min")).to eq("5")
+        expect(selected_option("area-max")).to eq("100")
+      end
+
+      it "restores the density min/max selections" do
+        get root_path, params: {encoded: encode_state({"filters" => {"density_min" => "50", "density_max" => "2000"}})}
+        expect(selected_option("density-min")).to eq("50")
+        expect(selected_option("density-max")).to eq("2000")
+      end
+    end
+
+    context "rate-tier buttons" do
+      it "stays collapsed and unselected when the param is absent" do
+        get root_path
+        expect(checked?("more-rate-tier")).to be(false)
+        expect(checked?("rate-tier-no-info")).to be(false)
+        expect(has_class?("rate-tier-lt125", "active")).to be(false)
+        expect(has_class?("subcat-rate-tier", "hidden")).to be(true)
+      end
+
+      it "restores active tier buttons, the derived parent, and the expanded panel" do
+        get root_path, params: {encoded: encode_state({"filters" => {"most_common_rate_tier" => ["under_125", "over_1000"]}})}
+        expect(has_class?("rate-tier-lt125", "active")).to be(true)
+        expect(has_class?("rate-tier-gt1000", "active")).to be(true)
+        expect(has_class?("rate-tier-250-499", "active")).to be(false)
+        expect(checked?("more-rate-tier")).to be(true)
+        expect(has_class?("subcat-rate-tier", "hidden")).to be(false)
+      end
+
+      it "restores the no-information option" do
+        get root_path, params: {encoded: encode_state({"filters" => {"most_common_rate_tier" => ["no_information"]}})}
+        expect(checked?("rate-tier-no-info")).to be(true)
+        expect(checked?("more-rate-tier")).to be(true)
       end
     end
   end

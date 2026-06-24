@@ -20,6 +20,10 @@ module HomeHelper
   FILTER_TOOLTIPS = TOOLTIPS.fetch("filter_menus").freeze
   EXPORTS_TOOLTIPS = TOOLTIPS.fetch("exports").freeze
 
+  # Value ladders for the area / density range-select dropdowns.
+  AREA_STEPS = [1, 2, 4, 5, 10, 15, 20, 25, 50, 100, 250, 500].freeze
+  DENSITY_STEPS = [1, 10, 20, 50, 100, 250, 500, 1000, 2000, 4000, 8000, 10000].freeze
+
   def datasets
     DATASETS
   end
@@ -61,6 +65,15 @@ module HomeHelper
   # (An all-or-none multiselect omits the param, so absent means "all defaults".)
   def filter_option_checked?(param, value, default: false)
     filter_active?(param) ? filter_checked?(param, value) : default
+  end
+
+  # The <option>s for one side of a range-select, with the option matching the current
+  # filter state (or the no-minimum / no-maximum sentinel, when unset) marked selected.
+  def range_select_options(steps:, param:, bound:)
+    sentinel = (bound == :min) ? ["No minimum", "0"] : ["No maximum", "999999"]
+    numeric = steps.map { |n| [n.to_s, n.to_s] }
+    choices = (bound == :min) ? [sentinel] + numeric : numeric + [sentinel]
+    options_for_select(choices, filter_range_value(param, bound).presence || sentinel.last)
   end
 
   def tooltip_icon(text)
