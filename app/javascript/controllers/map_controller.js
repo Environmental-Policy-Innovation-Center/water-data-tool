@@ -449,11 +449,25 @@ export default class extends Controller {
       this.#cancelStateLeaveTimer()
       const props = this.#statePropsFromEvent(e)
       if (!props) return
-      if (this.#systemsModeActive() && this.#stateIsSelected(props)) {
+
+      if (this.selectedState) {
+        this.#clearStateHover()
+        if (this.#stateClickEnabled(props)) {
+          this.map.getCanvas().style.cursor = "pointer"
+          this.#showStatePrompt(e.lngLat)
+        } else {
+          this.map.getCanvas().style.cursor = ""
+          this.#removeStatePrompt()
+        }
+        return
+      }
+
+      if (!this.#stateHoverEnabled()) {
+        this.map.getCanvas().style.cursor = ""
+        this.#clearStateHover()
         this.#removeStatePrompt()
         return
       }
-      if (!this.#stateHoverEnabled(props)) return
 
       this.map.getCanvas().style.cursor = "pointer"
       if (props.geoid !== this.hoveredStateId) {
@@ -708,7 +722,13 @@ export default class extends Controller {
       return
     }
 
-    this.mapMode = this.#systemsModeActive() ? MODE_SYSTEMS : MODE_STATE
+    const nextMode = this.#systemsModeActive() ? MODE_SYSTEMS : MODE_STATE
+    this.mapMode = nextMode
+    this.#clearStateHover()
+    if (nextMode === MODE_SYSTEMS) {
+      this.map.getCanvas().style.cursor = ""
+      this.#removeStatePrompt()
+    }
   }
 
   #systemsModeActive() {
@@ -776,12 +796,12 @@ export default class extends Controller {
     if (event?.originalEvent) event.originalEvent.__wdtPwsClickHandled = true
   }
 
-  #stateHoverEnabled(props) {
-    return !this.#systemsModeActive() || !this.#stateIsSelected(props)
+  #stateHoverEnabled() {
+    return !this.selectedState && this.mapMode === MODE_NATION
   }
 
   #stateClickEnabled(props) {
-    return !this.#systemsModeActive() || !this.#stateIsSelected(props)
+    return !this.selectedState || !this.#stateIsSelected(props)
   }
 
   #stateIsSelected(props) {
