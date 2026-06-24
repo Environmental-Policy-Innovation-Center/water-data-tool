@@ -15,12 +15,19 @@ class FilterLayout
     @menus ||= config.fetch(:menus)
   end
 
+  def self.reload!
+    @config = nil
+    @menus = nil
+    @placements = nil
+    placements
+  end
+
   # Every leaf field placement, in layout order (filters with sub-filters are flattened
   # to their sub-filters).
   def self.placements
     @placements ||= menus.flat_map do |menu_key, menu|
-      menu.fetch(:categories).flat_map do |category_key, filters|
-        filters.flat_map { |filter| placements_for(filter, menu_key, category_key) }
+      menu.fetch(:categories).flat_map do |category_key, category|
+        category.fetch(:filters).flat_map { |filter| placements_for(filter, menu_key, category_key) }
       end
     end.freeze
   end
@@ -30,22 +37,15 @@ class FilterLayout
     placements.map(&:key)
   end
 
-  def self.reload!
-    @config = nil
-    @menus = nil
-    @placements = nil
-    placements
-  end
-
-  # A filter is a field key (String) sitting directly in its category, or a
-  # { filter_key => [sub-filter keys] } Hash whose sub-filters nest under that filter.
+  # A filter is a field key (String) sitting directly in its category, or a parent filter
+  # { filter_key => { …, sub_filters: [keys] } } Hash whose sub-filters nest under it.
   def self.placements_for(filter, menu_key, category_key)
     case filter
     when String
       [Placement.new(key: filter.to_sym, menu: menu_key, category: category_key, parent: nil)]
     when Hash
-      filter.flat_map do |filter_key, subfilters|
-        subfilters.map { |key| Placement.new(key: key.to_sym, menu: menu_key, category: category_key, parent: filter_key) }
+      filter.flat_map do |filter_key, body|
+        body.fetch(:sub_filters).map { |key| Placement.new(key: key.to_sym, menu: menu_key, category: category_key, parent: filter_key) }
       end
     else
       raise "unexpected filter_layout filter: #{filter.inspect}"

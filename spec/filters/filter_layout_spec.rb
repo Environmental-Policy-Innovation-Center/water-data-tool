@@ -2,35 +2,43 @@
 
 require "rails_helper"
 
-# Backstop for the placement split (CONFIG_AUDIT §8.4): config/filter_layout.yml is only
-# safe as a second file if a spec proves it stays in lockstep with the manifest. These
-# examples assert the layout references every menu-tagged filter field exactly once and
-# places each one where its manifest tags say it belongs — so when the interim tags are
-# later removed from fields.yml, the layout has already been proven their faithful
-# (ordered, nested) superset. Taxonomy (docs/FILTERING.md): menu → category → filter →
-# sub-filter; the manifest's interim level-2 tag `section:` maps 1:1 to layout Category.
+# Backstop for the placement split (CONFIG_AUDIT §8.4): config/filter_layout.yml is only safe as
+# a second file with a spec proving it stays in lockstep with the manifest. Placement now lives
+# ONLY in the layout (the interim menu/section tags were removed from fields.yml), so the invariant
+# is membership: every surfaced filter appears in the layout exactly once, every backend-only filter
+# stays out, and parent (grouping) keys are never themselves fields. Taxonomy (docs/FILTERING.md):
+# menu → category → filter → sub-filter.
 RSpec.describe FilterLayout do
-  let(:menu_fields) { FieldRegistry.fields.select { |f| f.filter && f.filter[:menu] } }
+  let(:filterable) { FieldRegistry.fields.select(&:filter) }
+  let(:surfaced) { filterable.reject { |f| f.filter[:backend_only] } }
+  let(:backend_only) { filterable.select { |f| f.filter[:backend_only] } }
 
-  describe ".field_keys" do
-    it "references each menu-tagged filter field exactly once (no orphans, no duplicates)" do
-      expect(FilterLayout.field_keys.sort).to eq(menu_fields.map(&:key).sort)
-    end
+  it "references every surfaced filter exactly once, and no others" do
+    expect(FilterLayout.field_keys.sort).to eq(surfaced.map(&:key).sort)
   end
 
-  describe ".placements" do
-    it "places every field in the menu and category its manifest tags declare" do
-      tags_by_key = menu_fields.to_h { |f| [f.key, [f.filter[:menu].to_sym, f.filter[:section]&.to_sym]] }
+  it "keeps backend-only filters out of the layout" do
+    expect(FilterLayout.field_keys & backend_only.map(&:key)).to be_empty
+  end
 
-      FilterLayout.placements.each do |p|
-        expect([p.menu, p.category]).to eq(tags_by_key.fetch(p.key)),
-          "#{p.key} sits under #{p.menu}/#{p.category} in the layout but is tagged #{tags_by_key[p.key].inspect} in the manifest"
+  it "nests sub-filters only under parent keys that are not themselves manifest fields" do
+    parents = FilterLayout.placements.filter_map(&:parent).uniq
+    expect(parents & FieldRegistry.fields.map(&:key)).to be_empty
+  end
+
+  # Tooltip refs (manifest filter tooltips + layout category/parent tooltips) must resolve to a
+  # real key in tooltips.yml — a typo would otherwise silently render no tooltip.
+  it "every filter tooltip references a real key in tooltips.yml" do
+    valid = HomeHelper::FILTER_TOOLTIPS.keys.to_set
+    manifest_refs = filterable.filter_map { |f| f.filter[:tooltip] }
+    layout_refs = FilterLayout.menus.flat_map do |_menu_key, menu|
+      menu.fetch(:categories).flat_map do |_category_key, category|
+        parent_tips = category.fetch(:filters).filter_map { |f| f.values.first[:tooltip] if f.is_a?(Hash) }
+        [category[:tooltip], *parent_tips]
       end
-    end
+    end.compact
 
-    it "nests sub-filters only under parent filter keys that are not themselves manifest fields" do
-      parents = FilterLayout.placements.filter_map(&:parent).uniq
-      expect(parents & FieldRegistry.fields.map(&:key)).to be_empty
-    end
+    unresolved = (manifest_refs + layout_refs).map(&:to_s).uniq.reject { |t| valid.include?(t) }
+    expect(unresolved).to be_empty
   end
 end

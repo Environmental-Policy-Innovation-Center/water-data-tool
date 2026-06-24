@@ -384,16 +384,26 @@ output. Result: 77 fewer hand-written config lines and no alias map for the data
       its manifest tags declare; panels are layout-only ids, never field keys. The 5 menu-less filter
       fields (`total_population`, `no_health_insurance_rate`, `owner_rate`, `renter_rate`,
       `population_in_poverty_rate`) are backend-only and correctly absent.
-- [ ] Remove the interim `menu`/`section` tags from `fields.yml` (placement now lives only in the
-      layout file). **Blocked-by:** the backstop currently cross-checks the layout *against* those tags;
-      remove them only once the menu ERB is generated from the layout (so the layout becomes authoritative
-      and the spec's invariant switches from tag-parity to manifest-membership).
+- [x] **Populate filter copy & state (the "where it lives" decision applied).** Manifest `filter:`
+      blocks gained `label` / `tooltip` (ref) / `options` (radio·multiselect·pop_cat·rate_tier, each value +
+      label); the layout categories + parent-filters gained `label` / `tooltip`. Option values pulled from the
+      live JS maps (`OWNER_TYPE_MAP`, `POP_CAT_MAP`, `RATE_TIER_BTN_MAP`, etc.; radio "Both" = null value =
+      no filter).
+- [x] **Removed the interim `menu`/`section` tags from `fields.yml`** — placement now lives only in
+      `filter_layout.yml`. The 5 backend-only filters are marked `filter.backend_only: true`; the layout
+      reshaped to `category → {label, tooltip?, filters}` and parent-filter `→ {label, tooltip?, sub_filters}`.
+      Backstop spec flipped from tag-parity to **membership**: every surfaced filter is in the layout exactly
+      once, backend-only stays out, parent keys are never fields. Full suite green (929).
+- [x] **`default`/initial-state designation** — two distinct concepts, each one job:
+      **(1) `default: true`** marks an initially-on choice — placed on the option (radio/multiselect/pop_cat/
+      rate_tier; e.g. all six `owner_type` options) or on a default-checked bool. **(2) `has_select_all: true`**
+      (manifest, flat multiselects only — e.g. `owner_type`; `primacy_type` omits it) means "render a
+      select-all/deselect-all control" and carries *no* state. A parent-filter's check-all is **implied by its
+      `sub_filters`** (no flag in the layout). Either control's checked appearance is **derived** from its
+      members' `default`, never declared (mirrors the app's `syncSelectAll`/`syncParentFromSubcat`).
+      *(Was the open Phase-4/5 TODO.)*
 - [ ] Generate `_filter_menus.html.erb` from `filter_layout.yml` × `fields.yml` **and**
-      server-render filter state from decoded URL state in the same pass.
-- [ ] **Add a default/initial-state designation for filters** (e.g. a `default:` — default range,
-      pre-selected option, active-on-load). Decide where it lives: manifest `filter:` block vs.
-      the layout file (initial UI state is arguably presentation). Wire it into the
-      server-rendered initial state. *(Raised during Phase 4; nothing consumes it until here.)*
+      server-render filter state from decoded URL state in the same pass. *(The browser-QA-heavy step.)*
 - [ ] Delete `#restoreDomState`; slim `FILTERS[]` to interaction-only.
 - [ ] Add request-spec coverage per control type + `view=` URL support (FSR Phase 3).
 - [ ] Close out `docs/open_items/FILTER_SERVER_RENDER.md`.
@@ -581,11 +591,13 @@ filter or L4 sub-filter) has a record in `fields.yml`. Menus, categories, and pa
 (`health_5yr`, `watershed_hazards`) do **not** — they are layout-only grouping / check-all tools.
 
 - **Has a record → all its copy & state live in the manifest** `filter:` block: the menu `label`,
-  the `tooltip` ref (into `tooltips.yml`), the `default` / initial state, and — for radio /
-  multiselect — the ordered `options` (each `value` + `label` + `default`). Note `filter.label` is
-  the MENU label, a separate key from the table `display.label` (the two differ ≈half the time).
+  the `tooltip` ref (into `tooltips.yml`), and — for radio / multiselect — the ordered `options`
+  (each `value` + `label`, with `default: true` on the initially-on ones) plus `has_select_all` for a
+  flat multiselect that has a bulk control. Note `filter.label` is the MENU label, a separate key
+  from the table `display.label` (the two differ ≈half the time).
 - **No record → its copy & state live in `filter_layout.yml`**: the menu / category / parent-filter
-  `label`, `tooltip` ref, and `default` / `select_all`.
+  `label` and `tooltip` ref. A parent-filter's check-all is implied by its `sub_filters` (no flag), and
+  any bulk control's checked appearance is *derived* from its members' `default`, never declared.
 
 The **layout always owns the tree** — which menu/category a filter sits in, the order of filters /
 categories / sub-filters, and the nesting. It does *not* reach inside a filter to reorder its
@@ -593,8 +605,8 @@ options (option order is intrinsic to the field → manifest). **`tooltips.yml` 
 tooltip text.**
 
 So: **field → manifest, container → layout, text → tooltips.yml.** One rule, no per-field special
-cases, every setting in exactly one file — and the check-all containers keep their behavior via the
-layout's `select_all`. *These keys are added in the generator step (Phase 5 increment 2), not the
+cases, every setting in exactly one file — flat multiselects flag a bulk control with `has_select_all`,
+parent-filters get theirs implicitly from `sub_filters`. *These keys are added in the generator step (Phase 5 increment 2), not the
 initial placement-only `filter_layout.yml`.*
 
 ---

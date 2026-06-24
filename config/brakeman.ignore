@@ -1,11 +1,11 @@
 {
   "ignored_warnings": [
     {
-      "fingerprint": "24b3f5829f502d88df4e0d255d992afef200b519b858a2375630b2ec71207e3b",
+      "fingerprint": "8074a51f6be2d2ea5633aece0154e4e23894282f29807d4f0f16ca55a3e380fd",
       "note": "False positive. Interpolated values in fetch_feature_batch: (1) properties_sql — built from ColumnRegistry.geojson_columns, which derives sql_expr values from the fields.yml manifest at boot; all keys via conn.quote(), columns via conn.quote_column_name(); (2) filtered_ids_sql — AR scope .to_sql, all user filter values parameterised by AR before SQL is emitted; (3) quoted — conn.quote(last_pwsid); (4) ASSOCIATION_JOINS — frozen constant; (5) BATCH_SIZE — integer constant."
     },
     {
-      "fingerprint": "c5b912a9cfaf41e3c285dcef0b8862efbf432be110c88519103e6b51b2c44abb",
+      "fingerprint": "5904e1eb185a2e42324e03d1cb60f31875ce92d79a2c019c62d119fab573ecda",
       "note": "False positive. Interpolated values in fetch_csv_batch: (1) col_sql — built from ColumnRegistry.csv_columns (sql_expr values from the fields.yml manifest, frozen at boot), joined once before batch iteration; (2) ASSOCIATION_JOINS — frozen constant; (3) quoted_ids — pwsids from @scope.pluck(:pwsid) then each passed through conn.quote()."
     }
   ]
