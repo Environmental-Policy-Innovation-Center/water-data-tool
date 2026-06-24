@@ -46,7 +46,7 @@ Badge and export behavior:
 
 Export always uses POST (CSRF token, avoids URL length limits). The server has two paths: `apply_filters + apply_search + where.not(pwsid: excluded)` vs `where(pwsid: included)`. Both paths apply the current sort order. The exclusion model was chosen because it keeps payloads small at every realistic threshold — a user unchecking 3 of 5,000 rows sends 3 IDs, not 4,997.
 
-**Sort/search state in the DOM.** The server renders current sort/direction/search into a `#table-query-state` span inside the frame on every frame navigation. `export_controller.js` reads from this span so exports match what the user sees; `filter_controller.js` reads it after each frame load to sync sort/direction into the page URL. See `docs/decisions/URL_MANAGEMENT.md` for the full URL state design.
+**Sort/search state in the DOM.** The server renders current sort/direction into a `#table-query-state` span inside the frame on every frame navigation. `export_controller.js` reads `data-sort`/`data-direction` from this span and reads the active search term from `SearchState.get()` directly; `filter_controller.js` reads sort/direction after each frame load to sync them into the page URL. See `docs/decisions/URL_MANAGEMENT.md` for the full URL state design.
 
 ### Manage Columns (`cols=`)
 
@@ -79,6 +79,7 @@ Column visibility and display order persist in the `cols=` URL param (comma-sepa
 | Sort states | 3-state (DataTables default) | 3-state — third click clears params |
 | Tiebreaker | Implicit (array pre-sorted by `pws_name ASC`) | Explicit `pws_name ASC` appended to every `ORDER BY` |
 | Pagination | Client-side (all rows loaded) | Server-side via Pagy |
+| Search | Client-side global filter across all loaded rows and columns | Server-side `ILIKE` on `pws_name`, `pwsid`, `stusps`, `counties` only |
 
 ---
 
@@ -93,6 +94,7 @@ app/views/home/_manage_columns_list.html.erb
 app/controllers/concerns/sortable.rb        ← SORTABLE_COLUMNS, TABLE_JOINS, sort/search logic (shared by Home + Exports)
 app/javascript/controllers/
   table_frame_controller.js                 ← preserves horizontal scroll across Turbo Frame reloads
+  table_search_controller.js               ← debounced search input; reads/writes SearchState; handles filter:reset-all
   filter_controller.js                      ← reloads data-table Turbo Frame on filter change
   manage_columns_controller.js              ← column panel draft, SortableJS, Show Columns apply
   export_controller.js                      ← builds and submits POST form on export
@@ -105,6 +107,27 @@ docs/table_reboot.md                        ← row selection & export architect
 ---
 
 ## Key Patterns
+
+### Table Search (`table_search_controller.js`)
+
+The search box sits in the filter tab bar (`#filter-tabs`), visible only in table mode (`hidden group-[.table-mode]/map:flex`). It searches server-side via `Sortable#apply_search` across four columns:
+
+| Column | What it covers |
+|---|---|
+| `pws_name` | Utility name |
+| `pwsid` | Utility ID (prefix and substring match) |
+| `stusps` | 2-letter state code (`TX`, `OR`, etc.) |
+| `counties` | County name text |
+
+**Behavior:**
+- **2-character minimum** — input is ignored until the term reaches 2 characters. Clearing the field back to 0 fires immediately.
+- **300ms debounce** — standard delay; only one request fires after the user stops typing.
+- **Applied immediately** — no submit button. On debounce expiry, `SearchState` is updated, `syncToUrl()` encodes it into `?encoded=` as a top-level `search` key alongside filter params, and the `data-table` Turbo Frame reloads.
+- **Persists through filter Apply** — search lives in `SearchState`, separate from `FilterState`, so clicking Apply on a filter menu never touches it.
+- **Cleared by Reset All** — `filter:reset-all` event is handled by `table_search_controller`, which clears the DOM input and calls `SearchState.clear()` before `apply()` rebuilds state.
+- **Persists across map/table toggle** — search is committed to the URL and FilterState on debounce; switching to the map and back returns the same table state. The map endpoint (`home#map`) does not call `apply_search`, so map dot visibility is unaffected by the search term.
+- **Combined with filters narrows further** — `HomeController#table` runs `apply_filters` first, then `apply_search` on the resulting scope. A search for "Springfield" while filtered to Oregon will only match Springfield-named systems in Oregon. Zero results is expected and correct — the browser's native input clear (×) or Reset All provide exit paths. The table caption (`sr-only`) describes the active search term for screen readers.
+- **Exports** — `export_controller.js` reads `SearchState.get()` and appends it as a flat `search` param. `ExportsController` reads `params[:search]` and applies `apply_search` to the export scope.
 
 ### Sort link (`home_helper.rb`)
 Cycles unsorted → asc → desc → unsorted. Third click drops `sort`/`direction` params. Icon is stacked ▲▼ triangles — active direction is `text-gray-600`, inactive is `text-gray-300`. Only the label underlines on hover via Tailwind `group`/`group-hover:underline` (not the icon).

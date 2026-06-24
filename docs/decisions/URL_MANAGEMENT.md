@@ -2,7 +2,7 @@
 
 ## The Problem
 
-User state — filters and column visibility — is encoded in the URL. This is intentional: it makes views bookmarkable and shareable, a core use case. Sort and direction are also persisted in the URL (as explicit params), but page number and search are not — both are ephemeral and reset on every table reload.
+User state — filters, column visibility, and table search — is encoded in the URL. This is intentional: it makes views bookmarkable and shareable, a core use case. Sort and direction are also persisted in the URL (as explicit params), but page number is not — it is ephemeral and resets on every table reload.
 
 Two pressure points exist as the app grows:
 
@@ -25,16 +25,15 @@ A third related problem: **selected-row exports** previously passed individual P
 
 | Param | What it holds | Notes |
 |---|---|---|
-| `encoded` | Zlib+Base64 blob: `{ filters: {...}, cols: "..." }` | Omitted entirely when no filters are active AND columns are at default |
+| `encoded` | Zlib+Base64 blob: `{ filters: {...}, cols: "...", search: "..." }` | Omitted entirely when no filters, search, or non-default columns are active |
 | `sort` | Sort column key, e.g. `stusps` | Always explicit — never inside the blob |
 | `direction` | `asc` or `desc` | Always explicit — never inside the blob |
 | `page` | **Not in the URL** | Ephemeral — always resets to page 1 on any table reload |
-| `search` | **Not in the URL** | Ephemeral — stored in `#table-query-state` DOM span for export only |
 | `view` | **Deferred — not yet in the URL** | Active section (map/table/etc.) driven by `nav_controller.js#show()` on click. Implementing this cleanly requires the filter server-render refactor first: today, initial page state is restored by client-side JS in `filter_controller#connect()`; adding a second controller doing the same for `view=` creates cross-controller coordination risk (double table frame load). After the server-render refactor, `HomeController#index` decodes all URL state once and the template renders the correct section in the initial HTML — no connect-time coordination needed. See `docs/open_items/FILTER_SERVER_RENDER.md`. |
 
 ### Blob structure
 
-The blob is a Zlib-compressed, URL-safe Base64-encoded JSON object. It holds two keys:
+The blob is a Zlib-compressed, URL-safe Base64-encoded JSON object. It holds three top-level keys:
 
 ```json
 {
@@ -42,7 +41,7 @@ The blob is a Zlib-compressed, URL-safe Base64-encoded JSON object. It holds two
     "gw_sw_code": "GW",               // radio filter — single value
     "owner_type": ["Local", "Federal"] // multi-select filter — array
   },
-  "cols": "counties,stusps,-pwsid,-grant_eligible"
+  "cols": "counties,stusps,-pwsid,-grant_eligible",
   //        ^^^^^^^^  ^^^^^^   ^^^^^^   ^^^^^^^^^^^^^
   //        visible   visible  hidden   hidden
   //
@@ -50,6 +49,8 @@ The blob is a Zlib-compressed, URL-safe Base64-encoded JSON object. It holds two
   // Plain key  → column is visible in the table.
   // -key       → column is hidden; position preserved for when it's re-enabled.
   // Omitted entirely when all columns are visible AND in the default YAML order.
+
+  "search": "Springfield"             // omitted when no search is active
 }
 ```
 
@@ -59,7 +60,9 @@ The blob is a Zlib-compressed, URL-safe Base64-encoded JSON object. It holds two
 
 **Column order and the `-` prefix** come from the Manage Columns panel. Dragging columns reorders the list; unchecking a column adds the `-` prefix. Clicking "Show Columns" writes the full panel sequence into the blob. "Reset" removes `cols` from the blob entirely (restoring YAML default order, all visible).
 
-`filters` is omitted when no filters are active. When both `filters` and `cols` are omitted, `encoded=` is dropped entirely — the URL returns to bare `/`.
+**`search`** holds the raw search term from the table search box. It is stored as a top-level key — not inside `filters` — because it is not a filter in the domain sense: it does not narrow the map, affect filter badges, or participate in filter state merging. It is owned by `SearchState` (a separate singleton from `FilterState`) and read by `HomeController#table` from `decoded_state["search"]`. Reset All clears it via the `filter:reset-all` event.
+
+`filters` is omitted when no filters are active. When all three keys are absent, `encoded=` is dropped entirely — the URL returns to bare `/`.
 
 ### When params are added / cleared
 
@@ -67,11 +70,13 @@ The blob is a Zlib-compressed, URL-safe Base64-encoded JSON object. It holds two
 
 | Event | Result |
 |---|---|
-| Filter applied | Rebuilt from scratch: set if filters exist OR cols are non-default |
+| Filter applied | Rebuilt from scratch: set if filters exist OR cols are non-default OR search is active |
 | Columns hidden/shown (Show Columns) | Existing blob decoded, `cols` key updated in place with full panel sequence (plain keys for visible, `-key` for hidden), re-encoded |
 | Columns drag-reordered (Show Columns) | Same as above — drag order is reflected in the `cols` key sequence |
-| Reset All filters | Rebuilt with empty FilterState — dropped if cols also at default |
-| Column picker Reset (all cols, YAML order) | `cols` removed from blob; if no filters remain, `encoded=` dropped |
+| Reset All filters | Rebuilt with empty FilterState and cleared SearchState — dropped if cols also at default |
+| Column picker Reset (all cols, YAML order) | `cols` removed from blob; if no filters or search remain, `encoded=` dropped |
+| Table search — 2+ chars typed (debounced) | `search` key set in blob via `SearchState`; blob rebuilt |
+| Table search — cleared or < 2 chars | `search` key removed from blob; blob dropped if nothing else active |
 
 **`sort` + `direction`**
 

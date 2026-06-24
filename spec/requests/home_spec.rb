@@ -265,10 +265,18 @@ RSpec.describe "Home", type: :request do
       expect(response.body).not_to include("State System")
     end
 
-    it "searches by pws_name" do
+    it "searches by pws_name via encoded state" do
       create(:public_water_system, pws_name: "Aloha Water District")
       create(:public_water_system, pws_name: "Blue River Authority")
-      get table_path, params: {search: "aloha"}
+      get table_path, params: {encoded: encode_state({"search" => "aloha"})}
+      expect(response.body).to include("Aloha Water District")
+      expect(response.body).not_to include("Blue River Authority")
+    end
+
+    it "searches by pwsid via encoded state" do
+      create(:public_water_system, pws_name: "Aloha Water District", pwsid: "TX0010001")
+      create(:public_water_system, pws_name: "Blue River Authority", pwsid: "OR0020002")
+      get table_path, params: {encoded: encode_state({"search" => "TX001"})}
       expect(response.body).to include("Aloha Water District")
       expect(response.body).not_to include("Blue River Authority")
     end

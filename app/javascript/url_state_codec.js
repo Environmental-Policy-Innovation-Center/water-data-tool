@@ -21,19 +21,23 @@ export const decodeState = (str) => {
   }
 }
 
-export const colsFromUrl = (search = window.location.search) => {
+const stateKeyFromUrl = (key, search = window.location.search) => {
   const blob = new URLSearchParams(search).get("encoded")
-  return blob ? (decodeState(blob).cols ?? null) : null
+  return blob ? (decodeState(blob)[key] ?? null) : null
 }
+
+export const colsFromUrl    = (search) => stateKeyFromUrl("cols",    search)
+export const searchFromUrl  = (search) => stateKeyFromUrl("search",  search)
 
 export const sortFromUrl = (search = window.location.search) => {
   const sp = new URLSearchParams(search)
   return { sort: sp.get("sort"), direction: sp.get("direction") }
 }
 
-export const buildEncodedParam = ({ filters = {}, cols = null } = {}) => {
+export const buildEncodedParam = ({ filters = {}, cols = null, search = null } = {}) => {
   const state = {}
   if (Object.keys(filters).length > 0) state.filters = filters
   if (cols !== null) state.cols = cols
+  if (search) state.search = search
   return encodeState(state)
 }

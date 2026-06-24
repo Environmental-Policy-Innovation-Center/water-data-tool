@@ -14,8 +14,9 @@ class HomeController < ApplicationController
   end
 
   def table
+    @search_term = decoded_state["search"].to_s.strip
     scope = PublicWaterSystem.apply_filters(filter_params)
-    scope = apply_search(scope, params[:search].to_s.strip) if params[:search].present?
+    scope = apply_search(scope, @search_term) if @search_term.present?
     scope = apply_sort_join(scope)
     preloads = [:violations_summary, :demographic, :trend_datum, :environmental_justice,
       :funding_summary, :watershed_hazard, :boil_water_summary]
