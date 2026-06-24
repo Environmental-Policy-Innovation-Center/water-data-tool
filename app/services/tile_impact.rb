@@ -1,5 +1,5 @@
 module TileImpact
-  MIN_ZOOM = 5
+  MIN_ZOOM = 0
   MAX_ZOOM = 8
   DEFAULT_MARGIN_TILES = 1
   PWSID_ARRAY_TYPE = ActiveRecord::ConnectionAdapters::PostgreSQL::OID::Array.new(ActiveModel::Type::String.new)
