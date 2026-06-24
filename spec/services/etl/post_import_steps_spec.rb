@@ -234,6 +234,7 @@ RSpec.describe Etl::PostImportSteps do
       expect(calls).to eq([
         [:fix_invalid_geometries, ["VT0000001"]],
         [:generate_centroids, ["VT0000001"]],
+        [:load_boundaries, nil],
         [:assign_state_codes, ["VT0000001"]],
         [:analyze_spatial_tables, nil],
         [:build_place_crosswalks, ["VT0000001"]]
@@ -271,7 +272,7 @@ RSpec.describe Etl::PostImportSteps do
       )
     end
 
-    it "does not reload CartographicBoundaries for selective geometry imports when boundaries are already loaded" do
+    it "reloads CartographicBoundaries for selective geometry imports when boundaries are already loaded" do
       allow(CartographicBoundaries).to receive(:loaded?).and_return(true)
       result = Etl::ImportResult.imported(
         file_key: "epa_sabs_geoms",
@@ -289,7 +290,7 @@ RSpec.describe Etl::PostImportSteps do
       allow(TileImpact).to receive(:for_place_geoids).and_return({})
       allow(TileImpact).to receive(:enqueue_refreshes)
 
-      expect(CartographicBoundaries).not_to receive(:load)
+      expect(CartographicBoundaries).to receive(:load)
       described_class.call(import_results: [result])
     end
 
