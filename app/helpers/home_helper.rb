@@ -32,6 +32,37 @@ module HomeHelper
     EXPORTS_TOOLTIPS
   end
 
+  # Read the decoded filter blob so the menus render their active state server-side
+  # on page load. See docs/open_items/FILTER_SERVER_RENDER.md.
+  def filter_state
+    @filter_state || {}
+  end
+
+  def filter_active?(param)
+    filter_state[param.to_s].present?
+  end
+
+  def filter_checked?(param, value)
+    current = filter_state[param.to_s]
+    current.is_a?(Array) ? current.include?(value) : current == value
+  end
+
+  def filter_range_value(param_base, bound)
+    filter_state["#{param_base}_#{bound}"]
+  end
+
+  # Emits the `checked` attribute when the condition holds, nothing otherwise.
+  def checked_if(condition)
+    "checked" if condition
+  end
+
+  # A radio/multiselect option's checked state: when the param is set, whether it
+  # includes this value; when the param is absent, the option's manifest default.
+  # (An all-or-none multiselect omits the param, so absent means "all defaults".)
+  def filter_option_checked?(param, value, default: false)
+    filter_active?(param) ? filter_checked?(param, value) : default
+  end
+
   def tooltip_icon(text)
     content_tag(:span, class: "relative ml-1 inline-block cursor-default",
       data: {controller: "tooltip", tooltip_text_value: text,

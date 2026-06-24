@@ -34,6 +34,107 @@ RSpec.describe HomeHelper, type: :helper do
     end
   end
 
+  describe "filter state readers" do
+    describe "#filter_state" do
+      it "returns the assigned @filter_state" do
+        assign(:filter_state, {"gw_sw_code" => "Groundwater"})
+        expect(helper.filter_state).to eq({"gw_sw_code" => "Groundwater"})
+      end
+
+      it "defaults to an empty hash when unassigned" do
+        expect(helper.filter_state).to eq({})
+      end
+    end
+
+    describe "#filter_active?" do
+      it "is true when a scalar param is present" do
+        assign(:filter_state, {"has_source_protection" => "true"})
+        expect(helper.filter_active?("has_source_protection")).to be(true)
+      end
+
+      it "is true when an array param is non-empty" do
+        assign(:filter_state, {"owner_type" => ["Federal"]})
+        expect(helper.filter_active?("owner_type")).to be(true)
+      end
+
+      it "is false when the param is absent" do
+        assign(:filter_state, {})
+        expect(helper.filter_active?("has_source_protection")).to be(false)
+      end
+
+      it "is false when an array param is empty" do
+        assign(:filter_state, {"owner_type" => []})
+        expect(helper.filter_active?("owner_type")).to be(false)
+      end
+
+      it "accepts a symbol param" do
+        assign(:filter_state, {"has_source_protection" => "true"})
+        expect(helper.filter_active?(:has_source_protection)).to be(true)
+      end
+    end
+
+    describe "#filter_checked?" do
+      it "matches a scalar value (radio)" do
+        assign(:filter_state, {"gw_sw_code" => "Groundwater"})
+        expect(helper.filter_checked?("gw_sw_code", "Groundwater")).to be(true)
+        expect(helper.filter_checked?("gw_sw_code", "Surface Water")).to be(false)
+      end
+
+      it "matches membership in an array value (multiselect)" do
+        assign(:filter_state, {"owner_type" => ["Federal", "State"]})
+        expect(helper.filter_checked?("owner_type", "Federal")).to be(true)
+        expect(helper.filter_checked?("owner_type", "Private")).to be(false)
+      end
+
+      it "is false when the param is absent" do
+        assign(:filter_state, {})
+        expect(helper.filter_checked?("gw_sw_code", "Groundwater")).to be(false)
+      end
+    end
+
+    describe "#filter_range_value" do
+      it "reads the min and max keys for a param base" do
+        assign(:filter_state, {"area_min" => "5", "area_max" => "100"})
+        expect(helper.filter_range_value("area", :min)).to eq("5")
+        expect(helper.filter_range_value("area", :max)).to eq("100")
+      end
+
+      it "returns nil when the bound is absent" do
+        assign(:filter_state, {"area_min" => "5"})
+        expect(helper.filter_range_value("area", :max)).to be_nil
+      end
+    end
+
+    describe "#filter_option_checked?" do
+      it "falls back to the option default when the param is absent" do
+        assign(:filter_state, {})
+        expect(helper.filter_option_checked?("owner_type", "Federal", default: true)).to be(true)
+        expect(helper.filter_option_checked?("gw_sw_code", "Groundwater")).to be(false)
+      end
+
+      it "uses the URL value, not the default, when the param is present (scalar)" do
+        assign(:filter_state, {"gw_sw_code" => "Groundwater"})
+        expect(helper.filter_option_checked?("gw_sw_code", "Groundwater")).to be(true)
+        expect(helper.filter_option_checked?("gw_sw_code", "Surface Water")).to be(false)
+        # the nil-valued "Both" sentinel is unchecked once a real choice is made
+        expect(helper.filter_option_checked?("gw_sw_code", nil, default: true)).to be(false)
+      end
+
+      it "uses membership when the param is present (array)" do
+        assign(:filter_state, {"owner_type" => ["Federal"]})
+        expect(helper.filter_option_checked?("owner_type", "Federal", default: true)).to be(true)
+        expect(helper.filter_option_checked?("owner_type", "State", default: true)).to be(false)
+      end
+    end
+
+    describe "#checked_if" do
+      it "emits the checked attribute when true, nothing when false" do
+        expect(helper.checked_if(true)).to eq("checked")
+        expect(helper.checked_if(false)).to be_nil
+      end
+    end
+  end
+
   describe "#cell_value" do
     let(:pws) { create(:public_water_system, pwsid: "TX1234567", pws_name: "Test Water") }
 

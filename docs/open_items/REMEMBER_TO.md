@@ -37,6 +37,8 @@ A scratchpad for docs housekeeping — things to write, update, remove, or decid
 - `OPEN_WORK_ITEMS.md` — ready to delete once fully extracted _(see `NICE_TO_HAVES.md`)_
 - `DRAG_DROP_SORTABLE_JS.md` — keep as open item or move to nice-to-have?
 
+- `mocks` directory
+
 ### Verify / Check
 
 - **Boil Water Summary filter** — placeholder exists in Notices UI but is disabled; confirm when filter is implemented

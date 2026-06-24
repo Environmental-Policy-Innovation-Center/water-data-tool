@@ -6,9 +6,9 @@
   <div id="container-menu-1-items">
     <%= render Filters::CategoryComponent.new(label: "Primary type", tooltip_text: filter_tooltips["primary_type"]) do %>
       <ul class="my-[6px] mb-[10px] mx-0 list-none px-1">
-        <li class="<%= filter_row_classes %>"><input type="radio" name="water-source" id="ws-both" checked="checked" data-default><label for="ws-both">Both ground and surface</label></li>
-        <li class="<%= filter_row_classes %>"><input type="radio" name="water-source" id="ws-ground"><label for="ws-ground">Ground only</label></li>
-        <li class="<%= filter_row_classes %>"><input type="radio" name="water-source" id="ws-surface"><label for="ws-surface">Surface only</label></li>
+        <li class="<%= filter_row_classes %>"><input type="radio" name="water-source" id="ws-both" data-default <%= checked_if filter_option_checked?("gw_sw_code", nil, default: true) %>><label for="ws-both">Both ground and surface</label></li>
+        <li class="<%= filter_row_classes %>"><input type="radio" name="water-source" id="ws-ground" <%= checked_if filter_option_checked?("gw_sw_code", "Groundwater") %>><label for="ws-ground">Ground only</label></li>
+        <li class="<%= filter_row_classes %>"><input type="radio" name="water-source" id="ws-surface" <%= checked_if filter_option_checked?("gw_sw_code", "Surface Water") %>><label for="ws-surface">Surface only</label></li>
       </ul>
     <% end %>
     <%= render Filters::CategoryComponent.new(label: "Place") do %>
@@ -45,7 +45,7 @@
     <%= render Filters::CategoryComponent.new(label: "Protection") do %>
       <ul class="my-[6px] mb-[10px] mx-0 list-none px-1">
         <li class="<%= filter_row_classes %>">
-          <input type="checkbox" class="toggle" id="has-source-water-protection">
+          <input type="checkbox" class="toggle" id="has-source-water-protection" <%= checked_if filter_active?("has_source_protection") %>>
           <label for="has-source-water-protection">Has source protection</label>
           <%= tooltip_icon(filter_tooltips["source_protection"]) %>
         </li>
@@ -62,30 +62,31 @@
         <li class="<%= filter_row_classes %>">
           <%= render UI::CircleToggleComponent.new(
                 id: "type-deselect-all",
-                label: "Deselect all",
+                checked: !filter_active?("owner_type"),
+                label: filter_active?("owner_type") ? "Select all" : "Deselect all",
                 data_action: "change->filter#toggleSelectAll",
                 input_classes: "toggle select-all default-checked"
               ) %>
         </li>
-        <li class="<%= filter_row_classes %>"><input type="checkbox" class="toggle default-checked checkbox-type" checked="checked" id="type-federal-government" data-action="change->filter#syncSelectAll"><label for="type-federal-government">Federal</label></li>
-        <li class="<%= filter_row_classes %>"><input type="checkbox" class="toggle default-checked checkbox-type" checked="checked" id="type-state-government" data-action="change->filter#syncSelectAll"><label for="type-state-government">State</label></li>
-        <li class="<%= filter_row_classes %>"><input type="checkbox" class="toggle default-checked checkbox-type" checked="checked" id="type-local-government" data-action="change->filter#syncSelectAll"><label for="type-local-government">Local</label></li>
-        <li class="<%= filter_row_classes %>"><input type="checkbox" class="toggle default-checked checkbox-type" checked="checked" id="type-native-american" data-action="change->filter#syncSelectAll"><label for="type-native-american">Tribal</label></li>
-        <li class="<%= filter_row_classes %>"><input type="checkbox" class="toggle default-checked checkbox-type" checked="checked" id="type-private" data-action="change->filter#syncSelectAll"><label for="type-private">Private</label></li>
-        <li class="<%= filter_row_classes %>"><input type="checkbox" class="toggle default-checked checkbox-type" checked="checked" id="type-public-private" data-action="change->filter#syncSelectAll"><label for="type-public-private">Public/Private partnership</label></li>
+        <li class="<%= filter_row_classes %>"><input type="checkbox" class="toggle default-checked checkbox-type" id="type-federal-government" data-action="change->filter#syncSelectAll" <%= checked_if filter_option_checked?("owner_type", "Federal", default: true) %>><label for="type-federal-government">Federal</label></li>
+        <li class="<%= filter_row_classes %>"><input type="checkbox" class="toggle default-checked checkbox-type" id="type-state-government" data-action="change->filter#syncSelectAll" <%= checked_if filter_option_checked?("owner_type", "State", default: true) %>><label for="type-state-government">State</label></li>
+        <li class="<%= filter_row_classes %>"><input type="checkbox" class="toggle default-checked checkbox-type" id="type-local-government" data-action="change->filter#syncSelectAll" <%= checked_if filter_option_checked?("owner_type", "Local", default: true) %>><label for="type-local-government">Local</label></li>
+        <li class="<%= filter_row_classes %>"><input type="checkbox" class="toggle default-checked checkbox-type" id="type-native-american" data-action="change->filter#syncSelectAll" <%= checked_if filter_option_checked?("owner_type", "Native American", default: true) %>><label for="type-native-american">Tribal</label></li>
+        <li class="<%= filter_row_classes %>"><input type="checkbox" class="toggle default-checked checkbox-type" id="type-private" data-action="change->filter#syncSelectAll" <%= checked_if filter_option_checked?("owner_type", "Private", default: true) %>><label for="type-private">Private</label></li>
+        <li class="<%= filter_row_classes %>"><input type="checkbox" class="toggle default-checked checkbox-type" id="type-public-private" data-action="change->filter#syncSelectAll" <%= checked_if filter_option_checked?("owner_type", "Public/Private", default: true) %>><label for="type-public-private">Public/Private partnership</label></li>
       </ul>
     <% end %>
     <%= render Filters::CategoryComponent.new(label: "Authority") do %>
       <ul class="my-[6px] mb-[10px] mx-0 list-none px-1">
-        <li class="<%= filter_row_classes %>"><input type="checkbox" class="toggle default-checked" checked="checked" id="primacy-type-state"><label for="primacy-type-state">State</label></li>
-        <li class="<%= filter_row_classes %>"><input type="checkbox" class="toggle default-checked" checked="checked" id="primacy-type-tribal"><label for="primacy-type-tribal">Tribal</label></li>
-        <li class="<%= filter_row_classes %>"><input type="checkbox" class="toggle default-checked" checked="checked" id="primacy-type-territory"><label for="primacy-type-territory">Territory</label></li>
+        <li class="<%= filter_row_classes %>"><input type="checkbox" class="toggle default-checked" id="primacy-type-state" <%= checked_if filter_option_checked?("primacy_type", "State", default: true) %>><label for="primacy-type-state">State</label></li>
+        <li class="<%= filter_row_classes %>"><input type="checkbox" class="toggle default-checked" id="primacy-type-tribal" <%= checked_if filter_option_checked?("primacy_type", "Tribal", default: true) %>><label for="primacy-type-tribal">Tribal</label></li>
+        <li class="<%= filter_row_classes %>"><input type="checkbox" class="toggle default-checked" id="primacy-type-territory" <%= checked_if filter_option_checked?("primacy_type", "Territory", default: true) %>><label for="primacy-type-territory">Territory</label></li>
       </ul>
     <% end %>
     <%= render Filters::CategoryComponent.new(label: "Distribution") do %>
       <ul class="my-[6px] mb-[10px] mx-0 list-none px-1">
         <li class="<%= filter_row_classes %>">
-          <input type="checkbox" class="toggle" id="is-wholesaler">
+          <input type="checkbox" class="toggle" id="is-wholesaler" <%= checked_if filter_active?("is_wholesaler") %>>
           <label for="is-wholesaler">Wholesaler</label>
           <%= tooltip_icon(filter_tooltips["wholesaler"]) %>
         </li>
@@ -93,7 +94,7 @@
     <% end %>
     <%= render Filters::CategoryComponent.new(label: "Facility type") do %>
       <ul class="my-[6px] mb-[10px] mx-0 list-none px-1">
-        <li class="<%= filter_row_classes %>"><input type="checkbox" class="toggle" id="is-school-or-daycare"><label for="is-school-or-daycare">School or daycare</label></li>
+        <li class="<%= filter_row_classes %>"><input type="checkbox" class="toggle" id="is-school-or-daycare" <%= checked_if filter_active?("is_school_or_daycare") %>><label for="is-school-or-daycare">School or daycare</label></li>
       </ul>
     <% end %>
   </div>
@@ -104,9 +105,9 @@
   <div id="container-menu-3-items">
     <%= render Filters::CategoryComponent.new(label: "Type", tooltip_text: filter_tooltips["boundary_type"]) do %>
       <ul class="my-[6px] mb-[10px] mx-0 list-none px-1">
-        <li class="<%= filter_row_classes %>"><input type="radio" name="boundary-type" id="bt-both" checked="checked" data-default><label for="bt-both">Both modeled and system sourced</label></li>
-        <li class="<%= filter_row_classes %>"><input type="radio" name="boundary-type" id="bt-modeled"><label for="bt-modeled">Modeled only</label></li>
-        <li class="<%= filter_row_classes %>"><input type="radio" name="boundary-type" id="bt-system"><label for="bt-system">System sourced only</label></li>
+        <li class="<%= filter_row_classes %>"><input type="radio" name="boundary-type" id="bt-both" data-default <%= checked_if filter_option_checked?("symbology_field", nil, default: true) %>><label for="bt-both">Both modeled and system sourced</label></li>
+        <li class="<%= filter_row_classes %>"><input type="radio" name="boundary-type" id="bt-modeled" <%= checked_if filter_option_checked?("symbology_field", "Modeled") %>><label for="bt-modeled">Modeled only</label></li>
+        <li class="<%= filter_row_classes %>"><input type="radio" name="boundary-type" id="bt-system" <%= checked_if filter_option_checked?("symbology_field", "System Sourced") %>><label for="bt-system">System sourced only</label></li>
       </ul>
     <% end %>
     <%= render Filters::CategoryComponent.new(label: "Size") do %>
@@ -136,7 +137,7 @@
   <div id="container-menu-4-items">
     <%= render Filters::CategoryComponent.new(label: "Violations", tooltip_text: filter_tooltips["violations"]) do %>
       <ul class="my-[6px] mb-[10px] mx-0 list-none px-1">
-        <li class="<%= filter_row_classes %>"><input type="checkbox" class="toggle" id="compliance-open-violations"><label for="compliance-open-violations">Open violations</label></li>
+        <li class="<%= filter_row_classes %>"><input type="checkbox" class="toggle" id="compliance-open-violations" <%= checked_if filter_active?("has_open_violations") %>><label for="compliance-open-violations">Open violations</label></li>
         <li class="<%= filter_row_classes %>">
           <input type="checkbox" class="toggle" id="viols-health-5yrs"
                  data-action="change->filter#toggleSubcat"

@@ -60,6 +60,97 @@ RSpec.describe "Home", type: :request do
     end
   end
 
+  # Filter menus are server-rendered from the decoded `encoded=` blob so a shared URL
+  # shows its active filters on load. See docs/open_items/FILTER_SERVER_RENDER.md.
+  describe "GET / filter menu server-render" do
+    # Assert against the parsed DOM rather than raw-string regex: several controls carry
+    # data-action="...->..." whose literal `>` breaks naive `[^>]*` tag matching.
+    def dom = Nokogiri::HTML(response.body)
+    def checked?(id) = dom.at_css("##{id}")&.attr("checked").present?
+    def label_text(id) = dom.at_css("##{id}")&.text
+
+    context "radio filters" do
+      it "checks the default radio when the param is absent" do
+        get root_path
+        expect(checked?("ws-both")).to be(true)
+        expect(checked?("ws-ground")).to be(false)
+      end
+
+      it "restores gw_sw_code (Groundwater) to the matching radio" do
+        get root_path, params: {encoded: encode_state({"filters" => {"gw_sw_code" => "Groundwater"}})}
+        expect(checked?("ws-ground")).to be(true)
+        expect(checked?("ws-both")).to be(false)
+        expect(checked?("ws-surface")).to be(false)
+      end
+
+      it "restores gw_sw_code (Surface Water) to the matching radio" do
+        get root_path, params: {encoded: encode_state({"filters" => {"gw_sw_code" => "Surface Water"}})}
+        expect(checked?("ws-surface")).to be(true)
+        expect(checked?("ws-both")).to be(false)
+      end
+
+      it "restores symbology_field (Modeled) to the matching boundary-type radio" do
+        get root_path, params: {encoded: encode_state({"filters" => {"symbology_field" => "Modeled"}})}
+        expect(checked?("bt-modeled")).to be(true)
+        expect(checked?("bt-both")).to be(false)
+      end
+    end
+
+    context "bool checkboxes" do
+      it "leaves bool checkboxes unchecked when their param is absent" do
+        get root_path
+        expect(checked?("has-source-water-protection")).to be(false)
+        expect(checked?("compliance-open-violations")).to be(false)
+      end
+
+      it "checks has_source_protection when set" do
+        get root_path, params: {encoded: encode_state({"filters" => {"has_source_protection" => "true"}})}
+        expect(checked?("has-source-water-protection")).to be(true)
+      end
+
+      it "checks is_wholesaler when set" do
+        get root_path, params: {encoded: encode_state({"filters" => {"is_wholesaler" => "true"}})}
+        expect(checked?("is-wholesaler")).to be(true)
+      end
+
+      it "checks has_open_violations when set" do
+        get root_path, params: {encoded: encode_state({"filters" => {"has_open_violations" => "true"}})}
+        expect(checked?("compliance-open-violations")).to be(true)
+      end
+    end
+
+    context "multi-select groups" do
+      it "checks all owner_type options and the select-all when the param is absent" do
+        get root_path
+        expect(checked?("type-federal-government")).to be(true)
+        expect(checked?("type-public-private")).to be(true)
+        expect(checked?("type-deselect-all")).to be(true)
+        expect(label_text("type-deselect-all-txt")).to eq("Deselect all")
+      end
+
+      it "restores only the selected owner_type options (partial selection)" do
+        get root_path, params: {encoded: encode_state({"filters" => {"owner_type" => ["Federal", "Native American"]}})}
+        expect(checked?("type-federal-government")).to be(true)
+        expect(checked?("type-native-american")).to be(true)
+        expect(checked?("type-state-government")).to be(false)
+        expect(checked?("type-private")).to be(false)
+      end
+
+      it "unchecks the select-all and relabels it when the owner_type selection is partial" do
+        get root_path, params: {encoded: encode_state({"filters" => {"owner_type" => ["Federal"]}})}
+        expect(checked?("type-deselect-all")).to be(false)
+        expect(label_text("type-deselect-all-txt")).to eq("Select all")
+      end
+
+      it "restores only the selected primacy_type options" do
+        get root_path, params: {encoded: encode_state({"filters" => {"primacy_type" => ["State"]}})}
+        expect(checked?("primacy-type-state")).to be(true)
+        expect(checked?("primacy-type-tribal")).to be(false)
+        expect(checked?("primacy-type-territory")).to be(false)
+      end
+    end
+  end
+
   describe "GET /map with encoded= param" do
     it "applies filters encoded in encoded=" do
       gw = create(:public_water_system, gw_sw_code: "Groundwater")

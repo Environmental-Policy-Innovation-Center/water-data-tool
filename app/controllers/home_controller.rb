@@ -6,6 +6,7 @@ class HomeController < ApplicationController
     @column_state = column_state
     @visible_col_keys = @column_state.visible_col_keys
     @panel_groups = ColumnRegistry.panel_groups(col_keys: @column_state.panel_col_keys)
+    @filter_state = filter_state
   end
 
   def map
@@ -41,12 +42,16 @@ class HomeController < ApplicationController
 
   def filter_params
     encoded_filters = ActionController::Parameters
-      .new(decoded_state["filters"] || {})
+      .new(filter_state)
       .permit(*FilterRegistry.permit_arguments)
       .to_h
     direct_filters = FilterParams.permit(params).to_h
 
     ActionController::Parameters.new(encoded_filters.merge(direct_filters)).permit(*FilterRegistry.permit_arguments)
+  end
+
+  def filter_state
+    @filter_state ||= decoded_state["filters"] || {}
   end
 
   def decoded_state
