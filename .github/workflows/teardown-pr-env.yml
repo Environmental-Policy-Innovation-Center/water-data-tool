@@ -33,7 +33,7 @@ jobs:
       PR_NUM:                ${{ github.event.inputs.pr_number }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Configure AWS credentials (PR role)
         uses: aws-actions/configure-aws-credentials@v4
