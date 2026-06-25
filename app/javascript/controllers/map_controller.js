@@ -141,7 +141,6 @@ export default class extends Controller {
     this.hoverPopup = null
     this.clickPopup = null
     this.pinnedPwsid = null
-    this.stateHoverPopup = null
     this.hoveredStateId = null
     this.hoveredPwsid = null
     this._stateLeaveTimer = null
@@ -455,20 +454,13 @@ export default class extends Controller {
 
       if (this.selectedState) {
         this.#clearStateHover()
-        if (this.#stateClickEnabled(props)) {
-          this.map.getCanvas().style.cursor = "pointer"
-          this.#showStatePrompt(e.lngLat)
-        } else {
-          this.map.getCanvas().style.cursor = ""
-          this.#removeStatePrompt()
-        }
+        this.map.getCanvas().style.cursor = this.#stateClickEnabled(props) ? "pointer" : ""
         return
       }
 
       if (!this.#stateHoverEnabled()) {
         this.map.getCanvas().style.cursor = ""
         this.#clearStateHover()
-        this.#removeStatePrompt()
         return
       }
 
@@ -481,12 +473,6 @@ export default class extends Controller {
           { hover: true }
         )
       }
-
-      if (this.#shouldShowStatePrompt(props)) {
-        this.#showStatePrompt(e.lngLat)
-      } else {
-        this.#removeStatePrompt()
-      }
     })
 
     this.map.on("mouseleave", "states", () => {
@@ -496,7 +482,6 @@ export default class extends Controller {
         this._stateLeaveTimer = null
         this.map.getCanvas().style.cursor = ""
         this.#clearStateHover()
-        this.#removeStatePrompt()
       }, 100)
     })
 
@@ -510,7 +495,6 @@ export default class extends Controller {
       const wasNationMode = this.mapMode === MODE_NATION
       const switchingState = !!this.selectedState && this.selectedState.stusps !== props.stusps
       this.#selectState(props)
-      this.#removeStatePrompt()
 
       if (wasNationMode || switchingState || this.map.getZoom() < STATE_ENTRY_ZOOM) {
         if (!this.#fitToState(props.stusps)) {
@@ -565,7 +549,6 @@ export default class extends Controller {
     this.map.on("zoomstart", () => {
       this.hoveredPwsid = null
       this.map.setFilter("pws_hover", EMPTY_PWS_FILTER)
-      this.#removeStatePrompt()
       if (this.hoverPopup) {
         this.hoverPopup.remove()
         this.hoverPopup = null
@@ -692,7 +675,6 @@ export default class extends Controller {
     this.map.setFilter("states_filter", EMPTY_STATE_FILTER)
     this.#clearStateHover()
     this.map.setFilter("pws_hover", EMPTY_PWS_FILTER)
-    this.#removeStatePrompt()
     this.#removeSystemPopups()
     this.#applyPwsFilters()
     if (syncStateFilter && hadStateScope) this.#clearStateFilter()
@@ -729,7 +711,6 @@ export default class extends Controller {
       this.mapMode = MODE_NATION
       this.#clearStateHover()
       this.map.getCanvas().style.cursor = ""
-      this.#removeStatePrompt()
       return
     }
 
@@ -738,7 +719,6 @@ export default class extends Controller {
     this.#clearStateHover()
     if (nextMode === MODE_SYSTEMS) {
       this.map.getCanvas().style.cursor = ""
-      this.#removeStatePrompt()
     }
   }
 
@@ -983,29 +963,6 @@ export default class extends Controller {
       console.error("[map] state lookup failed", err)
       return null
     }
-  }
-
-  #shouldShowStatePrompt(props) {
-    return this.mapMode === MODE_NATION || !this.#stateIsSelected(props)
-  }
-
-  #showStatePrompt(lngLat) {
-    if (!this.stateHoverPopup) {
-      this.stateHoverPopup = new window.mapboxgl.Popup({
-        closeButton: false,
-        closeOnClick: false,
-        className: "map-state-hover",
-        maxWidth: "240px"
-      }).setHTML('<span class="block px-4 py-3 text-sm font-medium">Select a state to learn more</span>')
-    }
-
-    this.stateHoverPopup.setLngLat(lngLat).addTo(this.map)
-  }
-
-  #removeStatePrompt() {
-    if (!this.stateHoverPopup) return
-    this.stateHoverPopup.remove()
-    this.stateHoverPopup = null
   }
 
   #removeSystemPopups() {

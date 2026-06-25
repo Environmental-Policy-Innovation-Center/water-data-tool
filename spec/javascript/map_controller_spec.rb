@@ -308,7 +308,7 @@ RSpec.describe "map_controller state selection" do
         controller.filteredPwsids = null
         controller.hoverPopup = null
         controller.clickPopup = null
-        controller.stateHoverPopup = null
+
         controller.activeFilterRequest = null
         controller.mapMode = "state"
         controller.map = {
@@ -370,7 +370,7 @@ RSpec.describe "map_controller state selection" do
         controller.filteredPwsids = null
         controller.hoverPopup = null
         controller.clickPopup = null
-        controller.stateHoverPopup = null
+
         controller.activeFilterRequest = null
         controller.mapMode = "state"
         controller.map = {
@@ -956,8 +956,8 @@ RSpec.describe "map_controller state selection" do
     run_node_script(script)
   end
 
-  it "keeps nation-mode state hover and prompt before a state is selected" do
-    script = map_controller_script(zoom: 3, popup: true, body: <<~JS)
+  it "keeps nation-mode state hover before a state is selected" do
+    script = map_controller_script(zoom: 3, body: <<~JS)
       mapStub.handlers["mousemove:states"]({
         lngLat: { lng: -105.5, lat: 39.0 },
         features: [{ properties: { stusps: "CO", name: "Colorado", geoid: "08" } }]
@@ -966,7 +966,6 @@ RSpec.describe "map_controller state selection" do
       const hoverCall = mapStub.featureStateCalls.find(({ feature, state }) => feature.id === "08" && state.hover === true)
       if (!hoverCall) throw new Error(`expected nation-mode hover:true, got ${JSON.stringify(mapStub.featureStateCalls)}`)
       if (mapStub.canvas.style.cursor !== "pointer") throw new Error(`expected pointer cursor, got ${mapStub.canvas.style.cursor}`)
-      if (!globalThis.popupStub?.added) throw new Error("expected state prompt to be shown")
     JS
 
     run_node_script(script)
@@ -995,7 +994,7 @@ RSpec.describe "map_controller state selection" do
   end
 
   it "keeps non-selected states clickable at the state selection level without green state hover" do
-    script = map_controller_script(zoom: 6, popup: true, body: <<~JS)
+    script = map_controller_script(zoom: 6, body: <<~JS)
       mapStub.handlers["click:states"]({
         lngLat: { lng: -105.5, lat: 39.0 },
         features: [{ properties: { stusps: "CO", name: "Colorado", geoid: "08" } }]
@@ -1010,7 +1009,6 @@ RSpec.describe "map_controller state selection" do
       const hoverCalls = mapStub.featureStateCalls.filter(({ state }) => state.hover === true)
       if (hoverCalls.length > 0) throw new Error("expected neighboring state hover to stay cleared at zoom level 2")
       if (mapStub.canvas.style.cursor !== "pointer") throw new Error(`expected neighboring state pointer cursor, got ${mapStub.canvas.style.cursor}`)
-      if (!globalThis.popupStub?.added) throw new Error("expected neighboring state prompt")
 
       mapStub.handlers["click:states"]({
         lngLat: { lng: -104.5, lat: 39.0 },
@@ -1018,106 +1016,6 @@ RSpec.describe "map_controller state selection" do
       })
 
       if (filterStateCurrent.state !== "KS") throw new Error(`expected neighboring state to remain selectable, got ${filterStateCurrent.state}`)
-    JS
-
-    run_node_script(script)
-  end
-
-  it "adds extra whitespace around the state hover prompt" do
-    script = <<~JS
-      const fs = require("fs")
-      class Controller {}
-      const filterStateCurrent = {}
-      const FilterState = {
-        get: () => ({ ...filterStateCurrent }),
-        set: (params) => {
-          Object.keys(filterStateCurrent).forEach((key) => delete filterStateCurrent[key])
-          Object.assign(filterStateCurrent, params)
-        },
-        toUrlParams: () => new URLSearchParams(filterStateCurrent)
-      }
-      global.document = {
-        head: { querySelector: () => ({ content: "token" }) },
-        querySelector: () => null,
-        getElementById: () => null,
-        addEventListener: () => {},
-        removeEventListener: () => {},
-        dispatchEvent: () => {}
-      }
-      global.CustomEvent = class {
-        constructor(type) { this.type = type }
-      }
-      global.history = { replaceState: () => {} }
-      global.window = {
-        location: new URL("http://example.test/"),
-        mapboxgl: {}
-      }
-      global.Turbo = { visit: () => {} }
-
-      class PopupStub {
-        constructor() { globalThis.popupStub = this }
-        setHTML(html) { this.html = html; return this }
-        setLngLat() { return this }
-        addTo() { return this }
-        remove() {}
-      }
-
-      class MapStub {
-        constructor() {
-          this.handlers = {}
-          this.zoom = 3
-          this.canvas = { style: {} }
-          globalThis.mapStub = this
-        }
-
-        dragRotate = { disable: () => {} }
-        touchZoomRotate = { disableRotation: () => {} }
-        getStyle() { return { layers: [{ id: "base-line", type: "line" }] } }
-        getCanvas() { return this.canvas }
-        getZoom() { return this.zoom }
-        addControl() {}
-        addSource() {}
-        addLayer() {}
-        setPaintProperty() {}
-        getLayer() { return true }
-        setFilter() {}
-        setFeatureState() {}
-        setMaxZoom() {}
-        fitBounds() {}
-        jumpTo(options) { if (options.zoom !== undefined) this.zoom = options.zoom }
-        flyTo(options) { if (options.zoom !== undefined) this.zoom = options.zoom }
-        once() {}
-        on(event, layerOrCallback, callback) {
-          if (callback) {
-            this.handlers[`${event}:${layerOrCallback}`] = callback
-          } else {
-            this.handlers[event] = layerOrCallback
-          }
-        }
-      }
-
-      window.mapboxgl.Map = MapStub
-      window.mapboxgl.NavigationControl = class {}
-      window.mapboxgl.Popup = PopupStub
-
-      let source = fs.readFileSync(#{controller_source_path.to_s.inspect}, "utf8")
-      source = source.replace(/^import .*\\n/gm, "")
-      source = source.replace("export default class extends Controller", "globalThis.MapController = class extends Controller")
-      eval(source)
-
-      const controller = new MapController()
-      controller.element = { dataset: {} }
-      controller.tileUrlValue = "/tiles/{z}/{x}/{y}.mvt"
-      controller.connect()
-      mapStub.handlers.load()
-      mapStub.handlers["mousemove:states"]({
-        lngLat: { lng: -105.5, lat: 39.0 },
-        features: [{ properties: { stusps: "CO", name: "Colorado", geoid: "08" } }]
-      })
-
-      if (!popupStub?.html?.includes("px-4") || !popupStub.html.includes("py-3")) {
-        throw new Error(`expected padded prompt html, got ${popupStub?.html}`)
-      }
     JS
 
     run_node_script(script)
@@ -1430,7 +1328,7 @@ RSpec.describe "map_controller state selection" do
   end
 
   it "does not show green state hover for neighboring states in systems mode" do
-    script = map_controller_script(zoom: 8.5, popup: true, body: <<~JS)
+    script = map_controller_script(zoom: 8.5, body: <<~JS)
       mapStub.handlers["click:states"]({
         lngLat: { lng: -105.5, lat: 39.0 },
         features: [{ properties: { stusps: "CO", name: "Colorado", geoid: "08" } }]
@@ -1447,7 +1345,6 @@ RSpec.describe "map_controller state selection" do
       const hoverCalls = mapStub.featureStateCalls.filter(({ state }) => state.hover === true)
       if (hoverCalls.length > 0) throw new Error("expected systems mode to ignore neighboring state hover")
       if (mapStub.canvas.style.cursor !== "pointer") throw new Error(`expected neighboring state pointer cursor, got ${mapStub.canvas.style.cursor}`)
-      if (!globalThis.popupStub?.added) throw new Error("expected neighboring state prompt in systems mode")
     JS
 
     run_node_script(script)
