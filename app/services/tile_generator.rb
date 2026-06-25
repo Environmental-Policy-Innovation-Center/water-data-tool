@@ -120,7 +120,8 @@ module TileGenerator
               #{tile_envelope}, #{EXTENT}, #{BUFFER}, true
             ) AS mvtgeom,
             pws.pwsid, pws.stusps, pws.pws_name, pws.symbology_field,
-            pws.pop_cat_5, pws.population_served_count, pws.service_connections_count
+            pws.pop_cat_5, pws.population_served_count, pws.service_connections_count,
+            pws.area_sq_miles
           FROM service_area_geometries sag
           JOIN public_water_systems pws ON pws.pwsid = sag.pwsid
           WHERE sag.geom IS NOT NULL

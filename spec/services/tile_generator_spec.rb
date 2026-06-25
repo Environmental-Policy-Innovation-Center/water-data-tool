@@ -149,6 +149,7 @@ RSpec.describe TileGenerator do
       expect(sql).to include("ST_AsMVTGeom(")
       expect(sql).to include("4096, 64, true")
       expect(sql).to include("sag.geom && ST_Transform(ST_TileEnvelope(5, 8, 12, margin => 64.0 / 4096), 4326)")
+      expect(sql).to include("pws.area_sq_miles")
     end
   end
 end

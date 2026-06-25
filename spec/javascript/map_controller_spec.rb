@@ -1376,6 +1376,35 @@ RSpec.describe "map_controller state selection" do
     run_node_script(script)
   end
 
+  it "selects the smallest service area from a direct pws layer click with overlapping systems" do
+    script = map_controller_script(zoom: 4, body: <<~JS)
+      mapStub.handlers["click:pws"]({
+        lngLat: { lng: -99.1, lat: 38.9 },
+        features: [
+          { properties: {
+            pwsid: "CO0000001",
+            pws_name: "Large Water",
+            stusps: "CO",
+            area_sq_miles: "250"
+          } },
+          { properties: {
+            pwsid: "KS0000001",
+            pws_name: "Small Water",
+            stusps: "KS",
+            area_sq_miles: "12"
+          } }
+        ]
+      })
+
+      if (filterStateCurrent.state !== "KS") throw new Error(`expected direct service area click to select smallest state KS, got ${filterStateCurrent.state}`)
+      const expectedPwsFilter = JSON.stringify(["==", "stusps", "KS"])
+      const actualPwsFilter = JSON.stringify(mapStub.filters.pws)
+      if (actualPwsFilter !== expectedPwsFilter) throw new Error(`expected pws filter ${expectedPwsFilter}, got ${actualPwsFilter}`)
+    JS
+
+    run_node_script(script)
+  end
+
   it "uses rendered service areas when a direct pws layer click is not delivered" do
     map_methods = <<~JS
       queryRenderedFeatures(_point, options) {
@@ -1400,6 +1429,43 @@ RSpec.describe "map_controller state selection" do
       if (clickFitBounds.options?.maxZoom !== 7.99) throw new Error(`expected canonical state fit maxZoom 7.99, got ${clickFitBounds.options?.maxZoom}`)
       if (mapStub.flyToCalls.length !== 0) throw new Error(`expected no flyTo fallback when rendered state bounds exist, got ${JSON.stringify(mapStub.flyToCalls)}`)
       if (visitedReports.length > 0) throw new Error(`expected no report visit, got ${visitedReports.join(", ")}`)
+    JS
+    script = map_controller_script(zoom: 4, map_methods: map_methods, body: body)
+
+    run_node_script(script)
+  end
+
+  it "selects the smallest rendered service area when a fallback click hits overlapping systems" do
+    map_methods = <<~JS
+      queryRenderedFeatures(_point, options) {
+        if (JSON.stringify(options.layers) !== JSON.stringify(["pws"])) return []
+        return [
+          { properties: {
+            pwsid: "CO0000001",
+            pws_name: "Large Water",
+            stusps: "CO",
+            area_sq_miles: "250"
+          } },
+          { properties: {
+            pwsid: "KS0000001",
+            pws_name: "Small Water",
+            stusps: "KS",
+            area_sq_miles: "12"
+          } }
+        ]
+      }
+    JS
+
+    body = <<~JS
+      mapStub.handlers.click({
+        point: { x: 420, y: 260 },
+        lngLat: { lng: -99.1, lat: 38.9 }
+      })
+
+      if (filterStateCurrent.state !== "KS") throw new Error(`expected smallest rendered service area click to select KS, got ${filterStateCurrent.state}`)
+      const expectedPwsFilter = JSON.stringify(["==", "stusps", "KS"])
+      const actualPwsFilter = JSON.stringify(mapStub.filters.pws)
+      if (actualPwsFilter !== expectedPwsFilter) throw new Error(`expected pws filter ${expectedPwsFilter}, got ${actualPwsFilter}`)
     JS
     script = map_controller_script(zoom: 4, map_methods: map_methods, body: body)
 
@@ -1567,6 +1633,61 @@ RSpec.describe "map_controller state selection" do
       if (visitedReports.length !== 1) throw new Error(`expected one report visit, got ${visitedReports.join(", ")}`)
       if (visitedReports[0] !== "/public_water_systems/CO0000001/report") throw new Error(`expected report path, got ${visitedReports[0]}`)
       if (reportOverlayHidden) throw new Error("expected report overlay to be shown")
+    JS
+
+    run_node_script(script)
+  end
+
+  it "hovers the smallest service area when overlapping systems are under the pointer" do
+    controller_setup = <<~JS
+      class PopupRoot {
+        constructor() {
+          this.fields = ["pws_name", "pwsid", "stusps", "service_connections_count", "population_served_count"].map((field) => ({
+            dataset: { popupField: field },
+            textContent: ""
+          }))
+        }
+
+        cloneNode() { return new PopupRoot() }
+        querySelectorAll(selector) { return selector === "[data-popup-field]" ? this.fields : [] }
+        querySelector() { return null }
+        get outerHTML() { return this.fields.map((field) => field.textContent).join(" ") }
+      }
+
+      controller.popupTemplateTarget = { content: { firstElementChild: new PopupRoot() } }
+    JS
+
+    script = map_controller_script(zoom: 8.5, popup: true, controller_setup: controller_setup, body: <<~JS)
+      mapStub.handlers["click:states"]({
+        lngLat: { lng: -105.5, lat: 39.0 },
+        features: [{ properties: { stusps: "CO", name: "Colorado", geoid: "08" } }]
+      })
+      mapStub.zoom = 8.5
+      mapStub.handlers.zoomend()
+
+      mapStub.handlers["mousemove:pws"]({
+        lngLat: { lng: -105.1, lat: 39.1 },
+        features: [
+          { properties: {
+            pwsid: "CO0000001",
+            pws_name: "Large Water",
+            stusps: "CO",
+            area_sq_miles: "250"
+          } },
+          { properties: {
+            pwsid: "CO0000002",
+            pws_name: "Small Water",
+            stusps: "CO",
+            area_sq_miles: "12"
+          } }
+        ]
+      })
+
+      const expectedHoverFilter = JSON.stringify(["in", "pwsid", "CO0000002"])
+      const actualHoverFilter = JSON.stringify(mapStub.filters.pws_hover)
+      if (actualHoverFilter !== expectedHoverFilter) throw new Error(`expected pws_hover ${expectedHoverFilter}, got ${actualHoverFilter}`)
+      if (!hoverHtml?.includes("Small Water")) throw new Error(`expected hover popup for smaller system, got ${hoverHtml}`)
+      if (hoverHtml.includes("Large Water")) throw new Error(`expected larger system to stay out of hover popup, got ${hoverHtml}`)
     JS
 
     run_node_script(script)

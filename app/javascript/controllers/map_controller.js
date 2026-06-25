@@ -509,7 +509,8 @@ export default class extends Controller {
       if (!this.selectedState) return
 
       this.map.getCanvas().style.cursor = "pointer"
-      const props = e.features[0].properties
+      const props = this.#pwsFeatureFromEvent(e)?.properties
+      if (!props?.pwsid) return
 
       if (props.pwsid === this.hoveredPwsid) return
       this.hoveredPwsid = props.pwsid
@@ -734,7 +735,8 @@ export default class extends Controller {
     const box = this.#pwsClickHitBox(event)
     if (!box) return false
 
-    const feature = this.map.queryRenderedFeatures(box, { layers: ["pws"] })[0]
+    const features = this.map.queryRenderedFeatures(box, { layers: ["pws"] })
+    const feature = this.#pwsFeatureFromEvent({ ...event, features })
     if (!feature) return false
 
     return this.#handlePwsClick({ ...event, features: [feature] })
@@ -743,7 +745,7 @@ export default class extends Controller {
   #handlePwsClick(event) {
     if (this.#pwsClickAlreadyHandled(event)) return true
 
-    const props = event.features?.[0]?.properties
+    const props = this.#pwsFeatureFromEvent(event)?.properties
     if (!props?.pwsid) return false
 
     if (!this.selectedState) {
@@ -786,6 +788,32 @@ export default class extends Controller {
       this.pinnedPwsid = null
     })
     return true
+  }
+
+  #pwsFeatureFromEvent(event) {
+    const fallbackFeatures = event?.features || []
+    const renderedFeatures = this.#renderedPwsFeaturesAtEvent(event)
+    const features = renderedFeatures.length > 0 ? renderedFeatures : fallbackFeatures
+    if (features.length <= 1) return features[0]
+
+    const candidates = features.map((feature, index) => ({
+      feature,
+      index,
+      area: Number(feature?.properties?.area_sq_miles)
+    }))
+
+    if (candidates.some(candidate => !Number.isFinite(candidate.area))) return fallbackFeatures[0] || features[0]
+
+    candidates.sort((a, b) => a.area - b.area || a.index - b.index)
+    return candidates[0].feature
+  }
+
+  #renderedPwsFeaturesAtEvent(event) {
+    if (!event?.point) return []
+    if (!this.map?.getLayer("pws")) return []
+    if (typeof this.map.queryRenderedFeatures !== "function") return []
+
+    return this.map.queryRenderedFeatures(event.point, { layers: ["pws"] }) || []
   }
 
   #pwsClickHitBox(event) {
