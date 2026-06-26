@@ -145,6 +145,7 @@ export default class extends Controller {
     this.hoveredPwsid = null
     this._stateLeaveTimer = null
     this._pwsClickHandled = false
+    this._pendingPwsClick = null
     this.selectedState = null
     this.filteredPwsids = null
     this.mapMode = MODE_NATION
@@ -764,31 +765,13 @@ export default class extends Controller {
     this.#markPwsClickHandled(event)
 
     if (!this.#systemsModeActive()) {
+      this._pendingPwsClick = { props, lngLat: event.lngLat }
       this.map.flyTo({ center: event.lngLat, zoom: 8.5 })
+      this.map.once("moveend", () => this.#showPendingPwsClick())
       return true
     }
 
-    if (this.hoverPopup) {
-      this.hoverPopup.remove()
-      this.hoverPopup = null
-    }
-    if (this.clickPopup) this.clickPopup.remove()
-
-    this.pinnedPwsid = props.pwsid
-    this.clickPopup = new window.mapboxgl.Popup({
-      closeButton: true,
-      closeOnClick: false,
-      className: "min-w-[280px]",
-      maxWidth: "400px"
-    })
-      .setLngLat(event.lngLat)
-      .setHTML(this.#buildPopupHtml(props, { showReport: true }))
-      .addTo(this.map)
-
-    this.clickPopup.on("close", () => {
-      this.clickPopup = null
-      this.pinnedPwsid = null
-    })
+    this.#openClickPopup(props, event.lngLat)
     return true
   }
 
@@ -1005,6 +988,36 @@ export default class extends Controller {
       this.clickPopup = null
     }
     this.pinnedPwsid = null
+    this._pendingPwsClick = null
+  }
+
+  #showPendingPwsClick() {
+    if (!this._pendingPwsClick) return
+    if (!this.#systemsModeActive()) {
+      this._pendingPwsClick = null
+      return
+    }
+    const { props, lngLat } = this._pendingPwsClick
+    this._pendingPwsClick = null
+    this.#openClickPopup(props, lngLat)
+  }
+
+  #openClickPopup(props, lngLat) {
+    this.#removeSystemPopups()
+    this.pinnedPwsid = props.pwsid
+    this.clickPopup = new window.mapboxgl.Popup({
+      closeButton: true,
+      closeOnClick: false,
+      className: "min-w-[280px]",
+      maxWidth: "400px"
+    })
+      .setLngLat(lngLat)
+      .setHTML(this.#buildPopupHtml(props, { showReport: true }))
+      .addTo(this.map)
+    this.clickPopup.on("close", () => {
+      this.clickPopup = null
+      this.pinnedPwsid = null
+    })
   }
 
   #buildPopupHtml(props, { showType = false, showReport = false, reportLabel = "View Full Report" } = {}) {
