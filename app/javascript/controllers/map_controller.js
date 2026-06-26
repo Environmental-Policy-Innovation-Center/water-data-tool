@@ -13,7 +13,7 @@ const MOBILE_DEFAULT_ZOOM = 2
 const DESKTOP_MIN_ZOOM = 3
 const MOBILE_MIN_ZOOM = 2
 const NATION_MAX_ZOOM = 4.75
-const SERVICE_AREAS_MIN_ZOOM = 5
+const SERVICE_AREAS_MIN_ZOOM = MOBILE_MIN_ZOOM
 const STATE_ENTRY_ZOOM = 6
 const STATE_EXIT_ZOOM = 4.55
 const SYSTEMS_ENTRY_ZOOM = 8
@@ -141,7 +141,6 @@ export default class extends Controller {
     this.hoverPopup = null
     this.clickPopup = null
     this.pinnedPwsid = null
-    this.stateHoverPopup = null
     this.hoveredStateId = null
     this.hoveredPwsid = null
     this._stateLeaveTimer = null
@@ -154,8 +153,10 @@ export default class extends Controller {
 
     this.boundOnFiltersChanged = this.#onFiltersChanged.bind(this)
     this.boundOnResetAll = this.#onResetAll.bind(this)
+    this.boundOnReportClick = this.#onReportClick.bind(this)
     document.addEventListener("filters:changed", this.boundOnFiltersChanged)
     document.addEventListener("filter:reset-all", this.boundOnResetAll)
+    document.addEventListener("click", this.boundOnReportClick)
 
     this.map.on("load", () => this.#onLoad())
   }
@@ -164,6 +165,7 @@ export default class extends Controller {
     this.#cancelStateLeaveTimer()
     document.removeEventListener("filters:changed", this.boundOnFiltersChanged)
     document.removeEventListener("filter:reset-all", this.boundOnResetAll)
+    document.removeEventListener("click", this.boundOnReportClick)
     if (this.map) {
       this.map.remove()
       this.map = null
@@ -350,7 +352,7 @@ export default class extends Controller {
       layout: { visibility: "visible" },
       paint: {
         "line-color": "#999",
-        "line-width": ["case", HOVER_STATE_EXPR, 1, 0]
+        "line-width": ["case", HOVER_STATE_EXPR, 2, 0]
       }
     }, firstLineId)
 
@@ -445,13 +447,22 @@ export default class extends Controller {
     // ── States hover / click ──────────────────────────────────────────────────
 
     this.map.on("mousemove", "states", (e) => {
-      if (this.#systemsModeActive()) return
-
       // Cancel any pending mouseleave clear — cursor is still over a state feature.
       this.#cancelStateLeaveTimer()
-
       const props = this.#statePropsFromEvent(e)
       if (!props) return
+
+      if (this.selectedState) {
+        this.#clearStateHover()
+        this.map.getCanvas().style.cursor = this.#stateClickEnabled(props) ? "pointer" : ""
+        return
+      }
+
+      if (!this.#stateHoverEnabled()) {
+        this.map.getCanvas().style.cursor = ""
+        this.#clearStateHover()
+        return
+      }
 
       this.map.getCanvas().style.cursor = "pointer"
       if (props.geoid !== this.hoveredStateId) {
@@ -462,12 +473,6 @@ export default class extends Controller {
           { hover: true }
         )
       }
-
-      if (this.#shouldShowStatePrompt(props)) {
-        this.#showStatePrompt(e.lngLat)
-      } else {
-        this.#removeStatePrompt()
-      }
     })
 
     this.map.on("mouseleave", "states", () => {
@@ -477,20 +482,19 @@ export default class extends Controller {
         this._stateLeaveTimer = null
         this.map.getCanvas().style.cursor = ""
         this.#clearStateHover()
-        this.#removeStatePrompt()
       }, 100)
     })
 
     this.map.on("click", "states", (e) => {
-      if (this.#systemsModeActive()) return
+      if (this.#handleRenderedPwsClick(e)) return
 
       const props = this.#statePropsFromEvent(e)
       if (!props) return
+      if (!this.#stateClickEnabled(props)) return
 
       const wasNationMode = this.mapMode === MODE_NATION
       const switchingState = !!this.selectedState && this.selectedState.stusps !== props.stusps
       this.#selectState(props)
-      this.#removeStatePrompt()
 
       if (wasNationMode || switchingState || this.map.getZoom() < STATE_ENTRY_ZOOM) {
         if (!this.#fitToState(props.stusps)) {
@@ -505,7 +509,8 @@ export default class extends Controller {
       if (!this.selectedState) return
 
       this.map.getCanvas().style.cursor = "pointer"
-      const props = e.features[0].properties
+      const props = this.#pwsFeatureFromEvent(e)?.properties
+      if (!props?.pwsid) return
 
       if (props.pwsid === this.hoveredPwsid) return
       this.hoveredPwsid = props.pwsid
@@ -518,7 +523,7 @@ export default class extends Controller {
 
       if (props.pwsid === this.pinnedPwsid) return
 
-      const html = this.#buildHoverHtml(props)
+      const html = this.#buildPopupHtml(props)
       this.hoverPopup = new window.mapboxgl.Popup({
         closeButton: false,
         className: "min-w-[280px]",
@@ -545,7 +550,6 @@ export default class extends Controller {
     this.map.on("zoomstart", () => {
       this.hoveredPwsid = null
       this.map.setFilter("pws_hover", EMPTY_PWS_FILTER)
-      this.#removeStatePrompt()
       if (this.hoverPopup) {
         this.hoverPopup.remove()
         this.hoverPopup = null
@@ -554,56 +558,14 @@ export default class extends Controller {
 
     this.map.on("zoomend", () => this.#syncModeFromZoom())
 
-    // ── PWS polygon click → detail popup with "View Full Report" ───────────
+    // ── PWS polygon click ───────────────────────────────────────────────────
 
-    this.map.on("click", "pws", (e) => {
-      if (!this.selectedState) return
-
-      if (!this.#systemsModeActive()) {
-        this.map.flyTo({ center: e.lngLat, zoom: 8.5 })
-        return
-      }
-
-      const props = e.features[0].properties
-      if (!props.pwsid) return
-
-      // Remove hover popup so it doesn't overlap
-      if (this.hoverPopup) {
-        this.hoverPopup.remove()
-        this.hoverPopup = null
-      }
-
+    this.map.on("click", "pws", (e) => this.#handlePwsClick(e))
+    this.map.on("click", (e) => {
+      if (this.#handleRenderedPwsClick(e)) return
       if (this.clickPopup) this.clickPopup.remove()
-
-      this._pwsClickHandled = true
-      this.pinnedPwsid = props.pwsid
-      this.clickPopup = new window.mapboxgl.Popup({
-        closeButton: true,
-        closeOnClick: false,
-        className: "min-w-[280px]",
-        maxWidth: "400px"
-      })
-        .setLngLat(e.lngLat)
-        .setHTML(this.#buildPopupHtml(props, { showReport: true }))
-        .addTo(this.map)
-
-      this.clickPopup.on("close", () => {
-        this.clickPopup = null
-        this.pinnedPwsid = null
-      })
     })
 
-    // Dismiss pinned card when clicking off any PWS polygon.
-    // The pws-layer click handler above fires first and sets _pwsClickHandled so we
-    // never call queryRenderedFeatures for clicks that already landed on a PWS feature.
-    this.map.on("click", () => {
-      if (!this.clickPopup) return
-      if (this._pwsClickHandled) {
-        this._pwsClickHandled = false
-        return
-      }
-      this.clickPopup.remove()
-    })
 
   }
 
@@ -716,7 +678,6 @@ export default class extends Controller {
     this.map.setFilter("states_filter", EMPTY_STATE_FILTER)
     this.#clearStateHover()
     this.map.setFilter("pws_hover", EMPTY_PWS_FILTER)
-    this.#removeStatePrompt()
     this.#removeSystemPopups()
     this.#applyPwsFilters()
     if (syncStateFilter && hadStateScope) this.#clearStateFilter()
@@ -749,15 +710,144 @@ export default class extends Controller {
     if (!this.selectedState) return
 
     if (this.map.getZoom() < STATE_EXIT_ZOOM) {
-      this.#enterNationMode({ fitDefault: false })
+      // Keep selectedState intact on zoom-out so the URL and PWS filter stay scoped to this state.
+      this.mapMode = MODE_NATION
+      this.#clearStateHover()
+      this.map.getCanvas().style.cursor = ""
       return
     }
 
-    this.mapMode = this.#systemsModeActive() ? MODE_SYSTEMS : MODE_STATE
+    const nextMode = this.#systemsModeActive() ? MODE_SYSTEMS : MODE_STATE
+    this.mapMode = nextMode
+    this.#clearStateHover()
+    if (nextMode === MODE_SYSTEMS) {
+      this.map.getCanvas().style.cursor = ""
+    }
   }
 
   #systemsModeActive() {
     return !!this.selectedState && this.map.getZoom() >= SYSTEMS_ENTRY_ZOOM
+  }
+
+  #handleRenderedPwsClick(event) {
+    if (this.#pwsClickAlreadyHandled(event)) return true
+    if (!this.map?.getLayer("pws")) return false
+    if (typeof this.map.queryRenderedFeatures !== "function") return false
+
+    const box = this.#pwsClickHitBox(event)
+    if (!box) return false
+
+    const features = this.map.queryRenderedFeatures(box, { layers: ["pws"] })
+    const feature = this.#pwsFeatureFromEvent({ ...event, features })
+    if (!feature) return false
+
+    return this.#handlePwsClick({ ...event, features: [feature] })
+  }
+
+  #handlePwsClick(event) {
+    if (this.#pwsClickAlreadyHandled(event)) return true
+
+    const props = this.#pwsFeatureFromEvent(event)?.properties
+    if (!props?.pwsid) return false
+
+    if (!this.selectedState) {
+      if (!props.stusps) return false
+
+      this.#markPwsClickHandled(event)
+      this.#selectState({ stusps: props.stusps, name: props.stusps })
+      if (!this.#fitToState(props.stusps)) {
+        this.map.flyTo({ center: event.lngLat, zoom: Math.max(this.map.getZoom(), STATE_ENTRY_ZOOM) })
+      }
+      return true
+    }
+
+    this.#markPwsClickHandled(event)
+
+    if (!this.#systemsModeActive()) {
+      this.map.flyTo({ center: event.lngLat, zoom: 8.5 })
+      return true
+    }
+
+    if (this.hoverPopup) {
+      this.hoverPopup.remove()
+      this.hoverPopup = null
+    }
+    if (this.clickPopup) this.clickPopup.remove()
+
+    this.pinnedPwsid = props.pwsid
+    this.clickPopup = new window.mapboxgl.Popup({
+      closeButton: true,
+      closeOnClick: false,
+      className: "min-w-[280px]",
+      maxWidth: "400px"
+    })
+      .setLngLat(event.lngLat)
+      .setHTML(this.#buildPopupHtml(props, { showReport: true }))
+      .addTo(this.map)
+
+    this.clickPopup.on("close", () => {
+      this.clickPopup = null
+      this.pinnedPwsid = null
+    })
+    return true
+  }
+
+  #pwsFeatureFromEvent(event) {
+    const fallbackFeatures = event?.features || []
+    const renderedFeatures = this.#renderedPwsFeaturesAtEvent(event)
+    const features = renderedFeatures.length > 0 ? renderedFeatures : fallbackFeatures
+    if (features.length <= 1) return features[0]
+
+    const candidates = features.map((feature, index) => ({
+      feature,
+      index,
+      area: Number(feature?.properties?.area_sq_miles)
+    }))
+
+    if (candidates.some(candidate => !Number.isFinite(candidate.area))) return fallbackFeatures[0] || features[0]
+
+    candidates.sort((a, b) => a.area - b.area || a.index - b.index)
+    return candidates[0].feature
+  }
+
+  #renderedPwsFeaturesAtEvent(event) {
+    if (!event?.point) return []
+    if (!this.map?.getLayer("pws")) return []
+    if (typeof this.map.queryRenderedFeatures !== "function") return []
+
+    return this.map.queryRenderedFeatures(event.point, { layers: ["pws"] }) || []
+  }
+
+  #pwsClickHitBox(event) {
+    const point = event?.point
+    if (!point) return null
+
+    const tolerance = 5
+    return [
+      [point.x - tolerance, point.y - tolerance],
+      [point.x + tolerance, point.y + tolerance]
+    ]
+  }
+
+  #pwsClickAlreadyHandled(event) {
+    return !!(event?.__wdtPwsClickHandled || event?.originalEvent?.__wdtPwsClickHandled)
+  }
+
+  #markPwsClickHandled(event) {
+    if (event) event.__wdtPwsClickHandled = true
+    if (event?.originalEvent) event.originalEvent.__wdtPwsClickHandled = true
+  }
+
+  #stateHoverEnabled() {
+    return !this.selectedState && this.mapMode === MODE_NATION
+  }
+
+  #stateClickEnabled(props) {
+    return !this.selectedState || !this.#stateIsSelected(props)
+  }
+
+  #stateIsSelected(props) {
+    return !!this.selectedState && props.stusps === this.selectedState.stusps
   }
 
   #statePropsFromEvent(event) {
@@ -847,7 +937,12 @@ export default class extends Controller {
   }
 
   #pwsFilterExpression() {
-    if (!this.selectedState) return EMPTY_PWS_FILTER
+    if (!this.selectedState) {
+      if (this.filteredPwsids === null) return null
+      if (this.filteredPwsids.length === 0) return EMPTY_PWS_FILTER
+
+      return ["in", "pwsid", ...this.filteredPwsids]
+    }
 
     const stateExpr = ["==", "stusps", this.selectedState.stusps]
     if (this.filteredPwsids === null) return stateExpr
@@ -900,29 +995,6 @@ export default class extends Controller {
     }
   }
 
-  #shouldShowStatePrompt(props) {
-    return this.mapMode === MODE_NATION || props.stusps !== this.selectedState?.stusps
-  }
-
-  #showStatePrompt(lngLat) {
-    if (!this.stateHoverPopup) {
-      this.stateHoverPopup = new window.mapboxgl.Popup({
-        closeButton: false,
-        closeOnClick: false,
-        className: "map-state-hover",
-        maxWidth: "240px"
-      }).setHTML('<span class="text-sm font-medium">Select a state to learn more</span>')
-    }
-
-    this.stateHoverPopup.setLngLat(lngLat).addTo(this.map)
-  }
-
-  #removeStatePrompt() {
-    if (!this.stateHoverPopup) return
-    this.stateHoverPopup.remove()
-    this.stateHoverPopup = null
-  }
-
   #removeSystemPopups() {
     if (this.hoverPopup) {
       this.hoverPopup.remove()
@@ -933,10 +1005,6 @@ export default class extends Controller {
       this.clickPopup = null
     }
     this.pinnedPwsid = null
-  }
-
-  #buildHoverHtml(props) {
-    return this.#buildPopupHtml(props)
   }
 
   #buildPopupHtml(props, { showType = false, showReport = false, reportLabel = "View Full Report" } = {}) {
@@ -964,7 +1032,10 @@ export default class extends Controller {
       const link = root.querySelector(".js-view-report")
       if (link) {
         link.textContent = reportLabel
-        if (props.pwsid) link.href = this.#reportPath(props.pwsid)
+        if (props.pwsid) {
+          link.href = this.#reportPath(props.pwsid)
+          link.dataset.pwsid = props.pwsid
+        }
       }
     }
 
@@ -973,6 +1044,22 @@ export default class extends Controller {
 
   #reportPath(pwsid) {
     return `/public_water_systems/${encodeURIComponent(pwsid)}/report`
+  }
+
+  #onReportClick(e) {
+    const link = e.target?.closest?.(".js-view-report")
+    if (!link) return
+    e.preventDefault()
+    const pwsid = link.dataset.pwsid
+    if (!pwsid) return
+    this.#removeSystemPopups()
+    this.#openReport(pwsid)
+  }
+
+  #openReport(pwsid) {
+    const overlay = document.getElementById("container-report")
+    overlay?.classList.remove("hidden")
+    Turbo.visit(this.#reportPath(pwsid), { frame: "report-body" })
   }
 
   #firstLineLayerId() {

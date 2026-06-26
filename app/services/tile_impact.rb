@@ -1,5 +1,5 @@
 module TileImpact
-  MIN_ZOOM = 5
+  MIN_ZOOM = 0
   MAX_ZOOM = 8
   DEFAULT_MARGIN_TILES = 1
   PWSID_ARRAY_TYPE = ActiveRecord::ConnectionAdapters::PostgreSQL::OID::Array.new(ActiveModel::Type::String.new)
@@ -41,12 +41,15 @@ module TileImpact
   end
 
   def enqueue_refreshes(impacts, batch_size: 50)
+    job_count = 0
     impacts.each do |key, coords|
       layer, z = key.split(":")
       coords.each_slice(batch_size) do |batch|
         TileCacheRefreshJob.perform_later(layer: layer, z: z.to_i, coords: batch)
+        job_count += 1
       end
     end
+    job_count
   end
 
   def bbox_for_pwsids(pwsids)

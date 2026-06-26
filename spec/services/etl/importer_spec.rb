@@ -18,9 +18,9 @@ RSpec.describe Etl::Importer do
     end
 
     it "dispatches each recognised file to the correct file importer" do
-      epa_sabs_importer = instance_double(Etl::Importers::EpaSabs, call: :skipped)
-      geoms_importer = instance_double(Etl::Importers::EpaSabsGeoms, call: :skipped)
-      sdwis_importer = instance_double(Etl::Importers::SdwisViols, call: :skipped)
+      epa_sabs_importer = instance_double(Etl::Importers::EpaSabs, call: Etl::ImportResult.skipped(file_key: "epa_sabs"))
+      geoms_importer = instance_double(Etl::Importers::EpaSabsGeoms, call: Etl::ImportResult.skipped(file_key: "epa_sabs_geoms"))
+      sdwis_importer = instance_double(Etl::Importers::SdwisViols, call: Etl::ImportResult.skipped(file_key: "sdwis_viols"))
 
       allow(Etl::Importers::EpaSabs).to receive(:new).and_return(epa_sabs_importer)
       allow(Etl::Importers::EpaSabsGeoms).to receive(:new).and_return(geoms_importer)
@@ -63,26 +63,21 @@ RSpec.describe Etl::Importer do
       importer.call
     end
 
-    it "treats truthy non-result importer returns as imported and requests a full refresh" do
+    it "records an error when an importer returns a non-result object" do
       raw_import_result = ActiveRecord::Result.new([], [])
       sdwis_importer = instance_double(Etl::Importers::SdwisViols, call: raw_import_result)
       allow(Etl::Importers::SdwisViols).to receive(:new).and_return(sdwis_importer)
       allow_all_importers_to_skip(except: Etl::Importers::SdwisViols)
       allow(Etl::PostImportSteps).to receive(:call)
 
-      importer.call
+      errors = importer.call
 
-      expect(Etl::PostImportSteps).to have_received(:call) do |args|
-        result = args.fetch(:import_results).sole
-        expect(result).to have_attributes(
-          file_key: "sdwis_viols",
-          status: :imported,
-          full_refresh_required: true
-        )
-      end
+      expect(errors.sole[:file_key]).to eq("sdwis_viols")
+      expect(errors.sole[:error]).to be_a(Etl::Importer::InvalidImportResultError)
+      expect(Etl::PostImportSteps).to have_received(:call).with(import_results: [])
     end
 
-    it "does not treat arbitrary imported?-responding objects as import results" do
+    it "records an error for arbitrary imported?-responding objects" do
       raw_result = Class.new do
         def imported? = true
       end.new
@@ -91,23 +86,18 @@ RSpec.describe Etl::Importer do
       allow_all_importers_to_skip(except: Etl::Importers::SdwisViols)
       allow(Etl::PostImportSteps).to receive(:call)
 
-      importer.call
+      errors = importer.call
 
-      expect(Etl::PostImportSteps).to have_received(:call) do |args|
-        result = args.fetch(:import_results).sole
-        expect(result).to have_attributes(
-          file_key: "sdwis_viols",
-          status: :imported,
-          full_refresh_required: true
-        )
-      end
+      expect(errors.sole[:file_key]).to eq("sdwis_viols")
+      expect(errors.sole[:error]).to be_a(Etl::Importer::InvalidImportResultError)
+      expect(Etl::PostImportSteps).to have_received(:call).with(import_results: [])
     end
 
     it "passes force: true to each importer when called with force: true" do
       force_importer = described_class.new(force: true)
       allow(force_importer).to receive(:build_file_entries).and_return(file_entries)
 
-      epa_sabs_importer = instance_double(Etl::Importers::EpaSabs, call: :imported)
+      epa_sabs_importer = instance_double(Etl::Importers::EpaSabs, call: Etl::ImportResult.imported(file_key: "epa_sabs"))
       allow(Etl::Importers::EpaSabs).to receive(:new)
         .with(hash_including(force: true))
         .and_return(epa_sabs_importer)
@@ -123,7 +113,7 @@ RSpec.describe Etl::Importer do
         filtered_importer = described_class.new(only: "epa_sabs")
         allow(filtered_importer).to receive(:build_file_entries).and_return(file_entries)
 
-        epa_sabs_importer = instance_double(Etl::Importers::EpaSabs, call: :imported)
+        epa_sabs_importer = instance_double(Etl::Importers::EpaSabs, call: Etl::ImportResult.imported(file_key: "epa_sabs"))
         allow(Etl::Importers::EpaSabs).to receive(:new).and_return(epa_sabs_importer)
 
         filtered_importer.call
@@ -140,7 +130,7 @@ RSpec.describe Etl::Importer do
         allow(failing_importer).to receive(:call).and_raise(StandardError, "network timeout")
         allow(Etl::Importers::EpaSabs).to receive(:new).and_return(failing_importer)
 
-        sdwis_importer = instance_double(Etl::Importers::SdwisViols, call: :imported)
+        sdwis_importer = instance_double(Etl::Importers::SdwisViols, call: Etl::ImportResult.imported(file_key: "sdwis_viols"))
         allow(Etl::Importers::SdwisViols).to receive(:new).and_return(sdwis_importer)
         allow_all_importers_to_skip(except: [Etl::Importers::EpaSabs, Etl::Importers::SdwisViols])
 
@@ -312,6 +302,42 @@ RSpec.describe Etl::Importer do
     end
   end
 
+  describe "registered file importer return contracts" do
+    before do
+      allow($stdout).to receive(:puts)
+      allow($stdout).to receive(:flush)
+    end
+
+    Etl::Importer::FILE_IMPORTERS.each do |file_key, klass|
+      it "#{file_key} returns a skipped ImportResult when unchanged" do
+        file_url = "https://s3.example.com/#{file_key}#{Etl::Importer::FILE_EXTENSIONS.fetch(file_key)}"
+        create(:data_import, file_url: file_url, imported_at: 1.hour.ago)
+
+        result = klass.new(file_url: file_url, last_updated: 2.hours.ago).call
+
+        expect(result).to have_attributes(file_key: file_key, status: :skipped)
+      end
+    end
+
+    (Etl::Importer::FILE_IMPORTERS.keys - ["epa_sabs_geoms"]).each do |file_key|
+      it "#{file_key} returns an imported ImportResult and records one audit row" do
+        (1..5).each { |id| create(:public_water_system, pwsid: format("VT%07d", id)) }
+
+        klass = Etl::Importer::FILE_IMPORTERS.fetch(file_key)
+        file_url = "https://s3.example.com/#{file_key}.csv"
+        importer = klass.new(file_url: file_url, last_updated: 1.day.ago)
+        allow(importer).to receive(:download).and_return(
+          File.read(Rails.root.join("spec/fixtures/etl/#{file_key}.csv"))
+        )
+
+        result = nil
+        expect { result = importer.call }.to change(DataImport, :count).by(1)
+        expect(result).to have_attributes(file_key: file_key, status: :imported)
+        expect(DataImport.last.file_url).to eq(file_url)
+      end
+    end
+  end
+
   private
 
   def allow_all_importers_to_skip(except: nil)
@@ -320,7 +346,7 @@ RSpec.describe Etl::Importer do
     file_entries.each do |entry|
       klass = Etl::Importer::FILE_IMPORTERS[entry["file_key"]]
       next if except_set.include?(klass)
-      dbl = instance_double(klass, call: :skipped)
+      dbl = instance_double(klass, call: Etl::ImportResult.skipped(file_key: entry["file_key"]))
       allow(klass).to receive(:new).and_return(dbl)
     end
   end

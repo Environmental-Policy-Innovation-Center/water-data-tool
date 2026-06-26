@@ -30,5 +30,14 @@ RSpec.describe Etl::Importers::PwsidFundedHighlevelSummary do
       rows = importer.parse(csv_content)
       expect { importer.import!(rows) }.to change(FundingSummary, :count).by(2)
     end
+
+    it "returns an import result without tile refresh layers" do
+      rows = importer.parse(csv_content)
+      result = importer.import!(rows)
+
+      expect(result).to eq(
+        Etl::ImportResult.imported(file_key: "f", changed_layers: [])
+      )
+    end
   end
 end

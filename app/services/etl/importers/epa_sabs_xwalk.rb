@@ -48,6 +48,7 @@ module Etl
 
       def import!(rows)
         Demographic.upsert_all(rows, unique_by: :pwsid)
+        imported_result
       end
     end
   end

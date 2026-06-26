@@ -69,6 +69,7 @@ module Etl
       def import!(rows)
         PublicWaterSystem.upsert_all(rows[:pws_rows], unique_by: :pwsid)
         ViolationsSummary.upsert_all(rows[:viol_rows], unique_by: :pwsid)
+        imported_result
       end
 
       private

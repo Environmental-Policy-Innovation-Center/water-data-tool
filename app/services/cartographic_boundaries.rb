@@ -2,24 +2,29 @@ require "net/http"
 require "fileutils"
 
 class CartographicBoundaries
+  include Etl::HttpFetcher
+
+  IMPORT_FILE_URL = "cartographic-boundaries".freeze
+  BOUNDARY_PATH = "cartographic-boundaries".freeze
+
   LAYERS = [
     {
-      zip_url: "https://www2.census.gov/geo/tiger/GENZ2022/shp/cb_2022_us_state_500k.zip",
-      shapefile: "cb_2022_us_state_500k.shp",
+      zip_file: "us_state_500k.zip",
+      shapefile: "us_state_500k.shp",
       staging_table: "cartographic_states_staging",
       target_table: "cartographic_states",
       columns: "gid, statefp, stusps, name, geoid, geom"
     },
     {
-      zip_url: "https://www2.census.gov/geo/tiger/GENZ2022/shp/cb_2022_us_county_500k.zip",
-      shapefile: "cb_2022_us_county_500k.shp",
+      zip_file: "us_county_500k.zip",
+      shapefile: "us_county_500k.shp",
       staging_table: "cartographic_counties_staging",
       target_table: "cartographic_counties",
       columns: "gid, statefp, countyfp, geoid, name, namelsad, stusps, geom"
     },
     {
-      zip_url: "https://www2.census.gov/geo/tiger/GENZ2022/shp/cb_2022_us_place_500k.zip",
-      shapefile: "cb_2022_us_place_500k.shp",
+      zip_file: "us_place_500k.zip",
+      shapefile: "us_place_500k.shp",
       staging_table: "cartographic_places_staging",
       target_table: "cartographic_places",
       columns: "gid, statefp, placefp, geoid, name, namelsad, stusps, affgeoid, geom"
@@ -51,17 +56,23 @@ class CartographicBoundaries
     pg_conn_string, pg_password = build_pg_connection_string(config)
 
     LAYERS.each { |layer| load_layer(layer, tmp_dir, conn, pg_conn_string, pg_password) }
+    record_import
+    Etl::ImportResult.imported(file_key: IMPORT_FILE_URL, full_refresh_required: true)
   end
 
   private
 
+  def record_import
+    DataImport.create!(file_url: IMPORT_FILE_URL, imported_at: Time.current)
+  end
+
   def load_layer(layer, tmp_dir, conn, pg_conn_string, pg_password)
-    zip_path = tmp_dir.join(File.basename(layer[:zip_url]))
+    zip_path = tmp_dir.join(layer[:zip_file])
     shp_path = tmp_dir.join(layer[:shapefile])
 
     unless zip_path.exist?
-      Rails.logger.info("[Cartographic] Downloading #{File.basename(layer[:zip_url])}...")
-      download_file(layer[:zip_url], zip_path)
+      Rails.logger.info("[Cartographic] Downloading #{layer[:zip_file]}...")
+      download_file(zip_url(layer), zip_path)
     end
 
     raise "unzip failed for #{zip_path}" unless system("unzip", "-o", "-q", zip_path.to_s, "-d", tmp_dir.to_s)
@@ -106,6 +117,11 @@ class CartographicBoundaries
     Dir.glob(tmp_dir.join("#{basename}.*")).each { |f| FileUtils.rm_f(f) }
   end
 
+  def zip_url(layer)
+    base_url = ENV.fetch("ETL_SOURCE_URL") { raise "ETL_SOURCE_URL is not set" }.chomp("/")
+    "#{base_url}/#{BOUNDARY_PATH}/#{layer.fetch(:zip_file)}"
+  end
+
   # Returns [conn_string, password]. Password is kept out of the connection
   # string so it isn't visible in the ogr2ogr argument list (e.g. via ps aux).
   # Callers pass it via the PGPASSWORD environment variable instead.
@@ -129,18 +145,9 @@ class CartographicBoundaries
   end
 
   def download_file(url, destination)
-    uri = URI.parse(url)
-    raise "Only HTTPS URLs are permitted" unless uri.is_a?(URI::HTTPS)
-
-    Net::HTTP.start(uri.host, uri.port, use_ssl: true) do |http|
-      request = Net::HTTP::Get.new(uri)
-      http.request(request) do |response|
-        raise "Download failed: #{response.code} for #{url}" unless response.is_a?(Net::HTTPSuccess)
-
-        File.open(destination, "wb") do |file|
-          response.read_body { |chunk| file.write(chunk) }
-        end
-      end
-    end
+    tmpfile = stream_to_tempfile(url)
+    FileUtils.cp(tmpfile.path, destination)
+  ensure
+    tmpfile&.close!
   end
 end

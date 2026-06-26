@@ -31,6 +31,7 @@ module Etl
 
       def import!(rows)
         TrendDatum.upsert_all(rows, unique_by: :pwsid)
+        imported_result
       end
     end
   end

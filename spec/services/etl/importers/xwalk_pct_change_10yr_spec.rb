@@ -58,5 +58,14 @@ RSpec.describe Etl::Importers::XwalkPctChange10yr do
       expect(td.income_change_flag).to be_nil
       expect(td.population_change_flag).to be_nil
     end
+
+    it "returns an import result without tile refresh layers" do
+      rows = importer.parse(csv_content)
+      result = importer.import!(rows)
+
+      expect(result).to eq(
+        Etl::ImportResult.imported(file_key: "f", changed_layers: [])
+      )
+    end
   end
 end

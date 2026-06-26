@@ -24,7 +24,7 @@ module TileGenerator
   end
 
   def layers_for_zoom(z)
-    return %w[states] if z < PWS_MIN_ZOOM
+    return %w[pws states] if z < PWS_MIN_ZOOM
 
     layers = LAYERS.dup
     layers.delete("places") if z < PLACES_MIN_ZOOM
@@ -38,6 +38,12 @@ module TileGenerator
     0
   end
 
+  def layer_simplification_tolerance(layer, z)
+    return simplification_tolerance(PWS_MIN_ZOOM) if layer == "pws" && z == PWS_MIN_ZOOM - 1
+
+    simplification_tolerance(z)
+  end
+
   # Generate (or fetch from cache) a single layer tile.
   def generate_tile(layer, z, x, y)
     cached = TileCache.find_by(layer: layer, z: z, x: x, y: y)
@@ -49,7 +55,7 @@ module TileGenerator
   # Generate and persist a tile, skipping cache lookup. Used by the warm
   # job where the cache is known to be empty.
   def generate_tile!(layer, z, x, y)
-    simp = simplification_tolerance(z)
+    simp = layer_simplification_tolerance(layer, z)
     mvt = generate_layer(layer, z, x, y, simp)
     persist_tile(layer, z, x, y, mvt)
     mvt
@@ -58,12 +64,12 @@ module TileGenerator
   # Build a complete tile by concatenating all layers.
   def build_tile(z, x, y)
     cached = TileCache.where(z: z, x: x, y: y).index_by(&:layer)
-    simp = simplification_tolerance(z)
 
     layers_for_zoom(z).each_with_object("".b) do |layer, result|
       mvt = if cached[layer]
         cached[layer].mvt.to_s
       else
+        simp = layer_simplification_tolerance(layer, z)
         generated = generate_layer(layer, z, x, y, simp)
         persist_tile(layer, z, x, y, generated)
         generated
@@ -114,7 +120,8 @@ module TileGenerator
               #{tile_envelope}, #{EXTENT}, #{BUFFER}, true
             ) AS mvtgeom,
             pws.pwsid, pws.stusps, pws.pws_name, pws.symbology_field,
-            pws.pop_cat_5, pws.population_served_count, pws.service_connections_count
+            pws.pop_cat_5, pws.population_served_count, pws.service_connections_count,
+            pws.area_sq_miles
           FROM service_area_geometries sag
           JOIN public_water_systems pws ON pws.pwsid = sag.pwsid
           WHERE sag.geom IS NOT NULL

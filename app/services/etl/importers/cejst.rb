@@ -22,6 +22,7 @@ module Etl
 
       def import!(rows)
         EnvironmentalJustice.upsert_all(rows, unique_by: :pwsid)
+        imported_result
       end
     end
   end

@@ -5,7 +5,13 @@ module Etl
     module_function
 
     def call(imported_files: nil, import_results: nil)
-      return legacy_call(imported_files) unless import_results
+      if import_results.nil?
+        raise ArgumentError, "import_results metadata is required" if imported_files.nil?
+
+        return legacy_call(imported_files)
+      end
+
+      validate_import_results!(import_results)
 
       return if import_results.empty?
 
@@ -26,7 +32,10 @@ module Etl
         affected_place_geoids = build_place_crosswalks(pwsids: geometry_pwsids)
       end
 
-      return if changed_pwsids.empty? || changed_layers.empty?
+      if changed_pwsids.empty? || changed_layers.empty?
+        log_selective_refresh(import_results: import_results, impacted_tile_count: 0, refresh_job_count: 0)
+        return
+      end
 
       impacts = {}
       pws_layers = changed_layers - ["places"]
@@ -40,12 +49,39 @@ module Etl
         impacts.merge!(pws_impacts)
       end
       impacts.merge!(TileImpact.for_place_geoids(affected_place_geoids, layers: place_layers)) if place_layers.any?
-      TileImpact.enqueue_refreshes(impacts)
+      refresh_job_count = TileImpact.enqueue_refreshes(impacts)
+      log_selective_refresh(
+        import_results: import_results,
+        impacted_tile_count: impacts.values.sum(&:size),
+        refresh_job_count: refresh_job_count
+      )
+    end
+
+    def validate_import_results!(import_results)
+      invalid = import_results.reject { |result| result.is_a?(Etl::ImportResult) }
+      return if invalid.empty?
+
+      raise ArgumentError, "import_results must contain only Etl::ImportResult objects"
+    end
+
+    def log_selective_refresh(import_results:, impacted_tile_count:, refresh_job_count:)
+      imported_files = import_results.map(&:file_key)
+      changed_pwsids = import_results.flat_map(&:changed_pwsids).compact.uniq
+      changed_layers = import_results.flat_map(&:changed_layers).compact.uniq
+      Rails.logger.info(
+        "[ETL] selective refresh: imported_files=#{imported_files.inspect} " \
+        "changed_pwsids=#{changed_pwsids.size} changed_layers=#{changed_layers.inspect} " \
+        "impacted_tiles=#{impacted_tile_count} refresh_jobs=#{refresh_job_count} full_refresh_required=false"
+      )
     end
 
     def legacy_call(imported_files)
       # imported_files is an array of successfully-imported file keys, e.g. ["epa_sabs", "epa_sabs_geoms"]
       return if imported_files.blank?
+
+      Rails.logger.info(
+        "[ETL] full refresh requested: imported_files=#{Array(imported_files).inspect} full_refresh_required=true"
+      )
 
       unless imported_files.include?("epa_sabs_geoms")
         bust_tile_cache
@@ -70,7 +106,6 @@ module Etl
     # Repair invalid geometries using ST_Buffer trick. Runs until none remain
     # or until MAX_REPAIR_ITERATIONS is reached (guard against pathological data).
     MAX_REPAIR_ITERATIONS = 10
-    PWSID_ARRAY_TYPE = ActiveRecord::ConnectionAdapters::PostgreSQL::OID::Array.new(ActiveModel::Type::String.new)
 
     def fix_invalid_geometries(pwsids: nil)
       all_valid = false
@@ -221,9 +256,13 @@ module Etl
         ActiveRecord::Relation::QueryAttribute.new(
           "pwsids",
           Array(pwsids).compact.uniq,
-          PWSID_ARRAY_TYPE
+          pwsid_array_type
         )
       ]
+    end
+
+    def pwsid_array_type
+      ActiveRecord::ConnectionAdapters::PostgreSQL::OID::Array.new(ActiveModel::Type::String.new)
     end
   end
 end
