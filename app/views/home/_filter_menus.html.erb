@@ -130,19 +130,20 @@
     <%= render Filters::CategoryComponent.new(label: "Violations", tooltip_text: filter_tooltips["violations"]) do %>
       <ul class="my-[6px] mb-[10px] mx-0 list-none px-1">
         <li class="<%= filter_row_classes %>"><input type="checkbox" class="toggle" id="compliance-open-violations" <%= checked_if filter_active?("has_open_violations") %>><label for="compliance-open-violations">Open violations</label></li>
+        <% health_5yr = subcat_parent_state(:health_5yr) %>
         <li class="<%= filter_row_classes %>">
           <input type="checkbox" class="toggle" id="viols-health-5yrs"
                  data-action="change->filter#toggleSubcat"
-                 data-panel-id="subcat-health-5yr">
+                 data-panel-id="subcat-health-5yr" <%= checked_if health_5yr[:all] %>>
           <label for="viols-health-5yrs">Health violations in the last 5 years</label>
           <button type="button" class="<%= filter_info_button_classes %>"
                   data-action="click->filter#toggleSubcatPanel"
                   data-panel-id="subcat-health-5yr"
-                  aria-expanded="false"
+                  aria-expanded="<%= health_5yr[:any] %>"
                   aria-controls="subcat-health-5yr">
-            <%= icon("arrow-down", classes: collapse_toggle_icon_classes) %>
+            <%= icon("arrow-down", classes: collapse_toggle_icon_classes(expanded: health_5yr[:any])) %>
           </button>
-          <div id="subcat-health-5yr" class="hidden pl-2 pb-1" data-subcat-panel
+          <div id="subcat-health-5yr" class="<%= health_5yr[:any] ? "pl-2 pb-1" : "hidden pl-2 pb-1" %>" data-subcat-panel
                data-action="change->filter#syncParentFromSubcat">
           <ul class="mt-1 list-none px-1">
             <%= render Filters::GroupRangeComponent.new(
@@ -188,19 +189,20 @@
           </ul>
           </div>
         </li>
+        <% health_10yr = subcat_parent_state(:health_10yr) %>
         <li class="<%= filter_row_classes %>">
           <input type="checkbox" class="toggle" id="viols-health"
                  data-action="change->filter#toggleSubcat"
-                 data-panel-id="subcat-health-10yr">
+                 data-panel-id="subcat-health-10yr" <%= checked_if health_10yr[:all] %>>
           <label for="viols-health">Health violations in the last 10 years</label>
           <button type="button" class="<%= filter_info_button_classes %>"
                   data-action="click->filter#toggleSubcatPanel"
                   data-panel-id="subcat-health-10yr"
-                  aria-expanded="false"
+                  aria-expanded="<%= health_10yr[:any] %>"
                   aria-controls="subcat-health-10yr">
-            <%= icon("arrow-down", classes: collapse_toggle_icon_classes) %>
+            <%= icon("arrow-down", classes: collapse_toggle_icon_classes(expanded: health_10yr[:any])) %>
           </button>
-          <div id="subcat-health-10yr" class="hidden pl-2 pb-1" data-subcat-panel
+          <div id="subcat-health-10yr" class="<%= health_10yr[:any] ? "pl-2 pb-1" : "hidden pl-2 pb-1" %>" data-subcat-panel
                data-action="change->filter#syncParentFromSubcat">
           <ul class="mt-1 list-none px-1">
             <%= render Filters::GroupRangeComponent.new(
@@ -246,19 +248,22 @@
           </ul>
           </div>
         </li>
+        <% paperwork_5yr_min = filter_range_value("paperwork_violations_5yr", :min) %>
+        <% paperwork_5yr_max = filter_range_value("paperwork_violations_5yr", :max) %>
+        <% paperwork_5yr = range_active?("paperwork_violations_5yr") %>
         <li class="<%= filter_row_classes %>">
           <input type="checkbox" class="toggle" id="viols-paperwork-5yrs"
                  data-action="change->filter#toggleSubcat"
-                 data-panel-id="subcat-paperwork-5yr">
+                 data-panel-id="subcat-paperwork-5yr" <%= checked_if paperwork_5yr %>>
           <label for="viols-paperwork-5yrs">Non-health violations in the last 5 years</label>
           <button type="button" class="<%= filter_info_button_classes %>"
                   data-action="click->filter#toggleSubcatPanel"
                   data-panel-id="subcat-paperwork-5yr"
-                  aria-expanded="false"
+                  aria-expanded="<%= paperwork_5yr %>"
                   aria-controls="subcat-paperwork-5yr">
-            <%= icon("arrow-down", classes: collapse_toggle_icon_classes) %>
+            <%= icon("arrow-down", classes: collapse_toggle_icon_classes(expanded: paperwork_5yr)) %>
           </button>
-          <div id="subcat-paperwork-5yr" class="hidden px-2 py-2" data-subcat-panel
+          <div id="subcat-paperwork-5yr" class="<%= paperwork_5yr ? "px-2 py-2" : "hidden px-2 py-2" %>" data-subcat-panel
                data-controller="slider"
                data-slider-field-value="paperwork_violations_5yr"
                data-slider-url-value="<%= histogram_path %>">
@@ -268,23 +273,53 @@
               <span data-slider-target="minLabel"></span>
               <span data-slider-target="maxLabel"></span>
             </div>
-            <input type="hidden" data-slider-target="minInput" id="min-paperwork-5yr">
-            <input type="hidden" data-slider-target="maxInput" id="max-paperwork-5yr">
+            <div data-min-max-inputs class="flex items-center gap-1 mt-2 text-sm text-neutral-700">
+              <div class="flex flex-col flex-1 min-w-0">
+                <input type="text"
+                       id="paperwork-5yr-min-text"
+                       data-slider-target="minTextInput"
+                       data-action="change->slider#textInputChanged keydown.enter->slider#textInputChanged"
+                       placeholder="Enter Min"
+                       inputmode="numeric"
+                       autocomplete="off"
+                       aria-label="Minimum filter value"
+                       value="<%= paperwork_5yr_min %>"
+                       class="w-full text-sm font-bold bg-neutral-50 border border-neutral-300 rounded px-1.5 py-1 text-neutral-700">
+              </div>
+              <span aria-hidden="true">-</span>
+              <div class="flex flex-col flex-1 min-w-0">
+                <input type="text"
+                       id="paperwork-5yr-max-text"
+                       data-slider-target="maxTextInput"
+                       data-action="change->slider#textInputChanged keydown.enter->slider#textInputChanged"
+                       placeholder="Enter Max"
+                       inputmode="numeric"
+                       autocomplete="off"
+                       aria-label="Maximum filter value"
+                       value="<%= paperwork_5yr_max %>"
+                       class="w-full text-sm font-bold bg-neutral-50 border border-neutral-300 rounded px-1.5 py-1 text-neutral-700 text-right">
+              </div>
+            </div>
+            <input type="hidden" data-slider-target="minInput" id="min-paperwork-5yr" value="<%= paperwork_5yr_min %>">
+            <input type="hidden" data-slider-target="maxInput" id="max-paperwork-5yr" value="<%= paperwork_5yr_max %>">
           </div>
         </li>
+        <% paperwork_10yr_min = filter_range_value("paperwork_violations_10yr", :min) %>
+        <% paperwork_10yr_max = filter_range_value("paperwork_violations_10yr", :max) %>
+        <% paperwork_10yr = range_active?("paperwork_violations_10yr") %>
         <li class="<%= filter_row_classes %>">
           <input type="checkbox" class="toggle" id="viols-paperwork"
                  data-action="change->filter#toggleSubcat"
-                 data-panel-id="subcat-paperwork-10yr">
+                 data-panel-id="subcat-paperwork-10yr" <%= checked_if paperwork_10yr %>>
           <label for="viols-paperwork">Non-health violations in the last 10 years</label>
           <button type="button" class="<%= filter_info_button_classes %>"
                   data-action="click->filter#toggleSubcatPanel"
                   data-panel-id="subcat-paperwork-10yr"
-                  aria-expanded="false"
+                  aria-expanded="<%= paperwork_10yr %>"
                   aria-controls="subcat-paperwork-10yr">
-            <%= icon("arrow-down", classes: collapse_toggle_icon_classes) %>
+            <%= icon("arrow-down", classes: collapse_toggle_icon_classes(expanded: paperwork_10yr)) %>
           </button>
-          <div id="subcat-paperwork-10yr" class="hidden px-2 py-2" data-subcat-panel
+          <div id="subcat-paperwork-10yr" class="<%= paperwork_10yr ? "px-2 py-2" : "hidden px-2 py-2" %>" data-subcat-panel
                data-controller="slider"
                data-slider-field-value="paperwork_violations_10yr"
                data-slider-url-value="<%= histogram_path %>">
@@ -294,8 +329,35 @@
               <span data-slider-target="minLabel"></span>
               <span data-slider-target="maxLabel"></span>
             </div>
-            <input type="hidden" data-slider-target="minInput" id="min-paperwork">
-            <input type="hidden" data-slider-target="maxInput" id="max-paperwork">
+            <div data-min-max-inputs class="flex items-center gap-1 mt-2 text-sm text-neutral-700">
+              <div class="flex flex-col flex-1 min-w-0">
+                <input type="text"
+                       id="paperwork-10yr-min-text"
+                       data-slider-target="minTextInput"
+                       data-action="change->slider#textInputChanged keydown.enter->slider#textInputChanged"
+                       placeholder="Enter Min"
+                       inputmode="numeric"
+                       autocomplete="off"
+                       aria-label="Minimum filter value"
+                       value="<%= paperwork_10yr_min %>"
+                       class="w-full text-sm font-bold bg-neutral-50 border border-neutral-300 rounded px-1.5 py-1 text-neutral-700">
+              </div>
+              <span aria-hidden="true">-</span>
+              <div class="flex flex-col flex-1 min-w-0">
+                <input type="text"
+                       id="paperwork-10yr-max-text"
+                       data-slider-target="maxTextInput"
+                       data-action="change->slider#textInputChanged keydown.enter->slider#textInputChanged"
+                       placeholder="Enter Max"
+                       inputmode="numeric"
+                       autocomplete="off"
+                       aria-label="Maximum filter value"
+                       value="<%= paperwork_10yr_max %>"
+                       class="w-full text-sm font-bold bg-neutral-50 border border-neutral-300 rounded px-1.5 py-1 text-neutral-700 text-right">
+              </div>
+            </div>
+            <input type="hidden" data-slider-target="minInput" id="min-paperwork" value="<%= paperwork_10yr_min %>">
+            <input type="hidden" data-slider-target="maxInput" id="max-paperwork" value="<%= paperwork_10yr_max %>">
           </div>
         </li>
       </ul>
@@ -388,10 +450,11 @@
     <% end %>
     <%= render Filters::CategoryComponent.new(label: "Environmental", variant: :default) do %>
       <ul class="my-[6px] mb-[10px] mx-0 list-none px-1">
+        <% watershed = subcat_parent_state(:watershed_hazards) %>
         <li class="<%= filter_row_classes %>">
           <input type="checkbox" class="toggle" id="more-watershed-hazards"
                  data-action="change->filter#toggleSubcat"
-                 data-panel-id="subcat-watershed-hazards">
+                 data-panel-id="subcat-watershed-hazards" <%= checked_if watershed[:all] %>>
           <label for="more-watershed-hazards">Potential watershed hazards</label>
           <span class="relative ml-1 inline-block cursor-default"
                 data-controller="tooltip"
@@ -402,10 +465,10 @@
           <button type="button" class="<%= filter_info_button_classes %>"
                   data-action="click->filter#toggleSubcatPanel"
                   data-panel-id="subcat-watershed-hazards"
-                  aria-expanded="false" aria-controls="subcat-watershed-hazards">
-            <%= icon("arrow-down", classes: collapse_toggle_icon_classes) %>
+                  aria-expanded="<%= watershed[:any] %>" aria-controls="subcat-watershed-hazards">
+            <%= icon("arrow-down", classes: collapse_toggle_icon_classes(expanded: watershed[:any])) %>
           </button>
-          <div id="subcat-watershed-hazards" class="hidden pl-2 pb-1" data-subcat-panel
+          <div id="subcat-watershed-hazards" class="<%= watershed[:any] ? "pl-2 pb-1" : "hidden pl-2 pb-1" %>" data-subcat-panel
                data-action="change->filter#syncParentFromSubcat">
             <ul class="mt-1 list-none px-1">
               <%= render Filters::GroupRangeComponent.new(
@@ -446,11 +509,11 @@
   <div id="container-menu-5-items">
     <%= render Filters::CategoryComponent.new(label: "Population size", tooltip_text: filter_tooltips["population_size"]) do %>
       <div class="flex my-[10px] ml-[15px] mr-[15px]">
-        <%= render Filters::PopSizeGroupComponent.new(id: "pop-very-small", label: "Very small",  sublabel: "500 or less",      pop_number: 1, position: :first) %>
-        <%= render Filters::PopSizeGroupComponent.new(id: "pop-small",      label: "Small",       sublabel: "501 - 3,300",      pop_number: 2) %>
-        <%= render Filters::PopSizeGroupComponent.new(id: "pop-medium",     label: "Medium",      sublabel: "3,301 - 10,000",   pop_number: 3) %>
-        <%= render Filters::PopSizeGroupComponent.new(id: "pop-large",      label: "Large",       sublabel: "10,001 - 100,000", pop_number: 4) %>
-        <%= render Filters::PopSizeGroupComponent.new(id: "pop-very-large", label: "Very large",  sublabel: "100,000+",         pop_number: 5, position: :last) %>
+        <%= render Filters::PopSizeGroupComponent.new(id: "pop-very-small", label: "Very small",  sublabel: "500 or less",      pop_number: 1, value: "<=500",          position: :first) %>
+        <%= render Filters::PopSizeGroupComponent.new(id: "pop-small",      label: "Small",       sublabel: "501 - 3,300",      pop_number: 2, value: "501-3,300") %>
+        <%= render Filters::PopSizeGroupComponent.new(id: "pop-medium",     label: "Medium",      sublabel: "3,301 - 10,000",   pop_number: 3, value: "3,301-10,000") %>
+        <%= render Filters::PopSizeGroupComponent.new(id: "pop-large",      label: "Large",       sublabel: "10,001 - 100,000", pop_number: 4, value: "10,001-100,000") %>
+        <%= render Filters::PopSizeGroupComponent.new(id: "pop-very-large", label: "Very large",  sublabel: "100,000+",         pop_number: 5, value: ">100,000",        position: :last) %>
       </div>
     <% end %>
     <%= render Filters::CategoryComponent.new(label: "Density") do %>

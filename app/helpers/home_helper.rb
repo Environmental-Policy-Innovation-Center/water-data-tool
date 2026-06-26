@@ -55,6 +55,19 @@ module HomeHelper
     filter_state["#{param_base}_#{bound}"]
   end
 
+  # Active when a min or max bound is set; the URL omits both at default bounds.
+  def range_active?(field)
+    filter_range_value(field, :min).present? || filter_range_value(field, :max).present?
+  end
+
+  # Aggregate state of a subcat parent's child ranges: `any` drives the open panel/arrow,
+  # `all` drives the checkbox. "Some but not all" is the indeterminate case (JS-only).
+  def subcat_parent_state(parent_key)
+    fields = FilterLayout.placements.select { |p| p.parent == parent_key }.map { |p| p.key.to_s }
+    active = fields.count { |field| range_active?(field) }
+    {any: active.positive?, all: active == fields.size}
+  end
+
   # Emits the `checked` attribute when the condition holds, nothing otherwise.
   def checked_if(condition)
     "checked" if condition

@@ -200,6 +200,23 @@ RSpec.describe "Home", type: :request do
       end
     end
 
+    context "population-size buttons (pop_cat)" do
+      it "highlights no size when the param is absent" do
+        get root_path
+        expect(has_class?("pop-very-small", "active")).to be(false)
+        expect(has_class?("pop-large", "active")).to be(false)
+      end
+
+      it "highlights only the selected sizes" do
+        get root_path, params: {encoded: encode_state({"filters" => {"pop_cat_5" => ["<=500", "10,001-100,000"]}})}
+        expect(has_class?("pop-very-small", "active")).to be(true)
+        expect(has_class?("pop-large", "active")).to be(true)
+        expect(has_class?("pop-small", "active")).to be(false)
+        expect(has_class?("pop-medium", "active")).to be(false)
+        expect(has_class?("pop-very-large", "active")).to be(false)
+      end
+    end
+
     context "range sliders (GroupRangeComponent)" do
       it "leaves a range row collapsed, unchecked, and empty when absent" do
         get root_path
@@ -229,6 +246,51 @@ RSpec.describe "Home", type: :request do
         expect(checked?("viols-groundwater-5yr")).to be(true)
         expect(has_class?("slider-groundwater-5yr", "hidden")).to be(false)
         expect(input_value("min-groundwater-5yr")).to eq("2")
+      end
+    end
+
+    context "subcat parents (health / watershed)" do
+      # All bounds for a parent's child range fields, e.g. {"num_facilities_min" => "1", ...}.
+      def all_child_mins(parent_key)
+        FilterLayout.placements.select { |p| p.parent == parent_key }
+          .each_with_object({}) { |p, h| h["#{p.key}_min"] = "1" }
+      end
+
+      it "leaves a subcat parent unchecked with a hidden panel when absent" do
+        get root_path
+        expect(checked?("viols-health-5yrs")).to be(false)
+        expect(has_class?("subcat-health-5yr", "hidden")).to be(true)
+      end
+
+      it "expands the panel but leaves the parent unchecked when only some children are active" do
+        get root_path, params: {encoded: encode_state({"filters" => {"groundwater_rule_5yr_min" => "2"}})}
+        expect(has_class?("subcat-health-5yr", "hidden")).to be(false)
+        expect(checked?("viols-health-5yrs")).to be(false)
+      end
+
+      it "checks the parent and expands the panel when all children are active" do
+        get root_path, params: {encoded: encode_state({"filters" => all_child_mins(:watershed_hazards)})}
+        expect(checked?("more-watershed-hazards")).to be(true)
+        expect(has_class?("subcat-watershed-hazards", "hidden")).to be(false)
+      end
+    end
+
+    context "paperwork inline ranges" do
+      it "leaves the row collapsed, unchecked, and empty when absent" do
+        get root_path
+        expect(checked?("viols-paperwork-5yrs")).to be(false)
+        expect(has_class?("subcat-paperwork-5yr", "hidden")).to be(true)
+        expect(input_value("min-paperwork-5yr")).to eq("")
+      end
+
+      it "restores the checkbox, expanded panel, and min/max values" do
+        get root_path, params: {encoded: encode_state({"filters" => {"paperwork_violations_5yr_min" => "5", "paperwork_violations_5yr_max" => "20"}})}
+        expect(checked?("viols-paperwork-5yrs")).to be(true)
+        expect(has_class?("subcat-paperwork-5yr", "hidden")).to be(false)
+        expect(input_value("min-paperwork-5yr")).to eq("5")
+        expect(input_value("max-paperwork-5yr")).to eq("20")
+        expect(input_value("paperwork-5yr-min-text")).to eq("5")
+        expect(input_value("paperwork-5yr-max-text")).to eq("20")
       end
     end
   end
