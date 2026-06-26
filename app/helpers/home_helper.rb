@@ -73,6 +73,12 @@ module HomeHelper
     "checked" if condition
   end
 
+  # Place filter: the visible search box shows the saved place name, falling back to the
+  # raw geoid (mirrors filter_controller.js restore).
+  def place_search_value
+    filter_state["place_name"].presence || filter_state["place_geoid"]
+  end
+
   # A radio/multiselect option's checked state: when the param is set, whether it
   # includes this value; when the param is absent, the option's manifest default.
   # (An all-or-none multiselect omits the param, so absent means "all defaults".)

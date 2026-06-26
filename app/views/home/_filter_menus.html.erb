@@ -21,10 +21,11 @@
                aria-autocomplete="list"
                aria-expanded="false"
                aria-controls="place-search-results"
+               value="<%= place_search_value %>"
                data-place-autocomplete-target="input"
                data-action="input->place-autocomplete#search keydown->place-autocomplete#keydown"
                autocomplete="off">
-        <input type="hidden" id="place-geoid" data-place-autocomplete-target="geoid">
+        <input type="hidden" id="place-geoid" data-place-autocomplete-target="geoid" value="<%= filter_state["place_geoid"] %>">
         <ul id="place-search-results"
             role="listbox"
             aria-label="Place search results"

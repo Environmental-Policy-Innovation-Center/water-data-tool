@@ -133,6 +133,23 @@ RSpec.describe HomeHelper, type: :helper do
         expect(helper.checked_if(false)).to be_nil
       end
     end
+
+    describe "#place_search_value" do
+      it "prefers the saved place name" do
+        assign(:filter_state, {"place_geoid" => "1150000", "place_name" => "Washington, DC"})
+        expect(helper.place_search_value).to eq("Washington, DC")
+      end
+
+      it "falls back to the geoid when no name is present" do
+        assign(:filter_state, {"place_geoid" => "1150000"})
+        expect(helper.place_search_value).to eq("1150000")
+      end
+
+      it "is nil when neither is set" do
+        assign(:filter_state, {})
+        expect(helper.place_search_value).to be_nil
+      end
+    end
   end
 
   describe "#cell_value" do
