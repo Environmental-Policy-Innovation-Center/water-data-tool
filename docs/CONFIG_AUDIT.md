@@ -258,7 +258,10 @@ same ERB/JS, and they should explicitly *merge* at one step:**
   hand-maintained.
 - Therefore the manifest's final step (generate `_filter_menus.html.erb` from the
   manifest) and FSR's core (rewrite that ERB for server render) are **the same piece
-  of work** — do it once (§8 Phase 5), not twice.
+lets   of work** — ideally do it once (§8 Phase 5), not twice.
+  - **Execution note:** we ultimately *split* these to de-risk — server-render the
+    existing ERB first (Approach B), then generate it from the manifest (8b). They still
+    converge on the same generated ERB; we just reach it in two passes. See Phase 5.
 
 Consequence for §5A: once FSR lands, the JS↔ERB ID-drift bug class disappears
 *structurally*, so that specific consistency check becomes unnecessary. The durable
@@ -268,9 +271,23 @@ manifest↔DB / param↔permit invariants remain.
 
 ## 8. Order of operations toward a single config file
 
-**Goal:** one `config/fields.yml` as the single source of truth, with the *least
-possible* custom configuration — and every unavoidable custom case **declared inside
+**Goal:** `config/fields.yml` as the single source of truth for *what each field is*, with the
+*least possible* custom configuration — and every unavoidable custom case **declared inside
 the manifest itself** so it is discoverable and test-enforced (never silent).
+
+Note the end state is **not one file — by design.** The target is **four config files, each with
+one job**, so it is always unambiguous where a given concern is set:
+
+- **`fields.yml`** — definition + capability (what each field *is*). **Order-independent**: file
+  order is for human organization only; nothing should depend on it, so the manifest never has to
+  be order-maintained.
+- **`filter_layout.yml`** — filter menu order + nesting.
+- **`table_layout.yml`** — column + category order. *(Eventually wanted for consistency — so that
+  ordering lives in layout files **everywhere**, never incidentally in the manifest; see §8.4.)*
+- **`tooltips.yml`** — filter/export copy, a first-class config file kept separate (§8.2).
+
+Adding a field always touches `fields.yml`, plus `filter_layout.yml` when it needs a menu control.
+The win is "8 scattered places → 4 purposeful, single-job files," not a single mega-file.
 
 Phases 0–4 are back-end only and **independent of FSR** (bankable now). Phase 5 *is*
 FSR. Each phase ships independently; the app works at every step.
@@ -402,11 +419,33 @@ output. Result: 77 fewer hand-written config lines and no alias map for the data
       `sub_filters`** (no flag in the layout). Either control's checked appearance is **derived** from its
       members' `default`, never declared (mirrors the app's `syncSelectAll`/`syncParentFromSubcat`).
       *(Was the open Phase-4/5 TODO.)*
-- [ ] Generate `_filter_menus.html.erb` from `filter_layout.yml` × `fields.yml` **and**
-      server-render filter state from decoded URL state in the same pass. *(The browser-QA-heavy step.)*
-- [ ] Delete `#restoreDomState`; slim `FILTERS[]` to interaction-only.
-- [ ] Add request-spec coverage per control type + `view=` URL support (FSR Phase 3).
+> **Sequencing note (actual, post-decision).** §7 assumed generation + server-render happen in
+> *one pass*. In practice we **split them**: server-render the *existing* hand-written ERB first
+> (Approach B — incremental, one control type at a time, each with a request spec and browser QA),
+> and defer the manifest-loop *generation* (Approach A) as a follow-on. Lower risk, and it ships
+> user-visible value per control. The two remaining halves below reflect that split.
+
+- [x] **(8a) Server-render filter state from the decoded URL** — Approach B, incremental. **Done —
+      Checkpoint A.** radio · bool · multiselect · range-select · rate-tier · range sliders ·
+      subcat parents · population-size · paperwork ranges · place autocomplete.
+      *(browser-QA-heavy; each control type landed with request-spec coverage.)*
+- [ ] **(8b) Generate `_filter_menus.html.erb` from `filter_layout.yml` × `fields.yml`** — the
+      manifest loop (Approach A). **This is the step that makes adding a field a one-file edit**;
+      until it lands, the menu is still ~600 hand-written lines. Deferred behind 8a, **but required
+      to reach the goal** — not optional.
+- [ ] **(9) FSR Phase 3 — JS convergence.** Delete `#restoreDomState`; slim `FILTERS[]` to
+      interaction-only (~10–15 entries); add the subcat-parent `indeterminate` connect hook; add
+      `view=` URL support. (Per-control request specs already land alongside 8a.)
 - [ ] Close out `docs/open_items/FILTER_SERVER_RENDER.md`.
+
+**Logical checkpoints for Phase 5:**
+- **Checkpoint A — server owns first paint. ✅ REACHED.** 8a complete — every filter control renders
+  its state from the URL; a shared link needs no JS restore.
+- **Checkpoint B — one-file field edits.** 8b complete. The menu ERB is generated from the
+  manifest × layout; adding/removing a filter no longer touches hand-written ERB. **This is the
+  consolidation payoff.**
+- **Checkpoint C — FSR closed.** 9 complete. `#restoreDomState` gone, `FILTERS[]` interaction-only,
+  the JS↔ERB ID-drift bug class is structurally impossible. Close the FSR doc.
 - [ ] *(Optional, for symmetry)* Author `config/table_layout.yml` and move column order +
       `display.category` membership there — lower ROI (table is flat, no nesting), but it
       makes ordering explicit instead of incidental file-order. See §8.4.
@@ -567,11 +606,12 @@ Also: **don't reuse the name `filters.yml`** (the legacy file being retired) —
 
 - **`filter_layout.yml` — clear win.** The nesting makes it strictly more expressive than
   tags; this is real, not cosmetic.
-- **`table_layout.yml` — consistency nice-to-have, lower ROI.** The table is *flat* (no
-  nesting) and category order already lives in the top-level `categories:` block. The only
-  thing it adds is making column-within-category order explicit (today it is manifest
-  file-order) and letting `display.category` membership move out of the field. Worth doing
-  for symmetry and explicit reorderability; not solving an expressiveness gap.
+- **`table_layout.yml` — wanted for *consistency*, lower *expressiveness* ROI.** The table is
+  *flat* (no nesting), so it doesn't need a layout file to be *expressible* the way the filter menu
+  does. But it's still worth authoring: it makes column-within-category order explicit (today it is
+  manifest file-order) and lets `display.category` membership move out of the field — which means
+  **ordering lives in layout files everywhere and `fields.yml` carries no order at all.** That
+  uniformity (one obvious place per concern) is the reason to do it, not an expressiveness gap.
 
 **Current state:** the `menu`/`section` tags in `fields.yml` are interim seed data for
 `filter_layout.yml`. They are removed in Phase 5 when the layout file is authored.
@@ -613,6 +653,13 @@ initial placement-only `filter_layout.yml`.*
 
 ## 9. Remaining task summary
 
+**Status snapshot (2026-06):** Phases 0–4 are **complete** — the back-end is fully manifest-driven
+(definition, model routing, ETL import, server views, sort/filter/histogram config all derive from
+`fields.yml`). **Phase 5 is in progress:** layout files authored (task 7 ✅); filter state is now
+**server-rendered for every filter control** (8a done — **Checkpoint A**). Still outstanding: the
+manifest-loop **ERB generation** (8b — the one-file-edit payoff) and the **JS convergence** (9).
+See the three Phase-5 checkpoints above.
+
 | # | Task | Phase | Status | FSR-coupled? |
 |---|------|-------|--------|--------------|
 | 1 | Parity/golden-master spec vs current registries | 0 | ✅ done | no |
@@ -621,13 +668,15 @@ initial placement-only `filter_layout.yml`.*
 | 4 | Register custom cases in-manifest (`custom_imports`, §8.1) + no-silent-gaps spec | 2/4 | ✅ done | no |
 | 5 | Cut `ColumnRegistry` + histogram config over; delete `columns.yml` + `histogram_field_groups` | 3 | ✅ done (permit/sortable deferred to P5) | no |
 | 6 | ETL `source:` coverage (all 8 generic files) + `Generic` importer + cutover | 4 | ✅ done | no |
-| 7 | Author `filter_layout.yml` (nested) + layout backstop spec; remove `menu`/`section` tags from manifest | 5 | ◻ todo | **yes — is FSR** |
-| 8 | Generate filter-menu ERB from `filter_layout.yml` × `fields.yml` + server-render state | 5 | ◻ todo | **yes — is FSR** |
-| 9 | Delete `#restoreDomState`, slim `FILTERS[]`, add request specs, `view=` | 5 | ◻ todo | **yes — is FSR** |
-| 10 | Port `rate_tier` control into the manifest + layout | 5 | ◻ todo | partial |
+| 7 | Author `filter_layout.yml` (nested) + layout backstop spec; remove `menu`/`section` tags from manifest | 5 | ✅ done | **yes — is FSR** |
+| 8a | **Server-render** filter state from decoded URL (Approach B, per control type) | 5 | ✅ done — all controls (**Checkpoint A**) | **yes — is FSR** |
+| 8b | **Generate** filter-menu ERB from `filter_layout.yml` × `fields.yml` (manifest loop) | 5 | ◻ todo — **the one-file-edit payoff (Checkpoint B)** | **yes — is FSR** |
+| 9 | FSR Phase 3 — delete `#restoreDomState`, slim `FILTERS[]`, indeterminate hook, `view=` | 5 | ◻ todo (per-control specs land with 8a) | **yes — is FSR** |
+| 10 | Port `rate_tier` control into the manifest + layout | 5 | ✅ manifest+layout+server-render done; JS removal rides with #9 | partial |
 | 11 | Portal / CSV override layer + generic filter applier | 6 | ◻ todo | no |
-| 12 | *(Optional)* `table_layout.yml` for explicit column/category order | 5/6 | ◻ todo | no |
+| 12 | `table_layout.yml` for explicit column/category order *(wanted for consistency — ordering out of the manifest)* | 5/6 | ◻ todo | no |
 | 13 | **How-to / decision tree: "adding a data point"** — flat-map vs custom, migration-needed?, new-column-on-existing-file vs new-file vs new-table; the surfacing axes (display/filter/histogram). Likely `docs/ADDING_A_FIELD.md` | docs | ◻ todo | no |
+| 14 | **Remove `Place` as a filter** — drop the filter-menu UI, `place_geoid` filtering (`filterable.rb`), its manifest/layout/permit entries, the `FILTERS[]` entry, and the now-dead `/places/search` autocomplete. **Keep** `PlaceSystemCrosswalk`, its ETL, map tiling (`tile_impact.rb`), and the two PWS-name searchboxes (the `search` param — a separate feature). **Best done after 8b** so it doubles as the `docs/REMOVE_A_FILTER.md` reference (removal ≈ a layout-file edit). | 5/docs | ◻ todo | partial |
 
 ---
 

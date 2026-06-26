@@ -39,6 +39,11 @@ A scratchpad for docs housekeeping — things to write, update, remove, or decid
 
 - `mocks` directory
 
+- CI
+  - Add ci notes on how to handle brakeman faiures
+  - Add ci nots on how to handle bundler-audit failures
+
+
 ### Verify / Check
 
 - **Boil Water Summary filter** — placeholder exists in Notices UI but is disabled; confirm when filter is implemented
@@ -48,3 +53,6 @@ A scratchpad for docs housekeeping — things to write, update, remove, or decid
 - Reorganize `docs/` structure — remove stale implementation guides, consider new categories
   (runbooks, guides, architecture, domain concepts)
 - **Test GeoJSON exports**
+
+
+- Remove Place filter
