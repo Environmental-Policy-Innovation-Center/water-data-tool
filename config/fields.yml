@@ -185,7 +185,7 @@ fields:
   area_sq_miles:
     model: public_water_system
     display: {label: "Size (sq mi)", sort: area_sq_miles, format: dec, category: utility_details, csv_label: "Size (Area in square miles)"}
-    filter: {kind: range, param_base: area, coercion: decimal, label: "Area in square miles"}
+    filter: {kind: range, param_base: area, coercion: decimal, label: "Area in square miles", control: range_select, select_steps: area}
 
   open_health_viol:
     model: public_water_system
@@ -340,7 +340,7 @@ fields:
     model: boil_water_summary
     source: {file: national_bwn_highlevel_summary, header: "total_bwn", cast: integer}
     display: {label: "Boil water notices", sort: total_notices, format: num, category: violations, csv_label: "Boil water notices"}
-    filter: {kind: range, param_base: boil_water_notices, coercion: integer, label: "Boil water notices"}
+    filter: {kind: range, param_base: boil_water_notices, coercion: integer, label: "Boil water notices", control: notices}
 
   # Loaded but not shown (boil-water columns).
   first_advisory_date:
@@ -387,20 +387,20 @@ fields:
     model: demographic
     source: {file: epa_sabs_xwalk, header: "epic_pop_density", cast: decimal}
     display: {label: "Population density (per sq mi)", sort: population_density, format: dec, format_opts: {precision: 0}, category: demographics, csv_label: "Population density (people per square mile)"}
-    filter: {kind: range, param_base: density, coercion: decimal, label: "People per square mile"}
+    filter: {kind: range, param_base: density, coercion: decimal, label: "People per square mile", control: range_select, select_steps: density}
 
   population_pct_change:
     model: trend_datum
     source: {file: xwalk_pct_change_10yr, header: "total_pop_pct_change_2011_2021", cast: decimal}
     display: {label: "Population change (10yr)", sort: population_pct_change_capped, format: pct, format_opts: {precision: 1}, category: demographics, csv_label: "Change in people in the last 10 years (%)"}
-    filter: {kind: range, column: population_pct_change_capped, param_base: population_pct_change_capped, coercion: decimal, label: "Population change (10 years)", tooltip: population_change}
+    filter: {kind: range, column: population_pct_change_capped, param_base: population_pct_change_capped, coercion: decimal, label: "Population change (10 years)", tooltip: population_change, slider_label: "Percentage change"}
     histogram: {format: percent_change, column: population_pct_change_capped}
 
   mhi_pct_change:
     model: trend_datum
     source: {file: xwalk_pct_change_10yr, header: "mhi_pct_change_2011_2021", cast: decimal}
     display: {label: "Income change (10yr)", sort: mhi_pct_change_capped, format: pct, format_opts: {precision: 1}, category: demographics, csv_label: "Change in income in the last 10 years (%)"}
-    filter: {kind: range, column: mhi_pct_change_capped, param_base: mhi_pct_change_capped, coercion: decimal, label: "Median household income change (10 years)", tooltip: income_change}
+    filter: {kind: range, column: mhi_pct_change_capped, param_base: mhi_pct_change_capped, coercion: decimal, label: "Median household income change (10 years)", tooltip: income_change, slider_label: "Percentage change"}
     histogram: {format: percent_change, column: mhi_pct_change_capped}
 
   # Loaded but not shown. The _capped columns are capped versions of the change metrics
@@ -449,21 +449,21 @@ fields:
     model: demographic
     source: {file: epa_sabs_xwalk, header: "hh_below_pov_per", cast: decimal}
     display: {label: "Households below poverty line", sort: poverty_rate, format: pct, category: demographics, csv_label: "Households below the poverty line (%)"}
-    filter: {kind: range, coercion: decimal, label: "Poverty rate", tooltip: poverty_rate}
+    filter: {kind: range, coercion: decimal, label: "Poverty rate", tooltip: poverty_rate, slider_label: "Percentage of households"}
     histogram: {format: percent}
 
   unemployment_rate:
     model: demographic
     source: {file: epa_sabs_xwalk, header: "laborforce_unemployed_per", cast: decimal}
     display: {label: "Unemployment", sort: unemployment_rate, format: pct, category: demographics, csv_label: "Unemployment (%)"}
-    filter: {kind: range, coercion: decimal, label: "Unemployment rate", tooltip: unemployment_rate}
+    filter: {kind: range, coercion: decimal, label: "Unemployment rate", tooltip: unemployment_rate, slider_label: "Percentage of labor force"}
     histogram: {format: percent}
 
   median_household_income:
     model: demographic
     source: {file: epa_sabs_xwalk, header: "mhi", cast: integer}
     display: {label: "Median household income", sort: median_household_income, format: cur, category: demographics, csv_label: "Annual median household income ($)"}
-    filter: {kind: range, coercion: decimal, label: "Median household income", tooltip: median_household_income}
+    filter: {kind: range, coercion: decimal, label: "Median household income", tooltip: median_household_income, slider_label: "Annual income ($)"}
     histogram: {format: currency}
 
   # Loaded but not shown.
@@ -475,84 +475,84 @@ fields:
     model: demographic
     source: {file: epa_sabs_xwalk, header: "bachelors_per", cast: decimal}
     display: {label: "Higher education attainment", sort: bachelors_degree_rate, format: pct, category: demographics, csv_label: "Higher education attainment (%)"}
-    filter: {kind: range, coercion: decimal, label: "Higher education rate", tooltip: higher_education}
+    filter: {kind: range, coercion: decimal, label: "Higher education rate", tooltip: higher_education, slider_label: "Percentage of residents 25+"}
     histogram: {format: percent}
 
   age_under_5_rate:
     model: demographic
     source: {file: epa_sabs_xwalk, header: "ageunder_5_per", cast: decimal}
     display: {label: "Children under 5", sort: age_under_5_rate, format: pct, category: demographics, csv_label: "Children under 5 (%)"}
-    filter: {kind: range, coercion: decimal, label: "Children under 5", tooltip: children_under_5}
+    filter: {kind: range, coercion: decimal, label: "Children under 5", tooltip: children_under_5, slider_label: "Percentage of population"}
     histogram: {format: percent}
 
   age_over_61_rate:
     model: demographic
     source: {file: epa_sabs_xwalk, header: "age_over_61_per", cast: decimal}
     display: {label: "Elderly over 61", sort: age_over_61_rate, format: pct, category: demographics, csv_label: "Elderly over 61 (%)"}
-    filter: {kind: range, coercion: decimal, label: "Elderly (61+)", tooltip: elderly_over_61}
+    filter: {kind: range, coercion: decimal, label: "Elderly (61+)", tooltip: elderly_over_61, slider_label: "Percentage of population"}
     histogram: {format: percent}
 
   poc_rate:
     model: demographic
     source: {file: epa_sabs_xwalk, header: "poc_alone_per", cast: decimal}
     display: {label: "People of color", sort: poc_rate, format: pct, category: demographics, csv_label: "People of color (%)"}
-    filter: {kind: range, coercion: decimal, label: "People of color", tooltip: people_of_color}
+    filter: {kind: range, coercion: decimal, label: "People of color", tooltip: people_of_color, slider_label: "Percentage of population"}
     histogram: {format: percent}
 
   white_rate:
     model: demographic
     source: {file: epa_sabs_xwalk, header: "white_alone_per", cast: decimal}
     display: {label: "White", sort: white_rate, format: pct, category: demographics, csv_label: "White (%)"}
-    filter: {kind: range, coercion: decimal, label: "White", tooltip: white}
+    filter: {kind: range, coercion: decimal, label: "White", tooltip: white, slider_label: "Percentage of population"}
     histogram: {format: percent}
 
   black_rate:
     model: demographic
     source: {file: epa_sabs_xwalk, header: "black_alone_per", cast: decimal}
     display: {label: "Black", sort: black_rate, format: pct, category: demographics, csv_label: "Black (%)"}
-    filter: {kind: range, coercion: decimal, label: "Black", tooltip: black}
+    filter: {kind: range, coercion: decimal, label: "Black", tooltip: black, slider_label: "Percentage of population"}
     histogram: {format: percent}
 
   aian_rate:
     model: demographic
     source: {file: epa_sabs_xwalk, header: "AIAN_alone_per", cast: decimal}
     display: {label: "American Indian & Alaskan Native", sort: aian_rate, format: pct, category: demographics, csv_label: "American Indian and Alaskan Native (%)"}
-    filter: {kind: range, coercion: decimal, label: "American Indian / Alaska Native", tooltip: aian}
+    filter: {kind: range, coercion: decimal, label: "American Indian / Alaska Native", tooltip: aian, slider_label: "Percentage of population"}
     histogram: {format: percent}
 
   napi_rate:
     model: demographic
     source: {file: epa_sabs_xwalk, header: "NAPI_alone_per", cast: decimal}
     display: {label: "Native Hawaiian & Pacific Islander", sort: napi_rate, format: pct, category: demographics, csv_label: "Native Hawaiian and Pacific Islanders (%)"}
-    filter: {kind: range, coercion: decimal, label: "Native Hawaiian / Pacific Islander", tooltip: napi}
+    filter: {kind: range, coercion: decimal, label: "Native Hawaiian / Pacific Islander", tooltip: napi, slider_label: "Percentage of population"}
     histogram: {format: percent}
 
   asian_rate:
     model: demographic
     source: {file: epa_sabs_xwalk, header: "asian_alone_per", cast: decimal}
     display: {label: "Asian", sort: asian_rate, format: pct, category: demographics, csv_label: "Asian (%)"}
-    filter: {kind: range, coercion: decimal, label: "Asian", tooltip: asian}
+    filter: {kind: range, coercion: decimal, label: "Asian", tooltip: asian, slider_label: "Percentage of population"}
     histogram: {format: percent}
 
   hispanic_rate:
     model: demographic
     source: {file: epa_sabs_xwalk, header: "hisp_alone_per", cast: decimal}
     display: {label: "Latino/a", sort: hispanic_rate, format: pct, category: demographics, csv_label: "Latino/a (%)"}
-    filter: {kind: range, coercion: decimal, label: "Hispanic / Latino", tooltip: latino}
+    filter: {kind: range, coercion: decimal, label: "Hispanic / Latino", tooltip: latino, slider_label: "Percentage of population"}
     histogram: {format: percent}
 
   other_race_rate:
     model: demographic
     source: {file: epa_sabs_xwalk, header: "other_alone_per", cast: decimal}
     display: {label: "Other race", sort: other_race_rate, format: pct, category: demographics, csv_label: "Other (%)"}
-    filter: {kind: range, coercion: decimal, label: "Other race", tooltip: other_race}
+    filter: {kind: range, coercion: decimal, label: "Other race", tooltip: other_race, slider_label: "Percentage of population"}
     histogram: {format: percent}
 
   mixed_race_rate:
     model: demographic
     source: {file: epa_sabs_xwalk, header: "mixed_alone_per", cast: decimal}
     display: {label: "Mixed race", sort: mixed_race_rate, format: pct, category: demographics, csv_label: "Mixed race (%)"}
-    filter: {kind: range, coercion: decimal, label: "Mixed race", tooltip: mixed_race}
+    filter: {kind: range, coercion: decimal, label: "Mixed race", tooltip: mixed_race, slider_label: "Percentage of population"}
     histogram: {format: percent}
 
   most_common_rate_tier:
@@ -562,6 +562,9 @@ fields:
     filter:
       kind: multiselect
       param: most_common_rate_tier
+      control: rate_tier
+      label: "Annual water and sewer bill"
+      tooltip: annual_water_sewer_bill
       options:
         - {value: under_125, label: "Under $125"}
         - {value: tier_125_249, label: "$125–249"}
@@ -632,6 +635,7 @@ fields:
     filter:
       kind: multiselect
       param: pop_cat_5
+      control: pop_cat
       options:
         - {value: "<=500", label: "Very small", sublabel: "500 or less"}
         - {value: "501-3,300", label: "Small", sublabel: "501 - 3,300"}
@@ -648,21 +652,21 @@ fields:
     model: environmental_justice
     source: {file: cejst, header: "a_int.identified_as_disadvantaged", cast: score}
     display: {label: "Disadvantaged area", sort: cejst_disadvantaged_pct, format: pct, category: environmental_justice, csv_label: "Disadvantaged area (%)"}
-    filter: {kind: range, coercion: decimal, label: "Disadvantaged area", tooltip: cejst_disadvantaged}
+    filter: {kind: range, coercion: decimal, label: "Disadvantaged area", tooltip: cejst_disadvantaged, slider_label: "Percentage of the area"}
     histogram: {format: percent}
 
   svi_overall_pctl:
     model: environmental_justice
     source: {file: svi, header: "pw_int_pop.rpl_themes", cast: score}
     display: {label: "Social Vulnerability Index", sort: svi_overall_pctl, format: pct, category: environmental_justice, csv_label: "Social Vulnerability Index (%)"}
-    filter: {kind: range, coercion: decimal, label: "Social Vulnerability Index (SVI)", tooltip: svi}
+    filter: {kind: range, coercion: decimal, label: "Social Vulnerability Index (SVI)", tooltip: svi, slider_label: "Estimated vulnerability as a percentile"}
     histogram: {format: percent}
 
   cvi_overall_score:
     model: environmental_justice
     source: {file: cvi, header: "a_int.overall_cvi_score", cast: score}
     display: {label: "Climate Vulnerability Index", sort: cvi_overall_score, format: num, category: environmental_justice, csv_label: "Climate Vulnerability Index"}
-    filter: {kind: range, coercion: decimal, label: "Climate Vulnerability Index (CVI)", tooltip: cvi}
+    filter: {kind: range, coercion: decimal, label: "Climate Vulnerability Index (CVI)", tooltip: cvi, slider_label: "Estimated vulnerability score"}
     histogram: {format: count}
 
   # Loaded but not shown (EJ columns).
@@ -699,21 +703,21 @@ fields:
     model: funding_summary
     source: {file: pwsid_funded_highlevel_summary, header: "times_funded", cast: integer}
     display: {label: "SRF financing (2021–2025) — times received", sort: times_funded, format: num, category: funding, csv_label: "State revolving fund financing (2021 - 2025) - times received"}
-    filter: {kind: range, coercion: decimal, label: "State revolving fund financing", tooltip: srf_financing}
+    filter: {kind: range, coercion: decimal, label: "State revolving fund financing", tooltip: srf_financing, slider_label: "Times received"}
     histogram: {format: count}
 
   total_srf_assistance:
     model: funding_summary
     source: {file: pwsid_funded_highlevel_summary, header: "total_srf_assistance", cast: decimal}
     display: {label: "SRF assistance (2021–2025)", sort: total_srf_assistance, format: cur, format_opts: {precision: 2}, category: funding, csv_label: "State revolving fund assistance (2021 - 2025) - amount received ($)"}
-    filter: {kind: range, coercion: decimal, label: "State revolving fund assistance", tooltip: srf_assistance}
+    filter: {kind: range, coercion: decimal, label: "State revolving fund assistance", tooltip: srf_assistance, slider_label: "Amount ($)"}
     histogram: {format: currency}
 
   total_principal_forgiveness:
     model: funding_summary
     source: {file: pwsid_funded_highlevel_summary, header: "total_principal_forgiveness", cast: decimal}
     display: {label: "SRF principal forgiveness (2021–2025)", sort: total_principal_forgiveness, format: cur, format_opts: {precision: 2}, category: funding, csv_label: "State revolving fund principal forgiveness (2021 - 2025) - amount forgiven ($)"}
-    filter: {kind: range, coercion: decimal, label: "State revolving fund principal forgiveness", tooltip: principal_forgiveness}
+    filter: {kind: range, coercion: decimal, label: "State revolving fund principal forgiveness", tooltip: principal_forgiveness, slider_label: "Amount ($)"}
 
   # Loaded but not shown.
   median_srf_assistance:
@@ -725,29 +729,29 @@ fields:
   num_facilities:
     model: watershed_hazard
     display: {label: "Source water connections", sort: num_facilities, format: num, category: watershed_hazards, csv_label: "Source water connections"}
-    filter: {kind: range, coercion: integer, label: "Source water connections", tooltip: source_water_connections}
+    filter: {kind: range, coercion: integer, label: "Source water connections", tooltip: source_water_connections, slider_label: "Number of connections"}
     histogram: {format: count}
 
   permit_effluent_violations:
     model: watershed_hazard
     display: {label: "Pollution permits with breaches", sort: permit_effluent_violations, format: num, category: watershed_hazards, csv_label: "Pollution permits with breaches"}
-    filter: {kind: range, coercion: integer, label: "Pollution permits with breaches", tooltip: pollution_permits}
+    filter: {kind: range, coercion: integer, label: "Pollution permits with breaches", tooltip: pollution_permits, slider_label: "Number of breaches"}
     histogram: {format: count}
 
   open_underground_storage_tanks:
     model: watershed_hazard
     display: {label: "Underground storage tanks", sort: open_underground_storage_tanks, format: num, category: watershed_hazards, csv_label: "Underground storage tanks"}
-    filter: {kind: range, coercion: integer, label: "Underground storage tanks", tooltip: underground_storage_tanks}
+    filter: {kind: range, coercion: integer, label: "Underground storage tanks", tooltip: underground_storage_tanks, slider_label: "Number of tanks"}
     histogram: {format: count}
 
   risk_management_plan_facilities:
     model: watershed_hazard
     display: {label: "Risk management plan facilities", sort: risk_management_plan_facilities, format: num, category: watershed_hazards, csv_label: "Risk management plan facilities"}
-    filter: {kind: range, coercion: integer, label: "Risk management plan facilities", tooltip: risk_management_facilities}
+    filter: {kind: range, coercion: integer, label: "Risk management plan facilities", tooltip: risk_management_facilities, slider_label: "Number of facilities"}
     histogram: {format: count}
 
   impaired_streams_303d:
     model: watershed_hazard
     display: {label: "Impaired or threatened streams", sort: impaired_streams_303d, format: num, category: watershed_hazards, csv_label: "Streams with impaired or threatened surface waters"}
-    filter: {kind: range, coercion: integer, label: "Streams with impaired or threatened surface waters", tooltip: impaired_streams}
+    filter: {kind: range, coercion: integer, label: "Streams with impaired or threatened surface waters", tooltip: impaired_streams, slider_label: "Number of streams"}
     histogram: {format: count}

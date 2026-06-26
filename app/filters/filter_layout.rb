@@ -1,14 +1,8 @@
 # frozen_string_literal: true
 
-# Reads config/filter_layout.yml — the ordered, nested arrangement of the filter
-# menus (see docs/CONFIG_AUDIT.md §8.4 and the taxonomy in docs/FILTERING.md). The
-# manifest (FieldRegistry) owns what each filter *is*; this owns where each filter is
-# *placed*. Fields are referenced by key.
+# Reads config/filter_layout.yml — where each filter is placed (FieldRegistry owns what each filter is).
 class FilterLayout
-  # One filter control's placement, in taxonomy terms (docs/FILTERING.md):
-  # `menu` (level 1) → `category` (level 2) → filter (level 3) → sub-filter (level 4).
-  # `parent` is the parent filter key a sub-filter nests under, or nil when the field is
-  # itself a top-level filter.
+  # A leaf filter's placement: menu → category → filter; parent = the key it nests under, or nil.
   Placement = Data.define(:key, :menu, :category, :parent)
 
   def self.menus
@@ -37,8 +31,7 @@ class FilterLayout
     placements.map(&:key)
   end
 
-  # A filter is a field key (String) sitting directly in its category, or a parent filter
-  # { filter_key => { …, sub_filters: [keys] } } Hash whose sub-filters nest under it.
+  # A filter is either a field key (String) or a parent-filter Hash { key => {sub_filters: [...]} }.
   def self.placements_for(filter, menu_key, category_key)
     case filter
     when String

@@ -24,6 +24,12 @@ module HomeHelper
   AREA_STEPS = [1, 2, 4, 5, 10, 15, 20, 25, 50, 100, 250, 500].freeze
   DENSITY_STEPS = [1, 10, 20, 50, 100, 250, 500, 1000, 2000, 4000, 8000, 10000].freeze
 
+  # Column display format → slider value format (see slider_format_for).
+  SLIDER_FORMAT_BY_DISPLAY = {"cur" => "currency", "pct" => "percent"}.freeze
+
+  # Filter controls that render their own block markup, not <li> rows in the category's <ul>.
+  BLOCK_FILTER_CONTROLS = %w[range_select pop_cat place].freeze
+
   def datasets
     DATASETS
   end
@@ -71,6 +77,39 @@ module HomeHelper
   # Emits the `checked` attribute when the condition holds, nothing otherwise.
   def checked_if(condition)
     "checked" if condition
+  end
+
+  # DOM ids for a filter control, derived from its field/parent key (shared with filter_controller.js).
+  def filter_checkbox_id(key) = "filter-#{key}"
+
+  def filter_panel_id(key) = "panel-#{key}"
+
+  def filter_min_id(key) = "min-#{key}"
+
+  def filter_max_id(key) = "max-#{key}"
+
+  # A radio/multiselect option id, value-slugged.
+  def filter_option_id(param, value)
+    "filter-#{param}-#{value.present? ? value.to_s.parameterize : "any"}"
+  end
+
+  # A field's widget: its filter `control:` when set, else its `kind`.
+  def filter_control_for(field_key)
+    field = FieldRegistry.find(field_key)
+    (field.filter[:control] || field.filter_kind).to_s
+  end
+
+  def category_block?(category)
+    first = category[:filters].first
+    return false unless first.is_a?(String)
+    BLOCK_FILTER_CONTROLS.include?(filter_control_for(first))
+  end
+
+  # Slider value format: the histogram bin format, else the column's display format; "count" → none.
+  def slider_format_for(field)
+    fmt = (field.histogram && field.histogram[:format]) ||
+      SLIDER_FORMAT_BY_DISPLAY[field.display && field.display[:format]]
+    fmt unless fmt == "count"
   end
 
   # Place filter: the visible search box shows the saved place name, falling back to the

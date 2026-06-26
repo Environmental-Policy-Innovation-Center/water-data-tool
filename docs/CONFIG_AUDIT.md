@@ -677,6 +677,7 @@ See the three Phase-5 checkpoints above.
 | 12 | `table_layout.yml` for explicit column/category order *(wanted for consistency — ordering out of the manifest)* | 5/6 | ◻ todo | no |
 | 13 | **How-to / decision tree: "adding a data point"** — flat-map vs custom, migration-needed?, new-column-on-existing-file vs new-file vs new-table; the surfacing axes (display/filter/histogram). Likely `docs/ADDING_A_FIELD.md` | docs | ◻ todo | no |
 | 14 | **Remove `Place` as a filter** — drop the filter-menu UI, `place_geoid` filtering (`filterable.rb`), its manifest/layout/permit entries, the `FILTERS[]` entry, and the now-dead `/places/search` autocomplete. **Keep** `PlaceSystemCrosswalk`, its ETL, map tiling (`tile_impact.rb`), and the two PWS-name searchboxes (the `search` param — a separate feature). **Best done after 8b** so it doubles as the `docs/REMOVE_A_FILTER.md` reference (removal ≈ a layout-file edit). | 5/docs | ◻ todo | partial |
+| 15 | **Menu id → menu key (readability fast-follow)** — replace the integer menu `id` (1–5, More=`10`) with the readable menu key across the `container-menu-*` / `main-filter-grp-*` / `more-filter-grp-*` / `container-menu-btn-*` / `container-filter-count-menu-*` ids + the 4 JS controllers (`filter`/`filter_menu`/`filter_layout`/`nav`, incl. the hardcoded More=`10`), then drop `id:` from `filter_layout.yml` (order already comes from file order). Pairs with the FSR JS rewrite — it touches the same controllers. | 5/cleanup | ◻ todo | no |
 
 ---
 

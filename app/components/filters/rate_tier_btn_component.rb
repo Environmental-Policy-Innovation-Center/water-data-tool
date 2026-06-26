@@ -8,9 +8,10 @@ class Filters::RateTierBtnComponent < ViewComponent::Base
     "[&.active]:bg-[#eff6ea] [&.active]:!text-black [&.active]:!border-l [&.active]:!border-[#66a03b] " \
     "#{FOCUS_RING_CLASSES}".freeze
 
-  def initialize(id:, label:, position: :middle, active: false)
+  def initialize(id:, label:, value:, position: :middle, active: false)
     @id = id
     @label = label
+    @value = value
     @position = position
     @active = active
   end

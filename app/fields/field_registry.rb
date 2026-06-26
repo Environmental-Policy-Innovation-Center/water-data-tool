@@ -21,32 +21,23 @@ class FieldRegistry
     watershed_hazard: "WatershedHazard"
   }.freeze
 
-  Field = Data.define(:key, :model, :table, :db_column, :source, :display, :filter, :histogram) do
-    def column = db_column || key
-    def table_only? = display.nil?
-    def category = display && display[:category]&.to_sym
-    def cast = source && source[:cast]&.to_sym
-    def filter_kind = filter && filter[:kind]&.to_sym
-
-    # A range filter distinguishes three columns the live app conflates: the
-    # displayed value column, the column the filter targets, and the URL param base.
-    def filter_column = (filter && filter[:column]) || column
-    def filter_param = (filter && filter[:param_base]) || filter_column
-    def sort_param = display && display[:sort]&.to_s
-    def histogram_col = (histogram && histogram[:column]&.to_sym) || column
-
-    # Qualified "table.column" for CSV / GeoJSON export; nil for value-less columns
-    # with no model (e.g. the row-selection checkbox), which are not exported.
-    def export_sql = table && "#{table}.#{column}"
-  end
-
   def self.fields
     @fields ||= load_fields
+  end
+
+  # Field by manifest key — the generator resolves layout references through this.
+  def self.find(key)
+    by_key.fetch(key.to_sym)
+  end
+
+  def self.by_key
+    @by_key ||= fields.index_by(&:key).freeze
   end
 
   def self.reload!
     @fields = nil
     @config = nil
+    @by_key = nil
     @column_records = nil
     @categories = nil
     @table_for = nil
@@ -166,7 +157,7 @@ class FieldRegistry
   def self.load_fields
     config.fetch(:fields).map do |key, attrs|
       model_sym = attrs[:model]&.to_sym
-      Field.new(
+      FieldDefinition.new(
         key: key,
         model: model_sym,
         table: table_for(model_sym),

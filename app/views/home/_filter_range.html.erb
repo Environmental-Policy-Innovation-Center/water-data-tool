@@ -1,0 +1,14 @@
+<%# Range-slider filter, generated from a fields.yml range field. locals: field_key, group, nested? %>
+<% field = FieldRegistry.find(field_key) %>
+<%= render Filters::GroupRangeComponent.new(
+      checkbox_id: filter_checkbox_id(field_key),
+      panel_id: filter_panel_id(field_key),
+      label: field.filter[:label],
+      tooltip_text: (field.filter[:tooltip] && filter_tooltips[field.filter[:tooltip]]),
+      field: field.filter_param.to_s,
+      min_input_id: filter_min_id(field_key),
+      max_input_id: filter_max_id(field_key),
+      group: group,
+      slider_label: field.filter.fetch(:slider_label, "Number of violations"),
+      format: slider_format_for(field),
+      nested: local_assigns.fetch(:nested, false)) %>

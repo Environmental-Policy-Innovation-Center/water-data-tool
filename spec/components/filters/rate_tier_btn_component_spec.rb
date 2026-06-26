@@ -2,7 +2,7 @@ require "rails_helper"
 
 RSpec.describe Filters::RateTierBtnComponent, type: :component do
   def render_btn(**overrides)
-    defaults = {id: "tier-flat", label: "Flat Rate"}
+    defaults = {id: "tier-flat", label: "Flat Rate", value: "flat"}
     render_inline described_class.new(**defaults.merge(overrides))
   end
 

@@ -1,0 +1,25 @@
+<%# Dispatches one filter (field key, or parent-filter hash) to its control partial by control/kind. %>
+<% if filter.is_a?(Hash) %>
+  <%= render "home/filter_subcat_parent", parent: filter, menu_id: menu_id %>
+<% else %>
+  <% case filter_control_for(filter) %>
+  <% when "range" %>
+    <%= render "home/filter_range", field_key: filter, group: menu_id %>
+  <% when "bool" %>
+    <%= render "home/filter_bool", field_key: filter, group: menu_id %>
+  <% when "radio" %>
+    <%= render "home/filter_radio", field_key: filter, group: menu_id %>
+  <% when "multiselect" %>
+    <%= render "home/filter_multiselect", field_key: filter, group: menu_id %>
+  <% when "range_select" %>
+    <%= render "home/filter_range_select", field_key: filter, group: menu_id %>
+  <% when "pop_cat" %>
+    <%= render "home/filter_pop_cat", field_key: filter, group: menu_id %>
+  <% when "rate_tier" %>
+    <%= render "home/filter_rate_tier", field_key: filter, group: menu_id %>
+  <% when "place" %>
+    <%= render "home/filter_place", field_key: filter, group: menu_id %>
+  <% when "notices" %>
+    <%= render "home/filter_notices", field_key: filter, group: menu_id %>
+  <% end %>
+<% end %>

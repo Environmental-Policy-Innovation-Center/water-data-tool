@@ -1,16 +1,19 @@
-<li class="<%= helpers.filter_row_classes %> [&_input.rounded-checkbox]:h-[35px] [&_input.rounded-checkbox]:w-[35px]">
+<li class="<%= helpers.filter_row_classes %> [&_input.rounded-checkbox]:h-[35px] [&_input.rounded-checkbox]:w-[35px]"
+    data-filter-kind="range"<% if @group %> data-filter-group="<%= @group %>"<% end %>>
   <% if @nested %>
     <div class="flex items-start justify-between">
       <div class="flex items-start flex-1 min-w-0">
         <input type="checkbox" class="toggle mt-0.5 shrink-0" id="<%= @checkbox_id %>" <%= helpers.checked_if active? %>>
         <div class="flex-1 min-w-0 leading-snug">
           <label for="<%= @checkbox_id %>"><%= @label %></label>
-          <span class="relative ml-1 inline-block cursor-default"
-                data-controller="tooltip"
-                data-tooltip-text-value="<%= @tooltip_text %>"
-                data-action="mouseenter->tooltip#show mouseleave->tooltip#hide">
-            <%= helpers.icon "info", classes: "h-3.5 w-3.5 inline align-middle" %>
-          </span>
+          <% if @tooltip_text.present? %>
+            <span class="relative ml-1 inline-block cursor-default"
+                  data-controller="tooltip"
+                  data-tooltip-text-value="<%= @tooltip_text %>"
+                  data-action="mouseenter->tooltip#show mouseleave->tooltip#hide">
+              <%= helpers.icon "info", classes: "h-3.5 w-3.5 inline align-middle" %>
+            </span>
+          <% end %>
         </div>
       </div>
       <button type="button" class="<%= helpers.filter_info_button_classes %> shrink-0 mt-0.5"
@@ -28,12 +31,14 @@
              data-panel-id="<%= @panel_id %>" <%= helpers.checked_if active? %>>
       <div class="flex-1 min-w-0 leading-snug">
         <label for="<%= @checkbox_id %>"><%= @label %></label>
-        <span class="relative ml-1 inline-block cursor-default"
-              data-controller="tooltip"
-              data-tooltip-text-value="<%= @tooltip_text %>"
-              data-action="mouseenter->tooltip#show mouseleave->tooltip#hide">
-          <%= helpers.icon "info", classes: "h-3.5 w-3.5 inline align-middle" %>
-        </span>
+        <% if @tooltip_text.present? %>
+          <span class="relative ml-1 inline-block cursor-default"
+                data-controller="tooltip"
+                data-tooltip-text-value="<%= @tooltip_text %>"
+                data-action="mouseenter->tooltip#show mouseleave->tooltip#hide">
+            <%= helpers.icon "info", classes: "h-3.5 w-3.5 inline align-middle" %>
+          </span>
+        <% end %>
         <button type="button" class="ml-1 text-neutral-400 [@media(hover:hover)]:hover:text-neutral-600"
                 data-action="click->filter#toggleSubcatPanel"
                 data-panel-id="<%= @panel_id %>"

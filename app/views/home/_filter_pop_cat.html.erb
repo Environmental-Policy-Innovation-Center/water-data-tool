@@ -1,0 +1,16 @@
+<%# Population-size button group (multiselect). locals: field_key, group %>
+<% field = FieldRegistry.find(field_key) %>
+<% param = field.filter[:param] %>
+<% options = field.filter[:options] %>
+<div class="flex my-[10px] ml-[15px] mr-[15px]" data-filter-kind="pop_cat" data-filter-param="<%= param %>" data-filter-group="<%= group %>">
+  <% options.each_with_index do |opt, i| %>
+    <% position = i.zero? ? :first : ((i == options.size - 1) ? :last : :middle) %>
+    <%= render Filters::PopSizeGroupComponent.new(
+          id: filter_option_id(param, opt[:value]),
+          label: opt[:label],
+          sublabel: opt[:sublabel],
+          pop_number: i + 1,
+          value: opt[:value],
+          position: position) %>
+  <% end %>
+</div>
