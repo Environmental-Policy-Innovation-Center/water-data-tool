@@ -1,33 +1,36 @@
 # ─────────────────────────────────────────────────────────────────────────────
 # FILTER MENU LAYOUT — read by FilterLayout (app/filters/filter_layout.rb).
-# See docs/CONFIG_AUDIT.md §8.4 and the filter taxonomy in docs/FILTERING.md.
+# Owns ARRANGEMENT (which menu/category a filter sits in, plus nesting and ORDER) and the
+# copy for menus/categories/parent-filters. What each filterable FIELD *is* — kind, param,
+# label, tooltip, options, default — lives in the manifest, config/fields.yml.
 #
-# Placement, order, nesting, AND the copy for everything that has no manifest record.
-# The manifest (config/fields.yml) owns what each filterable FIELD is (kind, param, label,
-# tooltip, options, default); this file owns how filters are ARRANGED plus the copy for the
-# menus / categories / parent-filters, which are not fields. Terms follow docs/FILTERING.md:
+# ORDER = DEFINITION ORDER. Menus render as tabs left→right in the order listed here;
+# categories top→bottom within a menu; filters top→bottom within a category. To reorder,
+# move the block — there is no sort key. (`id` wires a menu to its DOM/JS; it does NOT order.)
 #
-#   Menu       → topic tab; carries `label`, `id` (DOM/badge group number, More = 10 — see fast-follow
-#                in docs/CONFIG_AUDIT.md to replace with the menu key), and panel chrome
-#                (`width`, `more_menu`, `reset_action`, `reset_label`)
-#   Category   → a named header within a menu; carries `label` + optional `tooltip` (ref into
-#                tooltips.yml); no param of its own
-#   Filter     → a toggleable filter option within a category (a field key referenced here;
-#                its copy lives in the manifest)
-#   Sub-filter → a more specific field nested under a parent filter
+# STRUCTURE (every key shown):
+#   menus:
+#     source:                       # menu key — internal, never shown to users
+#       label: "Source"             # tab text
+#       mobile_label: "Filters"     # optional — shorter tab label on phones (only "more" uses it)
+#       id: 1                       # stable DOM/badge/JS handle, NOT order (More = 10; see CONFIG_AUDIT task 15)
+#       width: "w-[390px]"          # optional — panel width (default "w-[350px]")
+#       more_menu: true             # optional — marks the "More" overflow panel
+#       reset_action: "click->filter#resetAll"   # optional — overrides the panel's Reset button action
+#       reset_label: "Reset All"                  # optional — overrides the Reset button text
+#       categories:
+#         primary_type:             # category key — internal
+#           label: "Primary type"   # header shown above its filters
+#           tooltip: primary_type   # optional — key into config/tooltips.yml
+#           filters: [gw_sw_code]   # ordered; each entry is ONE of:
+#             #  - a field key, e.g. gw_sw_code  → a filterable field in fields.yml (its copy lives there)
+#             #  - a parent filter, e.g.
+#             #      {health_5yr: {label: "Health violations…", tooltip: violations, sub_filters: [field keys]}}
+#             #    reveals nested sub-filters and gets a check-all just from having `sub_filters`;
+#             #    the parent key (health_5yr) is layout-only, never a field.
 #
-# Each menu → ordered `categories`. A category → `label`, optional `tooltip`, and ordered
-# `filters`. A filter is either:
-#   - a field key (a filterable field in fields.yml), or
-#   - {filter_key: {label:, tooltip?, sub_filters: [field keys]}} — a parent filter that
-#     reveals nested sub-filters (the 5yr/10yr violation filters and More → Watershed hazards;
-#     these share the JS `subcat_panel` type). The filter_key is a layout-only id, never a field.
-#     A parent's check-all comes with the pattern (it has `sub_filters`); its checked state is
-#     derived from whether its members are on — nothing to declare here.
-#
-# A filterable field with no menu control (e.g. total_population) does not appear here — absence
-# means "backend-only" (marked `backend_only` in the manifest). The backstop spec
-# (spec/filters/filter_layout_spec.rb) keeps this file in lockstep with the manifest.
+# A filterable field with NO entry here is backend-only (`backend_only` in the manifest).
+# spec/filters/filter_layout_spec.rb keeps this file in lockstep with the manifest.
 # ─────────────────────────────────────────────────────────────────────────────
 
 version: 1
@@ -135,6 +138,7 @@ menus:
 
   more:
     label: "More"
+    mobile_label: "Filters"
     id: 10
     width: "w-[450px]"
     more_menu: true

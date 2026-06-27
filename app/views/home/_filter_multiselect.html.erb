@@ -16,7 +16,6 @@
   <% opt_id = filter_option_id(param, opt[:value]) %>
   <% classes = ["toggle"] %>
   <% classes << "default-checked" if opt[:default] %>
-  <% classes << "checkbox-type" if select_all %>
   <li class="<%= filter_row_classes %>"><input type="checkbox" class="<%= classes.join(" ") %>" id="<%= opt_id %>"
       data-filter-kind="multiselect" data-filter-param="<%= param %>" data-filter-value="<%= opt[:value] %>" data-filter-group="<%= group %>"
       <% if select_all %> data-action="change->filter#syncSelectAll"<% end %> <%= checked_if filter_option_checked?(param, opt[:value], default: opt[:default] || false) %>><label for="<%= opt_id %>"><%= opt[:label] %></label></li>

@@ -6,32 +6,36 @@ The map page exposes a multi-level filter system that narrows the set of public 
 
 ## Source of truth (implementation)
 
-**Canonical contract:** `config/filters.yml`, loaded at runtime by `FilterRegistry` (`app/filters/filter_registry.rb`).
+Filters are config-driven and split across files by concern. The menu UI is **generated** from config and the JS is **DOM-driven** — there is no hand-maintained client registry.
 
 | Piece | Role |
 |--------|------|
-| `config/filters.yml` | Declares `direct_params`, `array_params`, `special_range_param_keys` (e.g. boil-water notice bounds), `area_range` / `density_range` key names, `violations` column lists (health 5yr/10yr subcats, paperwork columns), `range_column_groups` (demographics, EJ, funding, trends, watershed hazards: association, table, coercion, columns), and `histogram_field_groups` for the histogram API. |
-| `FilterRegistry` | Parses YAML (memoized), exposes `permit_arguments`, column helpers (`demographic_range_columns`, …), `paperwork_violation_columns`, health subcat lists, `histogram_field_config`, and `client_payload` / `client_payload_json` for the browser. |
-| `FilterParams` | `params.permit(*FilterRegistry.permit_arguments)` — no duplicated permit lists outside YAML. |
-| `Filterable` | Composed `apply_*` methods; range column sets and violation columns come from `FilterRegistry`; violations/funding/hazard ranges use Arel where those clauses are combined with OR. |
-| `PublicWaterSystems::HistogramsController` | Allowed histogram fields and model mapping come from `FilterRegistry.histogram_field_config` (from `histogram_field_groups` + `HISTOGRAM_MODELS`). |
+| `config/fields.yml` (via `FieldRegistry`) | What each filterable FIELD *is*: `filter.kind`, `param` / `param_base`, `label`, `tooltip`, `options` (value/label/default), `has_select_all`, an optional `control:` widget override (e.g. `range_select`, `pop_cat`, `rate_tier`), and the `histogram:` block that drives its slider. |
+| `config/filter_layout.yml` (via `FilterLayout`) | How filters are ARRANGED: which menu/category each sits in, nesting (parent → sub-filters), and **order** (definition order — see [Menu layout & order](#menu-layout--order)). Also owns the copy for menus/categories/parent-filters, which are not fields. |
+| `config/filters.yml` (via `FilterRegistry`) | The **backend** permit/column contract: `permit_arguments` (strong params), range-column groups, violations/funding/hazard column lists, and `client_payload`. Consumed by `Filterable` to build the SQL. (Migrating these into the manifest is a pending Phase-5 step; histogram config already moved to `fields.yml`.) |
+| `Filterable` | Composed `apply_*` methods; range/violation column sets come from `FilterRegistry`; violations/funding/hazard ranges use Arel combined with OR. |
 
-**Map page embed:** `app/views/home/_filter_registry_config.html.erb` renders `<script type="application/json" id="filter-registry-config">` with `FilterRegistry.client_payload_json`. That JSON is the **browser-visible copy of the server permit/column contract** (param keys, range groups, violations structure). Stimulus does **not** consume it yet for building requests.
+**The menu UI is generated, not hand-authored.** `app/views/home/_filter_menus.html.erb` is a ~25-line driver that loops `FilterLayout.menus → categories → filters` and renders one `_filter_*` partial per control kind; the tab bar in `index.html.erb` loops the same `FilterLayout.menus`. The generated markup emits a **`data-filter-*` DOM contract** (below) rather than hand-matched element ids.
 
-**What is outside the YAML single source (by design):** The map UI still has a **manual client layer** that must stay in sync with the contract whenever you add or rename a backend-facing filter:
+**The JS is DOM-driven.** `filter_controller.js` has **no `FILTERS` registry and no hardcoded ids**. On Apply it collects state by walking `[data-filter-kind]` and reading the contract; badge counts, Reset, and the subcat/rate-tier/select-all toggles work the same way. The server renders the active filter state into the DOM on load, so there is no `restoreDomState` either.
 
-1. **`FILTERS`** in `app/javascript/controllers/filter_controller.js` — param names, `param_min` / `param_max`, Stimulus `type`, menu `group`, value maps, and pointers to DOM ids.
-2. **Markup** in `app/views/home/_filter_menus.html.erb` (and related partials) — element `id`s, panels, and checkboxes must match what `FILTERS` references (`getElementById`, etc.).
+### The `data-filter-*` contract
 
-**Checklist when adding a filter:** Update `config/filters.yml` (and any new `Filterable` / join logic if it is not a plain range on an existing group) → extend `FILTERS` → add or adjust ERB ids → if it is histogram-driven, ensure the field exists under `histogram_field_groups` and slider `data-*` matches → add or extend specs. The embed is there so you can **compare** or **JSON.parse** in dev tools; optional automation is described under [TODO](#todo) (same doc: client consumption of the `#filter-registry-config` embed).
+Each control's root carries `data-filter-kind` (`radio` · `bool` · `multiselect` · `pop_cat` · `rate_tier` · `place` · `range` · `range_select` · `subcat_parent`) and `data-filter-group` (the menu `id`, used for badge counting). Options carry `data-filter-value` (+ `data-filter-param`). A `range` reuses the slider's `data-slider-field-value` (the param base → `<base>_min` / `<base>_max`) and its `data-slider-target` min/max inputs; `range_select` carries `data-filter-param-min/max` + `data-filter-min/max-sentinel`; `place` carries `data-filter-param` + `data-filter-name-param`. `filter_controller.js` is the single reader of this contract.
 
-Design rationale and a phased checklist for the registry work live in [REFACTOR_FILTER_FIELDS.md](./REFACTOR_FILTER_FIELDS.md) (working document; may be removed once the team no longer needs it).
+**Map page embed:** `app/views/home/_filter_registry_config.html.erb` still renders `<script type="application/json" id="filter-registry-config">` with `FilterRegistry.client_payload_json` — a browser-visible copy of the *backend* permit/column contract for dev-tools inspection. The DOM-driven `filter_controller.js` does not consume it.
+
+**Checklist when adding a filter:** add the field's `filter:` block to `config/fields.yml` → place it in `config/filter_layout.yml` (the menu/category, in the order you want) → if its param/range isn't already covered, extend `config/filters.yml` / `Filterable` → for a histogram slider, add the manifest `histogram:` block → add/extend specs. **No JS and no ERB id edits** — the menu markup and the collect/restore/badge logic are generated and DOM-driven.
+
+### Menu layout & order
+
+Menus, categories, and filters render in **definition order** from `config/filter_layout.yml`: the tab bar, the dropdown panels, and the More-overflow placeholders all loop `FilterLayout.menus`, so moving a block in the YAML reorders the UI. Each menu's integer `id` is a stable DOM/badge/JS handle (More = `10`) and does **not** affect order. A menu may also set `mobile_label`, `width`, and (for the More panel) `more_menu` / `reset_action` / `reset_label`. `spec/requests/home_spec.rb` asserts the tabs render in layout order. (The responsive collapse breakpoints in `filter_layout_controller.js` still reference menus by `id`; adding a menu needs a breakpoint entry there.)
 
 ---
 
 ## Table Search
 
-Table search is a separate mechanism from the faceted filter system — it is **not** a `Filterable` filter, not in `FilterRegistry`, and not in the `FILTERS` array in `filter_controller.js`. It runs as a post-filter `ILIKE` query via `Sortable#apply_search` after `apply_filters` has already narrowed the scope.
+Table search is a separate mechanism from the faceted filter system — it is **not** a `Filterable` filter, not in `FilterRegistry`, and has no `data-filter-*` control collected by `filter_controller.js`. It runs as a post-filter `ILIKE` query via `Sortable#apply_search` after `apply_filters` has already narrowed the scope.
 
 **State:** The search term lives in `SearchState` (a separate singleton from `FilterState`) and is encoded into `?encoded=` as a top-level `"search"` key alongside `"filters"` and `"cols"`. `HomeController#table` reads it from `decoded_state["search"]` independently of `filter_params`.
 
@@ -55,13 +59,13 @@ Five levels describe every filter option in the system. Use these terms consiste
 | 4 | **Sub-filter** | Ground water rule |
 | 5 | **Range** | Histogram slider min / max |
 
-- A **Menu** is one of the main topic tabs — Source, Attributes, Boundaries, Compliance, Population, More.
+- A **Menu** is one of the main topic tabs (Source, Attributes, Boundaries, Compliance, Population, More); the set of tabs and their order come from `config/filter_layout.yml`.
 - A **Category** is a named section within a menu that groups related options. Categories are headers — they have no filter params of their own.
 - A **Group** is a toggleable filter option within a category. Turning it on narrows results. Some groups reveal sub-filters when enabled.
 - A **Sub-filter** is a more specific option nested under a group.
 - A **Range** is a histogram slider attached to a group or sub-filter. Intermediate levels are optional — a Group can attach a Range directly with no Sub-filter in between.
 
-In `filter_controller.js`, nested **group → sub-filters → ranges** UIs (Compliance health 5yr/10yr and **More → Watershed hazards**) share the Stimulus filter `type` **`subcat_panel`** and the `SUBCAT_PANEL_FILTERS` list. That naming is domain-neutral; backend params still map to `violations_summaries` columns vs `watershed_hazards` via `Filterable` / `config/filters.yml`.
+Nested **group → sub-filters → ranges** UIs (Compliance health 5yr/10yr and **More → Watershed hazards**) render as a `data-filter-kind="subcat_parent"` row wrapping nested `data-filter-kind="range"` rows; `filter_controller.js` handles the parent check-all / indeterminate state generically off that contract. The naming is domain-neutral; backend params still map to `violations_summaries` columns vs `watershed_hazards` via `Filterable` / `config/filters.yml`.
 
 ---
 
@@ -163,7 +167,7 @@ Enabling more groups within a category **broadens** results (OR). Enabling filte
   - Non-health violations in the last 5 years *(Group)* ~ range
   - Non-health violations in the last 10 years *(Group)* ~ range
 - **Notices** *(Category)*
-  - Boil water notices 🚫 *(Map UI is a disabled placeholder only—no `FILTERS` row / collect path, so Apply does not send params. The server already permits and applies `boil_water_notices_min` / `max` via `boil_water_summaries` (`config/filters.yml`, `Filterable`). The legacy app enabled this filter only for selected geographies because BWN coverage was treated as incomplete; that Stimulus behavior is not re‑implemented yet.)*
+  - Boil water notices 🚫 *(Map UI is a disabled placeholder only—it carries no `data-filter-kind`, so `filter_controller.js` never collects it and Apply does not send params. The server already permits and applies `boil_water_notices_min` / `max` via `boil_water_summaries` (`config/filters.yml`, `Filterable`). The legacy app enabled this filter only for selected geographies because BWN coverage was treated as incomplete; that Stimulus behavior is not re‑implemented yet.)*
 
 ---
 
@@ -252,7 +256,7 @@ Rules per filter type:
 | `range_select` (area, density) | +1 for the pair if either or both ends are non-sentinel |
 | `subcat_panel` (health violations, watershed hazards) | +1 for the parent + +1 per active sub-row; parent with 3 active sub-filters = 4 |
 
-Adding new `FILTERS` entries of any of these types automatically counts correctly — no counter code changes are needed.
+Badge counting is DOM-driven (`filter_controller.js` reads each control's `data-filter-kind` / `data-filter-group`), so a new filter of any of these kinds counts correctly with no JS change.
 
 ### Rate tiers as array params
 
@@ -278,6 +282,6 @@ Active groups within the Funding category OR together — a system qualifies if 
 - **Filter Counter badges** — counting logic is fully implemented and FilterState-based (see Badge counting rule above). Visual presentation and exact design expectations still need confirmation against final design mockups.
 - **Missing tooltips** — `ⓘ` tooltips are missing on several headline category labels: Primary type, Type, Violations, and the Wholesaler filter. Keys need to be added to `config/tooltips.yml` and tooltip spans added to the corresponding ERB.
 - **Annual water/sewer bill "no rate info" behavior** — the checkbox is implemented, but expected behavior needs product confirmation: does checking "No rate info" show *only* systems with no rate data, or does it show all currently-filtered systems *plus* those with no rate data? Currently implemented as the latter (expands).
-- **Client consumption of `#filter-registry-config`** — optional next step: parse the embed in `filter_controller.js` to validate or derive param keys, reducing the risk of drift with **`FILTERS`**.
+- **Client consumption of `#filter-registry-config`** — optional next step: parse the embed in `filter_controller.js` to cross-check that the `data-filter-*` param keys match the backend permit contract in `config/filters.yml`.
 - **URL length** — with many active filters, URLs can become very long. A param compression or alias strategy may be needed. A mapping approach was tried previously and reverted due to complexity; revisit when URLs become a practical problem.
 

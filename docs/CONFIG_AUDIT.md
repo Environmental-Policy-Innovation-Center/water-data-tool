@@ -429,27 +429,38 @@ output. Result: 77 fewer hand-written config lines and no alias map for the data
       Checkpoint A.** radio · bool · multiselect · range-select · rate-tier · range sliders ·
       subcat parents · population-size · paperwork ranges · place autocomplete.
       *(browser-QA-heavy; each control type landed with request-spec coverage.)*
-- [ ] **(8b) Generate `_filter_menus.html.erb` from `filter_layout.yml` × `fields.yml`** — the
-      manifest loop (Approach A). **This is the step that makes adding a field a one-file edit**;
-      until it lands, the menu is still ~600 hand-written lines. Deferred behind 8a, **but required
-      to reach the goal** — not optional.
-- [ ] **(9) FSR Phase 3 — JS convergence.** Delete `#restoreDomState`; slim `FILTERS[]` to
-      interaction-only (~10–15 entries); add the subcat-parent `indeterminate` connect hook; add
-      `view=` URL support. (Per-control request specs already land alongside 8a.)
+- [x] **(8b) Generate `_filter_menus.html.erb` from `filter_layout.yml` × `fields.yml`** — DONE.
+      The menu ERB is now a ~25-line driver looping `FilterLayout.menus → categories → filters` into
+      one `_filter_*` partial per control kind (golden-master-verified ≡ the prior hand-written output).
+      The **tab bar (`index.html.erb`), the dropdown panels, and the More-overflow placeholders all loop
+      `FilterLayout.menus`**, so the menu set, labels, and **order are layout-driven (definition order)** —
+      `id` is only a stable DOM/badge/JS handle. Element ids are key-derived (`filter-K`, `panel-K`,
+      `min-K`/`max-K`), not hand-authored. (8b + 9 shipped as one combined batch — see note below.)
+- [x] **(9) FSR Phase 3 — JS convergence.** DONE. `filter_controller.js` rewritten **DOM-driven** off
+      the `data-filter-*` contract emitted by the generated ERB; `FILTERS[]`, `#restoreDomState`, and the
+      value-maps are **deleted** (not slimmed — server-render seeds active state, so there is no client
+      registry left). Minor follow-ups tracked separately: subcat-parent `indeterminate` connect hook
+      (still JS-set on interaction only) and `view=` URL support.
+  > **Combined-batch note:** 8b and 9 were done together because the end state has hardcoding in
+  > *neither* the ERB nor the JS — generating the ERB with key-derived ids and a `data-filter-*` contract,
+  > then rewriting the JS to read that contract, is zero-throwaway (a separate 8b would have rewritten
+  > ids that 9 then deletes). See `docs/FILTERING.md` → "Source of truth (implementation)".
 - [ ] Close out `docs/open_items/FILTER_SERVER_RENDER.md`.
 
 **Logical checkpoints for Phase 5:**
 - **Checkpoint A — server owns first paint. ✅ REACHED.** 8a complete — every filter control renders
   its state from the URL; a shared link needs no JS restore.
-- **Checkpoint B — one-file field edits.** 8b complete. The menu ERB is generated from the
-  manifest × layout; adding/removing a filter no longer touches hand-written ERB. **This is the
-  consolidation payoff.**
-- **Checkpoint C — FSR closed.** 9 complete. `#restoreDomState` gone, `FILTERS[]` interaction-only,
-  the JS↔ERB ID-drift bug class is structurally impossible. Close the FSR doc.
+- **Checkpoint B — one-file field edits. ✅ REACHED.** 8b complete. The menu ERB (and the tab bar) are
+  generated from the manifest × layout; adding/removing/reordering a filter or menu no longer touches
+  hand-written ERB. **This is the consolidation payoff.**
+- **Checkpoint C — FSR closed. ✅ REACHED.** 9 complete. `#restoreDomState` gone, `FILTERS[]` **deleted
+  entirely** (DOM-driven, not interaction-only), the JS↔ERB ID-drift bug class is structurally
+  impossible. (Remaining: close the FSR doc.)
 - [ ] *(Optional, for symmetry)* Author `config/table_layout.yml` and move column order +
       `display.category` membership there — lower ROI (table is flat, no nesting), but it
       makes ordering explicit instead of incidental file-order. See §8.4.
 
+<!-- Deffered - we are going to hold off on CSV import logic and not tackle duing this refactor -->
 ### Phase 6 — Portal / CSV-driven config
 - [ ] Manifest override source (CSV record or admin portal) — a thin CRUD layer that
       writes/overrides `fields.yml`.

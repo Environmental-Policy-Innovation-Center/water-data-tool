@@ -81,12 +81,9 @@
         </div>
       </li>
 
-      <%= render UI::FilterMenuTabComponent.new(menu_id: 1, label: "Source") %>
-      <%= render UI::FilterMenuTabComponent.new(menu_id: 2, label: "Attributes") %>
-      <%= render UI::FilterMenuTabComponent.new(menu_id: 3, label: "Boundaries") %>
-      <%= render UI::FilterMenuTabComponent.new(menu_id: 4, label: "Compliance") %>
-      <%= render UI::FilterMenuTabComponent.new(menu_id: 5, label: "Population") %>
-      <%= render UI::FilterMenuTabComponent.new(menu_id: 10, label: "More", mobile_label: "Filters") %>
+      <% FilterLayout.menus.each_value do |menu| %>
+        <%= render UI::FilterMenuTabComponent.new(menu_id: menu[:id], label: menu[:label], mobile_label: menu[:mobile_label]) %>
+      <% end %>
     </ul>
   </div>
 
