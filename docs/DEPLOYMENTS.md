@@ -119,6 +119,14 @@ Use **Actions → Refresh Cartographic Boundaries → Run workflow** to reload t
 
 The job summary shows the task ARNs, environment, and the row counts from the verification step.
 
+This workflow does not backfill PWS generalized geometries. Those columns live on `service_area_geometries` and are derived from EPA SABS service-area polygons, not from TIGER cartographic boundaries.
+
+### PWS generalized geometries
+
+Production backfills missing `service_area_geometries.geom_z0_4`, `geom_z5`, `geom_z6`, and `geom_z7` during the scheduled nightly ETL. This runs even when all source files are unchanged, because the ETL post-import step checks for missing generalized geometry columns before returning from a no-op import.
+
+Page requests do not populate these columns. Normal geometry imports keep them current after the initial deploy, and a forced `epa_sabs_geoms` import also repopulates them, but neither is required just to complete the rollout. The `etl:geometries:generalize` rake task exists for local development or an explicit manual fallback.
+
 ### Sweep stale PR environments
 
 Use **Actions → Teardown Stale PR Environments → Run workflow** to bulk-destroy all PR environments whose last commit is older than a threshold. Requires `pr-teardowns` environment approval.

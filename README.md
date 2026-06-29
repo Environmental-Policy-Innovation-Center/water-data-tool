@@ -160,6 +160,12 @@ bin/dev
 # Run tests
 bundle exec rspec
 
+# Run the deterministic project CI
+bin/ci
+
+# Optional local pre-merge tile performance guard
+bin/rails runner bin/benchmark-tiles
+
 # Lint (check only — same tools as Lefthook pre-commit; no Git hook required)
 bin/standardrb
 bin/erb_lint --lint-all
@@ -202,6 +208,23 @@ bin/rails runner "TileCacheWarmJob.perform_now"
 ```
 
 This blocks until all z0-z8 tiles are generated. Progress is logged to stdout.
+
+### Local performance checks
+
+Keep `bin/ci` as the deterministic pre-merge baseline. When a change touches map tiles, spatial SQL, or cache behavior, run the safe tile performance guard after CI:
+
+```bash
+bin/ci
+bin/rails runner bin/benchmark-tiles
+```
+
+Benchmark scripts have different cache behavior:
+
+| Script | Purpose | Cache behavior |
+|---|---|---|
+| `bin/benchmark` | Broad query benchmarking for filters, stats, table loads, search, and warm tile retrieval by zoom tier | Non-destructive |
+| `bin/benchmark-tiles` | Safe local regression gate for tile SQL at overview, state-selection, and system-browsing zooms | Non-destructive; cold timings call `TileGenerator.generate_layer` directly |
+| `bin/benchmark-cold` | Manual cold-cache investigation for full tile generation | Destructive; deletes all rows from `tile_cache` before measuring |
 
 ---
 
