@@ -471,20 +471,22 @@ output. Result: 77 fewer hand-written config lines and no alias map for the data
       point at it. Guarded by the permit/sort parity spec. `filters.yml` now feeds only `Filterable` + the
       client-payload view. (This resolves the old `sortable_table_joins` caveat — it derived cleanly from the
       manifest, no new home needed.)
-- [ ] **Stage 2 — replace `Filterable` with a layout-driven combiner + adopt the filters/sub_filters
-      AND/OR rule** (see the semantics decision below). Derive each filter's column / table / coercion / join
-      from the manifest, and its **AND/OR structure from `filter_layout.yml` nesting**; retire the per-model
-      `apply_*` methods and the `range_column_groups` + `violations` sections of `filters.yml`. This
-      **deliberately changes behavior** for two groups (funding and violations → AND): rewrite the OR specs
-      that assert the old behavior — `filterable_spec` 294 / 309 / 322 (violations) and 423 (funding) — to AND;
-      the within-parent subcat OR specs (268 / 281) and watershed (449, already `sub_filters`) stay. Update
-      `docs/FILTERING.md` to the new rule.
-- [ ] **Stage 3 — delete `filters.yml` + `FilterRegistry` + parity spec.** After Stage 2, only
-      `client_payload` remains. Give it a deliberate home, then delete the file, the registry, and the
-      permit/sort **parity spec** (`field_registry_spec` "parity with FilterRegistry"). End state: the
+- [x] **Stage 2 — `Filterable` is a layout-driven AND/OR combiner. DONE (8608d5f).** One generic
+      `apply_range_filters` builds each filter from the manifest (column / table / coercion / join) and reads
+      its AND/OR off the layout via `FilterLayout.parent_of`: sibling `filters:` AND, `sub_filters` of a shared
+      parent OR. Replaced the six per-model `apply_*` methods + the special-cased area / boil_water / density;
+      drives off `FieldRegistry.range_filter_fields` grouped by layout parent, so backend-only ranges still
+      apply (as AND singletons). `Filterable` no longer reads `FilterRegistry`; dead range/subcat accessors
+      deleted. **Intentional behavior change:** funding + violations flipped OR→AND (watershed stays OR;
+      demographic / EJ / trend stay AND). Specs → 1008 green (added density, a backend-only range, and
+      multi-column AND for demographic / EJ / trend — the previously-untested paths). `FILTERING.md` rewritten.
+- [ ] **Stage 3 — delete `filters.yml` + `FilterRegistry` + parity spec.** After Stage 2, `filters.yml` is
+      read only by the permit/sort parity spec and the `client_payload` embed. Delete the file, the registry,
+      and the permit/sort **parity spec** (`field_registry_spec` "parity with FilterRegistry"). End state: the
       four-file model with `filters.yml` + `FilterRegistry` gone.
-  > **Caveat — `client_payload`.** The one remaining non-trivial piece: the JSON contract shipped to
-  > `filter_controller.js` (`#filter-registry-config`). Decide its home as part of Stage 3.
+  > **Caveat — `client_payload` likely just deletes.** `filter_controller.js` does **not** consume
+  > `#filter-registry-config` (it's a dev-tools inspection copy — see FILTERING.md), so this is probably a
+  > deletion of the `_filter_registry_config` partial + `client_payload`, not a relocation. Confirm with a JS grep first.
 
 > **Filtering semantics — the AND/OR rule (decided 2026-06).** Combination is read straight off
 > `filter_layout.yml` structure: **sibling `filters:` entries AND; entries within a `sub_filters:` list

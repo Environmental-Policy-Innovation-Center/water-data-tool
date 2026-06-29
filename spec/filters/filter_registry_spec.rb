@@ -21,14 +21,6 @@ RSpec.describe FilterRegistry do
     end
   end
 
-  describe ".health_subcats_all" do
-    it "matches the union of 5yr and 10yr lists from config" do
-      expect(described_class.health_subcats_all).to eq(
-        described_class.health_subcat_5yr + described_class.health_subcat_10yr
-      )
-    end
-  end
-
   describe ".client_payload" do
     it "includes version and range groups" do
       payload = described_class.client_payload

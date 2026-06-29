@@ -37,42 +37,6 @@ class FilterRegistry
     ]
   end
 
-  def self.health_subcat_5yr
-    config[:violations][:health_subcat_5yr].map(&:to_sym)
-  end
-
-  def self.health_subcat_10yr
-    config[:violations][:health_subcat_10yr].map(&:to_sym)
-  end
-
-  def self.health_subcats_all
-    health_subcat_5yr + health_subcat_10yr
-  end
-
-  def self.paperwork_violation_columns
-    config[:violations][:paperwork].map(&:to_sym)
-  end
-
-  def self.demographic_range_columns
-    columns_for_group(:demographics)
-  end
-
-  def self.environmental_justice_range_columns
-    columns_for_group(:environmental_justice)
-  end
-
-  def self.funding_range_columns
-    columns_for_group(:funding_summary)
-  end
-
-  def self.watershed_hazard_range_columns
-    columns_for_group(:watershed_hazard)
-  end
-
-  def self.trend_range_columns
-    columns_for_group(:trend_datum)
-  end
-
   # JSON embedded for the map page — param/column contract for client tooling (see filter_controller.js).
   def self.client_payload
     {
@@ -100,11 +64,6 @@ class FilterRegistry
     config[:array_params]
   end
   private_class_method :array_params_shape
-
-  def self.columns_for_group(key)
-    config[:range_column_groups].fetch(key)[:columns].map(&:to_sym)
-  end
-  private_class_method :columns_for_group
 
   def self.range_column_permit_keys
     config[:range_column_groups].flat_map do |_, group|

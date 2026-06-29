@@ -13,7 +13,14 @@ class FilterLayout
     @config = nil
     @menus = nil
     @placements = nil
+    @parent_of = nil
     placements
+  end
+
+  # Field key → its sub_filters parent (nil for a plain filter or a field not in the layout).
+  # Filterable ORs the sub_filters of a shared parent — see docs/FILTERING.md.
+  def self.parent_of
+    @parent_of ||= placements.to_h { |p| [p.key, p.parent] }.freeze
   end
 
   # Every leaf field placement, in layout order (filters with sub-filters are flattened
