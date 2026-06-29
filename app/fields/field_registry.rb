@@ -38,20 +38,15 @@ class FieldRegistry
     @fields = nil
     @config = nil
     @by_key = nil
-    @column_records = nil
-    @categories = nil
+    @display_field_keys = nil
     @table_for = nil
     fields
   end
 
-  # ── ColumnRegistry-equivalent views ─────────────────────────────────────────
-  # Array<TableColumn> in manifest order — directly comparable to ColumnRegistry.columns.
-  def self.column_records
-    @column_records ||= fields.reject(&:table_only?).map { |f| build_table_column(f) }.freeze
-  end
-
-  def self.categories
-    @categories ||= config.fetch(:categories, []).map { |c| CategoryDef.new(key: c[:key].to_sym, label: c[:label]) }.freeze
+  # Field keys with a table display block — the manifest's displayable columns. ColumnRegistry
+  # composes these with TableLayout into the rendered TableColumns.
+  def self.display_field_keys
+    @display_field_keys ||= fields.reject(&:table_only?).map(&:key).freeze
   end
 
   # ── FilterRegistry-equivalent views ────────────────────────────────────────
@@ -112,33 +107,6 @@ class FieldRegistry
       by_model[f.model] << {db_column: f.column, header: f.source[:header], cast: f.cast}
     end
   end
-
-  def self.build_table_column(f)
-    d = f.display
-    src = d.key?(:source) ? d[:source]&.to_sym : default_source(f.model)
-    TableColumn.new(
-      key: f.key,
-      label: d[:label],
-      sort: d[:sort]&.to_s,
-      format: d[:format].to_sym,
-      format_opts: (d[:format_opts] || {}).transform_keys(&:to_sym),
-      size: d.fetch(:size, "default").to_sym,
-      row_header: d[:row_header] || false,
-      pinned: d[:pinned] || false,
-      source: src,
-      category: d[:category]&.to_sym,
-      csv_label: d[:csv_label],
-      sql_expr: f.export_sql
-    )
-  end
-  private_class_method :build_table_column
-
-  # The :pws source marks the base PublicWaterSystem; association name otherwise.
-  def self.default_source(model)
-    return nil if model.nil?
-    (model == :public_water_system) ? :pws : model
-  end
-  private_class_method :default_source
 
   def self.config
     @config ||= YAML.safe_load_file(Rails.root.join("config/fields.yml"), symbolize_names: true)

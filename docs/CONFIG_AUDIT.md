@@ -456,9 +456,23 @@ output. Result: 77 fewer hand-written config lines and no alias map for the data
 - **Checkpoint C — FSR closed. ✅ REACHED.** 9 complete. `#restoreDomState` gone, `FILTERS[]` **deleted
   entirely** (DOM-driven, not interaction-only), the JS↔ERB ID-drift bug class is structurally
   impossible. (Remaining: close the FSR doc.)
-- [ ] *(Optional, for symmetry)* Author `config/table_layout.yml` and move column order +
-      `display.category` membership there — lower ROI (table is flat, no nesting), but it
-      makes ordering explicit instead of incidental file-order. See §8.4.
+- [x] **(Symmetry) `config/table_layout.yml` — DONE.** Column order + category membership +
+      category order/labels now live in `table_layout.yml` (read by `TableLayout`); `ColumnRegistry`
+      composes manifest × layout exactly as the filter side composes `FieldRegistry` × `FilterLayout`.
+      Removed `display.category` from every field and the top-level `categories:` block from `fields.yml`.
+      Backstopped by `table_layout_spec` (membership) + the value-based `column_registry_spec` (golden
+      master — composed output unchanged). The four-file goal (§8.6) is now realized: `fields.yml` (what),
+      `filter_layout.yml` (filter arrangement), `table_layout.yml` (table arrangement), `tooltips.yml` (copy).
+- [ ] **(Thread A) Retire `config/filters.yml` — backend cutover.** Derive `permit_arguments`,
+      `sortable_columns`, the range-column groups, and violations subcats from the manifest; point
+      `FilterParams`/`Sortable`/`Filterable` at `FieldRegistry`; delete those `filters.yml` sections **and**
+      the permit/sort **parity spec** (`field_registry_spec` "parity with FilterRegistry"), which exists only
+      to cross-check the two and goes away once there's nothing to compare. End state: the four-file model
+      with `filters.yml` + `FilterRegistry` deleted.
+  > **Caveat — not all mechanical.** Most of the above is straight derivation from the manifest, but **two
+  > pieces need a deliberate new home, not a trivial move**, before `filters.yml` can be fully deleted:
+  > the **`client_payload` JSON contract** shipped to `filter_controller.js` (`#filter-registry-config`),
+  > and the **`sortable_table_joins`** LEFT-JOIN associations. Plan a home for both as part of the cutover.
 
 <!-- Deffered - we are going to hold off on CSV import logic and not tackle duing this refactor -->
 ### Phase 6 — Portal / CSV-driven config

@@ -7,7 +7,9 @@ A scratchpad for docs housekeeping — things to write, update, remove, or decid
 ### Add
 
 - **Column Management** — how the config works, where it's used, what the helpers do
-- **How to add new data** — full guide covering filters, table columns, exports, etc.
+- **How to add new data** — full guide covering filters, table columns, exports, etc. (flesh out
+  the `docs/how_to/ADD_NEW_DATA_FIELD.md` stub; once written, cross-link it from the headers of
+  `config/fields.yml`, `config/filter_layout.yml`, and `config/table_layout.yml`).
 - **Github Workflows** — document the deploy pipeline and PR environment lifecycle
 
 

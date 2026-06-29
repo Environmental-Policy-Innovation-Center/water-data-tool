@@ -9,12 +9,6 @@ RSpec.describe ColumnRegistry do
     expect(ColumnRegistry.columns).to be_an(Array)
   end
 
-  it "surfaces every manifest field that has a display block" do
-    fields = YAML.safe_load_file(Rails.root.join("config/fields.yml"))["fields"]
-    expected = fields.count { |_key, attrs| attrs.key?("display") }
-    expect(ColumnRegistry.columns.size).to eq(expected)
-  end
-
   it "first column has key: :check" do
     expect(ColumnRegistry.columns.first.key).to eq(:check)
   end
@@ -35,15 +29,26 @@ RSpec.describe ColumnRegistry do
     expect(ColumnRegistry.columns).not_to be(original)
   end
 
+  describe "layout composition (table_layout.yml is the source of truth)" do
+    it "pins exactly the columns listed in the layout's pinned section" do
+      expect(ColumnRegistry.columns.select(&:pinned).map(&:key)).to eq(TableLayout.pinned_keys)
+    end
+
+    it "renders exactly the layout's columns, omitting any the layout leaves out" do
+      manifest_keys = FieldRegistry.display_field_keys
+      expect(ColumnRegistry.columns.map(&:key)).to eq(TableLayout.column_keys & manifest_keys)
+    end
+  end
+
   describe ".categories" do
     it "returns an Array of CategoryDef" do
       expect(ColumnRegistry.categories).to be_an(Array)
       expect(ColumnRegistry.categories.first).to be_a(CategoryDef)
     end
 
-    it "includes expected category keys in order" do
+    it "includes the expected category keys (order is layout-driven)" do
       keys = ColumnRegistry.categories.map(&:key)
-      expect(keys).to eq([:utility_details, :violations, :demographics, :environmental_justice, :funding, :watershed_hazards])
+      expect(keys).to match_array([:utility_details, :violations, :demographics, :environmental_justice, :funding, :watershed_hazards])
     end
 
     it "each category has a label" do

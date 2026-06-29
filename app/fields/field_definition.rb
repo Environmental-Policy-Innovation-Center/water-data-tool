@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # One field's manifest record, built by FieldRegistry from each config/fields.yml entry. The
 # source/display/filter/histogram blocks stay as hashes; the methods below are derived reads.
 FieldDefinition = Data.define(
@@ -12,7 +14,6 @@ FieldDefinition = Data.define(
 ) do
   def column = db_column || key
   def table_only? = display.nil?
-  def category = display && display[:category]&.to_sym
   def cast = source && source[:cast]&.to_sym
   def filter_kind = filter && filter[:kind]&.to_sym
 

@@ -26,12 +26,11 @@ RSpec.describe FieldDefinition do
     end
   end
 
-  describe "#filter_kind / #cast / #category" do
+  describe "#filter_kind / #cast" do
     it "reads nested keys, symbolizing, and tolerates absent blocks" do
-      f = base.with(filter: {kind: "range"}, source: {cast: "decimal"}, display: {category: "demographics"})
+      f = base.with(filter: {kind: "range"}, source: {cast: "decimal"})
       expect(f.filter_kind).to eq(:range)
       expect(f.cast).to eq(:decimal)
-      expect(f.category).to eq(:demographics)
       expect(base.filter_kind).to be_nil
       expect(base.cast).to be_nil
     end

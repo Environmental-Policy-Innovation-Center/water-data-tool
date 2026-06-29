@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 TableColumn = Data.define(
   :key,         # Symbol  — unique id; matches DB/association field name (except :check, :epa_report)
   :label,       # String or nil — <th> label text; nil for non-display columns (e.g. :check)

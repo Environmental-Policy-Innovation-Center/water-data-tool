@@ -68,10 +68,10 @@ RSpec.describe FieldRegistry do
   end
 
   describe "model routing is independent of UI category" do
-    it "places trend_datum-backed fields under the Demographics category" do
+    it "places trend_datum-backed fields under the Demographics table category" do
       f = FieldRegistry.fields.find { |x| x.key == :population_pct_change }
       expect(f.model).to eq(:trend_datum)
-      expect(f.category).to eq(:demographics)
+      expect(TableLayout.category_of[:population_pct_change]).to eq(:demographics)
     end
   end
 

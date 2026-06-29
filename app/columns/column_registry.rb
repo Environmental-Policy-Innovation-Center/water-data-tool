@@ -1,14 +1,24 @@
 # frozen_string_literal: true
 
-# Table-column behavior — panel groups, visibility, CSV/GeoJSON export. The column
-# definitions come from the manifest via FieldRegistry (config/fields.yml).
+# Table-column behavior — panel groups, visibility, CSV/GeoJSON export. Composes the manifest
+# (FieldRegistry — what each column is) with its arrangement (TableLayout — order + category).
 class ColumnRegistry
+  # The layout is the source of truth for which columns show: each is built in layout order with its
+  # category + pinned from TableLayout. A layout key with no displayable manifest field is skipped
+  # (graceful at runtime — the spec flags typos / duplicates).
   def self.columns
-    @columns ||= FieldRegistry.column_records
+    @columns ||= begin
+      by_key = FieldRegistry.by_key
+      TableLayout.column_keys.filter_map do |key|
+        field = by_key[key]
+        next unless field&.display
+        build_column(field, category: TableLayout.category_of[key], pinned: TableLayout.pinned_keys.include?(key))
+      end.freeze
+    end
   end
 
   def self.categories
-    @categories ||= FieldRegistry.categories
+    @categories ||= TableLayout.categories
   end
 
   def self.columns_by_category
@@ -64,6 +74,7 @@ class ColumnRegistry
 
   def self.reload!
     FieldRegistry.reload!
+    TableLayout.reload!
     @columns = nil
     @categories = nil
     @columns_by_category = nil
@@ -107,6 +118,35 @@ class ColumnRegistry
     @categories_by_key ||= categories.index_by(&:key)
   end
   private_class_method :categories_by_key
+
+  # Builds a fully-resolved column from a manifest field (what it is) + its layout arrangement.
+  def self.build_column(field, category:, pinned:)
+    d = field.display
+    src = d.key?(:source) ? d[:source]&.to_sym : default_source(field.model)
+    TableColumn.new(
+      key: field.key,
+      label: d[:label],
+      sort: d[:sort]&.to_s,
+      format: d[:format].to_sym,
+      format_opts: (d[:format_opts] || {}).transform_keys(&:to_sym),
+      size: d.fetch(:size, "default").to_sym,
+      row_header: d[:row_header] || false,
+      source: src,
+      category:,
+      pinned:,
+      csv_label: d[:csv_label],
+      sql_expr: field.export_sql
+    )
+  end
+  private_class_method :build_column
+
+  # A column's read-source — the record its value comes from: :pws (the base PublicWaterSystem) or an
+  # association name (read as pws.<source>). nil for value-less columns. See HomeHelper#cell_value.
+  def self.default_source(model)
+    return nil if model.nil?
+    (model == :public_water_system) ? :pws : model
+  end
+  private_class_method :default_source
 
   def self.build_groups(ordered_cols)
     groups = []

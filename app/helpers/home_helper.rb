@@ -190,6 +190,8 @@ module HomeHelper
     val.nil? ? BLANK_DISPLAY : number_to_currency(val, precision: precision)
   end
 
+  # Only the checkbox and the row-header name cell are sticky (frozen on horizontal scroll). NOTE: a
+  # layout-"pinned" column is always shown but NOT sticky — "pinned" controls visibility, not freezing.
   def render_table_cell(col, pws, row_stripe:)
     sticky_bg = (params[:sort] == Sortable::DEFAULT_SORT_COLUMN) ? "bg-blue-50" : row_stripe
 

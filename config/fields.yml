@@ -1,6 +1,8 @@
 # ─────────────────────────────────────────────────────────────────────────────
-# SINGLE FIELD MANIFEST — read by FieldRegistry (app/fields/field_registry.rb).
-# See docs/CONFIG_AUDIT.md.
+# FIELD MANIFEST — read by FieldRegistry (app/fields/field_registry.rb).
+# Owns what each data field IS — its identity, how it loads, and how it shows / filters / charts.
+# ARRANGEMENT (where things appear) lives in the layout files: config/filter_layout.yml (filter
+# menus) and config/table_layout.yml (table columns). See docs/CONFIG_AUDIT.md.
 #
 # WHAT BELONGS HERE: every data field the app SURFACES or INGESTS — i.e. every field that is
 # shown as a table column, filtered on, drawn as a histogram, OR loaded from a source file.
@@ -34,11 +36,7 @@
 #       format_opts: {precision: 1}     #   extra formatting opts (omit if none)
 #       size: default                   #   default | sm | wide | pinned | check (omit → default)
 #       row_header: true                #   sticky row header (pws_name only; omit → false)
-#       pinned: true                    #   always visible, not hideable (omit → false)
 #       source: ~                       #   read-path override; ~ for value-less cols (omit → derived from model)
-#       category: demographics          #   TABLE column-picker group; ordered by the top-level `categories:`
-#                                       #   block. Independent of the filter's menu placement (e.g. cejst is table
-#                                       #   category=environmental_justice but its filter sits under the Population menu).
 #       csv_label: "...the poverty line (%)"    #   verbose CSV header
 #     filter:                           # FILTERABLE via URL param (omit → not filterable)
 #       kind: range                     #   range | radio | bool | multiselect | place
@@ -60,23 +58,15 @@
 # A displayed field is exported to CSV / GeoJSON automatically using its model's table and
 # column — there is no export key to declare (only `check`, which has no model, is skipped).
 #
-# A filter's MENU PLACEMENT — which menu/category it sits in, its order, nesting, and the
-# menu/category/parent-filter labels — lives in config/filter_layout.yml, not here. Tooltips
-# are concept-keyed and shared in tooltips.yml; the manifest only references one by key.
+# ARRANGEMENT lives in the layout files, not here: filter menu/category/order/nesting in
+# config/filter_layout.yml; table column order, pinned columns, and picker category in
+# config/table_layout.yml. Tooltips are concept-keyed in tooltips.yml; the manifest only references one by key.
 # ─────────────────────────────────────────────────────────────────────────────
 
 version: 1
 
 # Permitted params with no owning field (map viewport, geographic scope).
 passthrough_params: [bounds, county_geoid, state]
-
-categories:
-  - {key: utility_details,       label: "Utility Details"}
-  - {key: violations,            label: "Violations"}
-  - {key: demographics,          label: "Demographics"}
-  - {key: environmental_justice, label: "Environmental Justice"}
-  - {key: funding,               label: "Funding"}
-  - {key: watershed_hazards,     label: "Watershed Hazards"}
 
 # Source files that need special handling on load — combining rows, geometry, or computed
 # values — instead of a plain column-to-column copy. Each lists the table it fills and why.
@@ -90,33 +80,33 @@ custom_imports:
 fields:
   # ── Row selection / identity (pinned, ungrouped) ───────────────────────────
   check:
-    display: {format: check, size: check, pinned: true, source: ~}
+    display: {format: check, size: check, source: ~}
 
   pws_name:
     model: public_water_system
-    display: {label: "Utility Name", sort: pws_name, format: str, size: pinned, row_header: true, pinned: true, csv_label: "Utility Name"}
+    display: {label: "Utility Name", sort: pws_name, format: str, size: pinned, row_header: true, csv_label: "Utility Name"}
 
   # ── Utility details ────────────────────────────────────────────────────────
   pwsid:
     model: public_water_system
-    display: {label: "Utility ID", sort: pwsid, format: copy, category: utility_details, csv_label: "Utility ID"}
+    display: {label: "Utility ID", sort: pwsid, format: copy, csv_label: "Utility ID"}
 
   epa_report:
     model: public_water_system
     db_column: detailed_facility_report
-    display: {label: "EPA Facility Report", format: link, size: sm, source: ~, category: utility_details, csv_label: "EPA Facility Report"}
+    display: {label: "EPA Facility Report", format: link, size: sm, source: ~, csv_label: "EPA Facility Report"}
 
   stusps:
     model: public_water_system
-    display: {label: "State", sort: stusps, format: str, size: sm, category: utility_details, csv_label: "State"}
+    display: {label: "State", sort: stusps, format: str, size: sm, csv_label: "State"}
 
   counties:
     model: public_water_system
-    display: {label: "County", sort: counties, format: str, size: wide, category: utility_details, csv_label: "County"}
+    display: {label: "County", sort: counties, format: str, size: wide, csv_label: "County"}
 
   gw_sw_code:
     model: public_water_system
-    display: {label: "Source type", sort: gw_sw_code, format: str, category: utility_details, csv_label: "Source type"}
+    display: {label: "Source type", sort: gw_sw_code, format: str, csv_label: "Source type"}
     filter:
       kind: radio
       param: gw_sw_code
@@ -127,12 +117,12 @@ fields:
 
   source_water_protection_code:
     model: public_water_system
-    display: {label: "Has source water protection", sort: source_water_protection_code, format: bool, category: utility_details, csv_label: "Has source water protection"}
+    display: {label: "Has source water protection", sort: source_water_protection_code, format: bool, csv_label: "Has source water protection"}
     filter: {kind: bool, param: has_source_protection, label: "Has source protection", tooltip: source_protection}
 
   owner_type:
     model: public_water_system
-    display: {label: "Ownership", sort: owner_type, format: str, category: utility_details, csv_label: "Ownership"}
+    display: {label: "Ownership", sort: owner_type, format: str, csv_label: "Ownership"}
     filter:
       kind: multiselect
       param: owner_type
@@ -147,7 +137,7 @@ fields:
 
   primacy_type:
     model: public_water_system
-    display: {label: "Authority", sort: primacy_type, format: str, category: utility_details, csv_label: "Authority"}
+    display: {label: "Authority", sort: primacy_type, format: str, csv_label: "Authority"}
     filter:
       kind: multiselect
       param: primacy_type
@@ -158,22 +148,22 @@ fields:
 
   is_wholesaler:
     model: public_water_system
-    display: {label: "Wholesaler", sort: is_wholesaler, format: bool, category: utility_details, csv_label: "Wholesaler"}
+    display: {label: "Wholesaler", sort: is_wholesaler, format: bool, csv_label: "Wholesaler"}
     filter: {kind: bool, param: is_wholesaler, label: "Wholesaler", tooltip: wholesaler}
 
   is_school_or_daycare:
     model: public_water_system
-    display: {label: "Facility type (School or daycare)", sort: is_school_or_daycare, format: bool, category: utility_details, csv_label: "Facility type (School or daycare)"}
+    display: {label: "Facility type (School or daycare)", sort: is_school_or_daycare, format: bool, csv_label: "Facility type (School or daycare)"}
     filter: {kind: bool, param: is_school_or_daycare, label: "School or daycare"}
 
   is_grant_eligible:
     model: public_water_system
-    display: {label: "Grant eligible", sort: is_grant_eligible, format: bool, category: utility_details, csv_label: "Grant eligible"}
+    display: {label: "Grant eligible", sort: is_grant_eligible, format: bool, csv_label: "Grant eligible"}
 
   symbology_field:
     model: public_water_system
     db_column: service_area_type
-    display: {label: "Boundary type", sort: symbology_field, format: str, category: utility_details, csv_label: "Boundary type"}
+    display: {label: "Boundary type", sort: symbology_field, format: str, csv_label: "Boundary type"}
     filter:
       kind: radio
       param: symbology_field
@@ -184,154 +174,154 @@ fields:
 
   area_sq_miles:
     model: public_water_system
-    display: {label: "Size (sq mi)", sort: area_sq_miles, format: dec, category: utility_details, csv_label: "Size (Area in square miles)"}
+    display: {label: "Size (sq mi)", sort: area_sq_miles, format: dec, csv_label: "Size (Area in square miles)"}
     filter: {kind: range, param_base: area, coercion: decimal, label: "Area in square miles", control: range_select, select_steps: area}
 
   open_health_viol:
     model: public_water_system
-    display: {label: "Has open violations", sort: open_health_viol, format: bool, category: violations, csv_label: "Has open violations"}
+    display: {label: "Has open violations", sort: open_health_viol, format: bool, csv_label: "Has open violations"}
     filter: {kind: bool, param: has_open_violations, label: "Open violations"}
 
   # ── Violations — 5 year ────────────────────────────────────────────────────
   health_violations_5yr:
     model: violations_summary
-    display: {label: "Health violations (5yr)", sort: health_violations_5yr, format: num, category: violations, csv_label: "Health violations in the last 5 years"}
+    display: {label: "Health violations (5yr)", sort: health_violations_5yr, format: num, csv_label: "Health violations in the last 5 years"}
 
   groundwater_rule_5yr:
     model: violations_summary
-    display: {label: "Groundwater rule violations (5yr)", sort: groundwater_rule_5yr, format: num, category: violations, csv_label: "Ground water rule violations in the last 5 years"}
+    display: {label: "Groundwater rule violations (5yr)", sort: groundwater_rule_5yr, format: num, csv_label: "Ground water rule violations in the last 5 years"}
     filter: {kind: range, coercion: integer, label: "Ground water rule", tooltip: groundwater_rule}
     histogram: {format: count}
 
   surface_water_treatment_5yr:
     model: violations_summary
-    display: {label: "Surface water treatment violations (5yr)", sort: surface_water_treatment_5yr, format: num, category: violations, csv_label: "Surface water treatment rules violations in the last 5 years"}
+    display: {label: "Surface water treatment violations (5yr)", sort: surface_water_treatment_5yr, format: num, csv_label: "Surface water treatment rules violations in the last 5 years"}
     filter: {kind: range, coercion: integer, label: "Surface water treatment rules", tooltip: surface_water_treatment}
     histogram: {format: count}
 
   lead_and_copper_5yr:
     model: violations_summary
-    display: {label: "Lead & copper violations (5yr)", sort: lead_and_copper_5yr, format: num, category: violations, csv_label: "Lead & copper violations in the last 5 years"}
+    display: {label: "Lead & copper violations (5yr)", sort: lead_and_copper_5yr, format: num, csv_label: "Lead & copper violations in the last 5 years"}
     filter: {kind: range, coercion: integer, label: "Lead & copper", tooltip: lead_and_copper}
     histogram: {format: count}
 
   radionuclides_5yr:
     model: violations_summary
-    display: {label: "Radionuclides violations (5yr)", sort: radionuclides_5yr, format: num, category: violations, csv_label: "Radionuclides violations in the last 5 years"}
+    display: {label: "Radionuclides violations (5yr)", sort: radionuclides_5yr, format: num, csv_label: "Radionuclides violations in the last 5 years"}
     filter: {kind: range, coercion: integer, label: "Radionuclides", tooltip: radionuclides}
     histogram: {format: count}
 
   inorganic_chemicals_5yr:
     model: violations_summary
-    display: {label: "Inorganic chemicals violations (5yr)", sort: inorganic_chemicals_5yr, format: num, category: violations, csv_label: "Inorganic chemicals violations in the last 5 years"}
+    display: {label: "Inorganic chemicals violations (5yr)", sort: inorganic_chemicals_5yr, format: num, csv_label: "Inorganic chemicals violations in the last 5 years"}
     filter: {kind: range, coercion: integer, label: "Inorganic chemicals", tooltip: inorganic_chemicals}
     histogram: {format: count}
 
   synthetic_organic_chemicals_5yr:
     model: violations_summary
-    display: {label: "Synthetic organic chemicals violations (5yr)", sort: synthetic_organic_chemicals_5yr, format: num, category: violations, csv_label: "Synthetic organic chemicals violations in the last 5 years"}
+    display: {label: "Synthetic organic chemicals violations (5yr)", sort: synthetic_organic_chemicals_5yr, format: num, csv_label: "Synthetic organic chemicals violations in the last 5 years"}
     filter: {kind: range, coercion: integer, label: "Synthetic organic chemicals", tooltip: synthetic_organic_chemicals}
     histogram: {format: count}
 
   volatile_organic_chemicals_5yr:
     model: violations_summary
-    display: {label: "Volatile organic chemicals violations (5yr)", sort: volatile_organic_chemicals_5yr, format: num, category: violations, csv_label: "Volatile organic chemicals violations in the last 5 years"}
+    display: {label: "Volatile organic chemicals violations (5yr)", sort: volatile_organic_chemicals_5yr, format: num, csv_label: "Volatile organic chemicals violations in the last 5 years"}
     filter: {kind: range, coercion: integer, label: "Volatile organic chemicals", tooltip: volatile_organic_chemicals}
     histogram: {format: count}
 
   total_coliform_5yr:
     model: violations_summary
-    display: {label: "Coliform violations (5yr)", sort: total_coliform_5yr, format: num, category: violations, csv_label: "Coliform violations in the last 5 years"}
+    display: {label: "Coliform violations (5yr)", sort: total_coliform_5yr, format: num, csv_label: "Coliform violations in the last 5 years"}
     filter: {kind: range, coercion: integer, label: "Coliform", tooltip: total_coliform}
     histogram: {format: count}
 
   stage_1_disinfectants_5yr:
     model: violations_summary
-    display: {label: "Stage 1 disinfectants violations (5yr)", sort: stage_1_disinfectants_5yr, format: num, category: violations, csv_label: "Stage 1 disinfectants violations in the last 5 years"}
+    display: {label: "Stage 1 disinfectants violations (5yr)", sort: stage_1_disinfectants_5yr, format: num, csv_label: "Stage 1 disinfectants violations in the last 5 years"}
     filter: {kind: range, coercion: integer, label: "Stage 1 disinfectants", tooltip: stage_1_disinfectants}
     histogram: {format: count}
 
   stage_2_disinfectants_5yr:
     model: violations_summary
-    display: {label: "Stage 2 disinfectants violations (5yr)", sort: stage_2_disinfectants_5yr, format: num, category: violations, csv_label: "Stage 2 disinfectants violations in the last 5 years"}
+    display: {label: "Stage 2 disinfectants violations (5yr)", sort: stage_2_disinfectants_5yr, format: num, csv_label: "Stage 2 disinfectants violations in the last 5 years"}
     filter: {kind: range, coercion: integer, label: "Stage 2 disinfectants", tooltip: stage_2_disinfectants}
     histogram: {format: count}
 
   # ── Violations — 10 year ───────────────────────────────────────────────────
   health_violations_10yr:
     model: violations_summary
-    display: {label: "Health violations (10yr)", sort: health_violations_10yr, format: num, category: violations, csv_label: "Health violations in the last 10 years"}
+    display: {label: "Health violations (10yr)", sort: health_violations_10yr, format: num, csv_label: "Health violations in the last 10 years"}
 
   groundwater_rule_10yr:
     model: violations_summary
-    display: {label: "Groundwater rule violations (10yr)", sort: groundwater_rule_10yr, format: num, category: violations, csv_label: "Ground water rule violations in the last 10 years"}
+    display: {label: "Groundwater rule violations (10yr)", sort: groundwater_rule_10yr, format: num, csv_label: "Ground water rule violations in the last 10 years"}
     filter: {kind: range, coercion: integer, label: "Ground water rule", tooltip: groundwater_rule}
     histogram: {format: count}
 
   surface_water_treatment_10yr:
     model: violations_summary
-    display: {label: "Surface water treatment violations (10yr)", sort: surface_water_treatment_10yr, format: num, category: violations, csv_label: "Surface water treatment rules violations in the last 10 years"}
+    display: {label: "Surface water treatment violations (10yr)", sort: surface_water_treatment_10yr, format: num, csv_label: "Surface water treatment rules violations in the last 10 years"}
     filter: {kind: range, coercion: integer, label: "Surface water treatment rules", tooltip: surface_water_treatment}
     histogram: {format: count}
 
   lead_and_copper_10yr:
     model: violations_summary
-    display: {label: "Lead & copper violations (10yr)", sort: lead_and_copper_10yr, format: num, category: violations, csv_label: "Lead & copper violations in the last 10 years"}
+    display: {label: "Lead & copper violations (10yr)", sort: lead_and_copper_10yr, format: num, csv_label: "Lead & copper violations in the last 10 years"}
     filter: {kind: range, coercion: integer, label: "Lead & copper", tooltip: lead_and_copper}
     histogram: {format: count}
 
   radionuclides_10yr:
     model: violations_summary
-    display: {label: "Radionuclides violations (10yr)", sort: radionuclides_10yr, format: num, category: violations, csv_label: "Radionuclides violations in the last 10 years"}
+    display: {label: "Radionuclides violations (10yr)", sort: radionuclides_10yr, format: num, csv_label: "Radionuclides violations in the last 10 years"}
     filter: {kind: range, coercion: integer, label: "Radionuclides", tooltip: radionuclides}
     histogram: {format: count}
 
   inorganic_chemicals_10yr:
     model: violations_summary
-    display: {label: "Inorganic chemicals violations (10yr)", sort: inorganic_chemicals_10yr, format: num, category: violations, csv_label: "Inorganic chemicals violations in the last 10 years"}
+    display: {label: "Inorganic chemicals violations (10yr)", sort: inorganic_chemicals_10yr, format: num, csv_label: "Inorganic chemicals violations in the last 10 years"}
     filter: {kind: range, coercion: integer, label: "Inorganic chemicals", tooltip: inorganic_chemicals}
     histogram: {format: count}
 
   synthetic_organic_chemicals_10yr:
     model: violations_summary
-    display: {label: "Synthetic organic chemicals violations (10yr)", sort: synthetic_organic_chemicals_10yr, format: num, category: violations, csv_label: "Synthetic organic chemicals violations in the last 10 years"}
+    display: {label: "Synthetic organic chemicals violations (10yr)", sort: synthetic_organic_chemicals_10yr, format: num, csv_label: "Synthetic organic chemicals violations in the last 10 years"}
     filter: {kind: range, coercion: integer, label: "Synthetic organic chemicals", tooltip: synthetic_organic_chemicals}
     histogram: {format: count}
 
   volatile_organic_chemicals_10yr:
     model: violations_summary
-    display: {label: "Volatile organic chemicals violations (10yr)", sort: volatile_organic_chemicals_10yr, format: num, category: violations, csv_label: "Volatile organic chemicals violations in the last 10 years"}
+    display: {label: "Volatile organic chemicals violations (10yr)", sort: volatile_organic_chemicals_10yr, format: num, csv_label: "Volatile organic chemicals violations in the last 10 years"}
     filter: {kind: range, coercion: integer, label: "Volatile organic chemicals", tooltip: volatile_organic_chemicals}
     histogram: {format: count}
 
   total_coliform_10yr:
     model: violations_summary
-    display: {label: "Coliform violations (10yr)", sort: total_coliform_10yr, format: num, category: violations, csv_label: "Coliform violations in the last 10 years"}
+    display: {label: "Coliform violations (10yr)", sort: total_coliform_10yr, format: num, csv_label: "Coliform violations in the last 10 years"}
     filter: {kind: range, coercion: integer, label: "Coliform", tooltip: total_coliform}
     histogram: {format: count}
 
   stage_1_disinfectants_10yr:
     model: violations_summary
-    display: {label: "Stage 1 disinfectants violations (10yr)", sort: stage_1_disinfectants_10yr, format: num, category: violations, csv_label: "Stage 1 disinfectants violations in the last 10 years"}
+    display: {label: "Stage 1 disinfectants violations (10yr)", sort: stage_1_disinfectants_10yr, format: num, csv_label: "Stage 1 disinfectants violations in the last 10 years"}
     filter: {kind: range, coercion: integer, label: "Stage 1 disinfectants", tooltip: stage_1_disinfectants}
     histogram: {format: count}
 
   stage_2_disinfectants_10yr:
     model: violations_summary
-    display: {label: "Stage 2 disinfectants violations (10yr)", sort: stage_2_disinfectants_10yr, format: num, category: violations, csv_label: "Stage 2 disinfectants violations in the last 10 years"}
+    display: {label: "Stage 2 disinfectants violations (10yr)", sort: stage_2_disinfectants_10yr, format: num, csv_label: "Stage 2 disinfectants violations in the last 10 years"}
     filter: {kind: range, coercion: integer, label: "Stage 2 disinfectants", tooltip: stage_2_disinfectants}
     histogram: {format: count}
 
   # ── Non-health violations ──────────────────────────────────────────────────
   paperwork_violations_5yr:
     model: violations_summary
-    display: {label: "Non-health violations (5yr)", sort: paperwork_violations_5yr, format: num, category: violations, csv_label: "Non-health violations in the last 5 years"}
+    display: {label: "Non-health violations (5yr)", sort: paperwork_violations_5yr, format: num, csv_label: "Non-health violations in the last 5 years"}
     filter: {kind: range, coercion: integer, label: "Non-health violations in the last 5 years"}
     histogram: {format: count}
 
   paperwork_violations_10yr:
     model: violations_summary
-    display: {label: "Non-health violations (10yr)", sort: paperwork_violations_10yr, format: num, category: violations, csv_label: "Non-health violations in the last 10 years"}
+    display: {label: "Non-health violations (10yr)", sort: paperwork_violations_10yr, format: num, csv_label: "Non-health violations in the last 10 years"}
     filter: {kind: range, coercion: integer, label: "Non-health violations in the last 10 years"}
     histogram: {format: count}
 
@@ -339,7 +329,7 @@ fields:
   total_notices:
     model: boil_water_summary
     source: {file: national_bwn_highlevel_summary, header: "total_bwn", cast: integer}
-    display: {label: "Boil water notices", sort: total_notices, format: num, category: violations, csv_label: "Boil water notices"}
+    display: {label: "Boil water notices", sort: total_notices, format: num, csv_label: "Boil water notices"}
     filter: {kind: range, param_base: boil_water_notices, coercion: integer, label: "Boil water notices", control: notices}
 
   # Loaded but not shown (boil-water columns).
@@ -379,27 +369,27 @@ fields:
   total_population:
     model: demographic
     source: {file: epa_sabs_xwalk, header: "total_pop", cast: integer}
-    display: {label: "Population size", sort: total_population, format: num, category: demographics, csv_label: "Population size"}
+    display: {label: "Population size", sort: total_population, format: num, csv_label: "Population size"}
     filter: {kind: range, coercion: decimal, backend_only: true}
     histogram: {format: count}
 
   population_density:
     model: demographic
     source: {file: epa_sabs_xwalk, header: "epic_pop_density", cast: decimal}
-    display: {label: "Population density (per sq mi)", sort: population_density, format: dec, format_opts: {precision: 0}, category: demographics, csv_label: "Population density (people per square mile)"}
+    display: {label: "Population density (per sq mi)", sort: population_density, format: dec, format_opts: {precision: 0}, csv_label: "Population density (people per square mile)"}
     filter: {kind: range, param_base: density, coercion: decimal, label: "People per square mile", control: range_select, select_steps: density}
 
   population_pct_change:
     model: trend_datum
     source: {file: xwalk_pct_change_10yr, header: "total_pop_pct_change_2011_2021", cast: decimal}
-    display: {label: "Population change (10yr)", sort: population_pct_change_capped, format: pct, format_opts: {precision: 1}, category: demographics, csv_label: "Change in people in the last 10 years (%)"}
+    display: {label: "Population change (10yr)", sort: population_pct_change_capped, format: pct, format_opts: {precision: 1}, csv_label: "Change in people in the last 10 years (%)"}
     filter: {kind: range, column: population_pct_change_capped, param_base: population_pct_change_capped, coercion: decimal, label: "Population change (10 years)", tooltip: population_change, slider_label: "Percentage change"}
     histogram: {format: percent_change, column: population_pct_change_capped}
 
   mhi_pct_change:
     model: trend_datum
     source: {file: xwalk_pct_change_10yr, header: "mhi_pct_change_2011_2021", cast: decimal}
-    display: {label: "Income change (10yr)", sort: mhi_pct_change_capped, format: pct, format_opts: {precision: 1}, category: demographics, csv_label: "Change in income in the last 10 years (%)"}
+    display: {label: "Income change (10yr)", sort: mhi_pct_change_capped, format: pct, format_opts: {precision: 1}, csv_label: "Change in income in the last 10 years (%)"}
     filter: {kind: range, column: mhi_pct_change_capped, param_base: mhi_pct_change_capped, coercion: decimal, label: "Median household income change (10 years)", tooltip: income_change, slider_label: "Percentage change"}
     histogram: {format: percent_change, column: mhi_pct_change_capped}
 
@@ -448,21 +438,21 @@ fields:
   poverty_rate:
     model: demographic
     source: {file: epa_sabs_xwalk, header: "hh_below_pov_per", cast: decimal}
-    display: {label: "Households below poverty line", sort: poverty_rate, format: pct, category: demographics, csv_label: "Households below the poverty line (%)"}
+    display: {label: "Households below poverty line", sort: poverty_rate, format: pct, csv_label: "Households below the poverty line (%)"}
     filter: {kind: range, coercion: decimal, label: "Poverty rate", tooltip: poverty_rate, slider_label: "Percentage of households"}
     histogram: {format: percent}
 
   unemployment_rate:
     model: demographic
     source: {file: epa_sabs_xwalk, header: "laborforce_unemployed_per", cast: decimal}
-    display: {label: "Unemployment", sort: unemployment_rate, format: pct, category: demographics, csv_label: "Unemployment (%)"}
+    display: {label: "Unemployment", sort: unemployment_rate, format: pct, csv_label: "Unemployment (%)"}
     filter: {kind: range, coercion: decimal, label: "Unemployment rate", tooltip: unemployment_rate, slider_label: "Percentage of labor force"}
     histogram: {format: percent}
 
   median_household_income:
     model: demographic
     source: {file: epa_sabs_xwalk, header: "mhi", cast: integer}
-    display: {label: "Median household income", sort: median_household_income, format: cur, category: demographics, csv_label: "Annual median household income ($)"}
+    display: {label: "Median household income", sort: median_household_income, format: cur, csv_label: "Annual median household income ($)"}
     filter: {kind: range, coercion: decimal, label: "Median household income", tooltip: median_household_income, slider_label: "Annual income ($)"}
     histogram: {format: currency}
 
@@ -474,91 +464,91 @@ fields:
   bachelors_degree_rate:
     model: demographic
     source: {file: epa_sabs_xwalk, header: "bachelors_per", cast: decimal}
-    display: {label: "Higher education attainment", sort: bachelors_degree_rate, format: pct, category: demographics, csv_label: "Higher education attainment (%)"}
+    display: {label: "Higher education attainment", sort: bachelors_degree_rate, format: pct, csv_label: "Higher education attainment (%)"}
     filter: {kind: range, coercion: decimal, label: "Higher education rate", tooltip: higher_education, slider_label: "Percentage of residents 25+"}
     histogram: {format: percent}
 
   age_under_5_rate:
     model: demographic
     source: {file: epa_sabs_xwalk, header: "ageunder_5_per", cast: decimal}
-    display: {label: "Children under 5", sort: age_under_5_rate, format: pct, category: demographics, csv_label: "Children under 5 (%)"}
+    display: {label: "Children under 5", sort: age_under_5_rate, format: pct, csv_label: "Children under 5 (%)"}
     filter: {kind: range, coercion: decimal, label: "Children under 5", tooltip: children_under_5, slider_label: "Percentage of population"}
     histogram: {format: percent}
 
   age_over_61_rate:
     model: demographic
     source: {file: epa_sabs_xwalk, header: "age_over_61_per", cast: decimal}
-    display: {label: "Elderly over 61", sort: age_over_61_rate, format: pct, category: demographics, csv_label: "Elderly over 61 (%)"}
+    display: {label: "Elderly over 61", sort: age_over_61_rate, format: pct, csv_label: "Elderly over 61 (%)"}
     filter: {kind: range, coercion: decimal, label: "Elderly (61+)", tooltip: elderly_over_61, slider_label: "Percentage of population"}
     histogram: {format: percent}
 
   poc_rate:
     model: demographic
     source: {file: epa_sabs_xwalk, header: "poc_alone_per", cast: decimal}
-    display: {label: "People of color", sort: poc_rate, format: pct, category: demographics, csv_label: "People of color (%)"}
+    display: {label: "People of color", sort: poc_rate, format: pct, csv_label: "People of color (%)"}
     filter: {kind: range, coercion: decimal, label: "People of color", tooltip: people_of_color, slider_label: "Percentage of population"}
     histogram: {format: percent}
 
   white_rate:
     model: demographic
     source: {file: epa_sabs_xwalk, header: "white_alone_per", cast: decimal}
-    display: {label: "White", sort: white_rate, format: pct, category: demographics, csv_label: "White (%)"}
+    display: {label: "White", sort: white_rate, format: pct, csv_label: "White (%)"}
     filter: {kind: range, coercion: decimal, label: "White", tooltip: white, slider_label: "Percentage of population"}
     histogram: {format: percent}
 
   black_rate:
     model: demographic
     source: {file: epa_sabs_xwalk, header: "black_alone_per", cast: decimal}
-    display: {label: "Black", sort: black_rate, format: pct, category: demographics, csv_label: "Black (%)"}
+    display: {label: "Black", sort: black_rate, format: pct, csv_label: "Black (%)"}
     filter: {kind: range, coercion: decimal, label: "Black", tooltip: black, slider_label: "Percentage of population"}
     histogram: {format: percent}
 
   aian_rate:
     model: demographic
     source: {file: epa_sabs_xwalk, header: "AIAN_alone_per", cast: decimal}
-    display: {label: "American Indian & Alaskan Native", sort: aian_rate, format: pct, category: demographics, csv_label: "American Indian and Alaskan Native (%)"}
+    display: {label: "American Indian & Alaskan Native", sort: aian_rate, format: pct, csv_label: "American Indian and Alaskan Native (%)"}
     filter: {kind: range, coercion: decimal, label: "American Indian / Alaska Native", tooltip: aian, slider_label: "Percentage of population"}
     histogram: {format: percent}
 
   napi_rate:
     model: demographic
     source: {file: epa_sabs_xwalk, header: "NAPI_alone_per", cast: decimal}
-    display: {label: "Native Hawaiian & Pacific Islander", sort: napi_rate, format: pct, category: demographics, csv_label: "Native Hawaiian and Pacific Islanders (%)"}
+    display: {label: "Native Hawaiian & Pacific Islander", sort: napi_rate, format: pct, csv_label: "Native Hawaiian and Pacific Islanders (%)"}
     filter: {kind: range, coercion: decimal, label: "Native Hawaiian / Pacific Islander", tooltip: napi, slider_label: "Percentage of population"}
     histogram: {format: percent}
 
   asian_rate:
     model: demographic
     source: {file: epa_sabs_xwalk, header: "asian_alone_per", cast: decimal}
-    display: {label: "Asian", sort: asian_rate, format: pct, category: demographics, csv_label: "Asian (%)"}
+    display: {label: "Asian", sort: asian_rate, format: pct, csv_label: "Asian (%)"}
     filter: {kind: range, coercion: decimal, label: "Asian", tooltip: asian, slider_label: "Percentage of population"}
     histogram: {format: percent}
 
   hispanic_rate:
     model: demographic
     source: {file: epa_sabs_xwalk, header: "hisp_alone_per", cast: decimal}
-    display: {label: "Latino/a", sort: hispanic_rate, format: pct, category: demographics, csv_label: "Latino/a (%)"}
+    display: {label: "Latino/a", sort: hispanic_rate, format: pct, csv_label: "Latino/a (%)"}
     filter: {kind: range, coercion: decimal, label: "Hispanic / Latino", tooltip: latino, slider_label: "Percentage of population"}
     histogram: {format: percent}
 
   other_race_rate:
     model: demographic
     source: {file: epa_sabs_xwalk, header: "other_alone_per", cast: decimal}
-    display: {label: "Other race", sort: other_race_rate, format: pct, category: demographics, csv_label: "Other (%)"}
+    display: {label: "Other race", sort: other_race_rate, format: pct, csv_label: "Other (%)"}
     filter: {kind: range, coercion: decimal, label: "Other race", tooltip: other_race, slider_label: "Percentage of population"}
     histogram: {format: percent}
 
   mixed_race_rate:
     model: demographic
     source: {file: epa_sabs_xwalk, header: "mixed_alone_per", cast: decimal}
-    display: {label: "Mixed race", sort: mixed_race_rate, format: pct, category: demographics, csv_label: "Mixed race (%)"}
+    display: {label: "Mixed race", sort: mixed_race_rate, format: pct, csv_label: "Mixed race (%)"}
     filter: {kind: range, coercion: decimal, label: "Mixed race", tooltip: mixed_race, slider_label: "Percentage of population"}
     histogram: {format: percent}
 
   most_common_rate_tier:
     model: demographic
     source: {file: epa_sabs_xwalk, header: "most_common_rate_tidy"} # raw passthrough (no cast) to match the custom importer
-    display: {label: "Annual water & sewer bill", sort: most_common_rate_tier, format: rate_tier, category: demographics, csv_label: "Annual water and sewer bill"}
+    display: {label: "Annual water & sewer bill", sort: most_common_rate_tier, format: rate_tier, csv_label: "Annual water and sewer bill"}
     filter:
       kind: multiselect
       param: most_common_rate_tier
@@ -577,32 +567,32 @@ fields:
   water_rate_under_125:
     model: demographic
     source: {file: epa_sabs_xwalk, header: "water_rate_less_125_per", cast: decimal}
-    display: {label: "Under $125", sort: water_rate_under_125, format: pct, category: demographics, csv_label: "Annual bill: under $125 (%)"}
+    display: {label: "Under $125", sort: water_rate_under_125, format: pct, csv_label: "Annual bill: under $125 (%)"}
 
   water_rate_125_249:
     model: demographic
     source: {file: epa_sabs_xwalk, header: "water_rate_between_125_249_per", cast: decimal}
-    display: {label: "$125–249", sort: water_rate_125_249, format: pct, category: demographics, csv_label: "Annual bill: $125–249 (%)"}
+    display: {label: "$125–249", sort: water_rate_125_249, format: pct, csv_label: "Annual bill: $125–249 (%)"}
 
   water_rate_250_499:
     model: demographic
     source: {file: epa_sabs_xwalk, header: "water_rate_between_250_499_per", cast: decimal}
-    display: {label: "$250–499", sort: water_rate_250_499, format: pct, category: demographics, csv_label: "Annual bill: $250–499 (%)"}
+    display: {label: "$250–499", sort: water_rate_250_499, format: pct, csv_label: "Annual bill: $250–499 (%)"}
 
   water_rate_500_749:
     model: demographic
     source: {file: epa_sabs_xwalk, header: "water_rate_between_500_749_per", cast: decimal}
-    display: {label: "$500–749", sort: water_rate_500_749, format: pct, category: demographics, csv_label: "Annual bill: $500–749 (%)"}
+    display: {label: "$500–749", sort: water_rate_500_749, format: pct, csv_label: "Annual bill: $500–749 (%)"}
 
   water_rate_750_999:
     model: demographic
     source: {file: epa_sabs_xwalk, header: "water_rate_between_750_999_per", cast: decimal}
-    display: {label: "$750–999", sort: water_rate_750_999, format: pct, category: demographics, csv_label: "Annual bill: $750–999 (%)"}
+    display: {label: "$750–999", sort: water_rate_750_999, format: pct, csv_label: "Annual bill: $750–999 (%)"}
 
   water_rate_over_1000:
     model: demographic
     source: {file: epa_sabs_xwalk, header: "water_rate_over_1000_per", cast: decimal}
-    display: {label: "Over $1,000", sort: water_rate_over_1000, format: pct, category: demographics, csv_label: "Annual bill: over $1,000 (%)"}
+    display: {label: "Over $1,000", sort: water_rate_over_1000, format: pct, csv_label: "Annual bill: over $1,000 (%)"}
 
   # Demographics — filter/histogram only (no table column)
   no_health_insurance_rate:
@@ -651,21 +641,21 @@ fields:
   cejst_disadvantaged_pct:
     model: environmental_justice
     source: {file: cejst, header: "a_int.identified_as_disadvantaged", cast: score}
-    display: {label: "Disadvantaged area", sort: cejst_disadvantaged_pct, format: pct, category: environmental_justice, csv_label: "Disadvantaged area (%)"}
+    display: {label: "Disadvantaged area", sort: cejst_disadvantaged_pct, format: pct, csv_label: "Disadvantaged area (%)"}
     filter: {kind: range, coercion: decimal, label: "Disadvantaged area", tooltip: cejst_disadvantaged, slider_label: "Percentage of the area"}
     histogram: {format: percent}
 
   svi_overall_pctl:
     model: environmental_justice
     source: {file: svi, header: "pw_int_pop.rpl_themes", cast: score}
-    display: {label: "Social Vulnerability Index", sort: svi_overall_pctl, format: pct, category: environmental_justice, csv_label: "Social Vulnerability Index (%)"}
+    display: {label: "Social Vulnerability Index", sort: svi_overall_pctl, format: pct, csv_label: "Social Vulnerability Index (%)"}
     filter: {kind: range, coercion: decimal, label: "Social Vulnerability Index (SVI)", tooltip: svi, slider_label: "Estimated vulnerability as a percentile"}
     histogram: {format: percent}
 
   cvi_overall_score:
     model: environmental_justice
     source: {file: cvi, header: "a_int.overall_cvi_score", cast: score}
-    display: {label: "Climate Vulnerability Index", sort: cvi_overall_score, format: num, category: environmental_justice, csv_label: "Climate Vulnerability Index"}
+    display: {label: "Climate Vulnerability Index", sort: cvi_overall_score, format: num, csv_label: "Climate Vulnerability Index"}
     filter: {kind: range, coercion: decimal, label: "Climate Vulnerability Index (CVI)", tooltip: cvi, slider_label: "Estimated vulnerability score"}
     histogram: {format: count}
 
@@ -702,21 +692,21 @@ fields:
   times_funded:
     model: funding_summary
     source: {file: pwsid_funded_highlevel_summary, header: "times_funded", cast: integer}
-    display: {label: "SRF financing (2021–2025) — times received", sort: times_funded, format: num, category: funding, csv_label: "State revolving fund financing (2021 - 2025) - times received"}
+    display: {label: "SRF financing (2021–2025) — times received", sort: times_funded, format: num, csv_label: "State revolving fund financing (2021 - 2025) - times received"}
     filter: {kind: range, coercion: decimal, label: "State revolving fund financing", tooltip: srf_financing, slider_label: "Times received"}
     histogram: {format: count}
 
   total_srf_assistance:
     model: funding_summary
     source: {file: pwsid_funded_highlevel_summary, header: "total_srf_assistance", cast: decimal}
-    display: {label: "SRF assistance (2021–2025)", sort: total_srf_assistance, format: cur, format_opts: {precision: 2}, category: funding, csv_label: "State revolving fund assistance (2021 - 2025) - amount received ($)"}
+    display: {label: "SRF assistance (2021–2025)", sort: total_srf_assistance, format: cur, format_opts: {precision: 2}, csv_label: "State revolving fund assistance (2021 - 2025) - amount received ($)"}
     filter: {kind: range, coercion: decimal, label: "State revolving fund assistance", tooltip: srf_assistance, slider_label: "Amount ($)"}
     histogram: {format: currency}
 
   total_principal_forgiveness:
     model: funding_summary
     source: {file: pwsid_funded_highlevel_summary, header: "total_principal_forgiveness", cast: decimal}
-    display: {label: "SRF principal forgiveness (2021–2025)", sort: total_principal_forgiveness, format: cur, format_opts: {precision: 2}, category: funding, csv_label: "State revolving fund principal forgiveness (2021 - 2025) - amount forgiven ($)"}
+    display: {label: "SRF principal forgiveness (2021–2025)", sort: total_principal_forgiveness, format: cur, format_opts: {precision: 2}, csv_label: "State revolving fund principal forgiveness (2021 - 2025) - amount forgiven ($)"}
     filter: {kind: range, coercion: decimal, label: "State revolving fund principal forgiveness", tooltip: principal_forgiveness, slider_label: "Amount ($)"}
 
   # Loaded but not shown.
@@ -728,30 +718,30 @@ fields:
   # ── Watershed hazards ──────────────────────────────────────────────────────
   num_facilities:
     model: watershed_hazard
-    display: {label: "Source water connections", sort: num_facilities, format: num, category: watershed_hazards, csv_label: "Source water connections"}
+    display: {label: "Source water connections", sort: num_facilities, format: num, csv_label: "Source water connections"}
     filter: {kind: range, coercion: integer, label: "Source water connections", tooltip: source_water_connections, slider_label: "Number of connections"}
     histogram: {format: count}
 
   permit_effluent_violations:
     model: watershed_hazard
-    display: {label: "Pollution permits with breaches", sort: permit_effluent_violations, format: num, category: watershed_hazards, csv_label: "Pollution permits with breaches"}
+    display: {label: "Pollution permits with breaches", sort: permit_effluent_violations, format: num, csv_label: "Pollution permits with breaches"}
     filter: {kind: range, coercion: integer, label: "Pollution permits with breaches", tooltip: pollution_permits, slider_label: "Number of breaches"}
     histogram: {format: count}
 
   open_underground_storage_tanks:
     model: watershed_hazard
-    display: {label: "Underground storage tanks", sort: open_underground_storage_tanks, format: num, category: watershed_hazards, csv_label: "Underground storage tanks"}
+    display: {label: "Underground storage tanks", sort: open_underground_storage_tanks, format: num, csv_label: "Underground storage tanks"}
     filter: {kind: range, coercion: integer, label: "Underground storage tanks", tooltip: underground_storage_tanks, slider_label: "Number of tanks"}
     histogram: {format: count}
 
   risk_management_plan_facilities:
     model: watershed_hazard
-    display: {label: "Risk management plan facilities", sort: risk_management_plan_facilities, format: num, category: watershed_hazards, csv_label: "Risk management plan facilities"}
+    display: {label: "Risk management plan facilities", sort: risk_management_plan_facilities, format: num, csv_label: "Risk management plan facilities"}
     filter: {kind: range, coercion: integer, label: "Risk management plan facilities", tooltip: risk_management_facilities, slider_label: "Number of facilities"}
     histogram: {format: count}
 
   impaired_streams_303d:
     model: watershed_hazard
-    display: {label: "Impaired or threatened streams", sort: impaired_streams_303d, format: num, category: watershed_hazards, csv_label: "Streams with impaired or threatened surface waters"}
+    display: {label: "Impaired or threatened streams", sort: impaired_streams_303d, format: num, csv_label: "Streams with impaired or threatened surface waters"}
     filter: {kind: range, coercion: integer, label: "Streams with impaired or threatened surface waters", tooltip: impaired_streams, slider_label: "Number of streams"}
     histogram: {format: count}

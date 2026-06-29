@@ -54,5 +54,17 @@ verify brand values are intentional, and remove any stale comments.
 
 ---
 
+### Frozen (sticky) pinned table columns
+
+`table_layout.yml`'s `pinned:` list makes a column always-visible and hides it from the column
+picker, but it does **not** freeze it on horizontal scroll. Only the checkbox (`format: check`)
+and name column (`row_header: true`) are sticky, via hardcoded `left-0` / `left-7` offsets in
+`home_helper.rb#render_table_cell` + `table_header_component`. So a third pinned column (e.g.
+`epa_report`) stays in the table but scrolls away. Freezing any pinned column needs cumulative
+`left` offsets — fixed widths for the leading columns, or JS-computed offsets (the name column is
+variable-width today). Revisit if freezing more than the identity columns is desired.
+
+---
+
 > **Cleanup:** Remove individual items as they are implemented or ticketed. Delete this file
 > when it is empty.
