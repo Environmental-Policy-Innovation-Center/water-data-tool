@@ -30,6 +30,10 @@ RSpec.describe FieldRegistry do
     it "reproduces the sortable column → table map" do
       expect(FieldRegistry.sortable_columns).to eq(FilterRegistry.sortable_columns)
     end
+
+    it "reproduces the sortable table → join association map" do
+      expect(FieldRegistry.sortable_table_joins).to eq(FilterRegistry.sortable_table_joins)
+    end
   end
 
   describe ".histogram_field_config (sole source — consumed by HistogramsController)" do

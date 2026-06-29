@@ -463,16 +463,42 @@ output. Result: 77 fewer hand-written config lines and no alias map for the data
       Backstopped by `table_layout_spec` (membership) + the value-based `column_registry_spec` (golden
       master — composed output unchanged). The four-file goal (§8.6) is now realized: `fields.yml` (what),
       `filter_layout.yml` (filter arrangement), `table_layout.yml` (table arrangement), `tooltips.yml` (copy).
-- [ ] **(Thread A) Retire `config/filters.yml` — backend cutover.** Derive `permit_arguments`,
-      `sortable_columns`, the range-column groups, and violations subcats from the manifest; point
-      `FilterParams`/`Sortable`/`Filterable` at `FieldRegistry`; delete those `filters.yml` sections **and**
-      the permit/sort **parity spec** (`field_registry_spec` "parity with FilterRegistry"), which exists only
-      to cross-check the two and goes away once there's nothing to compare. End state: the four-file model
-      with `filters.yml` + `FilterRegistry` deleted.
-  > **Caveat — not all mechanical.** Most of the above is straight derivation from the manifest, but **two
-  > pieces need a deliberate new home, not a trivial move**, before `filters.yml` can be fully deleted:
-  > the **`client_payload` JSON contract** shipped to `filter_controller.js` (`#filter-registry-config`),
-  > and the **`sortable_table_joins`** LEFT-JOIN associations. Plan a home for both as part of the cutover.
+**(Thread A) Retire `config/filters.yml` — backend cutover, in three stages:**
+
+- [x] **Stage 1 — sort + permit args read the manifest. DONE.** `permit_arguments`, `sortable_columns`,
+      and the derived `sortable_table_joins` (association = model symbol; join when the model isn't the base
+      `PublicWaterSystem`) now come from `FieldRegistry`; `FilterParams`, `HomeController`, and `Sortable`
+      point at it. Guarded by the permit/sort parity spec. `filters.yml` now feeds only `Filterable` + the
+      client-payload view. (This resolves the old `sortable_table_joins` caveat — it derived cleanly from the
+      manifest, no new home needed.)
+- [ ] **Stage 2 — replace `Filterable` with a layout-driven combiner + adopt the filters/sub_filters
+      AND/OR rule** (see the semantics decision below). Derive each filter's column / table / coercion / join
+      from the manifest, and its **AND/OR structure from `filter_layout.yml` nesting**; retire the per-model
+      `apply_*` methods and the `range_column_groups` + `violations` sections of `filters.yml`. This
+      **deliberately changes behavior** for two groups (funding and violations → AND): rewrite the OR specs
+      that assert the old behavior — `filterable_spec` 294 / 309 / 322 (violations) and 423 (funding) — to AND;
+      the within-parent subcat OR specs (268 / 281) and watershed (449, already `sub_filters`) stay. Update
+      `docs/FILTERING.md` to the new rule.
+- [ ] **Stage 3 — delete `filters.yml` + `FilterRegistry` + parity spec.** After Stage 2, only
+      `client_payload` remains. Give it a deliberate home, then delete the file, the registry, and the
+      permit/sort **parity spec** (`field_registry_spec` "parity with FilterRegistry"). End state: the
+      four-file model with `filters.yml` + `FilterRegistry` gone.
+  > **Caveat — `client_payload`.** The one remaining non-trivial piece: the JSON contract shipped to
+  > `filter_controller.js` (`#filter-registry-config`). Decide its home as part of Stage 3.
+
+> **Filtering semantics — the AND/OR rule (decided 2026-06).** Combination is read straight off
+> `filter_layout.yml` structure: **sibling `filters:` entries AND; entries within a `sub_filters:` list
+> OR.** Categories are purely visual and no longer affect AND/OR. Two intrinsic ORs are unchanged: a single
+> multiselect's selected values OR among themselves, and a range's own min/max AND. To make a set of filters
+> OR, nest them under a parent with `sub_filters`; to AND them, list them as siblings.
+>
+> This **supersedes** the old per-model behavior (where `funding` / `watershed` / `violations` models OR'd
+> across their columns). Under the new rule **funding → AND** (plain siblings) and **violations →
+> `open_health_viol AND health_5yr AND health_10yr AND paperwork_5yr AND paperwork_10yr`**, with each
+> `health_*` parent's sub-filters OR'ing within. **Watershed stays OR** because its columns are already
+> `sub_filters`; demographic / EJ / trend stay AND (plain siblings). Trade-off accepted: filter behavior now
+> depends on the layout's nesting — but the nesting *is* the semantic grouping, so the layout is its right
+> owner.
 
 <!-- Deffered - we are going to hold off on CSV import logic and not tackle duing this refactor -->
 ### Phase 6 — Portal / CSV-driven config

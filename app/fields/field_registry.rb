@@ -76,6 +76,14 @@ class FieldRegistry
     fields.select(&:sort_param).to_h { |f| [f.sort_param, f.table.to_s] }
   end
 
+  # { table_string => association_sym } — the LEFT JOIN each sortable association needs (the
+  # association is the model symbol). Base-model columns need no join, so they're skipped.
+  def self.sortable_table_joins
+    fields.select(&:sort_param)
+      .reject { |f| f.model == :public_water_system }
+      .to_h { |f| [f.table.to_s, f.model] }
+  end
+
   # Resolves a manifest `model:` symbol to its ActiveRecord class.
   def self.model_class(model_sym)
     MODEL_CLASSES.fetch(model_sym).constantize
