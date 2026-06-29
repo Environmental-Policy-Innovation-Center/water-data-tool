@@ -28,8 +28,9 @@ RSpec.describe TileGenerator do
   end
 
   describe ".layer_simplification_tolerance" do
-    it "keeps public water systems visible at the national zoom-in boundary" do
-      expect(described_class.layer_simplification_tolerance("pws", 4)).to eq(0.01)
+    it "uses stronger simplification for low-zoom public water system polygons" do
+      expect(described_class.layer_simplification_tolerance("pws", 4)).to eq(0.05)
+      expect(described_class.layer_simplification_tolerance("pws", 5)).to eq(0.01)
     end
 
     it "keeps coarse simplification for low-zoom boundary layers" do
@@ -38,7 +39,8 @@ RSpec.describe TileGenerator do
   end
 
   describe ".layers_for_zoom" do
-    it "includes service areas before state selection is available" do
+    it "includes service area polygons before state selection zooms" do
+      expect(described_class.layers_for_zoom(0)).to eq(%w[pws states])
       expect(described_class.layers_for_zoom(4)).to eq(%w[pws states])
     end
 
@@ -132,6 +134,18 @@ RSpec.describe TileGenerator do
         expect(TileCache.where(layer: "states", z: 5, x: 16, y: 12)).to exist
       end
     end
+
+    it "does not reuse stale unversioned low-zoom public water system tiles" do
+      create(:tile_cache, layer: "pws", z: 3, x: 1, y: 2, mvt: "old".b)
+      allow(ApplicationRecord.connection).to receive(:execute)
+        .and_return([{"mvt" => PG::Connection.escape_bytea("new".b)}])
+
+      result = described_class.generate_tile("pws", 3, 1, 2)
+
+      expect(result).to eq("new".b)
+      expect(TileCache.where(layer: "pws", z: 3, x: 1, y: 2)).to exist
+      expect(TileCache.where(layer: "pws_low_poly_v1", z: 3, x: 1, y: 2)).to exist
+    end
   end
 
   describe ".layer_sql" do
@@ -150,6 +164,17 @@ RSpec.describe TileGenerator do
       expect(sql).to include("4096, 64, true")
       expect(sql).to include("sag.geom && ST_Transform(ST_TileEnvelope(5, 8, 12, margin => 64.0 / 4096), 4326)")
       expect(sql).to include("pws.area_sq_miles")
+    end
+
+    it "uses simplified polygons with reduced attributes for low-zoom public water systems" do
+      sql = described_class.layer_sql("pws", 3, 1, 2, 0.05)
+
+      expect(sql).to include("ST_Transform(ST_SimplifyPreserveTopology(sag.geom, 0.05), 3857)")
+      expect(sql).to include("sag.geom && ST_Transform(ST_TileEnvelope(3, 1, 2, margin => 64.0 / 4096), 4326)")
+      expect(sql).to include("pws.pwsid, pws.stusps")
+      expect(sql).not_to include("sag.centroid")
+      expect(sql).not_to include("pws.pws_name")
+      expect(sql).not_to include("pws.population_served_count")
     end
   end
 end

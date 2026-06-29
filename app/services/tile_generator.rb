@@ -4,6 +4,7 @@ module TileGenerator
   BUFFER = 64
   PWS_MIN_ZOOM = 5
   PLACES_MIN_ZOOM = 8
+  LOW_ZOOM_PWS_CACHE_LAYER = "pws_low_poly_v1"
 
   # Simplification tolerances keyed by max zoom level.
   SIMPLIFICATION = [
@@ -39,14 +40,12 @@ module TileGenerator
   end
 
   def layer_simplification_tolerance(layer, z)
-    return simplification_tolerance(PWS_MIN_ZOOM) if layer == "pws" && z == PWS_MIN_ZOOM - 1
-
     simplification_tolerance(z)
   end
 
   # Generate (or fetch from cache) a single layer tile.
   def generate_tile(layer, z, x, y)
-    cached = TileCache.find_by(layer: layer, z: z, x: x, y: y)
+    cached = TileCache.find_by(layer: cache_layer(layer, z), z: z, x: x, y: y)
     return cached.mvt.to_s if cached
 
     generate_tile!(layer, z, x, y)
@@ -66,8 +65,9 @@ module TileGenerator
     cached = TileCache.where(z: z, x: x, y: y).index_by(&:layer)
 
     layers_for_zoom(z).each_with_object("".b) do |layer, result|
-      mvt = if cached[layer]
-        cached[layer].mvt.to_s
+      cache_key = cache_layer(layer, z)
+      mvt = if cached[cache_key]
+        cached[cache_key].mvt.to_s
       else
         simp = layer_simplification_tolerance(layer, z)
         generated = generate_layer(layer, z, x, y, simp)
@@ -95,7 +95,7 @@ module TileGenerator
 
   def persist_tile(layer, z, x, y, mvt_data)
     TileCache.upsert(
-      {layer: layer, z: z, x: x, y: y, mvt: mvt_data},
+      {layer: cache_layer(layer, z), z: z, x: x, y: y, mvt: mvt_data},
       unique_by: %i[layer z x y]
     )
   rescue ActiveRecord::RecordNotUnique
@@ -111,6 +111,16 @@ module TileGenerator
 
     case layer
     when "pws"
+      attrs = if z < PWS_MIN_ZOOM
+        "pws.pwsid, pws.stusps"
+      else
+        <<~SQL.squish
+          pws.pwsid, pws.stusps, pws.pws_name, pws.symbology_field,
+          pws.pop_cat_5, pws.population_served_count, pws.service_connections_count,
+          pws.area_sq_miles
+        SQL
+      end
+
       <<~SQL.squish
         SELECT ST_AsMVT(t, 'pws', #{EXTENT}, 'mvtgeom') AS mvt
         FROM (
@@ -119,9 +129,7 @@ module TileGenerator
               ST_Transform(ST_SimplifyPreserveTopology(sag.geom, #{simp}), 3857),
               #{tile_envelope}, #{EXTENT}, #{BUFFER}, true
             ) AS mvtgeom,
-            pws.pwsid, pws.stusps, pws.pws_name, pws.symbology_field,
-            pws.pop_cat_5, pws.population_served_count, pws.service_connections_count,
-            pws.area_sq_miles
+            #{attrs}
           FROM service_area_geometries sag
           JOIN public_water_systems pws ON pws.pwsid = sag.pwsid
           WHERE sag.geom IS NOT NULL
@@ -189,4 +197,10 @@ module TileGenerator
     "ST_TileEnvelope(#{z}, #{x}, #{y})"
   end
   # rubocop:enable Metrics/MethodLength
+
+  def cache_layer(layer, z)
+    return LOW_ZOOM_PWS_CACHE_LAYER if layer == "pws" && z < PWS_MIN_ZOOM
+
+    layer
+  end
 end

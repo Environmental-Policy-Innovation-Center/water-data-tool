@@ -32,7 +32,7 @@ RSpec.describe TileCacheWarmJob, type: :job do
       expect(call_count).to be > 0
     end
 
-    it "warms public water system tiles for low-zoom overview tiles" do
+    it "warms public water system polygon tiles for low-zoom overview tiles" do
       allow_any_instance_of(described_class).to receive(:tile_coordinates).and_return([[0, 0]])
 
       described_class.perform_now
