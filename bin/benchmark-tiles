@@ -2,7 +2,7 @@
 # Safe local tile performance guard.
 # Run with: bin/rails runner bin/benchmark-tiles
 #
-# Cold samples call TileGenerator.generate_layer directly, so they do not read,
+# Cold samples call TileGenerator.generate_layer! directly, so they do not read,
 # clear, or mutate tile_cache. Warm samples call TileGenerator.build_tile only
 # when every expected layer for that z/x/y is already cached.
 

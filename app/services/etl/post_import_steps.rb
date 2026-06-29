@@ -144,10 +144,7 @@ module Etl
       sql = <<~SQL
         UPDATE service_area_geometries
         SET
-          geom_z0_4 = ST_Multi(ST_SimplifyPreserveTopology(geom, 0.05)),
-          geom_z5 = ST_Multi(ST_SimplifyPreserveTopology(geom, 0.01)),
-          geom_z6 = ST_Multi(ST_SimplifyPreserveTopology(geom, 0.005)),
-          geom_z7 = ST_Multi(ST_SimplifyPreserveTopology(geom, 0.001)),
+          #{TileGenerator::GENERALIZED_GEOMETRY_ASSIGNMENTS_ON_GEOM_SQL},
           updated_at = NOW()
         WHERE geom IS NOT NULL
       SQL
@@ -171,20 +168,14 @@ module Etl
             FROM service_area_geometries
             WHERE geom IS NOT NULL
               AND (
-                geom_z0_4 IS NULL
-                OR geom_z5 IS NULL
-                OR geom_z6 IS NULL
-                OR geom_z7 IS NULL
+                #{TileGenerator::GENERALIZED_GEOMETRY_MISSING_SQL}
               )
             ORDER BY id
             LIMIT #{GENERALIZED_GEOMETRY_BACKFILL_BATCH_SIZE}
           )
           UPDATE service_area_geometries sag
           SET
-            geom_z0_4 = ST_Multi(ST_SimplifyPreserveTopology(sag.geom, 0.05)),
-            geom_z5 = ST_Multi(ST_SimplifyPreserveTopology(sag.geom, 0.01)),
-            geom_z6 = ST_Multi(ST_SimplifyPreserveTopology(sag.geom, 0.005)),
-            geom_z7 = ST_Multi(ST_SimplifyPreserveTopology(sag.geom, 0.001)),
+            #{TileGenerator::GENERALIZED_GEOMETRY_ASSIGNMENTS_ON_SAG_GEOM_SQL},
             updated_at = NOW()
           FROM rows_to_update
           WHERE sag.id = rows_to_update.id

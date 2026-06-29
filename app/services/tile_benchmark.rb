@@ -14,7 +14,7 @@ module TileBenchmark
     end
 
     def failing_results?
-      results.any? { |result| %i[fail timeout].include?(result.status) }
+      results.any? { |result| %i[error fail timeout].include?(result.status) }
     end
   end
 
@@ -65,6 +65,12 @@ module TileBenchmark
     tile_generator.layers_for_zoom(z)
   end
 
+  def expected_cache_layers(z, tile_generator: TileGenerator)
+    expected_layers(z, tile_generator: tile_generator).map do |layer|
+      tile_generator.respond_to?(:cache_layer) ? tile_generator.cache_layer(layer, z) : layer
+    end
+  end
+
   class Runner
     def initialize(samples: DEFAULT_SAMPLES, output: $stdout, tile_generator: TileGenerator, cache_model: TileCache, clock: nil, env: ENV, connection: nil)
       @samples = samples
@@ -78,7 +84,7 @@ module TileBenchmark
 
     def run
       puts_line "Tile Benchmark Guard"
-      puts_line "Cold timings use TileGenerator.generate_layer and do not write tile_cache."
+      puts_line "Cold timings use TileGenerator.generate_layer! and do not write tile_cache."
       puts_line ""
 
       results = []
@@ -131,7 +137,7 @@ module TileBenchmark
         elapsed_ms = measure_ms do
           with_db_statement_timeout(budget.db_timeout_ms) do
             Timeout.timeout(budget.db_timeout_ms / 1000.0) do
-              tile = @tile_generator.generate_layer(
+              tile = @tile_generator.generate_layer!(
                 layer,
                 sample.z,
                 sample.x,
@@ -144,6 +150,9 @@ module TileBenchmark
       rescue Timeout::Error
         elapsed_ms ||= budget.db_timeout_ms
         return Result.new(mode: :cold, layer: layer, sample: sample, tier: budget.tier, elapsed_ms: elapsed_ms.round, size_bytes: 0, status: :timeout, message: "timed out at #{budget.db_timeout_ms}ms")
+      rescue ActiveRecord::StatementInvalid => e
+        elapsed_ms ||= 0
+        return Result.new(mode: :cold, layer: layer, sample: sample, tier: budget.tier, elapsed_ms: elapsed_ms.round, size_bytes: 0, status: :error, message: "sql error: #{e.message}")
       end
 
       Result.new(
@@ -159,8 +168,9 @@ module TileBenchmark
     end
 
     def measure_warm_tile(sample, expected_layers)
-      cached_count = @cache_model.where(z: sample.z, x: sample.x, y: sample.y).count
-      return nil unless cached_count >= expected_layers.count
+      cached_layers = @cache_model.where(z: sample.z, x: sample.x, y: sample.y).pluck(:layer)
+      expected_cache_layers = TileBenchmark.expected_cache_layers(sample.z, tile_generator: @tile_generator)
+      return nil unless (expected_cache_layers - cached_layers).empty?
 
       budget = TileBenchmark.warm_budget(env: @env)
       tile = "".b

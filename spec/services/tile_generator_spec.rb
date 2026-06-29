@@ -97,6 +97,15 @@ RSpec.describe TileGenerator do
           .to change { TileCache.where(layer: "pws", z: z, x: x, y: y).count }.from(0).to(1)
       end
     end
+
+    it "raises SQL errors to callers that need strict failure handling" do
+      allow(ApplicationRecord.connection).to receive(:execute)
+        .and_raise(ActiveRecord::StatementInvalid, "bad sql")
+
+      expect {
+        described_class.generate_layer!("pws", 5, 8, 12, 0.01)
+      }.to raise_error(ActiveRecord::StatementInvalid, /bad sql/)
+    end
   end
 
   describe ".build_tile" do
@@ -195,6 +204,15 @@ RSpec.describe TileGenerator do
 
       expect(sql).to include("ST_Transform(ST_SimplifyPreserveTopology(sag.geom, 0.0005), 3857)")
       expect(sql).not_to include("geom_z")
+    end
+
+    it "reuses the shared generalized geometry profile mapping for ETL update SQL" do
+      assignments = described_class::GENERALIZED_GEOMETRY_ASSIGNMENTS_ON_GEOM_SQL
+
+      expect(assignments).to include("geom_z0_4 = ST_Multi(ST_SimplifyPreserveTopology(geom, 0.05))")
+      expect(assignments).to include("geom_z5 = ST_Multi(ST_SimplifyPreserveTopology(geom, 0.01))")
+      expect(assignments).to include("geom_z6 = ST_Multi(ST_SimplifyPreserveTopology(geom, 0.005))")
+      expect(assignments).to include("geom_z7 = ST_Multi(ST_SimplifyPreserveTopology(geom, 0.001))")
     end
   end
 end

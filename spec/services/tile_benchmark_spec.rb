@@ -44,6 +44,14 @@ RSpec.describe TileBenchmark do
     end
   end
 
+  describe ".expected_cache_layers" do
+    it "uses the tile generator cache key mapping for each layer" do
+      allow(TileGenerator).to receive(:layers_for_zoom).with(3).and_return(%w[pws states])
+
+      expect(described_class.expected_cache_layers(3)).to eq(%w[pws_low_poly_v1 states])
+    end
+  end
+
   describe TileBenchmark::Runner do
     let(:sample) { TileBenchmark::Sample.new(z: 5, x: 9, y: 12) }
     let(:output) { StringIO.new }
@@ -57,12 +65,18 @@ RSpec.describe TileBenchmark do
           0.01
         end
 
-        def self.generate_layer(_layer, _z, _x, _y, _simp)
+        def self.generate_layer!(_layer, _z, _x, _y, _simp)
           "mvt".b
         end
 
         def self.build_tile(_z, _x, _y)
           "mvt".b
+        end
+
+        def self.cache_layer(layer, z)
+          return "pws_low_poly_v1" if layer == "pws" && z < 5
+
+          layer
         end
       end
     end
@@ -72,7 +86,7 @@ RSpec.describe TileBenchmark do
         samples: [sample],
         output: output,
         tile_generator: tile_generator,
-        cache_model: class_double(TileCache, where: double(count: 0)),
+        cache_model: class_double(TileCache, where: double(pluck: [])),
         clock: fake_clock(0.0, 7.5),
         env: {"TILE_BENCH_FAIL_MS_Z5_7" => "6000"}
       )
@@ -86,7 +100,7 @@ RSpec.describe TileBenchmark do
 
     it "marks timeout failures distinctly from slow completed samples" do
       timeout_generator = Class.new(tile_generator) do
-        def self.generate_layer(_layer, _z, _x, _y, _simp)
+        def self.generate_layer!(_layer, _z, _x, _y, _simp)
           raise Timeout::Error
         end
       end
@@ -95,7 +109,7 @@ RSpec.describe TileBenchmark do
         samples: [sample],
         output: output,
         tile_generator: timeout_generator,
-        cache_model: class_double(TileCache, where: double(count: 0)),
+        cache_model: class_double(TileCache, where: double(pluck: [])),
         clock: fake_clock(0.0, 6.0),
         env: {}
       )
@@ -112,7 +126,7 @@ RSpec.describe TileBenchmark do
         samples: [sample],
         output: output,
         tile_generator: tile_generator,
-        cache_model: class_double(TileCache, where: double(count: 0)),
+        cache_model: class_double(TileCache, where: double(pluck: [])),
         clock: fake_clock(0.0, 8.0),
         env: {"TILE_BENCH_DB_TIMEOUT_MS_Z5_7" => "8000"}
       )
@@ -124,9 +138,32 @@ RSpec.describe TileBenchmark do
       expect(report.results.first.timeout?).to be(true)
     end
 
+    it "marks SQL errors as failures instead of treating them as empty tiles" do
+      sql_error_generator = Class.new(tile_generator) do
+        def self.generate_layer!(_layer, _z, _x, _y, _simp)
+          raise ActiveRecord::StatementInvalid, "bad sql"
+        end
+      end
+
+      runner = described_class.new(
+        samples: [sample],
+        output: output,
+        tile_generator: sql_error_generator,
+        cache_model: class_double(TileCache, where: double(pluck: [])),
+        clock: fake_clock(0.0, 0.1),
+        env: {}
+      )
+
+      report = runner.run
+
+      expect(report.exit_status).to eq(1)
+      expect(report.results.first.status).to eq(:error)
+      expect(report.results.first.message).to include("sql error")
+    end
+
     it "uses TileGenerator.layers_for_zoom for expected warm cache layer counts" do
-      relation = double(count: 3)
-      expect(tile_generator).to receive(:layers_for_zoom).with(5).and_call_original
+      relation = double(pluck: %w[pws counties states])
+      expect(tile_generator).to receive(:layers_for_zoom).with(5).twice.and_call_original
       expect(tile_generator).to receive(:build_tile).with(5, 9, 12).and_return("warm".b)
 
       runner = described_class.new(
@@ -141,6 +178,26 @@ RSpec.describe TileBenchmark do
       report = runner.run
 
       expect(report.results.map(&:mode)).to include(:warm)
+    end
+
+    it "skips warm timing when only stale low-zoom cache keys exist" do
+      low_zoom_sample = TileBenchmark::Sample.new(z: 3, x: 1, y: 2)
+      relation = double(pluck: %w[pws states])
+
+      expect(tile_generator).not_to receive(:build_tile)
+
+      runner = described_class.new(
+        samples: [low_zoom_sample],
+        output: output,
+        tile_generator: tile_generator,
+        cache_model: class_double(TileCache, where: relation),
+        clock: fake_clock(0.0, 0.1),
+        env: {}
+      )
+
+      report = runner.run
+
+      expect(report.results.map(&:mode)).not_to include(:warm)
     end
 
     def fake_clock(*values)

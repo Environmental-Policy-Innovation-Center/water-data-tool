@@ -197,10 +197,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_30_000001) do
     t.index ["centroid"], name: "index_service_area_geometries_on_centroid", using: :gist
     t.index ["geom"], name: "index_service_area_geometries_on_geom", using: :gist
     t.index ["geom_digest"], name: "index_service_area_geometries_on_geom_digest"
-    t.index ["geom_z0_4"], name: "index_service_area_geometries_on_geom_z0_4", using: :gist
-    t.index ["geom_z5"], name: "index_service_area_geometries_on_geom_z5", using: :gist
-    t.index ["geom_z6"], name: "index_service_area_geometries_on_geom_z6", using: :gist
-    t.index ["geom_z7"], name: "index_service_area_geometries_on_geom_z7", using: :gist
     t.index ["pwsid"], name: "index_service_area_geometries_on_pwsid", unique: true
   end
 

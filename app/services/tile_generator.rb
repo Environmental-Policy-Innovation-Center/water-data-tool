@@ -5,6 +5,21 @@ module TileGenerator
   PWS_MIN_ZOOM = 5
   PLACES_MIN_ZOOM = 8
   LOW_ZOOM_PWS_CACHE_LAYER = "pws_low_poly_v1"
+  PWS_GENERALIZATION_PROFILES = [
+    {zoom_range: 0..4, column: "geom_z0_4", tolerance: 0.05},
+    {zoom_range: 5..5, column: "geom_z5", tolerance: 0.01},
+    {zoom_range: 6..6, column: "geom_z6", tolerance: 0.005},
+    {zoom_range: 7..7, column: "geom_z7", tolerance: 0.001}
+  ].freeze
+  GENERALIZED_GEOMETRY_ASSIGNMENTS_ON_GEOM_SQL = PWS_GENERALIZATION_PROFILES.map { |profile|
+    "#{profile[:column]} = ST_Multi(ST_SimplifyPreserveTopology(geom, #{profile[:tolerance]}))"
+  }.join(",\n          ").freeze
+  GENERALIZED_GEOMETRY_ASSIGNMENTS_ON_SAG_GEOM_SQL = PWS_GENERALIZATION_PROFILES.map { |profile|
+    "#{profile[:column]} = ST_Multi(ST_SimplifyPreserveTopology(sag.geom, #{profile[:tolerance]}))"
+  }.join(",\n            ").freeze
+  GENERALIZED_GEOMETRY_MISSING_SQL = PWS_GENERALIZATION_PROFILES.map { |profile|
+    "#{profile[:column]} IS NULL"
+  }.join("\n                OR ").freeze
 
   # Simplification tolerances keyed by max zoom level.
   SIMPLIFICATION = [
@@ -82,12 +97,16 @@ module TileGenerator
   # --- private below this line (module_function makes all methods public,
   #     so we rely on convention — callers should use the API above) ---
 
-  def generate_layer(layer, z, x, y, simp)
+  def generate_layer!(layer, z, x, y, simp)
     sql = layer_sql(layer, z, x, y, simp)
     return "".b if sql.nil?
 
     rows = ApplicationRecord.connection.execute(sql)
     rows.first&.dig("mvt").then { |raw| raw ? PG::Connection.unescape_bytea(raw) : "".b }
+  end
+
+  def generate_layer(layer, z, x, y, simp)
+    generate_layer!(layer, z, x, y, simp)
   rescue ActiveRecord::StatementInvalid => e
     Rails.logger.warn("[TileGenerator] SQL error for #{layer}/#{z}/#{x}/#{y}: #{e.message}")
     "".b
@@ -198,17 +217,16 @@ module TileGenerator
   end
 
   def pws_geometry_sql(z, simp)
-    column = case z
-    when 0..4 then "geom_z0_4"
-    when 5 then "geom_z5"
-    when 6 then "geom_z6"
-    when 7 then "geom_z7"
-    end
+    column = generalized_geometry_profile_for_zoom(z)&.fetch(:column)
     fallback = "ST_SimplifyPreserveTopology(sag.geom, #{simp})"
 
     column ? "COALESCE(sag.#{column}, #{fallback})" : fallback
   end
   # rubocop:enable Metrics/MethodLength
+
+  def generalized_geometry_profile_for_zoom(z)
+    PWS_GENERALIZATION_PROFILES.find { |profile| profile[:zoom_range].cover?(z) }
+  end
 
   def cache_layer(layer, z)
     return LOW_ZOOM_PWS_CACHE_LAYER if layer == "pws" && z < PWS_MIN_ZOOM

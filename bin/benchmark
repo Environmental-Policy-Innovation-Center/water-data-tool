@@ -143,9 +143,11 @@ else
     result = nil
     warm_ms = (Benchmark.realtime { result = TileGenerator.build_tile(z, x, y) } * 1000).round
     size_kb = (result.bytesize / 1024.0).round(1)
-    cached = TileCache.where(z: z, x: x, y: y).count
-    fully_cached = cached >= expected_layers.size
-    status = fully_cached ? "warm" : "partial (#{cached}/#{expected_layers.size} expected layers cached)"
+    cached_layers = TileCache.where(z: z, x: x, y: y).pluck(:layer)
+    expected_cache_layers = TileBenchmark.expected_cache_layers(z)
+    cached = (expected_cache_layers & cached_layers).size
+    fully_cached = (expected_cache_layers - cached_layers).empty?
+    status = fully_cached ? "warm" : "partial (#{cached}/#{expected_cache_layers.size} expected cache layers present)"
     tee(output, format("  %-52s %6dms  (%s KB)  [%s; %s: %s]", "tile z=#{z} x=#{x} y=#{y}", warm_ms, size_kb, tier, status, expected_layers.join(",")))
   end
 end
