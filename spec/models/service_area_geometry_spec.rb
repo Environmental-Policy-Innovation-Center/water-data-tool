@@ -6,6 +6,10 @@
 #  centroid    :geometry         point, 4326
 #  geom        :geometry         multipolygon, 4326
 #  geom_digest :string
+#  geom_z0_4   :geometry         multipolygon, 4326
+#  geom_z5     :geometry         multipolygon, 4326
+#  geom_z6     :geometry         multipolygon, 4326
+#  geom_z7     :geometry         multipolygon, 4326
 #  pwsid       :string           not null
 #  created_at  :datetime         not null
 #  updated_at  :datetime         not null
@@ -15,6 +19,10 @@
 #  index_service_area_geometries_on_centroid     (centroid) USING gist
 #  index_service_area_geometries_on_geom         (geom) USING gist
 #  index_service_area_geometries_on_geom_digest  (geom_digest)
+#  index_service_area_geometries_on_geom_z0_4    (geom_z0_4) USING gist
+#  index_service_area_geometries_on_geom_z5      (geom_z5) USING gist
+#  index_service_area_geometries_on_geom_z6      (geom_z6) USING gist
+#  index_service_area_geometries_on_geom_z7      (geom_z7) USING gist
 #  index_service_area_geometries_on_pwsid        (pwsid) UNIQUE
 #
 require "rails_helper"

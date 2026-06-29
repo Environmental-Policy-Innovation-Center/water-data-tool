@@ -7,8 +7,8 @@
 #
 #   bin/rails runner "TileCacheWarmJob.perform_now"
 #
-# Use bin/benchmark (no suffix) for routine regression testing — it never
-# touches the cache.
+# Use bin/benchmark-tiles for routine tile regression testing — it never
+# touches the cache. Use bin/benchmark for broad query benchmarking.
 
 require "benchmark"
 require "fileutils"
@@ -45,15 +45,26 @@ TileCache.delete_all
 tee(output, "\n  Tile cache cleared (#{TileCache.count} tiles remaining)")
 
 tee(output, "\n#{SEPARATOR}")
-tee(output, "  Tile generation (cold → warm)")
+tee(output, "  Tile generation (cold -> warm)")
 tee(output, SEPARATOR)
 
-[[2, 0, 1], [5, 9, 12], [8, 59, 95]].each do |z, x, y|
+TileBenchmark::DEFAULT_SAMPLES.each do |sample|
+  z = sample.z
+  x = sample.x
+  y = sample.y
+  expected_layers = TileBenchmark.expected_layers(z)
+  tier = TileBenchmark.budget_for(z).tier
   result = nil
   cold_ms = (Benchmark.realtime { result = TileGenerator.build_tile(z, x, y) } * 1000).round
   warm_ms = (Benchmark.realtime { TileGenerator.build_tile(z, x, y) } * 1000).round
   size_kb = (result.bytesize / 1024.0).round(1)
-  tee(output, format("  %-52s cold: %4dms  warm: %4dms  (%s KB)", "tile z=#{z} x=#{x} y=#{y}", cold_ms, warm_ms, size_kb))
+  tee(output, format("  %-52s %-16s cold: %4dms  warm: %4dms  %7.1f KB  layers: %s",
+    "tile z=#{z} x=#{x} y=#{y}",
+    "(#{tier})",
+    cold_ms,
+    warm_ms,
+    size_kb,
+    expected_layers.join(",")))
 end
 
 tee(output, "\n#{SEPARATOR}")

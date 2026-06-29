@@ -126,7 +126,7 @@ module TileGenerator
         FROM (
           SELECT
             ST_AsMVTGeom(
-              ST_Transform(ST_SimplifyPreserveTopology(sag.geom, #{simp}), 3857),
+              ST_Transform(#{pws_geometry_sql(z, simp)}, 3857),
               #{tile_envelope}, #{EXTENT}, #{BUFFER}, true
             ) AS mvtgeom,
             #{attrs}
@@ -195,6 +195,18 @@ module TileGenerator
     return "ST_TileEnvelope(#{z}, #{x}, #{y}, margin => #{BUFFER}.0 / #{EXTENT})" if margin
 
     "ST_TileEnvelope(#{z}, #{x}, #{y})"
+  end
+
+  def pws_geometry_sql(z, simp)
+    column = case z
+    when 0..4 then "geom_z0_4"
+    when 5 then "geom_z5"
+    when 6 then "geom_z6"
+    when 7 then "geom_z7"
+    end
+    fallback = "ST_SimplifyPreserveTopology(sag.geom, #{simp})"
+
+    column ? "COALESCE(sag.#{column}, #{fallback})" : fallback
   end
   # rubocop:enable Metrics/MethodLength
 

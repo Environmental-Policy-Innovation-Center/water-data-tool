@@ -169,12 +169,32 @@ RSpec.describe TileGenerator do
     it "uses simplified polygons with reduced attributes for low-zoom public water systems" do
       sql = described_class.layer_sql("pws", 3, 1, 2, 0.05)
 
-      expect(sql).to include("ST_Transform(ST_SimplifyPreserveTopology(sag.geom, 0.05), 3857)")
+      expect(sql).to include("ST_Transform(COALESCE(sag.geom_z0_4, ST_SimplifyPreserveTopology(sag.geom, 0.05)), 3857)")
       expect(sql).to include("sag.geom && ST_Transform(ST_TileEnvelope(3, 1, 2, margin => 64.0 / 4096), 4326)")
       expect(sql).to include("pws.pwsid, pws.stusps")
       expect(sql).not_to include("sag.centroid")
       expect(sql).not_to include("pws.pws_name")
       expect(sql).not_to include("pws.population_served_count")
+    end
+
+    it "uses the matching precomputed public water system geometry for zooms 0 through 7" do
+      expect(described_class.layer_sql("pws", 0, 0, 0, 0.05))
+        .to include("COALESCE(sag.geom_z0_4, ST_SimplifyPreserveTopology(sag.geom, 0.05))")
+      expect(described_class.layer_sql("pws", 4, 0, 0, 0.05))
+        .to include("COALESCE(sag.geom_z0_4, ST_SimplifyPreserveTopology(sag.geom, 0.05))")
+      expect(described_class.layer_sql("pws", 5, 8, 12, 0.01))
+        .to include("COALESCE(sag.geom_z5, ST_SimplifyPreserveTopology(sag.geom, 0.01))")
+      expect(described_class.layer_sql("pws", 6, 16, 24, 0.005))
+        .to include("COALESCE(sag.geom_z6, ST_SimplifyPreserveTopology(sag.geom, 0.005))")
+      expect(described_class.layer_sql("pws", 7, 32, 48, 0.001))
+        .to include("COALESCE(sag.geom_z7, ST_SimplifyPreserveTopology(sag.geom, 0.001))")
+    end
+
+    it "keeps public water system zoom 8 and above on raw geometry simplification" do
+      sql = described_class.layer_sql("pws", 8, 76, 93, 0.0005)
+
+      expect(sql).to include("ST_Transform(ST_SimplifyPreserveTopology(sag.geom, 0.0005), 3857)")
+      expect(sql).not_to include("geom_z")
     end
   end
 end

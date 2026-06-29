@@ -13,6 +13,8 @@ module Etl
 
       validate_import_results!(import_results)
 
+      backfill_missing_generalized_geometries
+
       return if import_results.empty?
 
       return legacy_call(import_results.map(&:file_key)) if import_results.any?(&:full_refresh_required)
@@ -26,6 +28,7 @@ module Etl
       if geometry_pwsids.any?
         fix_invalid_geometries(pwsids: geometry_pwsids)
         generate_centroids(pwsids: geometry_pwsids)
+        generate_generalized_geometries(pwsids: geometry_pwsids)
         CartographicBoundaries.load
         assign_state_codes(pwsids: geometry_pwsids)
         analyze_spatial_tables
@@ -92,6 +95,7 @@ module Etl
       # Tee up initial geoms repair and enrichment steps before refreshing
       fix_invalid_geometries
       generate_centroids
+      generate_generalized_geometries
       CartographicBoundaries.load
 
       # Assign state codes and county associations based on the new geometries,
@@ -106,6 +110,7 @@ module Etl
     # Repair invalid geometries using ST_Buffer trick. Runs until none remain
     # or until MAX_REPAIR_ITERATIONS is reached (guard against pathological data).
     MAX_REPAIR_ITERATIONS = 10
+    GENERALIZED_GEOMETRY_BACKFILL_BATCH_SIZE = 500
 
     def fix_invalid_geometries(pwsids: nil)
       all_valid = false
@@ -133,6 +138,69 @@ module Etl
       updated = scope.update_all("centroid = ST_PointOnSurface(geom)")
 
       Rails.logger.info("[ETL] generate_centroids: updated #{updated} row(s)")
+    end
+
+    def generate_generalized_geometries(pwsids: nil)
+      sql = <<~SQL
+        UPDATE service_area_geometries
+        SET
+          geom_z0_4 = ST_Multi(ST_SimplifyPreserveTopology(geom, 0.05)),
+          geom_z5 = ST_Multi(ST_SimplifyPreserveTopology(geom, 0.01)),
+          geom_z6 = ST_Multi(ST_SimplifyPreserveTopology(geom, 0.005)),
+          geom_z7 = ST_Multi(ST_SimplifyPreserveTopology(geom, 0.001)),
+          updated_at = NOW()
+        WHERE geom IS NOT NULL
+      SQL
+      sql << " AND pwsid = ANY($1::text[])" if pwsids.present?
+
+      updated = ApplicationRecord.connection.exec_update(
+        sql,
+        "PostImportSteps#generate_generalized_geometries",
+        pwsid_binds(pwsids)
+      )
+      Rails.logger.info("[ETL] generate_generalized_geometries: updated #{updated} row(s)")
+    end
+
+    def backfill_missing_generalized_geometries
+      total_updated = 0
+
+      loop do
+        sql = <<~SQL
+          WITH rows_to_update AS (
+            SELECT id
+            FROM service_area_geometries
+            WHERE geom IS NOT NULL
+              AND (
+                geom_z0_4 IS NULL
+                OR geom_z5 IS NULL
+                OR geom_z6 IS NULL
+                OR geom_z7 IS NULL
+              )
+            ORDER BY id
+            LIMIT #{GENERALIZED_GEOMETRY_BACKFILL_BATCH_SIZE}
+          )
+          UPDATE service_area_geometries sag
+          SET
+            geom_z0_4 = ST_Multi(ST_SimplifyPreserveTopology(sag.geom, 0.05)),
+            geom_z5 = ST_Multi(ST_SimplifyPreserveTopology(sag.geom, 0.01)),
+            geom_z6 = ST_Multi(ST_SimplifyPreserveTopology(sag.geom, 0.005)),
+            geom_z7 = ST_Multi(ST_SimplifyPreserveTopology(sag.geom, 0.001)),
+            updated_at = NOW()
+          FROM rows_to_update
+          WHERE sag.id = rows_to_update.id
+        SQL
+
+        updated = ApplicationRecord.connection.exec_update(
+          sql,
+          "PostImportSteps#backfill_missing_generalized_geometries"
+        )
+        total_updated += updated
+        Rails.logger.info("[ETL] backfill_missing_generalized_geometries: updated #{total_updated} row(s)") if updated.positive?
+        break if updated < GENERALIZED_GEOMETRY_BACKFILL_BATCH_SIZE
+      end
+
+      analyze_spatial_tables if total_updated.positive?
+      Rails.logger.info("[ETL] backfill_missing_generalized_geometries: complete, updated #{total_updated} row(s)")
     end
 
     # Join centroids to cartographic_states to assign the stusps code.
