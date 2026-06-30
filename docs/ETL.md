@@ -28,7 +28,7 @@ S3 Bucket (ETL_SOURCE_URL)
 
 The data publisher overwrites files in place at the same S3 keys. The ETL issues an HTTP HEAD request per file, reads the `Last-Modified` header, and imports any files whose timestamp is newer than the last recorded import in the `data_imports` table. No manifest file is needed.
 
-There is no per-environment S3 bucket — a single bucket serves development, staging, and production. The `ETL_SOURCE_URL` env var controls which folder path each environment reads from. Confirm with the EPIC data team that staging and production point to the correct folder (production data, not test data) before go-live.
+There is no per-environment S3 bucket — a single bucket serves development, staging, and production. The `ETL_SOURCE_URL` env var controls which folder path each environment reads from. Staging should point at the S3 `staging` folder, and production should point at the S3 `prod` folder.
 
 ---
 
@@ -234,13 +234,17 @@ bin/rails etl:import[epa_sabs,force]
 Configure a recurring job in `config/recurring.yml`:
 
 ```yaml
-etl_import:
-  class: EtlImportJob
-  queue: etl
-  schedule: every day at 12am America/New_York
+production:
+  # Rendered only when ETL_SCHEDULE_ENABLED=true
+  etl_import:
+    class: EtlImportJob
+    queue: etl
+    schedule: every day at 12am America/New_York
 ```
 
 The job runs on the dedicated `etl` queue and has a concurrency limit so imports cannot overlap. It issues HEAD requests per file and only imports files with updated `Last-Modified` timestamps. If a source omits `Last-Modified`, the file imports as changed.
+
+Because staging, production, and preview ECS services may all use `RAILS_ENV=production`, recurring ETL is gated by `ETL_SCHEDULE_ENABLED=true` rather than Rails environment alone. Leave the variable unset or false anywhere recurring imports should not run.
 
 ---
 

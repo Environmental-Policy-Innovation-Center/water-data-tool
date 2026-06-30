@@ -1,6 +1,14 @@
 require "rails_helper"
 
 RSpec.describe "Home", type: :request do
+  def with_modified_env(values)
+    previous = values.keys.to_h { |key| [key, ENV[key]] }
+    values.each { |key, value| value.nil? ? ENV.delete(key) : ENV[key] = value }
+    yield
+  ensure
+    previous.each { |key, value| value.nil? ? ENV.delete(key) : ENV[key] = value }
+  end
+
   describe "GET /" do
     it "returns 200" do
       get root_path
@@ -8,24 +16,41 @@ RSpec.describe "Home", type: :request do
     end
 
     it "renders the downloads section with a national download link" do
-      get root_path
-      expect(response.body).to include("national-dw-tool-staged.zip")
+      with_modified_env("PUBLIC_DOWNLOADS_BASE_URL" => "https://cdn.example.test/downloads/prod") do
+        get root_path
+      end
+
+      expect(response.body).to include("https://cdn.example.test/downloads/prod/national-dw-tool.zip")
     end
 
     it "renders state download links" do
-      get root_path
-      expect(response.body).to include("states/CO.zip")
+      with_modified_env("PUBLIC_DOWNLOADS_BASE_URL" => "https://cdn.example.test/downloads/staging") do
+        get root_path
+      end
+
+      expect(response.body).to include("https://cdn.example.test/downloads/staging/states/CO.zip")
       expect(response.body).to include("Colorado")
-      expect(response.body).to include("states/VT.zip")
+      expect(response.body).to include("https://cdn.example.test/downloads/staging/states/VT.zip")
       expect(response.body).to include("Vermont")
     end
 
     it "renders territory download links" do
-      get root_path
-      expect(response.body).to include("states/PR.zip")
+      with_modified_env("PUBLIC_DOWNLOADS_BASE_URL" => "https://cdn.example.test/downloads/staging") do
+        get root_path
+      end
+
+      expect(response.body).to include("https://cdn.example.test/downloads/staging/states/PR.zip")
       expect(response.body).to include("Puerto Rico")
-      expect(response.body).to include("states/GU.zip")
+      expect(response.body).to include("https://cdn.example.test/downloads/staging/states/GU.zip")
       expect(response.body).to include("Guam")
+    end
+
+    it "renders methodology links from METHODOLOGY_PDF_URL" do
+      with_modified_env("METHODOLOGY_PDF_URL" => "https://cdn.example.test/methodology.pdf") do
+        get root_path
+      end
+
+      expect(response.body).to include("https://cdn.example.test/methodology.pdf")
     end
 
     it "renders the datasets catalog with all 27 dataset cards" do

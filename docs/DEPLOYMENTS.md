@@ -311,6 +311,20 @@ The workflow reads these from the repository's **Settings → Secrets and variab
 | `STAGING_URL` | `https://water-data-tool-staging.policyinnovation.info/` |
 | `SERVICE_BUILDER_IMAGE_URI` | `516937823875.dkr.ecr.us-east-1.amazonaws.com/ep_service_builder:latest` |
 
+### App environment variables
+
+Set these in the ECS task definition or deployment workflow for each environment:
+
+| Name | Staging | Production | Preview |
+|---|---|---|---|
+| `APP_ENV` | `staging` | `production` | `preview` |
+| `ETL_SOURCE_URL` | `https://tech-team-data.s3.us-east-1.amazonaws.com/national-dw-tool/staging` | `https://tech-team-data.s3.us-east-1.amazonaws.com/national-dw-tool/prod` | staging or PR-specific S3 folder |
+| `PUBLIC_DOWNLOADS_BASE_URL` | `https://tech-team-data.s3.us-east-1.amazonaws.com/national-dw-tool/public-data-downloads/staging` | `https://tech-team-data.s3.us-east-1.amazonaws.com/national-dw-tool/public-data-downloads/prod` | staging or PR-specific downloads folder |
+| `METHODOLOGY_PDF_URL` | Full methodology PDF URL | Full methodology PDF URL | Full methodology PDF URL |
+| `ETL_SCHEDULE_ENABLED` | `false` unless staging should run recurring imports | `true` only if production should run recurring imports | `false` |
+
+Do not use `RAILS_ENV` to distinguish staging from production app behavior. ECS services run Rails in production mode, so `APP_ENV` is the app-level environment identity and `ETL_SCHEDULE_ENABLED` is the recurring ETL gate.
+
 ### Secrets
 
 | Name | What it is |
@@ -324,14 +338,16 @@ The workflow reads these from the repository's **Settings → Secrets and variab
 
 ### Data population strategy
 
-All three databases (`water_data_tool_production`, `water_data_tool_staging`, `water_data_tool_preview`) start empty after provisioning. Only production self-populates automatically via the recurring SolidQueue ETL job. Staging and preview need an explicit strategy:
+All three databases (`water_data_tool_production`, `water_data_tool_staging`, `water_data_tool_preview`) start empty after provisioning. Staging and production should populate from their own S3 folders via ETL:
 
-**Staging** — recommended: schedule a weekly `pg_dump` of the production DB piped into a `pg_restore` against staging. Both databases live on the same RDS instance so there is no network egress cost. This keeps staging representative of production without waiting for ETL to run independently.
+**Staging** — set `APP_ENV=staging`, `ETL_SOURCE_URL` to the S3 `staging` folder, and `PUBLIC_DOWNLOADS_BASE_URL` to `public-data-downloads/staging`. Run `bin/rails etl:import` manually or set `ETL_SCHEDULE_ENABLED=true` if staging should maintain its own recurring imports.
 
 ```bash
-# Run from within the VPC (e.g. SSH to an ECS host)
-pg_dump "$PROD_URL" | psql "$STAGING_URL"
+# Via ECS exec after container is healthy
+bin/rails etl:import
 ```
+
+**Production** — set `APP_ENV=production`, `ETL_SOURCE_URL` to the S3 `prod` folder, `PUBLIC_DOWNLOADS_BASE_URL` to `public-data-downloads/prod`, and `ETL_SCHEDULE_ENABLED=true` only in the production service that should enqueue recurring imports.
 
 **PR / preview** — recommended: trigger a one-time state seed after the PR environment comes up, using the app's existing seed task. A few states is enough to exercise all features including the map.
 
@@ -345,9 +361,9 @@ aws ecs execute-command \
   --command "bin/rails 'db:seed:states[VT,RI,OH,CO]'"
 ```
 
-This seed command pulls public data from S3 over HTTPS — no AWS credentials required. It could be added as a post-deploy step directly in the `pr-deploy` workflow job once the ECS task is confirmed healthy.
+This seed command pulls public data from S3 over HTTPS using `ETL_SOURCE_URL` — no AWS credentials required. It could be added as a post-deploy step directly in the `pr-deploy` workflow job once the ECS task is confirmed healthy.
 
-Neither strategy is wired up yet — both are day-two operational items before staging and PR environments are used for meaningful review work.
+Preview data seeding is still a day-two operational item before PR environments are used for meaningful review work.
 
 ---
 
