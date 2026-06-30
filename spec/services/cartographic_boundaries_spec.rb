@@ -38,7 +38,7 @@ RSpec.describe CartographicBoundaries do
   describe "#load" do
     around do |example|
       original = ENV["ETL_SOURCE_URL"]
-      ENV["ETL_SOURCE_URL"] = "https://tech-team-data.s3.amazonaws.com/national-dw-tool/test-staged"
+      ENV["ETL_SOURCE_URL"] = "https://tech-team-data.s3.amazonaws.com/national-dw-tool/staging"
       example.run
     ensure
       ENV["ETL_SOURCE_URL"] = original
@@ -56,7 +56,7 @@ RSpec.describe CartographicBoundaries do
         "us_place_500k.shp"
       ])
       expect(instance.send(:zip_url, described_class::LAYERS.second)).to eq(
-        "https://tech-team-data.s3.amazonaws.com/national-dw-tool/test-staged/cartographic-boundaries/us_county_500k.zip"
+        "https://tech-team-data.s3.amazonaws.com/national-dw-tool/staging/cartographic-boundaries/us_county_500k.zip"
       )
     end
 
