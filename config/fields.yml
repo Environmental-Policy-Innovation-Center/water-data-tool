@@ -35,7 +35,6 @@
 #       format_opts: {precision: 1}     #   extra formatting opts (omit if none)
 #       size: default                   #   default | sm | wide | pinned | check (omit → default)
 #       row_header: true                #   sticky row header (pws_name only; omit → false)
-#       source: ~                       #   read-path override; ~ for value-less cols (omit → derived from model)
 #       csv_label: "...the poverty line (%)"    #   verbose CSV header
 #     filter:                           # FILTERABLE via URL param (omit → not filterable)
 #       kind: range                     #   range | radio | bool | multiselect
@@ -46,9 +45,9 @@
 #       label: "Poverty rate"           #   MENU label (often differs from display.label; omit for radio/multiselect — they use options)
 #       tooltip: poverty_rate           #   tooltips.yml key (omit if none)
 #       has_select_all: true            #   multiselect only — render a select-all/deselect-all control (omit → none)
-#       options:                        #   radio/multiselect/pop_cat/rate_tier only — the choices
+#       options:                        #   radio + multiselect ONLY — the discrete choices (range/bool never use it); list one block per choice
 #         - {value: GW, label: "Ground only", default: true}   #   value stored, label shown; default: true = selected at load
-#       backend_only: true              #   filterable via URL but shown in NO menu (omit → shown; placement in filter_layout.yml)
+#         - {value: SW, label: "Surface only"}                 #   add as many option blocks as the filter has choices
 #     histogram:                        # HISTOGRAM-capable (omit → no histogram)
 #       format: percent                 #   percent | currency | count | percent_change
 #       column: population_pct_change_capped    # histogram column (omit → db_column)
@@ -56,29 +55,33 @@
 # A displayed field is exported to CSV / GeoJSON automatically using its model's table and
 # column — there is no export key to declare (only `check`, which has no model, is skipped).
 #
-# ARRANGEMENT lives in the layout files, not here: filter menu/category/order/nesting in
-# config/filter_layout.yml; table column order, pinned columns, and picker category in
-# config/table_layout.yml. Tooltips are concept-keyed in tooltips.yml; the manifest only references one by key.
+# ARRANGEMENT lives in the layout files, not here:
+# - filter menu/category/order/nesting in config/filter_layout.yml
+# - table column order, pinned columns, and picker category in config/table_layout.yml
+# Tooltip copy lives in config/tooltips.yml; the manifest references it by key.
 # ─────────────────────────────────────────────────────────────────────────────
 
-version: 1
-
-# Permitted params with no owning field (map viewport, geographic scope).
+# Query params that are accepted from the URL but have NO owning field below — so they can't
+# be auto-permitted from a field's filter.kind. They drive the map viewport / geographic scope
+# (bounds = map bbox, county_geoid + state = location), not a column filter.
+# FieldRegistry.permit_arguments adds these to the permit list verbatim.
+# Add a param here only when the app must read it from the URL but no fields entry declares it.
 passthrough_params: [bounds, county_geoid, state]
 
-# Source files that need special handling on load — combining rows, geometry, or computed
-# values — instead of a plain column-to-column copy. Each lists the table it fills and why.
+# Source files that need special handling on load
+# — combining rows, geometry, or computed values, instead of a plain column-to-column copy.
+# - Each lists the table it fills and why.
 custom_imports:
   epa_sabs:                  {model: public_water_system, reason: "computes the state code from the PWSID; tracks which systems changed"}
   epa_sabs_geoms:            {model: public_water_system, reason: "GeoJSON geometry file, not a flat CSV"}
-  sdwis_viols:               {model: violations_summary,  reason: "rolls raw violation rows up into 5- and 10-year totals"}
   pwsid_npdes_usts_rmps_imp: {model: watershed_hazard,    reason: "sums the per-HUC12 watershed rows into one row per system"}
   sabs_pwsid_county:         {model: public_water_system, reason: "combines the counties served into one deduplicated list per system"}
+  sdwis_viols:               {model: violations_summary,  reason: "rolls raw violation rows up into 5- and 10-year totals"}
 
 fields:
   # ── Row selection / identity (pinned, ungrouped) ───────────────────────────
   check:
-    display: {format: check, size: check, source: ~}
+    display: {format: check, size: check}
 
   pws_name:
     model: public_water_system
@@ -92,7 +95,7 @@ fields:
   epa_report:
     model: public_water_system
     db_column: detailed_facility_report
-    display: {label: "EPA Facility Report", format: link, size: sm, source: ~, csv_label: "EPA Facility Report"}
+    display: {label: "EPA Facility Report", format: link, size: sm, csv_label: "EPA Facility Report"}
 
   stusps:
     model: public_water_system
@@ -368,8 +371,6 @@ fields:
     model: demographic
     source: {file: epa_sabs_xwalk, header: "total_pop", cast: integer}
     display: {label: "Population size", sort: total_population, format: num, csv_label: "Population size"}
-    filter: {kind: range, coercion: decimal, backend_only: true}
-    histogram: {format: count}
 
   population_density:
     model: demographic
@@ -596,26 +597,18 @@ fields:
   no_health_insurance_rate:
     model: demographic
     source: {file: epa_sabs_xwalk, header: "no_health_insurance_per", cast: decimal}
-    filter: {kind: range, coercion: decimal, backend_only: true}
-    histogram: {format: percent}
 
   owner_rate:
     model: demographic
     source: {file: epa_sabs_xwalk, header: "hh_own_home_per", cast: decimal}
-    filter: {kind: range, coercion: decimal, backend_only: true}
-    histogram: {format: percent}
 
   renter_rate:
     model: demographic
     source: {file: epa_sabs_xwalk, header: "hh_rent_home_per", cast: decimal}
-    filter: {kind: range, coercion: decimal, backend_only: true}
-    histogram: {format: percent}
 
   population_in_poverty_rate:
     model: demographic
     source: {file: epa_sabs_xwalk, header: "pop_in_pov_per", cast: decimal}
-    filter: {kind: range, coercion: decimal, backend_only: true}
-    histogram: {format: percent}
 
   # Population category — filter only (no column)
   pop_cat_5:
@@ -708,7 +701,6 @@ fields:
   median_srf_assistance:
     model: funding_summary
     source: {file: pwsid_funded_highlevel_summary, header: "median_srf_assistance", cast: decimal}
-    histogram: {format: currency}
 
   # ── Watershed hazards ──────────────────────────────────────────────────────
   num_facilities:

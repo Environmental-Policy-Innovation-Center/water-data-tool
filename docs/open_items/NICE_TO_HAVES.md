@@ -14,6 +14,37 @@ be ticketed when there is capacity, or deleted if they're no longer relevant.
 
 ## Items
 
+### Config: Portal / CSV-driven manifest overrides (config-simplification Phase 6)
+
+The last deferred piece of the config-simplification refactor (CONFIG_AUDIT task 11 / Phase 6).
+With the four-file model in place (`fields.yml` + the two layout files + `tooltips.yml`), the
+back-end is now a single source of truth, which makes a CRUD-style override layer feasible:
+
+- **Manifest override source** — a CSV record or admin portal that writes/overrides `fields.yml`,
+  so "add or tweak a field" becomes a thin CRUD operation rather than a YAML edit + deploy.
+- **Generic filter applier** driven by `filter.kind`, with custom SQL only for the genuinely
+  special filters (the same least-custom discipline the ETL importers follow).
+
+Deferred intentionally — held off on CSV/portal import logic during the refactor. See
+docs/CONFIG_AUDIT.md §"Phase 6" and §"C. Portal / CSV-driven config". Pick up when there's a
+product need to edit fields without a code change.
+
+---
+
+### Config: Schema versioning for the config files
+
+The config files (`fields.yml`, `filter_layout.yml`, `table_layout.yml`) carried an inert
+`version: 1` key that no code, spec, or loader ever read. It was removed during cleanup rather
+than maintained as a placeholder that would silently drift across three files.
+
+Reintroduce a version scheme only when something will actually consume it — the most likely
+trigger is the Portal / CSV override layer above, where an external override may need to assert
+"I was written against fields schema vN" (or a loader/cache-key that busts on schema change).
+If that need lands, design the scheme deliberately: a single authoritative version (not one per
+file), a documented bump rule, and a consumer that enforces or branches on it.
+
+---
+
 ### Testing: JS/system test for filter param collection
 
 We have no JS tests yet. A small system/JS test would lock down the filter→URL payload contract:

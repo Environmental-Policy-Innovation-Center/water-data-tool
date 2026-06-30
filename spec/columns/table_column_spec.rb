@@ -11,7 +11,7 @@ RSpec.describe TableColumn do
       size: :default,
       row_header: false,
       pinned: false,
-      source: :pws,
+      read_from: :pws,
       csv_label: "Utility ID",
       sql_expr: "pws.pwsid",
       category: nil
@@ -31,7 +31,7 @@ RSpec.describe TableColumn do
     expect(col.size).to eq(:default)
     expect(col.row_header).to be(false)
     expect(col.pinned).to be(false)
-    expect(col.source).to eq(:pws)
+    expect(col.read_from).to eq(:pws)
   end
 
   it "exposes export fields" do
@@ -42,7 +42,7 @@ RSpec.describe TableColumn do
   it "allows nil csv_label and sql_expr (for non-exported columns)" do
     check_col = TableColumn.new(
       key: :check, label: nil, sort: nil, format: :check,
-      format_opts: {}, size: :check, row_header: false, pinned: true, source: nil,
+      format_opts: {}, size: :check, row_header: false, pinned: true, read_from: nil,
       csv_label: nil, sql_expr: nil, category: nil
     )
     expect(check_col.label).to be_nil

@@ -29,11 +29,10 @@
 #             #    reveals nested sub-filters and gets a check-all just from having `sub_filters`;
 #             #    the parent key (health_5yr) is layout-only, never a field.
 #
-# A filterable field with NO entry here is backend-only (`backend_only` in the manifest).
-# spec/filters/filter_layout_spec.rb keeps this file in lockstep with the manifest.
+# A filterable field with NO entry here is simply URL-only: filterable via its param, shown in no menu.
+# spec/filters/filter_layout_spec.rb checks this file one-directionally — every filter it references
+# resolves to a real filterable field (listed once); it does NOT require every filter to be placed.
 # ─────────────────────────────────────────────────────────────────────────────
-
-version: 1
 
 menus:
   source:

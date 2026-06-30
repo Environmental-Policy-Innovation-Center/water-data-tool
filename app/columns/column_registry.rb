@@ -122,7 +122,7 @@ class ColumnRegistry
   # Builds a fully-resolved column from a manifest field (what it is) + its layout arrangement.
   def self.build_column(field, category:, pinned:)
     d = field.display
-    src = d.key?(:source) ? d[:source]&.to_sym : default_source(field.model)
+    read_from = default_read_from(field.model)
     TableColumn.new(
       key: field.key,
       label: d[:label],
@@ -131,7 +131,7 @@ class ColumnRegistry
       format_opts: (d[:format_opts] || {}).transform_keys(&:to_sym),
       size: d.fetch(:size, "default").to_sym,
       row_header: d[:row_header] || false,
-      source: src,
+      read_from:,
       category:,
       pinned:,
       csv_label: d[:csv_label],
@@ -140,13 +140,13 @@ class ColumnRegistry
   end
   private_class_method :build_column
 
-  # A column's read-source — the record its value comes from: :pws (the base PublicWaterSystem) or an
-  # association name (read as pws.<source>). nil for value-less columns. See HomeHelper#cell_value.
-  def self.default_source(model)
+  # A column's read path — the record its value comes from: :pws (the base PublicWaterSystem) or an
+  # association name (read as pws.<read_from>). nil for value-less columns. See HomeHelper#cell_value.
+  def self.default_read_from(model)
     return nil if model.nil?
     (model == :public_water_system) ? :pws : model
   end
-  private_class_method :default_source
+  private_class_method :default_read_from
 
   def self.build_groups(ordered_cols)
     groups = []

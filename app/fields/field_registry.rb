@@ -53,7 +53,10 @@ class FieldRegistry
     fields.select { |f| f.filter_kind == :range }
   end
 
-  # Full ActionController::Parameters#permit arguments for every filter param.
+  # Full ActionController::Parameters#permit arguments for every filter param — derived from
+  # each field's filter.kind, so a new filter is permitted just by adding it to the manifest:
+  #   radio / bool → param   |   range → param_min + param_max   |   multiselect → param: []
+  # Plus passthrough_params (params with no owning field, e.g. map viewport / geographic scope).
   def self.permit_arguments
     scalars = config.fetch(:passthrough_params, []).map(&:to_sym)
     array_shape = {}

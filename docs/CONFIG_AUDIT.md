@@ -504,7 +504,7 @@ output. Result: 77 fewer hand-written config lines and no alias map for the data
 > (open_health_viol OR health 5yr/10yr OR paperwork 5yr/10yr), **Funding ORs**, **trend (Change) ORs**, and
 > demographic columns OR *within* Socioeconomics / Race-Ethnicity / Vulnerability but those categories AND.
 > Radio/multiselect each sit in a single-filter category (AND = OR-of-one) and stay in `apply_direct_filters`;
-> rate-tier + geographic are bespoke (also single-filter). A backend-only range (no category) is its own AND
+> rate-tier + geographic use custom logic (also single-filter). A backend-only range (no category) is its own AND
 > singleton.
 >
 > *History:* this **finalized** the rule after two interim passes — Stage 2 had tried "siblings AND /
@@ -721,9 +721,10 @@ initial placement-only `filter_layout.yml`.*
 the filter-menu ERB + tab bar are generated from `filter_layout.yml × fields.yml` (8b), the JS is
 DOM-driven with `FILTERS[]`/`#restoreDomState` deleted and the FSR doc closed (9), and the symmetric
 `table_layout.yml` landed. The **four-file model** (`fields.yml` / `filter_layout.yml` /
-`table_layout.yml` / `tooltips.yml`) is realized. **The only remaining work is the deferred Portal/CSV override layer (11, Phase 6).** All Phase 5
-cleanup is done: the data-field lifecycle how-tos (13), the Place filter removal (14), and the menu
-`id`→key readability pass (15). The `view=` URL param is logged in `docs/open_items/NICE_TO_HAVES.md`.
+`table_layout.yml` / `tooltips.yml`) is realized. **All Phase 0–5 work is complete** — the data-field lifecycle how-tos (13), the Place filter removal
+(14), and the menu `id`→key readability pass (15) close out Phase 5. The only outstanding item is
+**Phase 6 (task 11, Portal/CSV override layer), which is deferred** and tracked in
+`docs/open_items/NICE_TO_HAVES.md` alongside the `view=` URL param.
 
 | # | Task | Phase | Status | FSR-coupled? |
 |---|------|-------|--------|--------------|
@@ -738,7 +739,7 @@ cleanup is done: the data-field lifecycle how-tos (13), the Place filter removal
 | 8b | **Generate** filter-menu ERB from `filter_layout.yml` × `fields.yml` (manifest loop) | 5 | ✅ done — menu ERB + tab bar are a manifest loop (**Checkpoint B**) | **yes — is FSR** |
 | 9 | FSR Phase 3 — delete `#restoreDomState` + `FILTERS[]`, DOM-driven JS | 5 | ✅ done (**Checkpoint C**); `view=` split out to NICE_TO_HAVES | **yes — is FSR** |
 | 10 | Port `rate_tier` control into the manifest + layout | 5 | ✅ manifest+layout+server-render done; JS removal rides with #9 | partial |
-| 11 | Portal / CSV override layer + generic filter applier | 6 | ◻ todo | no |
+| 11 | Portal / CSV override layer + generic filter applier | 6 | ◻ deferred — tracked in `docs/open_items/NICE_TO_HAVES.md` | no |
 | 12 | `table_layout.yml` for explicit column/category order *(wanted for consistency — ordering out of the manifest)* | 5/6 | ✅ done — `TableLayout` composes manifest × layout (mirrors the filter side) | no |
 | 13 | **How-to docs for the data-field lifecycle** — a family of three, all written: `docs/how_to/ADD_NEW_DATA_FIELD.md` (decision tree: flat-map vs custom, migration-needed?, new-column vs new-file vs new-table; the surfacing axes display/filter/histogram), `REMOVE_EXISTING_DATA_FIELD.md` (seeded from the task-14 Place removal), and `EDIT_EXISTING_DATA_FIELD.md` (which-file-owns-what). All cover the category AND/OR rule + base-vs-join tables. | docs | ✅ done | no |
 | 14 | **Remove `Place` as a filter** — dropped the filter-menu UI, `place_geoid` filtering (`filterable.rb`), the `place` control kind (permit/dispatch/partial/helper), the `place_autocomplete_controller.js`, and the `/places/search` route + controller. **Kept** `PlaceSystemCrosswalk`, `CartographicPlace`, ETL, map tiling (`tile_impact.rb`), and the PWS-name searchboxes (the `search` param — a separate feature). Harvested removal notes seeded `docs/how_to/REMOVE_EXISTING_DATA_FIELD.md`. | 5/docs | ✅ done — 995 specs green | partial |

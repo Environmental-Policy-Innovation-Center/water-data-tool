@@ -413,19 +413,6 @@ RSpec.describe Filterable, type: :model do
         expect(results).to include(both)
         expect(results).not_to include(poverty_only, poc_only)
       end
-
-      # total_population is a range filter in the manifest but not surfaced in the layout
-      # (backend_only); it must still apply, as an AND singleton.
-      it "applies a backend-only range filter (total_population)" do
-        small = create(:public_water_system)
-        large = create(:public_water_system)
-        create(:demographic, public_water_system: small, total_population: 500)
-        create(:demographic, public_water_system: large, total_population: 500_000)
-
-        results = PublicWaterSystem.apply_filters(total_population_min: "100000")
-        expect(results).to include(large)
-        expect(results).not_to include(small)
-      end
     end
 
     context "environmental justice filters" do

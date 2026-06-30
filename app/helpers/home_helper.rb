@@ -253,9 +253,9 @@ module HomeHelper
   end
 
   def cell_value(pws, col)
-    return nil if col.source.nil?
-    source = (col.source == :pws) ? pws : pws.public_send(col.source)
-    source&.public_send(col.key)
+    return nil if col.read_from.nil?
+    record = (col.read_from == :pws) ? pws : pws.public_send(col.read_from)
+    record&.public_send(col.key)
   end
 
   def format_cell_value(value, format, opts)

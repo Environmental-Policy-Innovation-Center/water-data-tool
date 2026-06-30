@@ -138,9 +138,9 @@ RSpec.describe HomeHelper, type: :helper do
   describe "#cell_value" do
     let(:pws) { create(:public_water_system, pwsid: "TX1234567", pws_name: "Test Water") }
 
-    it "reads directly from pws when source is :pws" do
+    it "reads directly from pws when read_from is :pws" do
       col = TableColumn.new(key: :pwsid, label: "Utility ID", sort: nil,
-        format: :str, format_opts: {}, size: :default, row_header: false, pinned: false, source: :pws,
+        format: :str, format_opts: {}, size: :default, row_header: false, pinned: false, read_from: :pws,
         csv_label: nil, sql_expr: nil, category: nil)
       expect(helper.cell_value(pws, col)).to eq("TX1234567")
     end
@@ -149,21 +149,21 @@ RSpec.describe HomeHelper, type: :helper do
       create(:demographic, pwsid: pws.pwsid, total_population: 5_000)
       pws_loaded = PublicWaterSystem.includes(:demographic).find(pws.id)
       col = TableColumn.new(key: :total_population, label: "Population", sort: nil,
-        format: :num, format_opts: {}, size: :default, row_header: false, pinned: false, source: :demographic,
+        format: :num, format_opts: {}, size: :default, row_header: false, pinned: false, read_from: :demographic,
         csv_label: nil, sql_expr: nil, category: nil)
       expect(helper.cell_value(pws_loaded, col)).to eq(5_000)
     end
 
-    it "returns nil when source is nil (check/link columns)" do
+    it "returns nil when read_from is nil (check/link columns)" do
       col = TableColumn.new(key: :check, label: nil, sort: nil,
-        format: :check, format_opts: {}, size: :check, row_header: false, pinned: false, source: nil,
+        format: :check, format_opts: {}, size: :check, row_header: false, pinned: false, read_from: nil,
         csv_label: nil, sql_expr: nil, category: nil)
       expect(helper.cell_value(pws, col)).to be_nil
     end
 
     it "returns nil when the associated record does not exist" do
       col = TableColumn.new(key: :total_population, label: "Population", sort: nil,
-        format: :num, format_opts: {}, size: :default, row_header: false, pinned: false, source: :demographic,
+        format: :num, format_opts: {}, size: :default, row_header: false, pinned: false, read_from: :demographic,
         csv_label: nil, sql_expr: nil, category: nil)
       expect(helper.cell_value(pws, col)).to be_nil
     end

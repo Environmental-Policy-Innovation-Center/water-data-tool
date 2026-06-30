@@ -12,7 +12,7 @@ Filters are config-driven and split across files by concern. The menu UI is **ge
 |--------|------|
 | `config/fields.yml` (via `FieldRegistry`) | What each filterable FIELD *is*: `filter.kind`, `param` / `param_base`, `label`, `tooltip`, `options` (value/label/default), `has_select_all`, an optional `control:` widget override (e.g. `range_select`, `pop_cat`, `rate_tier`), and the `histogram:` block that drives its slider. |
 | `config/filter_layout.yml` (via `FilterLayout`) | How filters are ARRANGED: which menu/category each sits in, nesting (parent → sub-filters), and **order** (definition order — see [Menu layout & order](#menu-layout--order)). Also owns the copy for menus/categories/parent-filters, which are not fields. |
-| `Filterable` | A category-grouped combiner (`apply_category_filters`) builds each range/bool filter from the manifest (`FieldRegistry`) and **ORs within each `FilterLayout.category_of`, ANDing across categories**; radio/multiselect, rate-tier, and geographic filters are applied bespoke (each a single-filter category → AND). `permit_arguments` + the sortable maps also derive from `FieldRegistry`. (`config/filters.yml` + `FilterRegistry` were retired in Thread A — docs/CONFIG_AUDIT.md.) |
+| `Filterable` | A category-grouped combiner (`apply_category_filters`) builds each range/bool filter from the manifest (`FieldRegistry`) and **ORs within each `FilterLayout.category_of`, ANDing across categories**; radio/multiselect, rate-tier, and geographic filters are applied with custom logic (each a single-filter category → AND). `permit_arguments` + the sortable maps also derive from `FieldRegistry`. (`config/filters.yml` + `FilterRegistry` were retired in Thread A — docs/CONFIG_AUDIT.md.) |
 
 **The menu UI is generated, not hand-authored.** `app/views/home/_filter_menus.html.erb` is a ~25-line driver that loops `FilterLayout.menus → categories → filters` and renders one `_filter_*` partial per control kind; the tab bar in `index.html.erb` loops the same `FilterLayout.menus`. The generated markup emits a **`data-filter-*` DOM contract** (below) rather than hand-matched element ids.
 
@@ -278,7 +278,7 @@ columns share the Funding category, so they **OR**. The Watershed-hazards sub_fi
 Environmental category, so they **OR**. Demographic columns split by category — Socioeconomics OR within,
 Race/Ethnicity OR within, and the two categories AND. To change behavior, move a filter to a different
 category (no code change). Radio/multiselect filters each sit in their own single-filter category, so they
-AND (OR-of-one); the rate-tier multiselect and geographic filters are applied bespoke (also single-filter).
+AND (OR-of-one); the rate-tier multiselect and geographic filters are applied with custom logic (also single-filter).
 
 ### Violations category — all OR
 

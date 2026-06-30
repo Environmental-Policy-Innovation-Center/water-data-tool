@@ -27,9 +27,6 @@
 # displayable, and listed once).
 # ─────────────────────────────────────────────────────────────────────────────
 
-
-version: 1
-
 pinned:
   - check
   - pws_name

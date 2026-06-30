@@ -29,7 +29,7 @@ module Filterable
 
     # Range + bool filters combined per the layout: filters within one category OR together (one
     # .where), and categories AND with one another. Column/table/coercion/join come from the manifest.
-    # A field not surfaced in the layout (backend-only) is its own AND group. See docs/FILTERING.md.
+    # A field not placed in the layout (URL-only) is its own AND group. See docs/FILTERING.md.
     def apply_category_filters(scope, joined, params)
       category_groups.each do |fields|
         active = fields.select { |f| filter_active?(f, params) }
@@ -42,7 +42,7 @@ module Filterable
       [scope, joined]
     end
 
-    # Rate tier is a multiselect with bespoke value mapping (tier slug → stored enum), so it stays
+    # Rate tier is a multiselect with custom value mapping (tier slug → stored enum), so it stays
     # out of the generic range applier. Its tiers OR; the filter ANDs with the rest.
     def apply_rate_tier_filter(scope, joined, params)
       tiers = Array(params[:most_common_rate_tier]).select(&:present?)
@@ -77,8 +77,8 @@ module Filterable
       scope
     end
 
-    # Range + bool fields grouped into OR-sets by layout category; a field not surfaced in the layout
-    # (backend-only) is its own AND singleton.
+    # Range + bool fields grouped into OR-sets by layout category; a field not placed in the layout
+    # (URL-only) is its own AND singleton.
     def category_groups
       FieldRegistry.fields
         .select { |f| [:range, :bool].include?(f.filter_kind) }

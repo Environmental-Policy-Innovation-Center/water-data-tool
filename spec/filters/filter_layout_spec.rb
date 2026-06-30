@@ -3,22 +3,19 @@
 require "rails_helper"
 
 # Backstop for the placement split (CONFIG_AUDIT §8.4): config/filter_layout.yml is only safe as
-# a second file with a spec proving it stays in lockstep with the manifest. Placement now lives
-# ONLY in the layout (the interim menu/section tags were removed from fields.yml), so the invariant
-# is membership: every surfaced filter appears in the layout exactly once, every backend-only filter
-# stays out, and parent (grouping) keys are never themselves fields. Taxonomy (docs/FILTERING.md):
+# a second file with a spec proving its references resolve against the manifest. Placement lives
+# ONLY in the layout. The invariant is ONE-DIRECTIONAL: every filter the layout references is a real
+# filterable field, listed once — a typo'd or non-filterable reference would otherwise silently drop
+# or 500. We do NOT require every filter to be placed; a filter absent from the layout is just
+# URL-only. Parent (grouping) keys are never themselves fields. Taxonomy (docs/FILTERING.md):
 # menu → category → filter → sub-filter.
 RSpec.describe FilterLayout do
   let(:filterable) { FieldRegistry.fields.select(&:filter) }
-  let(:surfaced) { filterable.reject { |f| f.filter[:backend_only] } }
-  let(:backend_only) { filterable.select { |f| f.filter[:backend_only] } }
 
-  it "references every surfaced filter exactly once, and no others" do
-    expect(FilterLayout.field_keys.sort).to eq(surfaced.map(&:key).sort)
-  end
-
-  it "keeps backend-only filters out of the layout" do
-    expect(FilterLayout.field_keys & backend_only.map(&:key)).to be_empty
+  it "references only real filterable fields, each at most once" do
+    layout_keys = FilterLayout.field_keys
+    expect(layout_keys - filterable.map(&:key)).to be_empty
+    expect(layout_keys).to eq(layout_keys.uniq)
   end
 
   it "nests sub-filters only under parent keys that are not themselves manifest fields" do
