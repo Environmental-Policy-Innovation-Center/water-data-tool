@@ -480,13 +480,13 @@ output. Result: 77 fewer hand-written config lines and no alias map for the data
       deleted. **Intentional behavior change:** funding + violations flipped OR→AND (watershed stays OR;
       demographic / EJ / trend stay AND). Specs → 1008 green (added density, a backend-only range, and
       multi-column AND for demographic / EJ / trend — the previously-untested paths). `FILTERING.md` rewritten.
-- [ ] **Stage 3 — delete `filters.yml` + `FilterRegistry` + parity spec.** After Stage 2, `filters.yml` is
-      read only by the permit/sort parity spec and the `client_payload` embed. Delete the file, the registry,
-      and the permit/sort **parity spec** (`field_registry_spec` "parity with FilterRegistry"). End state: the
-      four-file model with `filters.yml` + `FilterRegistry` gone.
-  > **Caveat — `client_payload` likely just deletes.** `filter_controller.js` does **not** consume
-  > `#filter-registry-config` (it's a dev-tools inspection copy — see FILTERING.md), so this is probably a
-  > deletion of the `_filter_registry_config` partial + `client_payload`, not a relocation. Confirm with a JS grep first.
+- [x] **Stage 3 — `filters.yml` + `FilterRegistry` deleted. DONE.** `client_payload` was unused by the JS
+      (`#filter-registry-config` had no reader, JS-grep confirmed), so the `_filter_registry_config` partial +
+      `client_payload` went with it. Deleted `config/filters.yml`, the `FilterRegistry` class,
+      `filter_registry_spec`, and the permit/sort parity block in `field_registry_spec` — replaced with direct
+      `FieldRegistry` permit/sortable characterization specs so the contract stays pinned. Dropped the
+      `filters.yml` watch in `development.rb`. **End state reached: the four-file model — `fields.yml` +
+      `filter_layout.yml` + `table_layout.yml` + `tooltips.yml` — with `filters.yml` and `FilterRegistry` gone.**
 
 > **Filtering semantics — the AND/OR rule (decided 2026-06).** Combination is read straight off
 > `filter_layout.yml` structure: **sibling `filters:` entries AND; entries within a `sub_filters:` list

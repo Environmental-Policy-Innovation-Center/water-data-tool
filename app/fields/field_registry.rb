@@ -2,11 +2,10 @@
 
 # Single per-field manifest (config/fields.yml) — see docs/CONFIG_AUDIT.md.
 #
-# The source of truth for table columns + categories, histogram config, and ETL
-# field→model routing. ColumnRegistry (columns) and HistogramsController (histogram config)
-# read from here. The remaining filter concerns (permit args, sortable map) still derive from
-# config/filters.yml and are cross-checked against this manifest by the parity spec until
-# they move over (Phase 5). Tooltips stay in tooltips.yml (CONFIG_AUDIT §8.2).
+# The source of truth for table columns + categories, filter permit args + sortable maps,
+# histogram config, and ETL field→model routing. ColumnRegistry, Filterable, Sortable,
+# FilterParams, and HistogramsController all read from here; tooltips stay in tooltips.yml
+# (CONFIG_AUDIT §8.2).
 class FieldRegistry
   # Manifest `model:` symbol → ActiveRecord class name (resolved lazily for histogram
   # config + invariant checks).
@@ -49,12 +48,12 @@ class FieldRegistry
     @display_field_keys ||= fields.reject(&:table_only?).map(&:key).freeze
   end
 
-  # ── FilterRegistry-equivalent views ────────────────────────────────────────
+  # ── Filter permit args + sortable maps ──────────────────────────────────────
   def self.range_filter_fields
     fields.select { |f| f.filter_kind == :range }
   end
 
-  # Full ActionController::Parameters#permit arguments — reproduces FilterRegistry.permit_arguments.
+  # Full ActionController::Parameters#permit arguments for every filter param.
   def self.permit_arguments
     scalars = config.fetch(:passthrough_params, []).map(&:to_sym)
     array_shape = {}

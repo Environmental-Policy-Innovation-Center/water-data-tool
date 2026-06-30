@@ -2,37 +2,46 @@
 
 require "rails_helper"
 
-# Backstop for the config consolidation — see docs/CONFIG_AUDIT.md.
-#
-# Table columns are consumed from the manifest by ColumnRegistry (guarded by
-# column_registry_spec); histogram config is owned and tested here. The parity block stays
-# meaningful only for the concerns not yet cut over — permit args + sortable map still derive
-# from config/filters.yml, so it cross-checks the manifest against drift until Phase 5. The
-# invariants are the durable safety net that survives consolidation.
+# Backstop for the config consolidation — see docs/CONFIG_AUDIT.md. The manifest is the sole source
+# for table columns (guarded by column_registry_spec), filter permit args + sortable maps, histogram
+# config, and ETL field→model routing. These specs pin the manifest-derived outputs directly; the
+# invariants below are the durable safety net.
 RSpec.describe FieldRegistry do
   before do
     FieldRegistry.reload!
     ColumnRegistry.reload!
-    FilterRegistry.reload!
   end
 
-  describe "parity with FilterRegistry (filters.yml — not yet cut over)" do
-    it "permits exactly the same scalar param keys" do
-      expect(scalar_permit_keys(FieldRegistry.permit_arguments))
-        .to eq(scalar_permit_keys(FilterRegistry.permit_arguments))
+  describe ".permit_arguments" do
+    it "includes the capped trend range keys, not the raw uncapped param" do
+      flat = permit_flat_keys(FieldRegistry.permit_arguments)
+      expect(flat).to include(:population_pct_change_capped_min, :population_pct_change_capped_max)
+      expect(flat).to include(:mhi_pct_change_capped_min, :mhi_pct_change_capped_max)
+      expect(flat).not_to include(:population_pct_change_min)
     end
 
-    it "permits exactly the same array-shaped params" do
-      expect(array_permit_shape(FieldRegistry.permit_arguments))
-        .to eq(array_permit_shape(FilterRegistry.permit_arguments))
+    it "shapes the multiselect params as a trailing array-permit hash" do
+      args = FieldRegistry.permit_arguments
+      expect(args.last).to be_a(Hash)
+      expect(args.last.keys).to include(:owner_type, :primacy_type, :pop_cat_5, :most_common_rate_tier)
     end
 
-    it "reproduces the sortable column → table map" do
-      expect(FieldRegistry.sortable_columns).to eq(FilterRegistry.sortable_columns)
+    it "includes violation range min/max keys" do
+      flat = permit_flat_keys(FieldRegistry.permit_arguments)
+      expect(flat).to include(:groundwater_rule_5yr_min, :lead_and_copper_10yr_max)
+    end
+  end
+
+  describe ".sortable_columns / .sortable_table_joins" do
+    it "maps each sortable column to its table" do
+      expect(FieldRegistry.sortable_columns)
+        .to include("pws_name" => "public_water_systems", "total_notices" => "boil_water_summaries")
     end
 
-    it "reproduces the sortable table → join association map" do
-      expect(FieldRegistry.sortable_table_joins).to eq(FilterRegistry.sortable_table_joins)
+    it "joins only the non-base sortable tables (association = model symbol)" do
+      joins = FieldRegistry.sortable_table_joins
+      expect(joins).to include("boil_water_summaries" => :boil_water_summary, "demographics" => :demographic)
+      expect(joins).not_to have_key("public_water_systems")
     end
   end
 
@@ -93,11 +102,7 @@ RSpec.describe FieldRegistry do
     end
   end
 
-  def scalar_permit_keys(args)
-    args.reject { |a| a.is_a?(Hash) }.map(&:to_sym).to_set
-  end
-
-  def array_permit_shape(args)
-    args.find { |a| a.is_a?(Hash) }
+  def permit_flat_keys(args)
+    args.flat_map { |x| x.is_a?(Hash) ? x.keys : x }
   end
 end

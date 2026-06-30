@@ -7,7 +7,7 @@ Rails.application.configure do
   config.enable_reloading = true
 
   # Reload when YAML configs change (the registries + layouts cache parsed YAML at class level).
-  config.watchable_files.concat %w[config/fields.yml config/filters.yml config/filter_layout.yml config/table_layout.yml config/tooltips.yml]
+  config.watchable_files.concat %w[config/fields.yml config/filter_layout.yml config/table_layout.yml config/tooltips.yml]
 
   # Do not eager load code on boot.
   config.eager_load = false

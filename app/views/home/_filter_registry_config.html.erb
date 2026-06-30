@@ -1,4 +1,0 @@
-<%# Embeds config/filters.yml contract for Stimulus (FilterRegistry). %>
-<%= tag.script(id: "filter-registry-config", type: "application/json") do %>
-<%= json_escape(FilterRegistry.client_payload_json) %>
-<% end %>

@@ -17,7 +17,6 @@
 #
 # Menus, categories, and parent-filters (filter grouping / check-all tools) are NOT fields and do
 # NOT appear here — they live only in config/filter_layout.yml.
-# (Filtering and sorting still also read config/filters.yml for now — see docs/CONFIG_AUDIT.md.)
 #
 # ── CANONICAL ENTRY SHAPE — keys ALWAYS appear in this order; omit any block/key a field
 #    does not have. Omission is the signal; we do not pad with nils. ──────────────────────
