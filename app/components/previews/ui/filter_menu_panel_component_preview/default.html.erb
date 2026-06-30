@@ -1,7 +1,7 @@
 <%# [&_.filter-dropdown]:!block forces panel open — Stimulus controls this at runtime %>
 <div class="relative h-[480px] [&_.filter-dropdown]:!block">
-  <%= render UI::FilterMenuPanelComponent.new(menu_id: 1) do %>
-    <div id="container-menu-1-items">
+  <%= render UI::FilterMenuPanelComponent.new(menu_key: "source") do %>
+    <div id="container-menu-source-items">
       <%= render Filters::CategoryComponent.new(label: "Primary type") do %>
         <ul class="my-[6px] mb-[10px] mx-0 list-none px-1">
           <li class="<%= filter_row_classes %>">

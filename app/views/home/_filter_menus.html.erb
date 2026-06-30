@@ -1,7 +1,7 @@
 <%# Filter menus generated from filter_layout.yml × fields.yml. JS reads the data-filter-* contract emitted here. %>
-<% FilterLayout.menus.each_value do |menu| %>
+<% FilterLayout.menus.each do |menu_key, menu| %>
   <%= render UI::FilterMenuPanelComponent.new(
-        menu_id: menu[:id],
+        menu_key: menu_key,
         more_menu: menu.fetch(:more_menu, false),
         width_class: menu.fetch(:width, "w-[350px]"),
         reset_data_action: menu.fetch(:reset_action, "click->filter#reset"),
@@ -9,14 +9,14 @@
     <% if menu[:more_menu] %>
       <h2 class="m-0 px-[15px] py-5 text-base font-medium text-white bg-[#989898] hidden sm:block">More filters</h2>
       <%# One placeholder per non-More menu (layout order) — a collapsed menu's content reparents here (filter_layout_controller). %>
-      <% FilterLayout.menus.each_value do |overflow_menu| %>
+      <% FilterLayout.menus.each do |overflow_key, overflow_menu| %>
         <% next if overflow_menu[:more_menu] %>
-        <div id="more-filter-grp-<%= overflow_menu[:id] %>"></div>
+        <div id="more-filter-grp-<%= overflow_key %>"></div>
       <% end %>
     <% end %>
-    <div id="container-menu-<%= menu[:id] %>-items">
+    <div id="container-menu-<%= menu_key %>-items">
       <% menu[:categories].each_value do |category| %>
-        <%= render "home/filter_category", category: category, menu_id: menu[:id] %>
+        <%= render "home/filter_category", category: category, menu_key: menu_key %>
       <% end %>
     </div>
   <% end %>

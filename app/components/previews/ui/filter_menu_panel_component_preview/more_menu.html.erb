@@ -2,7 +2,7 @@
 <%# Default-variant categories auto-switch to light styling via [.filter-dropdown-more_&] CSS %>
 <div class="relative h-[580px] [&_.filter-dropdown]:!block">
   <%= render UI::FilterMenuPanelComponent.new(
-        menu_id: 10,
+        menu_key: "more",
         more_menu: true,
         reset_data_action: "click->filter#resetAll",
         reset_label: "Reset All"

@@ -4,11 +4,11 @@ import { Controller } from "@hotwired/stimulus"
 // When a nav button hides, its content is DOM-reparented into the More menu so it remains
 // accessible there — same pattern as the legacy scripts-ui.js setLayout().
 const RESPONSIVE_FILTERS = [
-  { num: 5, breakpoint: 1190 },  // Population
-  { num: 4, breakpoint: 1040 },  // Compliance
-  { num: 3, breakpoint: 880  },  // Boundaries
-  { num: 2, breakpoint: 730  },  // Attributes
-  { num: 1, breakpoint: 580  },  // Source
+  { key: "population", breakpoint: 1190 },
+  { key: "compliance", breakpoint: 1040 },
+  { key: "boundaries", breakpoint: 880  },
+  { key: "attributes", breakpoint: 730  },
+  { key: "source",     breakpoint: 580  },
 ]
 
 export default class extends Controller {
@@ -38,11 +38,11 @@ export default class extends Controller {
     this.#lastLayoutWidth = width
     document.dispatchEvent(new CustomEvent("filter:close-all"))
 
-    for (const { num, breakpoint } of RESPONSIVE_FILTERS) {
-      const li = document.querySelector(`.filter-${num}`)
-      const items = document.getElementById(`container-menu-${num}-items`)
-      const mainGrp = document.getElementById(`main-filter-grp-${num}`)
-      const moreGrp = document.getElementById(`more-filter-grp-${num}`)
+    for (const { key, breakpoint } of RESPONSIVE_FILTERS) {
+      const li = document.querySelector(`.filter-${key}`)
+      const items = document.getElementById(`container-menu-${key}-items`)
+      const mainGrp = document.getElementById(`main-filter-grp-${key}`)
+      const moreGrp = document.getElementById(`more-filter-grp-${key}`)
       if (!li || !items || !mainGrp || !moreGrp) continue
 
       if (width < breakpoint) {

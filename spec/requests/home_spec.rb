@@ -53,9 +53,9 @@ RSpec.describe "Home", type: :request do
       get root_path
       dom = Nokogiri::HTML(response.body)
       tab_ids = dom.css("li[id^='filter-tab-']").map { |li| li["id"] }
-      expect(tab_ids).to eq(FilterLayout.menus.values.map { |menu| "filter-tab-#{menu[:id]}" })
-      FilterLayout.menus.each_value do |menu|
-        expect(dom.at_css("#filter-tab-#{menu[:id]}").text).to include(menu[:label])
+      expect(tab_ids).to eq(FilterLayout.menus.keys.map { |key| "filter-tab-#{key}" })
+      FilterLayout.menus.each do |key, menu|
+        expect(dom.at_css("#filter-tab-#{key}").text).to include(menu[:label])
       end
     end
 

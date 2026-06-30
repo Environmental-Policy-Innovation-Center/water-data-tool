@@ -78,8 +78,8 @@
         </div>
       </li>
 
-      <% FilterLayout.menus.each_value do |menu| %>
-        <%= render UI::FilterMenuTabComponent.new(menu_id: menu[:id], label: menu[:label], mobile_label: menu[:mobile_label]) %>
+      <% FilterLayout.menus.each do |menu_key, menu| %>
+        <%= render UI::FilterMenuTabComponent.new(menu_key: menu_key, label: menu[:label], mobile_label: menu[:mobile_label]) %>
       <% end %>
     </ul>
   </div>

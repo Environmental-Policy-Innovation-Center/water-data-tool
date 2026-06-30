@@ -345,10 +345,9 @@ export default class extends Controller {
 
     for (const el of this.element.querySelectorAll("[data-filter-kind]")) {
       const kind = el.dataset.filterKind
-      const group = Number(el.dataset.filterGroup)
+      const group = el.dataset.filterGroup
       switch (kind) {
-        case "radio":
-        case "place": {
+        case "radio": {
           const key = `${kind}:${el.dataset.filterParam}`
           if (seen.has(key)) break
           seen.add(key)
@@ -400,9 +399,11 @@ export default class extends Controller {
 
   #updateBadges() {
     const counts = this.#countsByGroup()
-    let moreCount = counts[10] || 0
+    let moreCount = counts.more || 0
 
-    for (const group of [1, 2, 3, 4, 5]) {
+    // The collapsible menu keys (filter_layout.yml order); keep in sync with
+    // RESPONSIVE_FILTERS in filter_layout_controller.js. A collapsed menu's count rolls into More.
+    for (const group of ["source", "attributes", "boundaries", "compliance", "population"]) {
       const li = document.querySelector(`.filter-${group}`)
       const count = counts[group] || 0
       if (li?.classList.contains("hidden")) {
@@ -412,7 +413,7 @@ export default class extends Controller {
       }
     }
 
-    this.#setBadge(document.querySelector(".container-filter-count-menu-10"), moreCount)
+    this.#setBadge(document.querySelector(".container-filter-count-menu-more"), moreCount)
   }
 
   #updateGeoTitle() {

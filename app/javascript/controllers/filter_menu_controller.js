@@ -32,7 +32,7 @@ export default class extends Controller {
     if (!isOpen) {
       const mapRect = document.getElementById("container-map").getBoundingClientRect()
       const btnRect = btn.getBoundingClientRect()
-      const moreBtn = document.getElementById("container-menu-btn-10")
+      const moreBtn = document.getElementById("container-menu-btn-more")
       const moreBtnRect = moreBtn ? moreBtn.getBoundingClientRect() : mapRect
 
       menu.style.left = "0"

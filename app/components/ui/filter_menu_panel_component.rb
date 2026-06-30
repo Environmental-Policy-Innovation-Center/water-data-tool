@@ -18,8 +18,8 @@ class UI::FilterMenuPanelComponent < ViewComponent::Base
     "bg-brand-primary px-7 py-2 text-sm text-white no-underline mx-2 my-1.5 min-h-11 " \
     "md:hover:brightness-110 #{FOCUS_RING_CLASSES}".freeze
 
-  def initialize(menu_id:, more_menu: false, width_class: "w-[350px]", reset_data_action: "click->filter#reset", reset_label: "Reset")
-    @menu_id = menu_id
+  def initialize(menu_key:, more_menu: false, width_class: "w-[350px]", reset_data_action: "click->filter#reset", reset_label: "Reset")
+    @menu_key = menu_key
     @more_menu = more_menu
     @width_class = width_class
     @reset_data_action = reset_data_action

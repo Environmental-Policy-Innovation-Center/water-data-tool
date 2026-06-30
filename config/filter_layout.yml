@@ -38,14 +38,12 @@ version: 1
 menus:
   source:
     label: "Source"
-    id: 1
     categories:
       primary_type: {label: "Primary type", tooltip: primary_type, filters: [gw_sw_code]}
       protection:   {label: "Protection", filters: [source_water_protection_code]}
 
   attributes:
     label: "Attributes"
-    id: 2
     categories:
       ownership:     {label: "Ownership", filters: [owner_type]}
       authority:     {label: "Authority", filters: [primacy_type]}
@@ -54,14 +52,12 @@ menus:
 
   boundaries:
     label: "Boundaries"
-    id: 3
     categories:
       boundary_type: {label: "Type", tooltip: boundary_type, filters: [symbology_field]}
       size:          {label: "Size", filters: [area_sq_miles]}
 
   compliance:
     label: "Compliance"
-    id: 4
     width: "w-[390px]"
     categories:
       violations:
@@ -101,7 +97,6 @@ menus:
 
   population:
     label: "Population"
-    id: 5
     width: "w-[450px]"
     categories:
       population_size: {label: "Population size", tooltip: population_size, filters: [pop_cat_5]}
@@ -138,7 +133,6 @@ menus:
   more:
     label: "More"
     mobile_label: "Filters"
-    id: 10
     width: "w-[450px]"
     more_menu: true
     reset_action: "click->filter#resetAll"
