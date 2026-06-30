@@ -242,11 +242,6 @@ export default class extends Controller {
     menu.querySelectorAll("select.max-select").forEach(s => { s.selectedIndex = s.options.length - 1 })
     menu.querySelectorAll(".pop-size-box").forEach(b => b.classList.remove("active"))
     menu.querySelectorAll(".rate-tier-box").forEach(b => b.classList.remove("active"))
-    menu.querySelectorAll("input[data-filter-kind='place']").forEach(input => {
-      input.value = ""
-      const nameEl = input.closest("[data-controller~='place-autocomplete']")?.querySelector(".js-place-search")
-      if (nameEl) nameEl.value = ""
-    })
   }
 
   // Reads the live DOM into the URL param hash applied on Apply.
@@ -285,14 +280,6 @@ export default class extends Controller {
           const selected = [...el.querySelectorAll("button[data-filter-value].active")].map(b => b.dataset.filterValue)
           if (el.querySelector("input[data-filter-value='no_information']")?.checked) selected.push("no_information")
           if (selected.length > 0) p[el.dataset.filterParam] = selected
-          break
-        }
-        case "place": {
-          if (el.value) {
-            p[el.dataset.filterParam] = el.value
-            const nameEl = el.closest("[data-controller~='place-autocomplete']")?.querySelector(".js-place-search")
-            if (nameEl?.value) p[el.dataset.filterNameParam] = nameEl.value
-          }
           break
         }
         case "range": {
@@ -430,7 +417,7 @@ export default class extends Controller {
 
   #updateGeoTitle() {
     const filters = FilterState.get()
-    const geoName = filters.place_name || filters.state_name || null
+    const geoName = filters.state_name || null
     const text = geoName ? `in ${geoName}` : ""
     document.querySelectorAll(".geo-filter").forEach(el => { el.textContent = text })
   }

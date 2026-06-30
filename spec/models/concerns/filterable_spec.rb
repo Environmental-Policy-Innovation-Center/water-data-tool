@@ -607,20 +607,6 @@ RSpec.describe Filterable, type: :model do
       end
     end
 
-    context "place geographic filter" do
-      it "filters by place_geoid via crosswalk" do
-        place = create(:cartographic_place)
-        in_place = create(:public_water_system)
-        out_of_place = create(:public_water_system)
-        create(:place_system_crosswalk, public_water_system: in_place, cartographic_place: place,
-          pwsid: in_place.pwsid, geoid: place.geoid)
-
-        results = PublicWaterSystem.apply_filters(place_geoid: place.geoid)
-        expect(results).to include(in_place)
-        expect(results).not_to include(out_of_place)
-      end
-    end
-
     context "county geographic filter" do
       let!(:county) { create(:cartographic_county) }
       let!(:in_county) { create(:public_water_system) }

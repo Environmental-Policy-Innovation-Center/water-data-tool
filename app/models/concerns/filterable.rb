@@ -54,11 +54,6 @@ module Filterable
     end
 
     def apply_geographic_filters(scope, joined, params)
-      if params[:place_geoid].present?
-        pwsids = PlaceSystemCrosswalk.where(geoid: params[:place_geoid]).select(:pwsid)
-        scope = scope.where(pwsid: pwsids)
-      end
-
       if params[:county_geoid].present?
         scope = scope.where(<<~SQL.squish, params[:county_geoid])
           public_water_systems.pwsid IN (

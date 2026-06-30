@@ -303,28 +303,6 @@ RSpec.describe "Home", type: :request do
         expect(input_value("panel-paperwork_violations_5yr-max-text")).to eq("20")
       end
     end
-
-    context "place autocomplete" do
-      def place_search_value = dom.at_css(".js-place-search")&.attr("value")
-
-      it "leaves the search box and hidden geoid empty when absent" do
-        get root_path
-        expect(place_search_value).to eq("")
-        expect(input_value("filter-place_geoid")).to eq("")
-      end
-
-      it "restores the hidden geoid and the visible place name" do
-        get root_path, params: {encoded: encode_state({"filters" => {"place_geoid" => "1150000", "place_name" => "Washington, DC"}})}
-        expect(input_value("filter-place_geoid")).to eq("1150000")
-        expect(place_search_value).to eq("Washington, DC")
-      end
-
-      it "falls back to the geoid in the search box when no place name is present" do
-        get root_path, params: {encoded: encode_state({"filters" => {"place_geoid" => "1150000"}})}
-        expect(input_value("filter-place_geoid")).to eq("1150000")
-        expect(place_search_value).to eq("1150000")
-      end
-    end
   end
 
   describe "GET /map with encoded= param" do

@@ -41,7 +41,6 @@ menus:
     id: 1
     categories:
       primary_type: {label: "Primary type", tooltip: primary_type, filters: [gw_sw_code]}
-      place:        {label: "Place", filters: [place_geoid]}
       protection:   {label: "Protection", filters: [source_water_protection_code]}
 
   attributes:

@@ -38,9 +38,8 @@
 #       source: ~                       #   read-path override; ~ for value-less cols (omit → derived from model)
 #       csv_label: "...the poverty line (%)"    #   verbose CSV header
 #     filter:                           # FILTERABLE via URL param (omit → not filterable)
-#       kind: range                     #   range | radio | bool | multiselect | place
-#       param: has_source_protection    #   URL param (radio/bool/multiselect/place)
-#       name_param: place_name          #   companion display-name param (place only)
+#       kind: range                     #   range | radio | bool | multiselect
+#       param: has_source_protection    #   URL param (radio/bool/multiselect)
 #       column: population_pct_change_capped    # column the filter targets (omit → db_column)
 #       param_base: density             #   URL param base for range _min/_max (omit → db_column)
 #       coercion: decimal               #   decimal | integer (range only)
@@ -631,10 +630,6 @@ fields:
         - {value: "3,301-10,000", label: "Medium", sublabel: "3,301 - 10,000"}
         - {value: "10,001-100,000", label: "Large", sublabel: "10,001 - 100,000"}
         - {value: ">100,000", label: "Very large", sublabel: "100,000+"}
-
-  # Place — geographic filter only (resolved via PlaceSystemCrosswalk)
-  place_geoid:
-    filter: {kind: place, param: place_geoid, name_param: place_name}
 
   # ── Environmental justice ──────────────────────────────────────────────────
   cejst_disadvantaged_pct:

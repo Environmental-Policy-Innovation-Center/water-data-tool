@@ -61,7 +61,6 @@ class FieldRegistry
     fields.each do |f|
       case f.filter_kind
       when :radio, :bool then scalars << f.filter[:param].to_sym
-      when :place then scalars << f.filter[:param].to_sym << f.filter[:name_param].to_sym
       when :range then scalars << :"#{f.filter_param}_min" << :"#{f.filter_param}_max"
       when :multiselect then array_shape[f.filter[:param].to_sym] = []
       end

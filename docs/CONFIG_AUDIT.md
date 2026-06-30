@@ -722,9 +722,9 @@ the filter-menu ERB + tab bar are generated from `filter_layout.yml × fields.ym
 DOM-driven with `FILTERS[]`/`#restoreDomState` deleted and the FSR doc closed (9), and the symmetric
 `table_layout.yml` landed. The **four-file model** (`fields.yml` / `filter_layout.yml` /
 `table_layout.yml` / `tooltips.yml`) is realized. **Remaining work is cleanup + Phase 6:** the
-"adding a field" how-to (13, currently a stub), removing the Place filter (14), the menu `id`→key
-readability pass (15), and the deferred Portal/CSV override layer (11, Phase 6). The `view=` URL param
-is logged in `docs/open_items/NICE_TO_HAVES.md`.
+data-field lifecycle how-to docs (13 — stubs exist), the menu `id`→key readability pass (15), and the
+deferred Portal/CSV override layer (11, Phase 6). The Place filter removal (14) is done. The `view=`
+URL param is logged in `docs/open_items/NICE_TO_HAVES.md`.
 
 | # | Task | Phase | Status | FSR-coupled? |
 |---|------|-------|--------|--------------|
@@ -742,7 +742,7 @@ is logged in `docs/open_items/NICE_TO_HAVES.md`.
 | 11 | Portal / CSV override layer + generic filter applier | 6 | ◻ todo | no |
 | 12 | `table_layout.yml` for explicit column/category order *(wanted for consistency — ordering out of the manifest)* | 5/6 | ✅ done — `TableLayout` composes manifest × layout (mirrors the filter side) | no |
 | 13 | **How-to docs for the data-field lifecycle** — a family of three: `docs/how_to/ADD_NEW_DATA_FIELD.md` (stub `# TBD`; flat-map vs custom, migration-needed?, new-column-on-existing-file vs new-file vs new-table; the surfacing axes display/filter/histogram), plus planned `REMOVE_EXISTING_DATA_FIELD.md` and `EDIT_EXISTING_DATA_FIELD.md`. All must cover the category AND/OR rule + base-vs-join tables. | docs | ◻ todo (stub) | no |
-| 14 | **Remove `Place` as a filter** — drop the filter-menu UI, `place_geoid` filtering (`filterable.rb`), its manifest/layout/permit entries, the `place_autocomplete_controller.js`, and the now-dead `/places/search` autocomplete. **Keep** `PlaceSystemCrosswalk`, its ETL, map tiling (`tile_impact.rb`), and the two PWS-name searchboxes (the `search` param — a separate feature). Now unblocked (8b done) and doubles as the worked example for `docs/how_to/REMOVE_EXISTING_DATA_FIELD.md` (removal ≈ a layout-file edit). | 5/docs | ◻ todo | partial |
+| 14 | **Remove `Place` as a filter** — dropped the filter-menu UI, `place_geoid` filtering (`filterable.rb`), the `place` control kind (permit/dispatch/partial/helper), the `place_autocomplete_controller.js`, and the `/places/search` route + controller. **Kept** `PlaceSystemCrosswalk`, `CartographicPlace`, ETL, map tiling (`tile_impact.rb`), and the PWS-name searchboxes (the `search` param — a separate feature). Harvested removal notes seeded `docs/how_to/REMOVE_EXISTING_DATA_FIELD.md`. | 5/docs | ✅ done — 995 specs green | partial |
 | 15 | **Menu id → menu key (readability fast-follow)** — replace the integer menu `id` (1–5, More=`10`) with the readable menu key across the `container-menu-*` / `main-filter-grp-*` / `more-filter-grp-*` / `container-menu-btn-*` / `container-filter-count-menu-*` ids + the JS controllers (`filter_layout`/`nav`, incl. the hardcoded More=`10`), then drop `id:` from `filter_layout.yml` (order already comes from file order). | 5/cleanup | ◻ todo | no |
 
 ---
