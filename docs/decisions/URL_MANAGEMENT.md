@@ -29,7 +29,7 @@ A third related problem: **selected-row exports** previously passed individual P
 | `sort` | Sort column key, e.g. `stusps` | Always explicit — never inside the blob |
 | `direction` | `asc` or `desc` | Always explicit — never inside the blob |
 | `page` | **Not in the URL** | Ephemeral — always resets to page 1 on any table reload |
-| `view` | **Deferred — not yet in the URL** | Active section (map/table/etc.) driven by `nav_controller.js#show()` on click. Implementing this cleanly requires the filter server-render refactor first: today, initial page state is restored by client-side JS in `filter_controller#connect()`; adding a second controller doing the same for `view=` creates cross-controller coordination risk (double table frame load). After the server-render refactor, `HomeController#index` decodes all URL state once and the template renders the correct section in the initial HTML — no connect-time coordination needed. See `docs/open_items/FILTER_SERVER_RENDER.md`. |
+| `view` | **Deferred — not yet in the URL** | Active section (map/table/etc.) driven by `nav_controller.js#show()` on click. Not yet shared in the URL. The path is now clear: `HomeController#index` already decodes all URL state once and the template renders the correct initial HTML (filter menus, columns), so adding `view=` is just reading `params[:view]` and rendering the active section server-side — no connect-time cross-controller coordination needed. |
 
 ### Blob structure
 
@@ -97,9 +97,9 @@ The blob is a Zlib-compressed, URL-safe Base64-encoded JSON object. It holds thr
 
 The URL is **trailing state, not a driver**. During active use, the flow is always: user action → JS updates internal state → `Turbo.visit` fires → URL updated after. The URL never triggers filtering or column changes mid-session.
 
-The one exception is **initial page load from a shared URL**: `filter_controller.js#restoreFromUrl()` reads `encoded=` on `connect()`, restores **filter menu** DOM state via JS (`#restoreDomState`), and fires the initial table and stats frame requests. After that first load, the URL reverts to being a passive record of current state.
+The one exception is **initial page load from a shared URL**: `HomeController#index` decodes `encoded=` once and the template server-renders both the filter menus and the manage-columns panel in their active state. `filter_controller.js#restoreFromUrl()` then only re-seeds JS `FilterState` and fires the initial table and stats frame requests — it no longer reconstructs menu DOM. After that first load, the URL reverts to being a passive record of current state.
 
-**Filters vs columns on reload:** Filter menus are JS-hydrated; the manage-columns panel should be server-rendered from the same blob (idiomatic Hotwire). Data for both is always applied server-side. See `docs/open_items/FILTER_SERVER_RENDER.md` for why the split exists and the long-term refactor plan.
+**Filters and columns on reload:** Both the filter menus and the manage-columns panel are server-rendered from the same decoded blob (idiomatic Hotwire), and data for both is applied server-side. JS handles interaction only.
 
 ### Sort
 

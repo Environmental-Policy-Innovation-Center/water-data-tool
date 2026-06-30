@@ -71,7 +71,7 @@ RSpec.describe "Home", type: :request do
   end
 
   # Filter menus are server-rendered from the decoded `encoded=` blob so a shared URL
-  # shows its active filters on load. See docs/open_items/FILTER_SERVER_RENDER.md.
+  # shows its active filters on load. See docs/decisions/URL_MANAGEMENT.md.
   describe "GET / filter menu server-render" do
     # Assert against the parsed DOM rather than raw-string regex: several controls carry
     # data-action="...->..." whose literal `>` breaks naive `[^>]*` tag matching.

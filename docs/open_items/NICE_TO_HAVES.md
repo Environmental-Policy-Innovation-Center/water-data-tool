@@ -24,6 +24,19 @@ seeding in `filter_controller.js#toggleSubcat`.
 
 ---
 
+### URL sharing: `view=` param for map vs. table
+
+A shared URL currently always lands on the map; it can't carry which view (map/table) the
+sender was in. Add a `view=` URL param so a shared link opens directly on the correct section.
+The blocker that deferred this — client-side filter hydration creating cross-controller load
+races — is gone: `HomeController#index` now decodes all URL state once and the template
+server-renders the initial HTML. So the work is small: read `params[:view]` in
+`HomeController#index`, render the active section server-side, and have `nav_controller.js`
+write `view=` to the URL on section change. See docs/decisions/URL_MANAGEMENT.md (the `view`
+row in the URL Schema table).
+
+---
+
 ### Performance: Server-Side Cache for Default Table State
 
 The default table state (no filters, default sort, page 1) is identical for every user and

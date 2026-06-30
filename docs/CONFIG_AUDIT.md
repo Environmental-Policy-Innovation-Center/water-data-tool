@@ -233,13 +233,17 @@ the common case, custom code for genuinely special ones.
 
 ---
 
-## 7. Interaction with the FILTER_SERVER_RENDER refactor
+## 7. Interaction with the FILTER_SERVER_RENDER refactor — ✅ DONE
 
-`docs/open_items/FILTER_SERVER_RENDER.md` (FSR) is a **planned, not-yet-started**
-refactor that moves filter-menu state restoration from JavaScript
-(`filter_controller.js#restoreDomState`) to server-rendered ERB. It and this
-consolidation **diagnose the same root cause** — the `FILTERS[]` ↔ `_filter_menus.html.erb`
-hardcoded-ID drift — on two different axes:
+The FILTER_SERVER_RENDER (FSR) refactor — moving filter-menu state restoration from
+JavaScript (`filter_controller.js#restoreDomState`) to server-rendered ERB — **has
+landed** (Phase 5; `#restoreDomState` and the `FILTERS[]` registry are gone, the menu
+ERB is generated from the manifest × layout). Its standalone doc has been removed; the
+durable reload behavior now lives in `docs/decisions/URL_MANAGEMENT.md`. This section is
+kept for the rationale of why FSR and this consolidation converged.
+
+FSR and this consolidation **diagnosed the same root cause** — the `FILTERS[]` ↔
+`_filter_menus.html.erb` hardcoded-ID drift — on two different axes:
 
 | | FSR | `fields.yml` manifest |
 |---|---|---|
@@ -263,8 +267,8 @@ lets   of work** — ideally do it once (§8 Phase 5), not twice.
     existing ERB first (Approach B), then generate it from the manifest (8b). They still
     converge on the same generated ERB; we just reach it in two passes. See Phase 5.
 
-Consequence for §5A: once FSR lands, the JS↔ERB ID-drift bug class disappears
-*structurally*, so that specific consistency check becomes unnecessary. The durable
+Consequence for §5A: now that FSR has landed, the JS↔ERB ID-drift bug class is gone
+*structurally*, so that specific consistency check is unnecessary. The durable
 manifest↔DB / param↔permit invariants remain.
 
 ---
@@ -445,7 +449,7 @@ output. Result: 77 fewer hand-written config lines and no alias map for the data
   > *neither* the ERB nor the JS — generating the ERB with key-derived ids and a `data-filter-*` contract,
   > then rewriting the JS to read that contract, is zero-throwaway (a separate 8b would have rewritten
   > ids that 9 then deletes). See `docs/FILTERING.md` → "Source of truth (implementation)".
-- [ ] Close out `docs/open_items/FILTER_SERVER_RENDER.md`.
+- [x] Close out `docs/open_items/FILTER_SERVER_RENDER.md` — removed; durable reload behavior folded into `docs/decisions/URL_MANAGEMENT.md`.
 
 **Logical checkpoints for Phase 5:**
 - **Checkpoint A — server owns first paint. ✅ REACHED.** 8a complete — every filter control renders
@@ -713,10 +717,14 @@ initial placement-only `filter_layout.yml`.*
 
 **Status snapshot (2026-06):** Phases 0–4 are **complete** — the back-end is fully manifest-driven
 (definition, model routing, ETL import, server views, sort/filter/histogram config all derive from
-`fields.yml`). **Phase 5 is in progress:** layout files authored (task 7 ✅); filter state is now
-**server-rendered for every filter control** (8a done — **Checkpoint A**). Still outstanding: the
-manifest-loop **ERB generation** (8b — the one-file-edit payoff) and the **JS convergence** (9).
-See the three Phase-5 checkpoints above.
+`fields.yml`). **Phase 5 is complete** — all three checkpoints reached: server owns first paint (8a),
+the filter-menu ERB + tab bar are generated from `filter_layout.yml × fields.yml` (8b), the JS is
+DOM-driven with `FILTERS[]`/`#restoreDomState` deleted and the FSR doc closed (9), and the symmetric
+`table_layout.yml` landed. The **four-file model** (`fields.yml` / `filter_layout.yml` /
+`table_layout.yml` / `tooltips.yml`) is realized. **Remaining work is cleanup + Phase 6:** the
+"adding a field" how-to (13, currently a stub), removing the Place filter (14), the menu `id`→key
+readability pass (15), and the deferred Portal/CSV override layer (11, Phase 6). The `view=` URL param
+is logged in `docs/open_items/NICE_TO_HAVES.md`.
 
 | # | Task | Phase | Status | FSR-coupled? |
 |---|------|-------|--------|--------------|
@@ -728,17 +736,17 @@ See the three Phase-5 checkpoints above.
 | 6 | ETL `source:` coverage (all 8 generic files) + `Generic` importer + cutover | 4 | ✅ done | no |
 | 7 | Author `filter_layout.yml` (nested) + layout backstop spec; remove `menu`/`section` tags from manifest | 5 | ✅ done | **yes — is FSR** |
 | 8a | **Server-render** filter state from decoded URL (Approach B, per control type) | 5 | ✅ done — all controls (**Checkpoint A**) | **yes — is FSR** |
-| 8b | **Generate** filter-menu ERB from `filter_layout.yml` × `fields.yml` (manifest loop) | 5 | ◻ todo — **the one-file-edit payoff (Checkpoint B)** | **yes — is FSR** |
-| 9 | FSR Phase 3 — delete `#restoreDomState`, slim `FILTERS[]`, indeterminate hook, `view=` | 5 | ◻ todo (per-control specs land with 8a) | **yes — is FSR** |
+| 8b | **Generate** filter-menu ERB from `filter_layout.yml` × `fields.yml` (manifest loop) | 5 | ✅ done — menu ERB + tab bar are a manifest loop (**Checkpoint B**) | **yes — is FSR** |
+| 9 | FSR Phase 3 — delete `#restoreDomState` + `FILTERS[]`, DOM-driven JS | 5 | ✅ done (**Checkpoint C**); `view=` split out to NICE_TO_HAVES | **yes — is FSR** |
 | 10 | Port `rate_tier` control into the manifest + layout | 5 | ✅ manifest+layout+server-render done; JS removal rides with #9 | partial |
 | 11 | Portal / CSV override layer + generic filter applier | 6 | ◻ todo | no |
-| 12 | `table_layout.yml` for explicit column/category order *(wanted for consistency — ordering out of the manifest)* | 5/6 | ◻ todo | no |
-| 13 | **How-to / decision tree: "adding a data point"** — flat-map vs custom, migration-needed?, new-column-on-existing-file vs new-file vs new-table; the surfacing axes (display/filter/histogram). Likely `docs/ADDING_A_FIELD.md` | docs | ◻ todo | no |
-| 14 | **Remove `Place` as a filter** — drop the filter-menu UI, `place_geoid` filtering (`filterable.rb`), its manifest/layout/permit entries, the `FILTERS[]` entry, and the now-dead `/places/search` autocomplete. **Keep** `PlaceSystemCrosswalk`, its ETL, map tiling (`tile_impact.rb`), and the two PWS-name searchboxes (the `search` param — a separate feature). **Best done after 8b** so it doubles as the `docs/REMOVE_A_FILTER.md` reference (removal ≈ a layout-file edit). | 5/docs | ◻ todo | partial |
-| 15 | **Menu id → menu key (readability fast-follow)** — replace the integer menu `id` (1–5, More=`10`) with the readable menu key across the `container-menu-*` / `main-filter-grp-*` / `more-filter-grp-*` / `container-menu-btn-*` / `container-filter-count-menu-*` ids + the 4 JS controllers (`filter`/`filter_menu`/`filter_layout`/`nav`, incl. the hardcoded More=`10`), then drop `id:` from `filter_layout.yml` (order already comes from file order). Pairs with the FSR JS rewrite — it touches the same controllers. | 5/cleanup | ◻ todo | no |
+| 12 | `table_layout.yml` for explicit column/category order *(wanted for consistency — ordering out of the manifest)* | 5/6 | ✅ done — `TableLayout` composes manifest × layout (mirrors the filter side) | no |
+| 13 | **How-to docs for the data-field lifecycle** — a family of three: `docs/how_to/ADD_NEW_DATA_FIELD.md` (stub `# TBD`; flat-map vs custom, migration-needed?, new-column-on-existing-file vs new-file vs new-table; the surfacing axes display/filter/histogram), plus planned `REMOVE_EXISTING_DATA_FIELD.md` and `EDIT_EXISTING_DATA_FIELD.md`. All must cover the category AND/OR rule + base-vs-join tables. | docs | ◻ todo (stub) | no |
+| 14 | **Remove `Place` as a filter** — drop the filter-menu UI, `place_geoid` filtering (`filterable.rb`), its manifest/layout/permit entries, the `place_autocomplete_controller.js`, and the now-dead `/places/search` autocomplete. **Keep** `PlaceSystemCrosswalk`, its ETL, map tiling (`tile_impact.rb`), and the two PWS-name searchboxes (the `search` param — a separate feature). Now unblocked (8b done) and doubles as the worked example for `docs/how_to/REMOVE_EXISTING_DATA_FIELD.md` (removal ≈ a layout-file edit). | 5/docs | ◻ todo | partial |
+| 15 | **Menu id → menu key (readability fast-follow)** — replace the integer menu `id` (1–5, More=`10`) with the readable menu key across the `container-menu-*` / `main-filter-grp-*` / `more-filter-grp-*` / `container-menu-btn-*` / `container-filter-count-menu-*` ids + the JS controllers (`filter_layout`/`nav`, incl. the hardcoded More=`10`), then drop `id:` from `filter_layout.yml` (order already comes from file order). | 5/cleanup | ◻ todo | no |
 
 ---
 
 *Generated as a configuration audit. Companion docs: `docs/ETL.md` (ingestion),
 `docs/FILTERING.md` (filter behavior & stack),
-`docs/open_items/FILTER_SERVER_RENDER.md` (the §7 refactor this converges with).*
+`docs/decisions/URL_MANAGEMENT.md` (URL state + the §7 server-render reload behavior).*

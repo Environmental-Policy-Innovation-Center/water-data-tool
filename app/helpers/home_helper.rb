@@ -43,7 +43,7 @@ module HomeHelper
   end
 
   # Read the decoded filter blob so the menus render their active state server-side
-  # on page load. See docs/open_items/FILTER_SERVER_RENDER.md.
+  # on page load. See docs/decisions/URL_MANAGEMENT.md.
   def filter_state
     @filter_state || {}
   end
