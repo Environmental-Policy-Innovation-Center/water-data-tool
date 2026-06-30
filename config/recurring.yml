@@ -10,17 +10,16 @@
 #     schedule: at 5am every day
 
 production:
-  # Production-only: ETL_SOURCE_URL and S3 credentials are only configured in
-  # the production environment. Staging/review environments skip this schedule
-  # intentionally — run etl:import manually there if needed.
-  #
+<% if ENV["ETL_SCHEDULE_ENABLED"] == "true" %>
+  # Enabled explicitly per deployment with ETL_SCHEDULE_ENABLED=true.
   # Runs daily at 6am in the timezone configured via config.time_zone (default UTC).
   # Coordinate with EPIC's data team to ensure this fires after the S3 manifest
   # is refreshed upstream.
   etl_import:
     class: EtlImportJob
     queue: etl
-    schedule: every day at 12am America/New_York 
+    schedule: every day at 12am America/New_York
+<% end %>
 
   clear_solid_queue_finished_jobs:
     command: "SolidQueue::Job.clear_finished_in_batches(sleep_between_batches: 0.3)"

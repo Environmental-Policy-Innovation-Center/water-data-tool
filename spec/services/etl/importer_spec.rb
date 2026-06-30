@@ -229,6 +229,28 @@ RSpec.describe Etl::Importer do
       expect(epa_sabs["http_path"]).to eq("https://s3.example.com/data/epa_sabs.csv")
     end
 
+    it "constructs file URLs from the staging ETL_SOURCE_URL" do
+      ENV["ETL_SOURCE_URL"] = "https://tech-team-data.s3.us-east-1.amazonaws.com/national-dw-tool/staging"
+      filtered_importer = described_class.new(only: "epa_sabs")
+      allow(filtered_importer).to receive(:head_url).and_return(mock_response)
+
+      entries = filtered_importer.send(:build_file_entries)
+
+      expect(entries.sole["http_path"])
+        .to eq("https://tech-team-data.s3.us-east-1.amazonaws.com/national-dw-tool/staging/epa_sabs.csv")
+    end
+
+    it "constructs file URLs from the production ETL_SOURCE_URL" do
+      ENV["ETL_SOURCE_URL"] = "https://tech-team-data.s3.us-east-1.amazonaws.com/national-dw-tool/prod"
+      filtered_importer = described_class.new(only: "epa_sabs")
+      allow(filtered_importer).to receive(:head_url).and_return(mock_response)
+
+      entries = filtered_importer.send(:build_file_entries)
+
+      expect(entries.sole["http_path"])
+        .to eq("https://tech-team-data.s3.us-east-1.amazonaws.com/national-dw-tool/prod/epa_sabs.csv")
+    end
+
     it "uses .geojson extension for the geometry file" do
       entries = importer.send(:build_file_entries)
       geoms = entries.find { |e| e["file_key"] == "epa_sabs_geoms" }

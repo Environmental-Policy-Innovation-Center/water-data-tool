@@ -24,6 +24,14 @@ module HomeHelper
     DATASETS
   end
 
+  def download_url(path)
+    "#{AppConfig.public_downloads_base_url}/#{path.to_s.delete_prefix("/")}"
+  end
+
+  def methodology_pdf_url
+    AppConfig.methodology_pdf_url
+  end
+
   def filter_tooltips
     FILTER_TOOLTIPS
   end
