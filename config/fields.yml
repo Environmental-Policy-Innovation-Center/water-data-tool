@@ -707,6 +707,7 @@ fields:
     source: {file: pwsid_funded_highlevel_summary, header: "total_principal_forgiveness", cast: decimal}
     display: {label: "SRF principal forgiveness (2021–2025)", sort: total_principal_forgiveness, format: cur, format_opts: {precision: 2}, csv_label: "State revolving fund principal forgiveness (2021 - 2025) - amount forgiven ($)"}
     filter: {kind: range, coercion: decimal, label: "State revolving fund principal forgiveness", tooltip: principal_forgiveness, slider_label: "Amount ($)"}
+    histogram: {format: currency}
 
   # Loaded but not shown.
   median_srf_assistance:

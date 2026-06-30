@@ -121,24 +121,26 @@ export default class extends Controller {
     this.apply(event)
   }
 
-  // On check: opens panel and checks all rows; histogram panels stay collapsed until manually opened.
-  // On uncheck: unchecks all rows + hides/resets their histogram panels.
+  // Gate for a standalone range (panel IS the slider) or a subcat parent (panel wraps child rows).
+  // Checking seeds slider defaults so Apply always sends params for the active range(s).
   toggleSubcat(event) {
     const checkbox = event.currentTarget
     const panel = document.getElementById(checkbox.dataset.panelId)
     if (!panel) return
+
+    const sliders = panel.dataset.sliderFieldValue
+      ? [panel]
+      : [...panel.querySelectorAll("[data-filter-kind='range'] [data-slider-field-value]")]
 
     if (checkbox.checked) {
       panel.classList.remove("hidden")
       this.#setToggleArrow(checkbox.dataset.panelId, true)
       this.#loadSlider(panel)
       panel.querySelectorAll("input[type='checkbox']").forEach(cb => { cb.checked = true })
-      // Subcat parents only: seed each child row's slider so Apply always sends its params.
-      panel.querySelectorAll("[data-filter-kind='range'] [data-slider-field-value]")
-        .forEach(sliderPanel => this.#populateSliderDefaults(sliderPanel))
+      sliders.forEach(s => this.#populateSliderDefaults(s))
     } else {
       panel.querySelectorAll("input[type='checkbox']").forEach(cb => { cb.checked = false })
-      panel.querySelectorAll("[data-slider-field-value]").forEach(sliderPanel => this.#hideAndResetSlider(sliderPanel))
+      sliders.forEach(s => this.#hideAndResetSlider(s))
     }
   }
 
