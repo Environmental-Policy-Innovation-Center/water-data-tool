@@ -38,8 +38,8 @@ RSpec.describe Etl::Importers::EpaSabsGeoms do
         expect(sag.geom).not_to be_nil
       end
 
-      it "returns :imported" do
-        expect(importer.call).to eq(:imported)
+      it "returns an imported ImportResult" do
+        expect(importer.call).to have_attributes(status: :imported, file_key: "epa_sabs_geoms")
       end
 
       it "returns changed geometry metadata" do
@@ -66,9 +66,9 @@ RSpec.describe Etl::Importers::EpaSabsGeoms do
 
       let(:importer) { described_class.new(file_url: file_url, last_updated: 2.hours.ago) }
 
-      it "returns :skipped without downloading" do
+      it "returns a skipped ImportResult without downloading" do
         expect(importer).not_to receive(:stream_to_tempfile)
-        expect(importer.call).to eq(:skipped)
+        expect(importer.call).to have_attributes(status: :skipped, file_key: "epa_sabs_geoms")
       end
 
       it "does not create a new DataImport record" do
@@ -84,6 +84,20 @@ RSpec.describe Etl::Importers::EpaSabsGeoms do
         allow(importer).to receive(:stream_to_tempfile).and_return(tmpfile)
 
         expect { importer.call }.to raise_error(Etl::FileImporter::EmptyImportError)
+        expect(DataImport.count).to eq(0)
+      end
+    end
+
+    context "when a streamed batch import returns an invalid result" do
+      before do
+        create(:public_water_system, pwsid: "VT0000001")
+        stub_download
+        allow(importer).to receive(:import!).and_return(:imported)
+      end
+
+      it "raises InvalidImportResultError and does not record a DataImport" do
+        expect { importer.call }
+          .to raise_error(Etl::FileImporter::InvalidImportResultError, /EpaSabsGeoms#import!/)
         expect(DataImport.count).to eq(0)
       end
     end

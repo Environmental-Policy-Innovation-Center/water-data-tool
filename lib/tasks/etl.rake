@@ -21,4 +21,20 @@ namespace :etl do
       puts "ETL import complete."
     end
   end
+
+  namespace :geometries do
+    desc <<~DESC
+      Backfill precomputed low-zoom service-area geometries.
+
+      Usage:
+        bin/rails etl:geometries:generalize
+        PWSIDS=CA0000001,VT0000001 bin/rails etl:geometries:generalize
+    DESC
+    task generalize: :environment do
+      pwsids = ENV.fetch("PWSIDS", "").split(",").map(&:strip).reject(&:blank?)
+      Etl::PostImportSteps.generate_generalized_geometries(pwsids: pwsids.presence)
+      Etl::PostImportSteps.analyze_spatial_tables
+      puts "Generalized service-area geometries backfilled."
+    end
+  end
 end

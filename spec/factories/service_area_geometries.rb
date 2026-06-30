@@ -6,6 +6,10 @@
 #  centroid    :geometry         point, 4326
 #  geom        :geometry         multipolygon, 4326
 #  geom_digest :string
+#  geom_z0_4   :geometry         multipolygon, 4326
+#  geom_z5     :geometry         multipolygon, 4326
+#  geom_z6     :geometry         multipolygon, 4326
+#  geom_z7     :geometry         multipolygon, 4326
 #  pwsid       :string           not null
 #  created_at  :datetime         not null
 #  updated_at  :datetime         not null

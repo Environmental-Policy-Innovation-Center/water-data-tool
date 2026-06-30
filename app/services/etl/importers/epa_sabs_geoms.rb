@@ -14,7 +14,7 @@ module Etl
 
         unless needs_import?
           log("[ETL] #{filename}: skipped (unchanged since last import)")
-          return Etl::ImportResult.skipped(file_key: file_key)
+          return skipped_result
         end
 
         log("[ETL] #{filename}: downloading...")
@@ -29,8 +29,7 @@ module Etl
 
         record_import
         log("[ETL] #{filename}: import complete")
-        Etl::ImportResult.imported(
-          file_key: file_key,
+        imported_result(
           changed_pwsids: changed_pwsids,
           changed_layers: changed_pwsids.any? ? %w[pws places] : [],
           geometry_changed: changed_pwsids.any?,
@@ -73,8 +72,7 @@ module Etl
           end
         end
 
-        Etl::ImportResult.imported(
-          file_key: file_key,
+        imported_result(
           changed_pwsids: changed_pwsids,
           changed_layers: changed_pwsids.any? ? %w[pws places] : [],
           geometry_changed: changed_pwsids.any?,
@@ -165,6 +163,7 @@ module Etl
 
           if batch.size >= BATCH_SIZE
             result = import!(batch)
+            validate_import_result!(result)
             changed_pwsids.concat(result.changed_pwsids)
             previous_geometry_bboxes.concat(result.previous_geometry_bboxes)
             batch.clear
@@ -174,6 +173,7 @@ module Etl
         File.open(tempfile.path) { |f| Oj.saj_parse(handler, f) }
         unless batch.empty?
           result = import!(batch)
+          validate_import_result!(result)
           changed_pwsids.concat(result.changed_pwsids)
           previous_geometry_bboxes.concat(result.previous_geometry_bboxes)
         end

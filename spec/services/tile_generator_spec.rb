@@ -27,9 +27,21 @@ RSpec.describe TileGenerator do
     end
   end
 
+  describe ".layer_simplification_tolerance" do
+    it "uses stronger simplification for low-zoom public water system polygons" do
+      expect(described_class.layer_simplification_tolerance("pws", 4)).to eq(0.05)
+      expect(described_class.layer_simplification_tolerance("pws", 5)).to eq(0.01)
+    end
+
+    it "keeps coarse simplification for low-zoom boundary layers" do
+      expect(described_class.layer_simplification_tolerance("states", 4)).to eq(0.05)
+    end
+  end
+
   describe ".layers_for_zoom" do
-    it "returns only states before state selection is available" do
-      expect(described_class.layers_for_zoom(4)).to eq(%w[states])
+    it "includes service area polygons before state selection zooms" do
+      expect(described_class.layers_for_zoom(0)).to eq(%w[pws states])
+      expect(described_class.layers_for_zoom(4)).to eq(%w[pws states])
     end
 
     it "adds service areas at state selection zooms" do
@@ -85,6 +97,15 @@ RSpec.describe TileGenerator do
           .to change { TileCache.where(layer: "pws", z: z, x: x, y: y).count }.from(0).to(1)
       end
     end
+
+    it "raises SQL errors to callers that need strict failure handling" do
+      allow(ApplicationRecord.connection).to receive(:execute)
+        .and_raise(ActiveRecord::StatementInvalid, "bad sql")
+
+      expect {
+        described_class.generate_layer!("pws", 5, 8, 12, 0.01)
+      }.to raise_error(ActiveRecord::StatementInvalid, /bad sql/)
+    end
   end
 
   describe ".build_tile" do
@@ -122,6 +143,18 @@ RSpec.describe TileGenerator do
         expect(TileCache.where(layer: "states", z: 5, x: 16, y: 12)).to exist
       end
     end
+
+    it "does not reuse stale unversioned low-zoom public water system tiles" do
+      create(:tile_cache, layer: "pws", z: 3, x: 1, y: 2, mvt: "old".b)
+      allow(ApplicationRecord.connection).to receive(:execute)
+        .and_return([{"mvt" => PG::Connection.escape_bytea("new".b)}])
+
+      result = described_class.generate_tile("pws", 3, 1, 2)
+
+      expect(result).to eq("new".b)
+      expect(TileCache.where(layer: "pws", z: 3, x: 1, y: 2)).to exist
+      expect(TileCache.where(layer: "pws_low_poly_v1", z: 3, x: 1, y: 2)).to exist
+    end
   end
 
   describe ".layer_sql" do
@@ -139,6 +172,47 @@ RSpec.describe TileGenerator do
       expect(sql).to include("ST_AsMVTGeom(")
       expect(sql).to include("4096, 64, true")
       expect(sql).to include("sag.geom && ST_Transform(ST_TileEnvelope(5, 8, 12, margin => 64.0 / 4096), 4326)")
+      expect(sql).to include("pws.area_sq_miles")
+    end
+
+    it "uses simplified polygons with reduced attributes for low-zoom public water systems" do
+      sql = described_class.layer_sql("pws", 3, 1, 2, 0.05)
+
+      expect(sql).to include("ST_Transform(COALESCE(sag.geom_z0_4, ST_SimplifyPreserveTopology(sag.geom, 0.05)), 3857)")
+      expect(sql).to include("sag.geom && ST_Transform(ST_TileEnvelope(3, 1, 2, margin => 64.0 / 4096), 4326)")
+      expect(sql).to include("pws.pwsid, pws.stusps")
+      expect(sql).not_to include("sag.centroid")
+      expect(sql).not_to include("pws.pws_name")
+      expect(sql).not_to include("pws.population_served_count")
+    end
+
+    it "uses the matching precomputed public water system geometry for zooms 0 through 7" do
+      expect(described_class.layer_sql("pws", 0, 0, 0, 0.05))
+        .to include("COALESCE(sag.geom_z0_4, ST_SimplifyPreserveTopology(sag.geom, 0.05))")
+      expect(described_class.layer_sql("pws", 4, 0, 0, 0.05))
+        .to include("COALESCE(sag.geom_z0_4, ST_SimplifyPreserveTopology(sag.geom, 0.05))")
+      expect(described_class.layer_sql("pws", 5, 8, 12, 0.01))
+        .to include("COALESCE(sag.geom_z5, ST_SimplifyPreserveTopology(sag.geom, 0.01))")
+      expect(described_class.layer_sql("pws", 6, 16, 24, 0.005))
+        .to include("COALESCE(sag.geom_z6, ST_SimplifyPreserveTopology(sag.geom, 0.005))")
+      expect(described_class.layer_sql("pws", 7, 32, 48, 0.001))
+        .to include("COALESCE(sag.geom_z7, ST_SimplifyPreserveTopology(sag.geom, 0.001))")
+    end
+
+    it "keeps public water system zoom 8 and above on raw geometry simplification" do
+      sql = described_class.layer_sql("pws", 8, 76, 93, 0.0005)
+
+      expect(sql).to include("ST_Transform(ST_SimplifyPreserveTopology(sag.geom, 0.0005), 3857)")
+      expect(sql).not_to include("geom_z")
+    end
+
+    it "reuses the shared generalized geometry profile mapping for ETL update SQL" do
+      assignments = described_class::GENERALIZED_GEOMETRY_ASSIGNMENTS_ON_GEOM_SQL
+
+      expect(assignments).to include("geom_z0_4 = ST_Multi(ST_SimplifyPreserveTopology(geom, 0.05))")
+      expect(assignments).to include("geom_z5 = ST_Multi(ST_SimplifyPreserveTopology(geom, 0.01))")
+      expect(assignments).to include("geom_z6 = ST_Multi(ST_SimplifyPreserveTopology(geom, 0.005))")
+      expect(assignments).to include("geom_z7 = ST_Multi(ST_SimplifyPreserveTopology(geom, 0.001))")
     end
   end
 end

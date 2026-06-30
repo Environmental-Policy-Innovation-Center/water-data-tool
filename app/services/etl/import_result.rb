@@ -39,11 +39,5 @@ module Etl
     def skipped?
       status == :skipped
     end
-
-    def ==(other)
-      return status == other if other.is_a?(Symbol)
-
-      super
-    end
   end
 end

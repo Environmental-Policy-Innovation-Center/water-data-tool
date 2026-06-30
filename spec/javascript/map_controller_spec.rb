@@ -44,6 +44,136 @@ RSpec.describe "map_controller state selection" do
     Rails.root.join("app/javascript/controllers/map_controller.js")
   end
 
+  def map_controller_script(body:, **options)
+    zoom = options.fetch(:zoom, 3)
+    popup = options.fetch(:popup, false)
+    before_boot = options.fetch(:before_boot, "")
+    document_setup = options[:document_setup]
+    turbo_setup = options[:turbo_setup]
+    map_methods = options.fetch(:map_methods, "")
+    controller_setup = options.fetch(:controller_setup, "")
+
+    document_setup ||= <<~JS
+      global.document = {
+        head: { querySelector: () => ({ content: "token" }) },
+        querySelector: () => null,
+        getElementById: () => null,
+        addEventListener: () => {},
+        removeEventListener: () => {},
+        dispatchEvent: (event) => dispatchedEvents.push(event.type)
+      }
+    JS
+    turbo_setup ||= "global.Turbo = { visit: (url) => visitedReports.push(url) }"
+    popup_setup = ""
+    if popup
+      popup_setup = <<~JS
+        class PopupStub {
+          constructor() { globalThis.popupStub = this }
+          setHTML(html) { this.html = html; globalThis.hoverHtml = html; return this }
+          setLngLat() { return this }
+          addTo() { this.added = true; return this }
+          remove() { this.removed = true }
+        }
+      JS
+    end
+    popup_registration = popup ? "window.mapboxgl.Popup = PopupStub" : nil
+
+    <<~JS
+      const fs = require("fs")
+      class Controller {}
+      const filterStateCurrent = {}
+      const dispatchedEvents = []
+      const visitedReports = []
+      const FilterState = {
+        get: () => ({ ...filterStateCurrent }),
+        set: (params) => {
+          Object.keys(filterStateCurrent).forEach((key) => delete filterStateCurrent[key])
+          Object.assign(filterStateCurrent, params)
+        },
+        toUrlParams: () => new URLSearchParams(filterStateCurrent)
+      }
+      #{document_setup}
+      global.CustomEvent = class {
+        constructor(type) { this.type = type }
+      }
+      global.history = { replaceState: () => {} }
+      global.window = {
+        location: new URL("http://example.test/"),
+        mapboxgl: {}
+      }
+      #{turbo_setup}
+      #{before_boot}
+
+      #{popup_setup}
+
+      class MapStub {
+        constructor() {
+          this.handlers = {}
+          this.zoom = #{zoom}
+          this.canvas = { style: {} }
+          this.filters = {}
+          this.layers = []
+          this.featureStateCalls = []
+          this.flyToCalls = []
+          globalThis.mapStub = this
+        }
+
+        dragRotate = { disable: () => {} }
+        touchZoomRotate = { disableRotation: () => {} }
+        getStyle() { return { layers: [{ id: "base-line", type: "line" }] } }
+        getCanvas() { return this.canvas }
+        getZoom() { return this.zoom }
+        addControl() {}
+        addSource() {}
+        addLayer(layer) { this.layers.push(layer) }
+        setPaintProperty() {}
+        getLayer() { return true }
+        setFilter(layer, filter) { this.filters[layer] = filter }
+        setFeatureState(feature, state) { this.featureStateCalls.push({ feature, state }) }
+        setMaxZoom() {}
+        fitBounds(bounds, options) {
+          this.fitBoundsCalls ||= []
+          this.fitBoundsCalls.push({ bounds, options })
+          if (options?.maxZoom !== undefined) this.zoom = options.maxZoom
+        }
+        querySourceFeatures() { return [] }
+        queryRenderedFeatures() { return [] }
+        jumpTo(options) { if (options.zoom !== undefined) this.zoom = options.zoom }
+        flyTo(options) {
+          this.flyToCalls.push(options)
+          if (options.zoom !== undefined) this.zoom = options.zoom
+        }
+        #{map_methods}
+        once() {}
+        on(event, layerOrCallback, callback) {
+          if (callback) {
+            this.handlers[`${event}:${layerOrCallback}`] = callback
+          } else {
+            this.handlers[event] = layerOrCallback
+          }
+        }
+      }
+
+      window.mapboxgl.Map = MapStub
+      window.mapboxgl.NavigationControl = class {}
+      #{popup_registration}
+
+      let source = fs.readFileSync(#{controller_source_path.to_s.inspect}, "utf8")
+      source = source.replace(/^import .*\\n/gm, "")
+      source = source.replace("export default class extends Controller", "globalThis.MapController = class extends Controller")
+      eval(source)
+
+      const controller = new MapController()
+      controller.element = { dataset: {} }
+      controller.tileUrlValue = "/tiles/{z}/{x}/{y}.mvt"
+      #{controller_setup}
+      controller.connect()
+      mapStub.handlers.load()
+
+      #{body}
+    JS
+  end
+
   it "writes clicked state params to FilterState, updates the URL, and dispatches filters:changed" do
     script = <<~JS
       const fs = require("fs")
@@ -178,7 +308,7 @@ RSpec.describe "map_controller state selection" do
         controller.filteredPwsids = null
         controller.hoverPopup = null
         controller.clickPopup = null
-        controller.stateHoverPopup = null
+
         controller.activeFilterRequest = null
         controller.mapMode = "state"
         controller.map = {
@@ -240,7 +370,7 @@ RSpec.describe "map_controller state selection" do
         controller.filteredPwsids = null
         controller.hoverPopup = null
         controller.clickPopup = null
-        controller.stateHoverPopup = null
+
         controller.activeFilterRequest = null
         controller.mapMode = "state"
         controller.map = {
@@ -306,6 +436,7 @@ RSpec.describe "map_controller state selection" do
           this.handlers = {}
           this.zoom = 3
           this.filters = {}
+          this.layers = []
           globalThis.mapStub = this
         }
 
@@ -316,7 +447,7 @@ RSpec.describe "map_controller state selection" do
         getZoom() { return this.zoom }
         addControl() {}
         addSource() {}
-        addLayer() {}
+        addLayer(layer) { this.layers.push(layer) }
         setPaintProperty() {}
         getLayer() { return true }
         setFilter(layer, filter) { this.filters[layer] = filter }
@@ -698,6 +829,297 @@ RSpec.describe "map_controller state selection" do
     run_node_script(script)
   end
 
+  it "shows individual systems nationally before a state is selected" do
+    script = map_controller_script(zoom: 3, body: <<~JS)
+      const pwsLayer = mapStub.layers.find((layer) => layer.id === "pws")
+      if (!pwsLayer) throw new Error("expected pws layer to be registered")
+      if ((pwsLayer.minzoom ?? 0) > mapStub.zoom) {
+        throw new Error(`expected national pws to be visible at zoom ${mapStub.zoom}, got minzoom ${pwsLayer.minzoom}`)
+      }
+
+      const expectedFilter = JSON.stringify(null)
+      const actualPwsFilter = JSON.stringify(mapStub.filters.pws)
+      const actualOutlineFilter = JSON.stringify(mapStub.filters.pws_outline)
+      if (actualPwsFilter !== expectedFilter) throw new Error(`expected national pws filter ${expectedFilter}, got ${actualPwsFilter}`)
+      if (actualOutlineFilter !== expectedFilter) throw new Error(`expected national pws outline filter ${expectedFilter}, got ${actualOutlineFilter}`)
+    JS
+
+    run_node_script(script)
+  end
+
+  it "clears the green state hover fill when hovering the selected state" do
+    script = <<~JS
+      const fs = require("fs")
+      class Controller {}
+      const filterStateCurrent = {}
+      const FilterState = {
+        get: () => ({ ...filterStateCurrent }),
+        set: (params) => {
+          Object.keys(filterStateCurrent).forEach((key) => delete filterStateCurrent[key])
+          Object.assign(filterStateCurrent, params)
+        },
+        toUrlParams: () => new URLSearchParams(filterStateCurrent)
+      }
+      global.document = {
+        head: { querySelector: () => ({ content: "token" }) },
+        querySelector: () => null,
+        getElementById: () => null,
+        addEventListener: () => {},
+        removeEventListener: () => {},
+        dispatchEvent: () => {}
+      }
+      global.CustomEvent = class {
+        constructor(type) { this.type = type }
+      }
+      global.history = { replaceState: () => {} }
+      global.window = {
+        location: new URL("http://example.test/"),
+        mapboxgl: {}
+      }
+      global.Turbo = { visit: () => {} }
+
+      class PopupStub {
+        constructor() { globalThis.popupStub = this }
+        setHTML() { return this }
+        setLngLat() { return this }
+        addTo() { this.added = true; return this }
+        remove() {}
+      }
+
+      class MapStub {
+        constructor() {
+          this.handlers = {}
+          this.zoom = 8.5
+          this.filters = []
+          this.featureStateCalls = []
+          this.canvas = { style: {} }
+          globalThis.mapStub = this
+        }
+
+        dragRotate = { disable: () => {} }
+        touchZoomRotate = { disableRotation: () => {} }
+        getStyle() { return { layers: [{ id: "base-line", type: "line" }] } }
+        getCanvas() { return this.canvas }
+        getZoom() { return this.zoom }
+        addControl() {}
+        addSource() {}
+        addLayer() {}
+        setPaintProperty() {}
+        getLayer() { return true }
+        setFilter(layer, filter) { this.filters.push([layer, filter]) }
+        setFeatureState(feature, state) { this.featureStateCalls.push({ feature, state }) }
+        setMaxZoom() {}
+        fitBounds() {}
+        jumpTo(options) { if (options.zoom !== undefined) this.zoom = options.zoom }
+        flyTo(options) { if (options.zoom !== undefined) this.zoom = options.zoom }
+        once() {}
+        on(event, layerOrCallback, callback) {
+          if (callback) {
+            this.handlers[`${event}:${layerOrCallback}`] = callback
+          } else {
+            this.handlers[event] = layerOrCallback
+          }
+        }
+      }
+
+      window.mapboxgl.Map = MapStub
+      window.mapboxgl.NavigationControl = class {}
+      window.mapboxgl.Popup = PopupStub
+
+      let source = fs.readFileSync(#{controller_source_path.to_s.inspect}, "utf8")
+      source = source.replace(/^import .*\\n/gm, "")
+      source = source.replace("export default class extends Controller", "globalThis.MapController = class extends Controller")
+      eval(source)
+
+      const controller = new MapController()
+      controller.element = { dataset: {} }
+      controller.tileUrlValue = "/tiles/{z}/{x}/{y}.mvt"
+      controller.connect()
+      mapStub.handlers.load()
+      mapStub.handlers["click:states"]({
+        lngLat: { lng: -105.5, lat: 39.0 },
+        features: [{ properties: { stusps: "CO", name: "Colorado", geoid: "08" } }]
+      })
+
+      mapStub.zoom = 8.5
+      mapStub.handlers.zoomend()
+      mapStub.featureStateCalls = []
+      mapStub.handlers["mousemove:states"]({
+        lngLat: { lng: -105.5, lat: 39.0 },
+        features: [{ properties: { stusps: "CO", name: "Colorado", geoid: "08" } }]
+      })
+
+      const hoverCalls = mapStub.featureStateCalls.filter(({ state }) => state.hover === true)
+      if (hoverCalls.length > 0) throw new Error("expected selected-state hover to stay cleared in systems mode")
+    JS
+
+    run_node_script(script)
+  end
+
+  it "keeps nation-mode state hover before a state is selected" do
+    script = map_controller_script(zoom: 3, body: <<~JS)
+      mapStub.handlers["mousemove:states"]({
+        lngLat: { lng: -105.5, lat: 39.0 },
+        features: [{ properties: { stusps: "CO", name: "Colorado", geoid: "08" } }]
+      })
+
+      const hoverCall = mapStub.featureStateCalls.find(({ feature, state }) => feature.id === "08" && state.hover === true)
+      if (!hoverCall) throw new Error(`expected nation-mode hover:true, got ${JSON.stringify(mapStub.featureStateCalls)}`)
+      if (mapStub.canvas.style.cursor !== "pointer") throw new Error(`expected pointer cursor, got ${mapStub.canvas.style.cursor}`)
+    JS
+
+    run_node_script(script)
+  end
+
+  it "does not show green state hover for the selected state at the state selection level" do
+    script = map_controller_script(zoom: 6, popup: true, body: <<~JS)
+      mapStub.handlers["click:states"]({
+        lngLat: { lng: -105.5, lat: 39.0 },
+        features: [{ properties: { stusps: "CO", name: "Colorado", geoid: "08" } }]
+      })
+
+      mapStub.featureStateCalls = []
+      mapStub.handlers["mousemove:states"]({
+        lngLat: { lng: -105.5, lat: 39.0 },
+        features: [{ properties: { stusps: "CO", name: "Colorado", geoid: "08" } }]
+      })
+
+      const hoverCalls = mapStub.featureStateCalls.filter(({ state }) => state.hover === true)
+      if (hoverCalls.length > 0) throw new Error("expected selected-state hover to stay cleared at zoom level 2")
+      if (mapStub.canvas.style.cursor === "pointer") throw new Error("expected selected-state hover not to own the cursor")
+      if (globalThis.popupStub?.added && !globalThis.popupStub.removed) throw new Error("expected no selected-state prompt")
+    JS
+
+    run_node_script(script)
+  end
+
+  it "keeps non-selected states clickable at the state selection level without green state hover" do
+    script = map_controller_script(zoom: 6, body: <<~JS)
+      mapStub.handlers["click:states"]({
+        lngLat: { lng: -105.5, lat: 39.0 },
+        features: [{ properties: { stusps: "CO", name: "Colorado", geoid: "08" } }]
+      })
+
+      mapStub.featureStateCalls = []
+      mapStub.handlers["mousemove:states"]({
+        lngLat: { lng: -104.5, lat: 39.0 },
+        features: [{ properties: { stusps: "KS", name: "Kansas", geoid: "20" } }]
+      })
+
+      const hoverCalls = mapStub.featureStateCalls.filter(({ state }) => state.hover === true)
+      if (hoverCalls.length > 0) throw new Error("expected neighboring state hover to stay cleared at zoom level 2")
+      if (mapStub.canvas.style.cursor !== "pointer") throw new Error(`expected neighboring state pointer cursor, got ${mapStub.canvas.style.cursor}`)
+
+      mapStub.handlers["click:states"]({
+        lngLat: { lng: -104.5, lat: 39.0 },
+        features: [{ properties: { stusps: "KS", name: "Kansas", geoid: "20" } }]
+      })
+
+      if (filterStateCurrent.state !== "KS") throw new Error(`expected neighboring state to remain selectable, got ${filterStateCurrent.state}`)
+    JS
+
+    run_node_script(script)
+  end
+
+  it "allows a different state to be selected while highly zoomed in" do
+    script = <<~JS
+      const fs = require("fs")
+      class Controller {}
+      const filterStateCurrent = {}
+      const FilterState = {
+        get: () => ({ ...filterStateCurrent }),
+        set: (params) => {
+          Object.keys(filterStateCurrent).forEach((key) => delete filterStateCurrent[key])
+          Object.assign(filterStateCurrent, params)
+        },
+        toUrlParams: () => new URLSearchParams(filterStateCurrent)
+      }
+      global.document = {
+        head: { querySelector: () => ({ content: "token" }) },
+        querySelector: () => null,
+        getElementById: () => null,
+        addEventListener: () => {},
+        removeEventListener: () => {},
+        dispatchEvent: () => {}
+      }
+      global.CustomEvent = class {
+        constructor(type) { this.type = type }
+      }
+      global.history = { replaceState: () => {} }
+      global.window = {
+        location: new URL("http://example.test/"),
+        mapboxgl: {}
+      }
+      global.Turbo = { visit: () => {} }
+
+      class MapStub {
+        constructor() {
+          this.handlers = {}
+          this.zoom = 8.5
+          this.filters = {}
+          this.canvas = { style: {} }
+          globalThis.mapStub = this
+        }
+
+        dragRotate = { disable: () => {} }
+        touchZoomRotate = { disableRotation: () => {} }
+        getStyle() { return { layers: [{ id: "base-line", type: "line" }] } }
+        getCanvas() { return this.canvas }
+        getZoom() { return this.zoom }
+        addControl() {}
+        addSource() {}
+        addLayer() {}
+        setPaintProperty() {}
+        getLayer() { return true }
+        setFilter(layer, filter) { this.filters[layer] = filter }
+        setMaxZoom() {}
+        fitBounds() {}
+        jumpTo(options) { if (options.zoom !== undefined) this.zoom = options.zoom }
+        flyTo(options) { if (options.zoom !== undefined) this.zoom = options.zoom }
+        once() {}
+        on(event, layerOrCallback, callback) {
+          if (callback) {
+            this.handlers[`${event}:${layerOrCallback}`] = callback
+          } else {
+            this.handlers[event] = layerOrCallback
+          }
+        }
+      }
+
+      window.mapboxgl.Map = MapStub
+      window.mapboxgl.NavigationControl = class {}
+
+      let source = fs.readFileSync(#{controller_source_path.to_s.inspect}, "utf8")
+      source = source.replace(/^import .*\\n/gm, "")
+      source = source.replace("export default class extends Controller", "globalThis.MapController = class extends Controller")
+      eval(source)
+
+      const controller = new MapController()
+      controller.element = { dataset: {} }
+      controller.tileUrlValue = "/tiles/{z}/{x}/{y}.mvt"
+      controller.connect()
+      mapStub.handlers.load()
+      mapStub.handlers["click:states"]({
+        lngLat: { lng: -105.5, lat: 39.0 },
+        features: [{ properties: { stusps: "CO", name: "Colorado", geoid: "08" } }]
+      })
+      mapStub.zoom = 8.5
+      mapStub.handlers.zoomend()
+
+      mapStub.handlers["click:states"]({
+        lngLat: { lng: -122.3, lat: 47.6 },
+        features: [{ properties: { stusps: "WA", name: "Washington", geoid: "53" } }]
+      })
+
+      if (filterStateCurrent.state !== "WA") throw new Error(`expected selected state WA, got ${filterStateCurrent.state}`)
+      const expectedPwsFilter = JSON.stringify(["==", "stusps", "WA"])
+      const actualPwsFilter = JSON.stringify(mapStub.filters.pws)
+      if (actualPwsFilter !== expectedPwsFilter) throw new Error(`expected pws filter ${expectedPwsFilter}, got ${actualPwsFilter}`)
+    JS
+
+    run_node_script(script)
+  end
+
   it "does not let state hover compete with systems once service areas are active" do
     script = <<~JS
       const fs = require("fs")
@@ -797,6 +1219,508 @@ RSpec.describe "map_controller state selection" do
       if (hoverCalls.length > 0) throw new Error("expected systems mode to ignore state hover (setFeatureState with hover:true was called)")
       if (mapStub.canvas.style.cursor === "pointer") throw new Error("expected state hover not to own the cursor in systems mode")
     JS
+
+    run_node_script(script)
+  end
+
+  it "clears stale state hover when zooming into systems mode" do
+    script = <<~JS
+      const fs = require("fs")
+      class Controller {}
+      const filterStateCurrent = {}
+      const FilterState = {
+        get: () => ({ ...filterStateCurrent }),
+        set: (params) => {
+          Object.keys(filterStateCurrent).forEach((key) => delete filterStateCurrent[key])
+          Object.assign(filterStateCurrent, params)
+        },
+        toUrlParams: () => new URLSearchParams(filterStateCurrent)
+      }
+      global.document = {
+        head: { querySelector: () => ({ content: "token" }) },
+        querySelector: () => null,
+        getElementById: () => null,
+        addEventListener: () => {},
+        removeEventListener: () => {},
+        dispatchEvent: () => {}
+      }
+      global.CustomEvent = class {
+        constructor(type) { this.type = type }
+      }
+      global.history = { replaceState: () => {} }
+      global.window = {
+        location: new URL("http://example.test/"),
+        mapboxgl: {}
+      }
+      global.Turbo = { visit: () => {} }
+
+      class PopupStub {
+        setHTML() { return this }
+        setLngLat() { return this }
+        addTo() { return this }
+        remove() {}
+      }
+
+      class MapStub {
+        constructor() {
+          this.handlers = {}
+          this.zoom = 6
+          this.canvas = { style: {} }
+          this.featureStateCalls = []
+          globalThis.mapStub = this
+        }
+
+        dragRotate = { disable: () => {} }
+        touchZoomRotate = { disableRotation: () => {} }
+        getStyle() { return { layers: [{ id: "base-line", type: "line" }] } }
+        getCanvas() { return this.canvas }
+        getZoom() { return this.zoom }
+        addControl() {}
+        addSource() {}
+        addLayer() {}
+        setPaintProperty() {}
+        getLayer() { return true }
+        setFilter() {}
+        setFeatureState(feature, state) { this.featureStateCalls.push({ feature, state }) }
+        setMaxZoom() {}
+        fitBounds() {}
+        querySourceFeatures() { return [] }
+        jumpTo(options) { if (options.zoom !== undefined) this.zoom = options.zoom }
+        flyTo(options) { if (options.zoom !== undefined) this.zoom = options.zoom }
+        once() {}
+        on(event, layerOrCallback, callback) {
+          if (callback) {
+            this.handlers[`${event}:${layerOrCallback}`] = callback
+          } else {
+            this.handlers[event] = layerOrCallback
+          }
+        }
+      }
+
+      window.mapboxgl.Map = MapStub
+      window.mapboxgl.NavigationControl = class {}
+      window.mapboxgl.Popup = PopupStub
+
+      let source = fs.readFileSync(#{controller_source_path.to_s.inspect}, "utf8")
+      source = source.replace(/^import .*\\n/gm, "")
+      source = source.replace("export default class extends Controller", "globalThis.MapController = class extends Controller")
+      eval(source)
+
+      const controller = new MapController()
+      controller.element = { dataset: {} }
+      controller.tileUrlValue = "/tiles/{z}/{x}/{y}.mvt"
+      controller.connect()
+      mapStub.handlers.load()
+      mapStub.handlers["click:states"]({
+        lngLat: { lng: -105.5, lat: 39.0 },
+        features: [{ properties: { stusps: "CO", name: "Colorado", geoid: "08" } }]
+      })
+      controller.hoveredStateId = "20"
+
+      mapStub.zoom = 8.5
+      mapStub.handlers.zoomend()
+
+      const clearCall = mapStub.featureStateCalls.find(({ feature, state }) => feature.id === "20" && state.hover === false)
+      if (!clearCall) throw new Error(`expected zoom into systems mode to clear hovered state, got ${JSON.stringify(mapStub.featureStateCalls)}`)
+    JS
+
+    run_node_script(script)
+  end
+
+  it "does not show green state hover for neighboring states in systems mode" do
+    script = map_controller_script(zoom: 8.5, body: <<~JS)
+      mapStub.handlers["click:states"]({
+        lngLat: { lng: -105.5, lat: 39.0 },
+        features: [{ properties: { stusps: "CO", name: "Colorado", geoid: "08" } }]
+      })
+      mapStub.zoom = 8.5
+      mapStub.handlers.zoomend()
+      mapStub.featureStateCalls = []
+
+      mapStub.handlers["mousemove:states"]({
+        lngLat: { lng: -104.5, lat: 39.0 },
+        features: [{ properties: { stusps: "KS", name: "Kansas", geoid: "20" } }]
+      })
+
+      const hoverCalls = mapStub.featureStateCalls.filter(({ state }) => state.hover === true)
+      if (hoverCalls.length > 0) throw new Error("expected systems mode to ignore neighboring state hover")
+      if (mapStub.canvas.style.cursor !== "pointer") throw new Error(`expected neighboring state pointer cursor, got ${mapStub.canvas.style.cursor}`)
+    JS
+
+    run_node_script(script)
+  end
+
+  it "lets a nationally visible service area select its state at the state selection level" do
+    script = map_controller_script(zoom: 4, body: <<~JS)
+      mapStub.handlers["click:pws"]({
+        lngLat: { lng: -105.1, lat: 39.1 },
+        features: [{ properties: {
+          pwsid: "CO0000001",
+          pws_name: "Clear Creek Water",
+          stusps: "CO"
+        } }]
+      })
+
+      if (filterStateCurrent.state !== "CO") throw new Error(`expected service area click to select CO, got ${filterStateCurrent.state}`)
+      if (!dispatchedEvents.includes("filters:changed")) throw new Error("expected filters:changed from service area state selection")
+      const clickFitBounds = mapStub.fitBoundsCalls?.at(-1)
+      if (!clickFitBounds) throw new Error("expected service area click to fitBounds")
+      if (clickFitBounds.options?.maxZoom !== 7.99) throw new Error(`expected canonical state fit maxZoom 7.99, got ${clickFitBounds.options?.maxZoom}`)
+      if (mapStub.flyToCalls.length !== 0) throw new Error(`expected no flyTo fallback when state bounds exist, got ${JSON.stringify(mapStub.flyToCalls)}`)
+      if (visitedReports.length > 0) throw new Error(`expected no report visit, got ${visitedReports.join(", ")}`)
+      const expectedPwsFilter = JSON.stringify(["==", "stusps", "CO"])
+      const actualPwsFilter = JSON.stringify(mapStub.filters.pws)
+      if (actualPwsFilter !== expectedPwsFilter) throw new Error(`expected pws filter ${expectedPwsFilter}, got ${actualPwsFilter}`)
+    JS
+
+    run_node_script(script)
+  end
+
+  it "selects the smallest service area from a direct pws layer click with overlapping systems" do
+    script = map_controller_script(zoom: 4, body: <<~JS)
+      mapStub.handlers["click:pws"]({
+        lngLat: { lng: -99.1, lat: 38.9 },
+        features: [
+          { properties: {
+            pwsid: "CO0000001",
+            pws_name: "Large Water",
+            stusps: "CO",
+            area_sq_miles: "250"
+          } },
+          { properties: {
+            pwsid: "KS0000001",
+            pws_name: "Small Water",
+            stusps: "KS",
+            area_sq_miles: "12"
+          } }
+        ]
+      })
+
+      if (filterStateCurrent.state !== "KS") throw new Error(`expected direct service area click to select smallest state KS, got ${filterStateCurrent.state}`)
+      const expectedPwsFilter = JSON.stringify(["==", "stusps", "KS"])
+      const actualPwsFilter = JSON.stringify(mapStub.filters.pws)
+      if (actualPwsFilter !== expectedPwsFilter) throw new Error(`expected pws filter ${expectedPwsFilter}, got ${actualPwsFilter}`)
+    JS
+
+    run_node_script(script)
+  end
+
+  it "uses rendered service areas when a direct pws layer click is not delivered" do
+    map_methods = <<~JS
+      queryRenderedFeatures(_point, options) {
+        if (JSON.stringify(options.layers) !== JSON.stringify(["pws"])) return []
+        return [{ properties: {
+          pwsid: "CO0000001",
+          pws_name: "Clear Creek Water",
+          stusps: "CO"
+        } }]
+      }
+    JS
+
+    body = <<~JS
+      mapStub.handlers.click({
+        point: { x: 420, y: 260 },
+        lngLat: { lng: -105.1, lat: 39.1 }
+      })
+
+      if (filterStateCurrent.state !== "CO") throw new Error(`expected rendered service area click to select CO, got ${filterStateCurrent.state}`)
+      const clickFitBounds = mapStub.fitBoundsCalls?.at(-1)
+      if (!clickFitBounds) throw new Error("expected rendered service area click to fitBounds")
+      if (clickFitBounds.options?.maxZoom !== 7.99) throw new Error(`expected canonical state fit maxZoom 7.99, got ${clickFitBounds.options?.maxZoom}`)
+      if (mapStub.flyToCalls.length !== 0) throw new Error(`expected no flyTo fallback when rendered state bounds exist, got ${JSON.stringify(mapStub.flyToCalls)}`)
+      if (visitedReports.length > 0) throw new Error(`expected no report visit, got ${visitedReports.join(", ")}`)
+    JS
+    script = map_controller_script(zoom: 4, map_methods: map_methods, body: body)
+
+    run_node_script(script)
+  end
+
+  it "selects the smallest rendered service area when a fallback click hits overlapping systems" do
+    map_methods = <<~JS
+      queryRenderedFeatures(_point, options) {
+        if (JSON.stringify(options.layers) !== JSON.stringify(["pws"])) return []
+        return [
+          { properties: {
+            pwsid: "CO0000001",
+            pws_name: "Large Water",
+            stusps: "CO",
+            area_sq_miles: "250"
+          } },
+          { properties: {
+            pwsid: "KS0000001",
+            pws_name: "Small Water",
+            stusps: "KS",
+            area_sq_miles: "12"
+          } }
+        ]
+      }
+    JS
+
+    body = <<~JS
+      mapStub.handlers.click({
+        point: { x: 420, y: 260 },
+        lngLat: { lng: -99.1, lat: 38.9 }
+      })
+
+      if (filterStateCurrent.state !== "KS") throw new Error(`expected smallest rendered service area click to select KS, got ${filterStateCurrent.state}`)
+      const expectedPwsFilter = JSON.stringify(["==", "stusps", "KS"])
+      const actualPwsFilter = JSON.stringify(mapStub.filters.pws)
+      if (actualPwsFilter !== expectedPwsFilter) throw new Error(`expected pws filter ${expectedPwsFilter}, got ${actualPwsFilter}`)
+    JS
+    script = map_controller_script(zoom: 4, map_methods: map_methods, body: body)
+
+    run_node_script(script)
+  end
+
+  it "opens an individual system report from a systems-mode service area click" do
+    script = <<~JS
+      const fs = require("fs")
+      class Controller {}
+      const filterStateCurrent = {}
+      const FilterState = {
+        get: () => ({ ...filterStateCurrent }),
+        set: (params) => {
+          Object.keys(filterStateCurrent).forEach((key) => delete filterStateCurrent[key])
+          Object.assign(filterStateCurrent, params)
+        },
+        toUrlParams: () => new URLSearchParams(filterStateCurrent)
+      }
+      const visitedReports = []
+      let reportOverlayHidden = true
+      global.document = {
+        head: { querySelector: () => ({ content: "token" }) },
+        querySelector: (selector) => selector === "turbo-frame#report-body" ? {} : null,
+        getElementById: (id) => {
+          if (id !== "container-report") return null
+          return {
+            classList: {
+              remove: (className) => {
+                if (className === "hidden") reportOverlayHidden = false
+              }
+            }
+          }
+        },
+        addEventListener: () => {},
+        removeEventListener: () => {},
+        dispatchEvent: () => {}
+      }
+      global.CustomEvent = class {
+        constructor(type) { this.type = type }
+      }
+      global.history = { replaceState: () => {} }
+      global.window = {
+        location: new URL("http://example.test/"),
+        mapboxgl: {}
+      }
+      global.Turbo = { visit: (url) => visitedReports.push(url) }
+
+      class PopupRoot {
+        constructor() {
+          this.fields = ["pws_name", "pwsid", "stusps", "service_connections_count", "population_served_count"].map((field) => ({
+            dataset: { popupField: field },
+            textContent: ""
+          }))
+          this.reportVisible = false
+          this.reportLink = { textContent: "View Full Report", href: "#", dataset: {} }
+        }
+
+        cloneNode() { return new PopupRoot() }
+        querySelectorAll(selector) { return selector === "[data-popup-field]" ? this.fields : [] }
+        querySelector(selector) {
+          if (selector === '[data-popup-section="report"]') {
+            return { classList: { remove: () => { this.reportVisible = true } } }
+          }
+          if (selector === ".js-view-report") return this.reportLink
+          return null
+        }
+        get outerHTML() {
+          const fieldText = this.fields.map((field) => field.textContent).join(" ")
+          return `${fieldText} ${this.reportVisible ? this.reportLink.textContent : ""}`.trim()
+        }
+      }
+
+      class PopupStub {
+        setHTML(html) { this.html = html; globalThis.hoverHtml = html; return this }
+        setLngLat() { return this }
+        addTo() { return this }
+        remove() {}
+        on() {}
+      }
+
+      class MapStub {
+        constructor() {
+          this.handlers = {}
+          this.zoom = 8.5
+          this.filters = {}
+          this.canvas = { style: {} }
+          globalThis.mapStub = this
+        }
+
+        dragRotate = { disable: () => {} }
+        touchZoomRotate = { disableRotation: () => {} }
+        getStyle() { return { layers: [{ id: "base-line", type: "line" }] } }
+        getCanvas() { return this.canvas }
+        getZoom() { return this.zoom }
+        addControl() {}
+        addSource() {}
+        addLayer() {}
+        setPaintProperty() {}
+        getLayer() { return true }
+        setFilter(layer, filter) { this.filters[layer] = filter }
+        setMaxZoom() {}
+        fitBounds() {}
+        jumpTo(options) { if (options.zoom !== undefined) this.zoom = options.zoom }
+        flyTo(options) { if (options.zoom !== undefined) this.zoom = options.zoom }
+        once() {}
+        on(event, layerOrCallback, callback) {
+          if (callback) {
+            this.handlers[`${event}:${layerOrCallback}`] = callback
+          } else {
+            this.handlers[event] = layerOrCallback
+          }
+        }
+      }
+
+      window.mapboxgl.Map = MapStub
+      window.mapboxgl.NavigationControl = class {}
+      window.mapboxgl.Popup = PopupStub
+
+      let source = fs.readFileSync(#{controller_source_path.to_s.inspect}, "utf8")
+      source = source.replace(/^import .*\\n/gm, "")
+      source = source.replace("export default class extends Controller", "globalThis.MapController = class extends Controller")
+      eval(source)
+
+      const controller = new MapController()
+      controller.element = { dataset: {} }
+      controller.tileUrlValue = "/tiles/{z}/{x}/{y}.mvt"
+      controller.popupTemplateTarget = { content: { firstElementChild: new PopupRoot() } }
+      controller.connect()
+      mapStub.handlers.load()
+      mapStub.handlers["click:states"]({
+        lngLat: { lng: -105.5, lat: 39.0 },
+        features: [{ properties: { stusps: "CO", name: "Colorado", geoid: "08" } }]
+      })
+      mapStub.zoom = 8.5
+      mapStub.handlers.zoomend()
+
+      const pwsEvent = {
+        lngLat: { lng: -105.1, lat: 39.1 },
+        features: [{ properties: {
+          pwsid: "CO0000001",
+          pws_name: "Clear Creek Water",
+          stusps: "CO",
+          service_connections_count: "1200",
+          population_served_count: "4200"
+        } }]
+      }
+
+      // Hover shows the card without a report link.
+      mapStub.handlers["mousemove:pws"](pwsEvent)
+      if (!hoverHtml?.includes("Clear Creek Water")) throw new Error(`expected system hover details, got ${hoverHtml}`)
+      if (hoverHtml.includes("View Full Report")) throw new Error(`hover should not show report link, got ${hoverHtml}`)
+
+      // First click pins the card with the "View Full Report" link.
+      mapStub.handlers["click:pws"](pwsEvent)
+      if (!hoverHtml?.includes("View Full Report")) throw new Error(`expected pinned popup with report link, got ${hoverHtml}`)
+      if (visitedReports.length !== 0) throw new Error("first click should pin, not open the report")
+
+      // Clicking the report link in the pinned popup opens the report.
+      const reportLink = { dataset: { pwsid: "CO0000001" } }
+      controller.boundOnReportClick({
+        target: { closest: (sel) => sel === ".js-view-report" ? reportLink : null },
+        preventDefault: () => {}
+      })
+      if (visitedReports.length !== 1) throw new Error(`expected one report visit, got ${visitedReports.join(", ")}`)
+      if (visitedReports[0] !== "/public_water_systems/CO0000001/report") throw new Error(`expected report path, got ${visitedReports[0]}`)
+      if (reportOverlayHidden) throw new Error("expected report overlay to be shown")
+    JS
+
+    run_node_script(script)
+  end
+
+  it "hovers the smallest service area when overlapping systems are under the pointer" do
+    controller_setup = <<~JS
+      class PopupRoot {
+        constructor() {
+          this.fields = ["pws_name", "pwsid", "stusps", "service_connections_count", "population_served_count"].map((field) => ({
+            dataset: { popupField: field },
+            textContent: ""
+          }))
+        }
+
+        cloneNode() { return new PopupRoot() }
+        querySelectorAll(selector) { return selector === "[data-popup-field]" ? this.fields : [] }
+        querySelector() { return null }
+        get outerHTML() { return this.fields.map((field) => field.textContent).join(" ") }
+      }
+
+      controller.popupTemplateTarget = { content: { firstElementChild: new PopupRoot() } }
+    JS
+
+    script = map_controller_script(zoom: 8.5, popup: true, controller_setup: controller_setup, body: <<~JS)
+      mapStub.handlers["click:states"]({
+        lngLat: { lng: -105.5, lat: 39.0 },
+        features: [{ properties: { stusps: "CO", name: "Colorado", geoid: "08" } }]
+      })
+      mapStub.zoom = 8.5
+      mapStub.handlers.zoomend()
+
+      mapStub.handlers["mousemove:pws"]({
+        lngLat: { lng: -105.1, lat: 39.1 },
+        features: [
+          { properties: {
+            pwsid: "CO0000001",
+            pws_name: "Large Water",
+            stusps: "CO",
+            area_sq_miles: "250"
+          } },
+          { properties: {
+            pwsid: "CO0000002",
+            pws_name: "Small Water",
+            stusps: "CO",
+            area_sq_miles: "12"
+          } }
+        ]
+      })
+
+      const expectedHoverFilter = JSON.stringify(["in", "pwsid", "CO0000002"])
+      const actualHoverFilter = JSON.stringify(mapStub.filters.pws_hover)
+      if (actualHoverFilter !== expectedHoverFilter) throw new Error(`expected pws_hover ${expectedHoverFilter}, got ${actualHoverFilter}`)
+      if (!hoverHtml?.includes("Small Water")) throw new Error(`expected hover popup for smaller system, got ${hoverHtml}`)
+      if (hoverHtml.includes("Large Water")) throw new Error(`expected larger system to stay out of hover popup, got ${hoverHtml}`)
+    JS
+
+    run_node_script(script)
+  end
+
+  it "prioritizes service area clicks over state clicks at overlapping locations" do
+    map_methods = <<~JS
+      queryRenderedFeatures(_box, options) {
+        if (JSON.stringify(options.layers) !== JSON.stringify(["pws"])) return []
+        return [{ properties: {
+          pwsid: "CO0000001",
+          pws_name: "Clear Creek Water",
+          stusps: "CO"
+        } }]
+      }
+    JS
+
+    body = <<~JS
+      mapStub.handlers["click:states"]({
+        point: { x: 420, y: 260 },
+        lngLat: { lng: -105.1, lat: 39.1 },
+        features: [{ properties: { stusps: "WA", name: "Washington", geoid: "53" } }]
+      })
+
+      if (filterStateCurrent.state !== "CO") throw new Error(`expected overlapping service area click to select CO, got ${filterStateCurrent.state}`)
+      const clickFitBounds = mapStub.fitBoundsCalls?.at(-1)
+      if (!clickFitBounds) throw new Error("expected overlapping service area click to fitBounds")
+      if (JSON.stringify(clickFitBounds.bounds) !== JSON.stringify([[-109.06, 36.99], [-102.04, 41.0]])) {
+        throw new Error(`expected overlapping click to land on Colorado bounds, got ${JSON.stringify(clickFitBounds.bounds)}`)
+      }
+      if (mapStub.flyToCalls.length !== 0) throw new Error(`expected no flyTo fallback when overlap resolves to Colorado, got ${JSON.stringify(mapStub.flyToCalls)}`)
+    JS
+    script = map_controller_script(zoom: 4, map_methods: map_methods, body: body)
 
     run_node_script(script)
   end

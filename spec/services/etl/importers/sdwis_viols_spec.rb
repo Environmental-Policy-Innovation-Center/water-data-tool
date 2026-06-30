@@ -117,5 +117,14 @@ RSpec.describe Etl::Importers::SdwisViols do
       expect(pws.primacy_type).to be_nil
       expect(pws.open_health_viol).to be_nil
     end
+
+    it "returns an import result without tile refresh layers" do
+      rows = importer.parse(csv_content)
+      result = importer.import!(rows)
+
+      expect(result).to eq(
+        Etl::ImportResult.imported(file_key: "f", changed_layers: [])
+      )
+    end
   end
 end

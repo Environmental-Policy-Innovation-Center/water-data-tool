@@ -30,14 +30,13 @@ RSpec.describe TileImpact do
     SQL
   end
 
-  it "converts changed service-area bounds into deduplicated z5-z8 tile coordinates" do
-    insert_geometry("VT0000001", vermont_wkt)
-
-    impacts = described_class.for_pwsids(["VT0000001", "VT0000001"], layers: ["pws"])
+  it "converts changed service-area bounds into deduplicated coordinates for every pws tile zoom" do
+    impacts = described_class.impacts_for_bboxes([[-72.6, 44.2, -72.5, 44.3]], layers: ["pws"], margin_tiles: 1)
 
     expect(impacts.keys).to all(match(/\Apws:\d+\z/))
-    expect(impacts.keys.map { |key| key.split(":").last.to_i }).to contain_exactly(5, 6, 7, 8)
-    expect(impacts.values.flatten(1).uniq.size).to eq(impacts.values.flatten(1).size)
+    expected_zooms = (0..described_class::MAX_ZOOM).select { |z| TileGenerator.layers_for_zoom(z).include?("pws") }
+    expect(impacts.keys.map { |key| key.split(":").last.to_i }).to contain_exactly(*expected_zooms)
+    expect(impacts.values).to all(satisfy { |coords| coords.uniq.size == coords.size })
   end
 
   it "includes adjacent edge tiles via the configured margin" do
@@ -76,9 +75,19 @@ RSpec.describe TileImpact do
   it "enqueues refresh jobs in bounded batches" do
     allow(TileCacheRefreshJob).to receive(:perform_later)
 
-    described_class.enqueue_refreshes({"pws:5" => [[1, 2], [3, 4], [5, 6]]}, batch_size: 2)
+    job_count = described_class.enqueue_refreshes({"pws:5" => [[1, 2], [3, 4], [5, 6]]}, batch_size: 2)
 
     expect(TileCacheRefreshJob).to have_received(:perform_later).with(layer: "pws", z: 5, coords: [[1, 2], [3, 4]])
     expect(TileCacheRefreshJob).to have_received(:perform_later).with(layer: "pws", z: 5, coords: [[5, 6]])
+    expect(job_count).to eq(2)
+  end
+
+  it "returns zero refresh jobs for empty impacts" do
+    allow(TileCacheRefreshJob).to receive(:perform_later)
+
+    job_count = described_class.enqueue_refreshes({})
+
+    expect(TileCacheRefreshJob).not_to have_received(:perform_later)
+    expect(job_count).to eq(0)
   end
 end

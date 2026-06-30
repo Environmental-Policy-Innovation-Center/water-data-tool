@@ -36,6 +36,7 @@ module Etl
 
       def import!(rows)
         model.upsert_all(rows, unique_by: :pwsid)
+        imported_result
       end
 
       private

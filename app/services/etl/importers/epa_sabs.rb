@@ -41,8 +41,7 @@ module Etl
       def import!(rows)
         changed_pwsids = changed_pwsids_for(rows)
         PublicWaterSystem.upsert_all(rows, unique_by: :pwsid)
-        Etl::ImportResult.imported(
-          file_key: file_key,
+        imported_result(
           changed_pwsids: changed_pwsids,
           changed_layers: changed_pwsids.any? ? ["pws"] : []
         )

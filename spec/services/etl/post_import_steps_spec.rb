@@ -16,6 +16,12 @@ VERMONT_STATE_WKT = "MULTIPOLYGON(((-73.5 42.7, -71.5 42.7, -71.5 45.2, -73.5 45
 RSpec.describe Etl::PostImportSteps do
   let(:conn) { ApplicationRecord.connection }
 
+  it "loads without resolving the PostgreSQL array OID at file load time" do
+    source = Rails.root.join("app/services/etl/post_import_steps.rb")
+
+    expect { silence_warnings { load source } }.not_to raise_error
+  end
+
   def insert_geometry(pwsid, wkt)
     conn.execute(<<~SQL)
       INSERT INTO service_area_geometries (pwsid, geom, created_at, updated_at)
@@ -59,6 +65,63 @@ RSpec.describe Etl::PostImportSteps do
       described_class.generate_centroids
       sag = ServiceAreaGeometry.find_by(pwsid: "VT0000001")
       expect(sag.centroid).not_to be_nil
+    end
+  end
+
+  describe ".generate_generalized_geometries" do
+    before do
+      create(:public_water_system, pwsid: "VT0000002")
+      insert_geometry("VT0000002", VERMONT_WKT)
+    end
+
+    it "populates all low-zoom generalized geometry columns" do
+      described_class.generate_generalized_geometries
+
+      row = conn.select_one(<<~SQL)
+        SELECT
+          geom_z0_4 IS NOT NULL AS geom_z0_4_present,
+          geom_z5 IS NOT NULL AS geom_z5_present,
+          geom_z6 IS NOT NULL AS geom_z6_present,
+          geom_z7 IS NOT NULL AS geom_z7_present
+        FROM service_area_geometries
+        WHERE pwsid = 'VT0000001'
+      SQL
+
+      expect(row).to include(
+        "geom_z0_4_present" => true,
+        "geom_z5_present" => true,
+        "geom_z6_present" => true,
+        "geom_z7_present" => true
+      )
+    end
+
+    it "can scope updates to selected pwsids" do
+      described_class.generate_generalized_geometries(pwsids: ["VT0000001"])
+
+      scoped = conn.select_one("SELECT geom_z5 IS NOT NULL AS present FROM service_area_geometries WHERE pwsid = 'VT0000001'")
+      unscoped = conn.select_one("SELECT geom_z5 IS NOT NULL AS present FROM service_area_geometries WHERE pwsid = 'VT0000002'")
+
+      expect(scoped["present"]).to be(true)
+      expect(unscoped["present"]).to be(false)
+    end
+  end
+
+  describe ".backfill_missing_generalized_geometries" do
+    before do
+      create(:public_water_system, pwsid: "VT0000002")
+      insert_geometry("VT0000002", VERMONT_WKT)
+      described_class.generate_generalized_geometries(pwsids: ["VT0000002"])
+    end
+
+    it "populates only rows missing generalized geometry columns" do
+      already_present_updated_at = ServiceAreaGeometry.find_by!(pwsid: "VT0000002").updated_at
+
+      described_class.backfill_missing_generalized_geometries
+
+      missing_row = conn.select_one("SELECT geom_z7 IS NOT NULL AS present FROM service_area_geometries WHERE pwsid = 'VT0000001'")
+
+      expect(missing_row["present"]).to be(true)
+      expect(ServiceAreaGeometry.find_by!(pwsid: "VT0000002").updated_at).to eq(already_present_updated_at)
     end
   end
 
@@ -131,6 +194,7 @@ RSpec.describe Etl::PostImportSteps do
   describe ".call" do
     before do
       insert_state("VT", VERMONT_STATE_WKT)
+      allow(CartographicBoundaries).to receive(:loaded?).and_return(true)
       allow(CartographicBoundaries).to receive(:load)
       allow(described_class).to receive(:rebuild_spatial_indexes)
       allow(TileCacheWarmJob).to receive(:perform_later)
@@ -140,6 +204,21 @@ RSpec.describe Etl::PostImportSteps do
       expect(TileCacheWarmJob).not_to receive(:perform_later)
       expect(CartographicBoundaries).not_to receive(:load)
       described_class.call(imported_files: [])
+    end
+
+    it "backfills missing generalized geometries when scheduled ETL has no imported files" do
+      expect(described_class).to receive(:backfill_missing_generalized_geometries)
+
+      described_class.call(import_results: [])
+    end
+
+    it "raises when normal ETL omits import result metadata" do
+      expect { described_class.call }.to raise_error(ArgumentError, /import_results/)
+    end
+
+    it "raises when import_results contains non-ImportResult metadata" do
+      expect { described_class.call(import_results: [:imported]) }
+        .to raise_error(ArgumentError, /Etl::ImportResult/)
     end
 
     it "busts tile cache and warms tiles for non-geometry imports" do
@@ -172,6 +251,16 @@ RSpec.describe Etl::PostImportSteps do
       expect(TileImpact).to have_received(:enqueue_refreshes).with(impacts)
     end
 
+    it "does not enqueue tile work for non-map imports with changed pwsids but no changed layers" do
+      result = Etl::ImportResult.imported(file_key: "sdwis_viols", changed_pwsids: ["VT0000001"], changed_layers: [])
+
+      expect(TileImpact).not_to receive(:for_pwsids)
+      expect(TileImpact).not_to receive(:enqueue_refreshes)
+      expect(TileCacheWarmJob).not_to receive(:perform_later)
+
+      described_class.call(import_results: [result])
+    end
+
     it "uses the full refresh path when imported result metadata requires it" do
       result = Etl::ImportResult.imported(file_key: "sdwis_viols", full_refresh_required: true)
 
@@ -191,7 +280,9 @@ RSpec.describe Etl::PostImportSteps do
       calls = []
 
       allow(described_class).to receive(:fix_invalid_geometries) { |pwsids: nil| calls << [:fix_invalid_geometries, pwsids] }
+      allow(described_class).to receive(:backfill_missing_generalized_geometries) { calls << [:backfill_missing_generalized_geometries, nil] }
       allow(described_class).to receive(:generate_centroids) { |pwsids: nil| calls << [:generate_centroids, pwsids] }
+      allow(described_class).to receive(:generate_generalized_geometries) { |pwsids: nil| calls << [:generate_generalized_geometries, pwsids] }
       allow(CartographicBoundaries).to receive(:load) { calls << [:load_boundaries, nil] }
       allow(described_class).to receive(:assign_state_codes) { |pwsids: nil| calls << [:assign_state_codes, pwsids] }
       allow(described_class).to receive(:analyze_spatial_tables) { calls << [:analyze_spatial_tables, nil] }
@@ -206,8 +297,10 @@ RSpec.describe Etl::PostImportSteps do
       described_class.call(import_results: [result])
 
       expect(calls).to eq([
+        [:backfill_missing_generalized_geometries, nil],
         [:fix_invalid_geometries, ["VT0000001"]],
         [:generate_centroids, ["VT0000001"]],
+        [:generate_generalized_geometries, ["VT0000001"]],
         [:load_boundaries, nil],
         [:assign_state_codes, ["VT0000001"]],
         [:analyze_spatial_tables, nil],
@@ -225,6 +318,7 @@ RSpec.describe Etl::PostImportSteps do
       )
       allow(described_class).to receive(:fix_invalid_geometries)
       allow(described_class).to receive(:generate_centroids)
+      allow(described_class).to receive(:generate_generalized_geometries)
       allow(CartographicBoundaries).to receive(:load)
       allow(described_class).to receive(:assign_state_codes)
       allow(described_class).to receive(:analyze_spatial_tables)
@@ -246,10 +340,50 @@ RSpec.describe Etl::PostImportSteps do
       )
     end
 
-    it "loads CartographicBoundaries for geometry imports even when boundaries are already loaded" do
+    it "reloads CartographicBoundaries for selective geometry imports when boundaries are already loaded" do
       allow(CartographicBoundaries).to receive(:loaded?).and_return(true)
+      result = Etl::ImportResult.imported(
+        file_key: "epa_sabs_geoms",
+        changed_pwsids: ["VT0000001"],
+        changed_layers: %w[pws places],
+        geometry_changed: true
+      )
+
+      allow(described_class).to receive(:fix_invalid_geometries)
+      allow(described_class).to receive(:generate_centroids)
+      allow(described_class).to receive(:generate_generalized_geometries)
+      allow(described_class).to receive(:assign_state_codes)
+      allow(described_class).to receive(:analyze_spatial_tables)
+      allow(described_class).to receive(:build_place_crosswalks).and_return([])
+      allow(TileImpact).to receive(:for_pwsids).and_return({})
+      allow(TileImpact).to receive(:for_place_geoids).and_return({})
+      allow(TileImpact).to receive(:enqueue_refreshes)
+
       expect(CartographicBoundaries).to receive(:load)
-      described_class.call(imported_files: ["epa_sabs_geoms"])
+      described_class.call(import_results: [result])
+    end
+
+    it "loads CartographicBoundaries for selective geometry imports when boundaries are missing" do
+      allow(CartographicBoundaries).to receive(:loaded?).and_return(false)
+      result = Etl::ImportResult.imported(
+        file_key: "epa_sabs_geoms",
+        changed_pwsids: ["VT0000001"],
+        changed_layers: %w[pws places],
+        geometry_changed: true
+      )
+
+      allow(described_class).to receive(:fix_invalid_geometries)
+      allow(described_class).to receive(:generate_centroids)
+      allow(described_class).to receive(:generate_generalized_geometries)
+      allow(described_class).to receive(:assign_state_codes)
+      allow(described_class).to receive(:analyze_spatial_tables)
+      allow(described_class).to receive(:build_place_crosswalks).and_return([])
+      allow(TileImpact).to receive(:for_pwsids).and_return({})
+      allow(TileImpact).to receive(:for_place_geoids).and_return({})
+      allow(TileImpact).to receive(:enqueue_refreshes)
+
+      expect(CartographicBoundaries).to receive(:load)
+      described_class.call(import_results: [result])
     end
 
     it "busts tile cache and warms tiles after geometry enrichment completes" do
@@ -257,6 +391,7 @@ RSpec.describe Etl::PostImportSteps do
 
       allow(described_class).to receive(:fix_invalid_geometries) { calls << :fix_invalid_geometries }
       allow(described_class).to receive(:generate_centroids) { calls << :generate_centroids }
+      allow(described_class).to receive(:generate_generalized_geometries) { calls << :generate_generalized_geometries }
       allow(CartographicBoundaries).to receive(:load) { calls << :load_boundaries }
       allow(described_class).to receive(:assign_state_codes) { calls << :assign_state_codes }
       allow(described_class).to receive(:rebuild_spatial_indexes) { calls << :rebuild_spatial_indexes }
@@ -269,6 +404,7 @@ RSpec.describe Etl::PostImportSteps do
       expect(calls).to eq([
         :fix_invalid_geometries,
         :generate_centroids,
+        :generate_generalized_geometries,
         :load_boundaries,
         :assign_state_codes,
         :rebuild_spatial_indexes,

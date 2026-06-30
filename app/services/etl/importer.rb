@@ -7,6 +7,7 @@ module Etl
 
     # Backward-compatible alias — existing code and specs reference this constant.
     InsecureUrlError = Etl::HttpFetcher::InsecureUrlError
+    InvalidImportResultError = Class.new(StandardError)
 
     # Maps the filename stem to the importer class. Flat column→header→cast files are
     # driven entirely by the manifest (config/fields.yml) through Etl::Importers::Generic;
@@ -73,6 +74,7 @@ module Etl
         end
       end
 
+      log_run_summary(import_results: import_results, errors: errors)
       Etl::PostImportSteps.call(import_results: import_results)
 
       errors
@@ -83,13 +85,20 @@ module Etl
     def normalize_result(file_key, result)
       return result if result.is_a?(Etl::ImportResult)
 
-      if result == :imported
-        Etl::ImportResult.imported(file_key: file_key, full_refresh_required: true)
-      elsif result == :skipped || result.nil?
-        Etl::ImportResult.skipped(file_key: file_key)
-      else
-        Etl::ImportResult.imported(file_key: file_key, full_refresh_required: true)
-      end
+      raise InvalidImportResultError, "#{file_key} importer must return Etl::ImportResult, got #{result.class}"
+    end
+
+    def log_run_summary(import_results:, errors:)
+      imported_files = import_results.map(&:file_key)
+      changed_pwsids = import_results.flat_map(&:changed_pwsids).compact.uniq
+      changed_layers = import_results.flat_map(&:changed_layers).compact.uniq
+      full_refresh = import_results.any?(&:full_refresh_required)
+
+      Rails.logger.info(
+        "[ETL] run summary: imported_files=#{imported_files.inspect} " \
+        "changed_pwsids=#{changed_pwsids.size} changed_layers=#{changed_layers.inspect} " \
+        "full_refresh_required=#{full_refresh} errors=#{errors.size}"
+      )
     end
 
     def build_file_entries

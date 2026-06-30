@@ -46,8 +46,8 @@ tee(output, "=" * 60)
 # Seed values — picked live from the DB so the script works on any dataset
 # ---------------------------------------------------------------------------
 sample_county_geoid = CartographicCounty.first&.geoid
-sample_place_geoid  = PlaceSystemCrosswalk.first&.geoid
-largest_state       = PublicWaterSystem.group(:stusps).count.max_by { |_, v| v }&.first
+sample_place_geoid = PlaceSystemCrosswalk.first&.geoid
+largest_state = PublicWaterSystem.group(:stusps).count.max_by { |_, v| v }&.first
 
 # ---------------------------------------------------------------------------
 # 1. Filter queries — mirrors apply_filters paths in HomeController/StatsController
@@ -121,10 +121,12 @@ measure(output, "first page, state filter (#{largest_state}), all associations")
 end
 
 # ---------------------------------------------------------------------------
-# 5. Tile generation — warm cache retrieval (TilesController#show path)
-#    Measures cache hit speed only. Run bin/benchmark-cold for cold timings.
+# 5. Tile generation — zoom-tier cache retrieval (TilesController#show path)
+#    Measures cache hit speed only. Run bin/benchmark-tiles for the safe
+#    cold-SQL regression guard or bin/benchmark-cold for destructive cold-cache
+#    investigations.
 # ---------------------------------------------------------------------------
-section(output, "5. Tile generation (warm cache)")
+section(output, "5. Tile generation (warm cache by zoom tier)")
 
 cached_count = TileCache.count
 if cached_count == 0
@@ -132,13 +134,21 @@ if cached_count == 0
   tee(output, "    bin/rails runner \"TileCacheWarmJob.perform_now\"")
 else
   tee(output, "  #{cached_count} cached tiles found")
-  [[2, 0, 1], [5, 9, 12], [8, 59, 95]].each do |z, x, y|
+  TileBenchmark::DEFAULT_SAMPLES.each do |sample|
+    z = sample.z
+    x = sample.x
+    y = sample.y
+    expected_layers = TileBenchmark.expected_layers(z)
+    tier = TileBenchmark.budget_for(z).tier
     result = nil
     warm_ms = (Benchmark.realtime { result = TileGenerator.build_tile(z, x, y) } * 1000).round
     size_kb = (result.bytesize / 1024.0).round(1)
-    cached = TileCache.where(z: z, x: x, y: y).count
-    status = cached == TileGenerator.layers.size ? "warm" : "partial (#{cached}/#{TileGenerator.layers.size} layers cached)"
-    tee(output, format("  %-52s %6dms  (%s KB)  [%s]", "tile z=#{z} x=#{x} y=#{y}", warm_ms, size_kb, status))
+    cached_layers = TileCache.where(z: z, x: x, y: y).pluck(:layer)
+    expected_cache_layers = TileBenchmark.expected_cache_layers(z)
+    cached = (expected_cache_layers & cached_layers).size
+    fully_cached = (expected_cache_layers - cached_layers).empty?
+    status = fully_cached ? "warm" : "partial (#{cached}/#{expected_cache_layers.size} expected cache layers present)"
+    tee(output, format("  %-52s %6dms  (%s KB)  [%s; %s: %s]", "tile z=#{z} x=#{x} y=#{y}", warm_ms, size_kb, tier, status, expected_layers.join(",")))
   end
 end
 
