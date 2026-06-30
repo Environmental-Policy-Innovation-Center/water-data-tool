@@ -488,19 +488,24 @@ output. Result: 77 fewer hand-written config lines and no alias map for the data
       `filters.yml` watch in `development.rb`. **End state reached: the four-file model — `fields.yml` +
       `filter_layout.yml` + `table_layout.yml` + `tooltips.yml` — with `filters.yml` and `FilterRegistry` gone.**
 
-> **Filtering semantics — the AND/OR rule (decided 2026-06).** Combination is read straight off
-> `filter_layout.yml` structure: **sibling `filters:` entries AND; entries within a `sub_filters:` list
-> OR.** Categories are purely visual and no longer affect AND/OR. Two intrinsic ORs are unchanged: a single
-> multiselect's selected values OR among themselves, and a range's own min/max AND. To make a set of filters
-> OR, nest them under a parent with `sub_filters`; to AND them, list them as siblings.
+> **Filtering semantics — the AND/OR rule (finalized 2026-06, per product feedback).** Standard faceted
+> search, read off `filter_layout.yml`: **filters in the same category OR; categories AND with each other.**
+> The **category** is the OR unit (`FilterLayout.category_of`); menus are visual; a `sub_filters` parent is
+> purely visual (collapse + check-all), with NO separate AND/OR meaning. Two intrinsic ORs are unchanged: a
+> multiselect's selected values OR among themselves, and a range's own min/max AND. To regroup behavior, move
+> a filter to a different category — no code change.
 >
-> This **supersedes** the old per-model behavior (where `funding` / `watershed` / `violations` models OR'd
-> across their columns). Under the new rule **funding → AND** (plain siblings) and **violations →
-> `open_health_viol AND health_5yr AND health_10yr AND paperwork_5yr AND paperwork_10yr`**, with each
-> `health_*` parent's sub-filters OR'ing within. **Watershed stays OR** because its columns are already
-> `sub_filters`; demographic / EJ / trend stay AND (plain siblings). Trade-off accepted: filter behavior now
-> depends on the layout's nesting — but the nesting *is* the semantic grouping, so the layout is its right
-> owner.
+> `Filterable` is one category-grouped combiner (`apply_category_filters`): it builds a predicate per active
+> range/bool filter, ORs within each `category_of`, ANDs across. So **Violations is one flat OR**
+> (open_health_viol OR health 5yr/10yr OR paperwork 5yr/10yr), **Funding ORs**, **trend (Change) ORs**, and
+> demographic columns OR *within* Socioeconomics / Race-Ethnicity / Vulnerability but those categories AND.
+> Radio/multiselect each sit in a single-filter category (AND = OR-of-one) and stay in `apply_direct_filters`;
+> rate-tier + geographic are bespoke (also single-filter). A backend-only range (no category) is its own AND
+> singleton.
+>
+> *History:* this **finalized** the rule after two interim passes — Stage 2 had tried "siblings AND /
+> sub_filters OR" (which made Violations/Funding AND); product feedback corrected it to category-as-OR-unit,
+> which is both more conventional and what `FILTERING.md` originally intended.
 
 <!-- Deffered - we are going to hold off on CSV import logic and not tackle duing this refactor -->
 ### Phase 6 — Portal / CSV-driven config

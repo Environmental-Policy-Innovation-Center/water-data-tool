@@ -9,39 +9,34 @@ module Filterable
       joined = Set.new
 
       scope = apply_direct_filters(scope, params)
-      scope, joined = apply_range_filters(scope, joined, params)
+      scope, joined = apply_category_filters(scope, joined, params)
       scope, joined = apply_rate_tier_filter(scope, joined, params)
       apply_geographic_filters(scope, joined, params)
     end
 
     private
 
+    # Radio + multiselect filters. Each is its own single-filter category, so each ANDs (OR-of-one).
     def apply_direct_filters(scope, params)
       scope = scope.where(gw_sw_code: params[:gw_sw_code]) if params[:gw_sw_code].present?
       scope = scope.where(owner_type: params[:owner_type]) if params[:owner_type].present?
       scope = scope.where(primacy_type: params[:primacy_type]) if params[:primacy_type].present?
       scope = scope.where(pop_cat_5: params[:pop_cat_5]) if params[:pop_cat_5].present?
       scope = scope.where(symbology_field: params[:symbology_field]) if params[:symbology_field].present?
-
-      scope = scope.where(is_wholesaler: true) if params[:is_wholesaler] == "true"
-      scope = scope.where(is_school_or_daycare: true) if params[:is_school_or_daycare] == "true"
-      scope = scope.where(source_water_protection_code: true) if params[:has_source_protection] == "true"
-      scope = scope.where(open_health_viol: true) if params[:has_open_violations] == "true"
-
       scope = scope.where(stusps: params[:state]) if params[:state].present?
       scope
     end
 
-    # Combine every range filter per the layout: fields under a shared sub_filters parent OR, and
-    # each group ANDs with the rest. Column/table/coercion/join come from the manifest. See
-    # docs/FILTERING.md — sibling filters AND, sub_filters OR.
-    def apply_range_filters(scope, joined, params)
-      range_filter_groups.each do |fields|
-        active = fields.select { |f| range_active?(f, params) }
+    # Range + bool filters combined per the layout: filters within one category OR together (one
+    # .where), and categories AND with one another. Column/table/coercion/join come from the manifest.
+    # A field not surfaced in the layout (backend-only) is its own AND group. See docs/FILTERING.md.
+    def apply_category_filters(scope, joined, params)
+      category_groups.each do |fields|
+        active = fields.select { |f| filter_active?(f, params) }
         next if active.empty?
 
         active.each { |f| scope, joined = ensure_join(scope, joined, f) }
-        predicate = active.map { |f| range_predicate(f, params) }.inject { |a, b| a.or(b) }
+        predicate = active.map { |f| filter_predicate(f, params) }.inject { |a, b| a.or(b) }
         scope = scope.where(predicate)
       end
       [scope, joined]
@@ -87,16 +82,27 @@ module Filterable
       scope
     end
 
-    # Range fields as OR-sets: one per sub_filters parent, plus a singleton per plain or
-    # backend-only range field. Sets AND with one another.
-    def range_filter_groups
-      FieldRegistry.range_filter_fields
-        .group_by { |f| FilterLayout.parent_of[f.key] }
-        .flat_map { |parent, fields| parent ? [fields] : fields.zip }
+    # Range + bool fields grouped into OR-sets by layout category; a field not surfaced in the layout
+    # (backend-only) is its own AND singleton.
+    def category_groups
+      FieldRegistry.fields
+        .select { |f| [:range, :bool].include?(f.filter_kind) }
+        .group_by { |f| FilterLayout.category_of[f.key] }
+        .flat_map { |category, fields| category ? [fields] : fields.zip }
     end
 
-    def range_active?(field, params)
-      params[:"#{field.filter_param}_min"].present? || params[:"#{field.filter_param}_max"].present?
+    def filter_active?(field, params)
+      case field.filter_kind
+      when :range then params[:"#{field.filter_param}_min"].present? || params[:"#{field.filter_param}_max"].present?
+      when :bool then params[field.filter[:param].to_sym] == "true"
+      end
+    end
+
+    def filter_predicate(field, params)
+      case field.filter_kind
+      when :range then range_predicate(field, params)
+      when :bool then Arel::Table.new(field.table)[field.filter_column].eq(true)
+      end
     end
 
     def range_predicate(field, params)

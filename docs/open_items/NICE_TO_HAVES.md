@@ -14,6 +14,16 @@ be ticketed when there is capacity, or deleted if they're no longer relevant.
 
 ## Items
 
+### Testing: JS/system test for filter param collection
+
+We have no JS tests yet. A small system/JS test would lock down the filter→URL payload contract:
+e.g. check a histogram range's gate → Apply → assert the URL carries both `<base>_min` and `<base>_max`
+(even at the default domain, without dragging). This is the one layer not covered by the backend
+`filterable_spec` — see docs/FILTERING.md "how we know all filters send params" / the standalone-range
+seeding in `filter_controller.js#toggleSubcat`.
+
+---
+
 ### Performance: Server-Side Cache for Default Table State
 
 The default table state (no filters, default sort, page 1) is identical for every user and

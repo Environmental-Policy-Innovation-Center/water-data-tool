@@ -12,8 +12,7 @@ Filters are config-driven and split across files by concern. The menu UI is **ge
 |--------|------|
 | `config/fields.yml` (via `FieldRegistry`) | What each filterable FIELD *is*: `filter.kind`, `param` / `param_base`, `label`, `tooltip`, `options` (value/label/default), `has_select_all`, an optional `control:` widget override (e.g. `range_select`, `pop_cat`, `rate_tier`), and the `histogram:` block that drives its slider. |
 | `config/filter_layout.yml` (via `FilterLayout`) | How filters are ARRANGED: which menu/category each sits in, nesting (parent → sub-filters), and **order** (definition order — see [Menu layout & order](#menu-layout--order)). Also owns the copy for menus/categories/parent-filters, which are not fields. |
-| `config/filters.yml` (via `FilterRegistry`) | **Legacy / transitional.** After Thread A Stages 1–2 (docs/CONFIG_AUDIT.md), `permit_arguments` + the sortable maps derive from the manifest and `Filterable` is layout-driven; `filters.yml` now only backs the permit/sort **parity spec** and the `client_payload` JSON embed. Slated for deletion in Stage 3. |
-| `Filterable` | One generic range combiner (`apply_range_filters`) builds each filter from the manifest (`FieldRegistry`) and ANDs siblings / ORs `sub_filters` per `FilterLayout.parent_of`; direct, rate-tier, and geographic filters stay bespoke. No longer reads `FilterRegistry`. |
+| `Filterable` | A category-grouped combiner (`apply_category_filters`) builds each range/bool filter from the manifest (`FieldRegistry`) and **ORs within each `FilterLayout.category_of`, ANDing across categories**; radio/multiselect, rate-tier, and geographic filters are applied bespoke (each a single-filter category → AND). `permit_arguments` + the sortable maps also derive from `FieldRegistry`. (`config/filters.yml` + `FilterRegistry` were retired in Thread A — docs/CONFIG_AUDIT.md.) |
 
 **The menu UI is generated, not hand-authored.** `app/views/home/_filter_menus.html.erb` is a ~25-line driver that loops `FilterLayout.menus → categories → filters` and renders one `_filter_*` partial per control kind; the tab bar in `index.html.erb` loops the same `FilterLayout.menus`. The generated markup emits a **`data-filter-*` DOM contract** (below) rather than hand-matched element ids.
 
@@ -23,9 +22,9 @@ Filters are config-driven and split across files by concern. The menu UI is **ge
 
 Each control's root carries `data-filter-kind` (`radio` · `bool` · `multiselect` · `pop_cat` · `rate_tier` · `place` · `range` · `range_select` · `subcat_parent`) and `data-filter-group` (the menu `id`, used for badge counting). Options carry `data-filter-value` (+ `data-filter-param`). A `range` reuses the slider's `data-slider-field-value` (the param base → `<base>_min` / `<base>_max`) and its `data-slider-target` min/max inputs; `range_select` carries `data-filter-param-min/max` + `data-filter-min/max-sentinel`; `place` carries `data-filter-param` + `data-filter-name-param`. `filter_controller.js` is the single reader of this contract.
 
-**Map page embed:** `app/views/home/_filter_registry_config.html.erb` still renders `<script type="application/json" id="filter-registry-config">` with `FilterRegistry.client_payload_json` — a browser-visible copy of the *backend* permit/column contract for dev-tools inspection. The DOM-driven `filter_controller.js` does not consume it.
+**Checklist when adding a filter:** add the field's `filter:` block to `config/fields.yml` → place it in `config/filter_layout.yml` under a menu→category (filters in the **same category OR**; **different categories AND** — so pick the category to get the combining behavior you want) → for a histogram slider, add the manifest `histogram:` block → add/extend specs. **No JS, no ERB id edits, and no `Filterable` changes** — the combiner is generic, and the menu markup + collect/restore/badge logic are generated and DOM-driven.
 
-**Checklist when adding a filter:** add the field's `filter:` block to `config/fields.yml` → place it in `config/filter_layout.yml` (the menu/category + order; nest it under a parent's `sub_filters` to OR it with siblings, or list it as a plain sibling to AND it) → for a histogram slider, add the manifest `histogram:` block → add/extend specs. **No JS, no ERB id edits, and no `filters.yml` / `Filterable` changes** — the range combiner is generic, and the menu markup + collect/restore/badge logic are generated and DOM-driven.
+**Base table vs. join tables:** the field's `model:` decides which table the filter queries. **`public_water_system` is the base table (no join); every other model is a "join table" that `Filterable` LEFT-joins automatically** (the join association is the model symbol — `demographic`, `violations_summary`, `funding_summary`, `watershed_hazard`, `trend_datum`, `environmental_justice`, `boil_water_summary`). You never hand-write join SQL — just set `model:` correctly and the join is derived.
 
 ### Menu layout & order
 
@@ -65,7 +64,7 @@ Five levels describe every filter option in the system. Use these terms consiste
 - A **Sub-filter** is a more specific option nested under a group.
 - A **Range** is a histogram slider attached to a group or sub-filter. Intermediate levels are optional — a Group can attach a Range directly with no Sub-filter in between.
 
-Nested **group → sub-filters → ranges** UIs (Compliance health 5yr/10yr and **More → Watershed hazards**) render as a `data-filter-kind="subcat_parent"` row wrapping nested `data-filter-kind="range"` rows; `filter_controller.js` handles the parent check-all / indeterminate state generically off that contract. The naming is domain-neutral; backend params still map to `violations_summaries` columns vs `watershed_hazards` via `Filterable` / `config/filters.yml`.
+Nested **group → sub-filters → ranges** UIs (Compliance health 5yr/10yr and **More → Watershed hazards**) render as a `data-filter-kind="subcat_parent"` row wrapping nested `data-filter-kind="range"` rows; `filter_controller.js` handles the parent check-all / indeterminate state generically off that contract. The naming is domain-neutral; backend params still map to `violations_summaries` columns vs `watershed_hazards` via `Filterable` / the manifest.
 
 ---
 
@@ -73,19 +72,21 @@ Nested **group → sub-filters → ranges** UIs (Compliance health 5yr/10yr and 
 
 ### Faceted search model
 
-**The rule, in one line: every filter ANDs; the only OR is among `sub_filters` of a shared parent.**
-Combination is read straight off `config/filter_layout.yml` structure by `Filterable` (via
-`FilterLayout.parent_of`) — categories and menus are visual only and do **not** affect AND/OR.
+**The rule, in one line: filters within the same category OR together; categories AND with each other.**
+This is the standard faceted-search model. Combination is read off `config/filter_layout.yml` by
+`Filterable` (via `FilterLayout.category_of`) — the **category** is the OR unit; menus are visual; and a
+`sub_filters` parent is *purely visual* (collapse + check-all), carrying no AND/OR meaning.
 
 | Boundary | Logic | Example |
 |---|---|---|
-| Between any two `filters:` entries (same or different category/menu) | AND | Source AND Compliance; Health 5yr AND Non-health both required |
-| Between `sub_filters:` within one parent | OR | Groundwater rule OR Lead & copper satisfies Health 5yr |
+| Between filters in the **same category** (incl. sub_filters, and mixed kinds) | OR | open_health_viol OR Groundwater 5yr OR Non-health 5yr all satisfy Violations |
+| Between **different categories** (same or different menu) | AND | Violations AND Notices; Socioeconomics AND Race/Ethnicity |
 | Between range bounds (within one filter) | AND | `col >= min AND col <= max` |
 | Among a multiselect's selected values (within one filter) | OR | owner = Federal OR Local |
 
-To make a set of filters **OR**, nest them under a parent with `sub_filters`; to **AND** them, list them
-as siblings. Adding a sub-filter to a parent therefore broadens; adding a sibling filter narrows.
+Adding another filter **within a category broadens** (OR); engaging **another category narrows** (AND).
+A single-filter category (e.g. Density) is just OR-of-one. To regroup behavior, move a filter to a
+different category in the layout — no code change.
 
 ---
 
@@ -170,7 +171,7 @@ as siblings. Adding a sub-filter to a parent therefore broadens; adding a siblin
   - Non-health violations in the last 5 years *(Group)* ~ range
   - Non-health violations in the last 10 years *(Group)* ~ range
 - **Notices** *(Category)*
-  - Boil water notices 🚫 *(Map UI is a disabled placeholder only—it carries no `data-filter-kind`, so `filter_controller.js` never collects it and Apply does not send params. The server already permits and applies `boil_water_notices_min` / `max` via `boil_water_summaries` (`config/filters.yml`, `Filterable`). The legacy app enabled this filter only for selected geographies because BWN coverage was treated as incomplete; that Stimulus behavior is not re‑implemented yet.)*
+  - Boil water notices 🚫 *(Map UI is a disabled placeholder only—it carries no `data-filter-kind`, so `filter_controller.js` never collects it and Apply does not send params. The server already permits and applies `boil_water_notices_min` / `max` via `boil_water_summaries` (`config/fields.yml`, `Filterable`). The legacy app enabled this filter only for selected geographies because BWN coverage was treated as incomplete; that Stimulus behavior is not re‑implemented yet.)*
 
 ---
 
@@ -269,20 +270,22 @@ Badge counting is DOM-driven (`filter_controller.js` reads each control's `data-
 
 The "No rate info available" toggle within the Financial section is treated as a boolean Group (Option A), not a new taxonomy term. It expands results rather than narrowing them (includes systems with null rate tier data), but this distinction lives in the backend logic — it does not require a new taxonomy level. A code comment in `filterable.rb` notes that this param expands rather than narrows.
 
-### AND/OR is structural (filters AND, sub_filters OR)
+### AND/OR is structural (category = OR unit, AND across categories)
 
-Combination is derived from the layout, not hardcoded per model. Funding's three columns are sibling
-`filters:`, so they **AND** — a system must satisfy every active funding constraint. Watershed hazard
-columns are `sub_filters` under one parent, so they **OR** — any matching hazard qualifies. To change
-either, change the layout nesting (no code change).
+Combination is derived from the layout, not hardcoded per model — `Filterable` groups every range/bool
+filter by its `FilterLayout.category_of` and ORs within each category, ANDing across. Funding's three
+columns share the Funding category, so they **OR**. The Watershed-hazards sub_filters share the
+Environmental category, so they **OR**. Demographic columns split by category — Socioeconomics OR within,
+Race/Ethnicity OR within, and the two categories AND. To change behavior, move a filter to a different
+category (no code change). Radio/multiselect filters each sit in their own single-filter category, so they
+AND (OR-of-one); the rate-tier multiselect and geographic filters are applied bespoke (also single-filter).
 
-### Health violation sub-categories and violation ranges
+### Violations category — all OR
 
-- **Within one parent (Health 5yr, or Health 10yr):** checked `sub_filters` OR together — a system matches
-  if any selected sub-category's range is satisfied (one disjunct per parent).
-- **Across the Violations category's sibling filters** — Health 5yr, Health 10yr, Non-health 5yr, Non-health
-  10yr, and the "Open violations" boolean — each is its own `filters:` entry, so they **AND**: a system must
-  satisfy every active one.
+Everything in the Violations category ORs together: the **Open violations** boolean, the Health 5yr and
+Health 10yr sub_filters, and the Non-health (paperwork) 5yr/10yr ranges. A system matches if **any** of
+them is satisfied. The `health_5yr`/`health_10yr` parents are visual only (collapse + check-all) — they do
+not form a separate OR sub-group; the whole category is one flat OR.
 
 ---
 
@@ -291,6 +294,5 @@ either, change the layout nesting (no code change).
 - **Filter Counter badges** — counting logic is fully implemented and FilterState-based (see Badge counting rule above). Visual presentation and exact design expectations still need confirmation against final design mockups.
 - **Missing tooltips** — `ⓘ` tooltips are missing on several headline category labels: Primary type, Type, Violations, and the Wholesaler filter. Keys need to be added to `config/tooltips.yml` and tooltip spans added to the corresponding ERB.
 - **Annual water/sewer bill "no rate info" behavior** — the checkbox is implemented, but expected behavior needs product confirmation: does checking "No rate info" show *only* systems with no rate data, or does it show all currently-filtered systems *plus* those with no rate data? Currently implemented as the latter (expands).
-- **Client consumption of `#filter-registry-config`** — optional next step: parse the embed in `filter_controller.js` to cross-check that the `data-filter-*` param keys match the backend permit contract in `config/filters.yml`.
 - **URL length** — with many active filters, URLs can become very long. A param compression or alias strategy may be needed. A mapping approach was tried previously and reverted due to complexity; revisit when URLs become a practical problem.
 
