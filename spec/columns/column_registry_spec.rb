@@ -9,11 +9,6 @@ RSpec.describe ColumnRegistry do
     expect(ColumnRegistry.columns).to be_an(Array)
   end
 
-  it "loads all columns defined in the YAML config" do
-    expected = YAML.safe_load_file(Rails.root.join("config/columns.yml"))["columns"].size
-    expect(ColumnRegistry.columns.size).to eq(expected)
-  end
-
   it "first column has key: :check" do
     expect(ColumnRegistry.columns.first.key).to eq(:check)
   end
@@ -34,15 +29,26 @@ RSpec.describe ColumnRegistry do
     expect(ColumnRegistry.columns).not_to be(original)
   end
 
+  describe "layout composition (table_layout.yml is the source of truth)" do
+    it "pins exactly the columns listed in the layout's pinned section" do
+      expect(ColumnRegistry.columns.select(&:pinned).map(&:key)).to eq(TableLayout.pinned_keys)
+    end
+
+    it "renders exactly the layout's columns, omitting any the layout leaves out" do
+      manifest_keys = FieldRegistry.display_field_keys
+      expect(ColumnRegistry.columns.map(&:key)).to eq(TableLayout.column_keys & manifest_keys)
+    end
+  end
+
   describe ".categories" do
     it "returns an Array of CategoryDef" do
       expect(ColumnRegistry.categories).to be_an(Array)
       expect(ColumnRegistry.categories.first).to be_a(CategoryDef)
     end
 
-    it "includes expected category keys in order" do
+    it "includes the expected category keys (order is layout-driven)" do
       keys = ColumnRegistry.categories.map(&:key)
-      expect(keys).to eq([:utility_details, :violations, :demographics, :environmental_justice, :funding, :watershed_hazards])
+      expect(keys).to match_array([:utility_details, :violations, :demographics, :environmental_justice, :funding, :watershed_hazards])
     end
 
     it "each category has a label" do
@@ -206,7 +212,7 @@ RSpec.describe ColumnRegistry do
 
     it "splits category blocks when col_keys interleave different categories" do
       health_key = ColumnRegistry.columns.find { |c| c.category == :violations }&.key
-      expect(health_key).not_to be_nil, "expected columns.yml to have at least one :violations column"
+      expect(health_key).not_to be_nil, "expected the manifest to have at least one :violations column"
       groups = ColumnRegistry.panel_groups(col_keys: ["stusps", health_key.to_s, "pwsid"])
       category_groups = groups.select { |g| g[:type] == :category }
       expect(category_groups.size).to be >= 2
@@ -225,12 +231,12 @@ RSpec.describe ColumnRegistry do
     end
 
     it "uses sql_expr as value for non-boolean columns" do
-      expect(result["Utility Name"]).to eq("pws.pws_name")
+      expect(result["Utility Name"]).to eq("public_water_systems.pws_name")
     end
 
     it "appends ::text to sql_expr for bool-format columns" do
-      expect(result["Wholesaler"]).to eq("pws.is_wholesaler::text")
-      expect(result["Grant eligible"]).to eq("pws.is_grant_eligible::text")
+      expect(result["Wholesaler"]).to eq("public_water_systems.is_wholesaler::text")
+      expect(result["Grant eligible"]).to eq("public_water_systems.is_grant_eligible::text")
     end
 
     it "excludes columns without sql_expr" do
@@ -258,8 +264,8 @@ RSpec.describe ColumnRegistry do
     end
 
     it "uses sql_expr as value without ::text for boolean columns" do
-      expect(result["is_wholesaler"]).to eq("pws.is_wholesaler")
-      expect(result["source_water_protection_code"]).to eq("pws.source_water_protection_code")
+      expect(result["is_wholesaler"]).to eq("public_water_systems.is_wholesaler")
+      expect(result["source_water_protection_code"]).to eq("public_water_systems.source_water_protection_code")
     end
 
     it "excludes columns without sql_expr" do

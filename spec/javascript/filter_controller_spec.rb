@@ -95,19 +95,21 @@ RSpec.describe "filter_controller state preservation" do
         }
       })
       const groundwater = {
-        id: "ws-ground",
+        id: "filter-gw_sw_code-groundwater",
         checked: false,
         type: "radio",
+        dataset: { filterKind: "radio", filterParam: "gw_sw_code", filterValue: "Groundwater", filterGroup: "1" },
         hasAttribute: (name) => name === "data-default"
       }
       const surface = {
-        id: "ws-surface",
+        id: "filter-gw_sw_code-surface-water",
         checked: false,
         type: "radio",
+        dataset: { filterKind: "radio", filterParam: "gw_sw_code", filterValue: "Surface Water", filterGroup: "1" },
         hasAttribute: () => false
       }
-      elementsById["ws-ground"] = groundwater
-      elementsById["ws-surface"] = surface
+      elementsById[groundwater.id] = groundwater
+      elementsById[surface.id] = surface
       const menu = {
         classList: makeClassList("filter-dropdown"),
         contains: () => false,
@@ -149,7 +151,10 @@ RSpec.describe "filter_controller state preservation" do
       eval(source)
 
       const controller = new FilterController()
-      controller.element = { querySelectorAll: () => [] }
+      controller.element = {
+        querySelectorAll: (selector) => selector === "[data-filter-kind]" ? [groundwater, surface] : [],
+        querySelector: () => null
+      }
       controller.application = { getControllerForElementAndIdentifier: () => null }
       controller.connect()
 

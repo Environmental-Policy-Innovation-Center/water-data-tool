@@ -6,11 +6,11 @@ class UI::FilterMenuTabComponentPreview < Lookbook::Preview
 
   # @label Single tab — Source
   def source
-    render UI::FilterMenuTabComponent.new(menu_id: 1, label: "Source")
+    render UI::FilterMenuTabComponent.new(menu_key: "source", label: "Source")
   end
 
-  # @label Single tab — More (menu 10)
+  # @label Single tab — More
   def more
-    render UI::FilterMenuTabComponent.new(menu_id: 10, label: "More")
+    render UI::FilterMenuTabComponent.new(menu_key: "more", label: "More")
   end
 end

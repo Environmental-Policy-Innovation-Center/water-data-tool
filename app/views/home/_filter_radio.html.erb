@@ -1,0 +1,9 @@
+<%# Radio-group filter — <li> rows into the category's <ul>. locals: field_key, group %>
+<% field = FieldRegistry.find(field_key) %>
+<% param = field.filter[:param] %>
+<% field.filter[:options].each do |opt| %>
+  <% opt_id = filter_option_id(param, opt[:value]) %>
+  <li class="<%= filter_row_classes %>"><input type="radio" name="<%= param %>" id="<%= opt_id %>"
+      data-filter-kind="radio" data-filter-param="<%= param %>" data-filter-value="<%= opt[:value] %>" data-filter-group="<%= group %>"
+      <%= "data-default" if opt[:default] %> <%= checked_if filter_option_checked?(param, opt[:value], default: opt[:default] || false) %>><label for="<%= opt_id %>"><%= opt[:label] %></label></li>
+<% end %>

@@ -29,7 +29,7 @@ class ManageColumns::ColumnRowComponentPreview < Lookbook::Preview
     TableColumn.new(
       key:, label:, category:,
       sort: nil, format: :str, format_opts: {}, size: :default,
-      row_header: false, pinned: false, source: :pws,
+      row_header: false, pinned: false, read_from: :pws,
       csv_label: nil, sql_expr: nil
     )
   end

@@ -291,7 +291,8 @@ RSpec.describe Filterable, type: :model do
         expect(results).not_to include(neither)
       end
 
-      it "ORs across time windows — system matches if violations in EITHER window" do
+      # Everything in the Violations category ORs together (category = OR unit).
+      it "ORs across time windows — a system matches if violations in EITHER window" do
         both_windows = create(:public_water_system)
         only_5yr = create(:public_water_system)
         only_10yr = create(:public_water_system)
@@ -306,7 +307,7 @@ RSpec.describe Filterable, type: :model do
         expect(results).not_to include(neither)
       end
 
-      it "ORs paperwork violation windows — system matches if non-health violations in EITHER window" do
+      it "ORs paperwork violation windows — a system matches if non-health violations in EITHER window" do
         only_5yr = create(:public_water_system)
         only_10yr = create(:public_water_system)
         neither = create(:public_water_system)
@@ -319,7 +320,7 @@ RSpec.describe Filterable, type: :model do
         expect(results).not_to include(neither)
       end
 
-      it "ORs health and paperwork groups within the Violations category" do
+      it "ORs health and paperwork within the Violations category" do
         health_only = create(:public_water_system)
         paperwork_only = create(:public_water_system)
         neither = create(:public_water_system)
@@ -329,6 +330,20 @@ RSpec.describe Filterable, type: :model do
 
         results = PublicWaterSystem.apply_filters(groundwater_rule_5yr_min: "1", paperwork_violations_5yr_min: "5")
         expect(results).to include(health_only, paperwork_only)
+        expect(results).not_to include(neither)
+      end
+
+      # open_health_viol (a boolean) is in the Violations category too, so it ORs with the ranges.
+      it "ORs the open-violations boolean with the violation ranges" do
+        open_only = create(:public_water_system, open_health_viol: true)
+        range_only = create(:public_water_system, open_health_viol: false)
+        neither = create(:public_water_system, open_health_viol: false)
+        create(:violations_summary, public_water_system: open_only, groundwater_rule_5yr: 0)
+        create(:violations_summary, public_water_system: range_only, groundwater_rule_5yr: 5)
+        create(:violations_summary, public_water_system: neither, groundwater_rule_5yr: 0)
+
+        results = PublicWaterSystem.apply_filters(has_open_violations: "true", groundwater_rule_5yr_min: "1")
+        expect(results).to include(open_only, range_only)
         expect(results).not_to include(neither)
       end
     end
@@ -357,6 +372,47 @@ RSpec.describe Filterable, type: :model do
         expect(results).to include(high_poverty)
         expect(results).not_to include(low_poverty)
       end
+
+      # density_min/max use param base "density" but filter the population_density column.
+      it "filters by density_min (population_density)" do
+        sparse = create(:public_water_system)
+        dense = create(:public_water_system)
+        create(:demographic, public_water_system: sparse, population_density: 50)
+        create(:demographic, public_water_system: dense, population_density: 5000)
+
+        results = PublicWaterSystem.apply_filters(density_min: "1000")
+        expect(results).to include(dense)
+        expect(results).not_to include(sparse)
+      end
+
+      # Within one category (socioeconomics holds both poverty + unemployment), filters OR.
+      it "ORs demographic columns within a category (socioeconomics)" do
+        poverty_only = create(:public_water_system)
+        unemployment_only = create(:public_water_system)
+        neither = create(:public_water_system)
+        create(:demographic, public_water_system: poverty_only, poverty_rate: 25.0, unemployment_rate: 2.0)
+        create(:demographic, public_water_system: unemployment_only, poverty_rate: 5.0, unemployment_rate: 15.0)
+        create(:demographic, public_water_system: neither, poverty_rate: 5.0, unemployment_rate: 2.0)
+
+        results = PublicWaterSystem.apply_filters(poverty_rate_min: "20", unemployment_rate_min: "10")
+        expect(results).to include(poverty_only, unemployment_only)
+        expect(results).not_to include(neither)
+      end
+
+      # Across categories, AND: poverty (socioeconomics) and poc_rate (race/ethnicity) are different
+      # categories, so both must hold.
+      it "ANDs demographic columns across categories (socioeconomics AND race/ethnicity)" do
+        both = create(:public_water_system)
+        poverty_only = create(:public_water_system)
+        poc_only = create(:public_water_system)
+        create(:demographic, public_water_system: both, poverty_rate: 25.0, poc_rate: 60.0)
+        create(:demographic, public_water_system: poverty_only, poverty_rate: 25.0, poc_rate: 5.0)
+        create(:demographic, public_water_system: poc_only, poverty_rate: 5.0, poc_rate: 60.0)
+
+        results = PublicWaterSystem.apply_filters(poverty_rate_min: "20", poc_rate_min: "50")
+        expect(results).to include(both)
+        expect(results).not_to include(poverty_only, poc_only)
+      end
     end
 
     context "environmental justice filters" do
@@ -369,6 +425,20 @@ RSpec.describe Filterable, type: :model do
         results = PublicWaterSystem.apply_filters(cejst_disadvantaged_pct_min: "50")
         expect(results).to include(high_ej)
         expect(results).not_to include(low_ej)
+      end
+
+      # cejst + cvi are both in the vulnerability category, so they OR.
+      it "ORs environmental justice columns within a category" do
+        cejst_only = create(:public_water_system)
+        cvi_only = create(:public_water_system)
+        neither = create(:public_water_system)
+        create(:environmental_justice, public_water_system: cejst_only, cejst_disadvantaged_pct: 75.0, cvi_overall_score: 1.0)
+        create(:environmental_justice, public_water_system: cvi_only, cejst_disadvantaged_pct: 10.0, cvi_overall_score: 8.0)
+        create(:environmental_justice, public_water_system: neither, cejst_disadvantaged_pct: 10.0, cvi_overall_score: 1.0)
+
+        results = PublicWaterSystem.apply_filters(cejst_disadvantaged_pct_min: "50", cvi_overall_score_min: "5")
+        expect(results).to include(cejst_only, cvi_only)
+        expect(results).not_to include(neither)
       end
     end
 
@@ -420,6 +490,7 @@ RSpec.describe Filterable, type: :model do
         expect(results).not_to include(low_funded)
       end
 
+      # All Funding-category columns OR together.
       it "ORs multiple funding columns" do
         many_times = create(:public_water_system)
         high_amount = create(:public_water_system)
@@ -507,19 +578,19 @@ RSpec.describe Filterable, type: :model do
         expect(results).to include(in_range)
         expect(results).not_to include(out_of_range)
       end
-    end
 
-    context "place geographic filter" do
-      it "filters by place_geoid via crosswalk" do
-        place = create(:cartographic_place)
-        in_place = create(:public_water_system)
-        out_of_place = create(:public_water_system)
-        create(:place_system_crosswalk, public_water_system: in_place, cartographic_place: place,
-          pwsid: in_place.pwsid, geoid: place.geoid)
+      # The two trend columns are both in the "change" category, so they OR.
+      it "ORs the two trend columns" do
+        only_pop = create(:public_water_system)
+        only_mhi = create(:public_water_system)
+        neither = create(:public_water_system)
+        create(:trend_datum, public_water_system: only_pop, population_pct_change_capped: 15.0, mhi_pct_change_capped: -5.0)
+        create(:trend_datum, public_water_system: only_mhi, population_pct_change_capped: -5.0, mhi_pct_change_capped: 15.0)
+        create(:trend_datum, public_water_system: neither, population_pct_change_capped: -5.0, mhi_pct_change_capped: -5.0)
 
-        results = PublicWaterSystem.apply_filters(place_geoid: place.geoid)
-        expect(results).to include(in_place)
-        expect(results).not_to include(out_of_place)
+        results = PublicWaterSystem.apply_filters(population_pct_change_capped_min: "10", mhi_pct_change_capped_min: "10")
+        expect(results).to include(only_pop, only_mhi)
+        expect(results).not_to include(neither)
       end
     end
 

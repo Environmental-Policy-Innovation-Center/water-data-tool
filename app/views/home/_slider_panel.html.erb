@@ -1,5 +1,8 @@
 <% slider_format = local_assigns.fetch(:format, nil) %>
-<div id="<%= panel_id %>" class="hidden py-2" data-controller="slider" data-slider-field-value="<%= field %>" data-slider-url-value="<%= histogram_path %>"<% if slider_format %> data-slider-format-value="<%= slider_format %>"<% end %>>
+<% slider_expanded = local_assigns.fetch(:expanded, false) %>
+<% slider_min = local_assigns.fetch(:min_value, nil) %>
+<% slider_max = local_assigns.fetch(:max_value, nil) %>
+<div id="<%= panel_id %>" class="<%= slider_expanded ? "py-2" : "hidden py-2" %>" data-controller="slider" data-slider-field-value="<%= field %>" data-slider-url-value="<%= histogram_path %>"<% if slider_format %> data-slider-format-value="<%= slider_format %>"<% end %>>
   <p class="text-sm font-bold text-neutral-700"><%= local_assigns.fetch(:label, "Number of violations") %></p>
   <svg data-slider-target="chart" class="w-full overflow-visible" height="128"></svg>
   <%# pl-[31px] = PAD_L (Y_AXIS_W + HANDLE_R), pr-[5px] = PAD_R (HANDLE_R) — must match slider_controller.js %>
@@ -8,7 +11,7 @@
     <span data-slider-target="maxLabel"></span>
   </div>
   <span class="sr-only" data-slider-target="zeroLabel"></span>
-  <div class="flex items-center gap-1 mt-2 text-sm text-neutral-700 pl-[31px] pr-[5px]"> <%# pl/pr match PAD_L/PAD_R above %>
+  <div data-min-max-inputs class="flex items-center gap-1 mt-2 text-sm text-neutral-700 pl-[31px] pr-[5px]"> <%# pl/pr match PAD_L/PAD_R above %>
     <div class="flex flex-col flex-1 min-w-0">
       <input type="text"
              id="<%= panel_id %>-min-text"
@@ -18,6 +21,7 @@
              inputmode="numeric"
              autocomplete="off"
              aria-label="Minimum filter value"
+             value="<%= slider_min %>"
              class="w-full text-sm font-bold bg-neutral-50 border border-neutral-300 rounded px-1.5 py-1 text-neutral-700">
     </div>
     <span aria-hidden="true">-</span>
@@ -30,9 +34,10 @@
              inputmode="numeric"
              autocomplete="off"
              aria-label="Maximum filter value"
+             value="<%= slider_max %>"
              class="w-full text-sm font-bold bg-neutral-50 border border-neutral-300 rounded px-1.5 py-1 text-neutral-700 text-right">
     </div>
   </div>
-  <input type="hidden" data-slider-target="minInput" id="<%= min_input_id %>">
-  <input type="hidden" data-slider-target="maxInput" id="<%= max_input_id %>">
+  <input type="hidden" data-slider-target="minInput" id="<%= min_input_id %>" value="<%= slider_min %>">
+  <input type="hidden" data-slider-target="maxInput" id="<%= max_input_id %>" value="<%= slider_max %>">
 </div>

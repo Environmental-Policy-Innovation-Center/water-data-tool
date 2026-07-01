@@ -1,6 +1,6 @@
-<div id="container-menu-<%= @menu_id %>" class="<%= container_classes %>">
+<div id="container-menu-<%= @menu_key %>" class="<%= container_classes %>">
   <% unless @more_menu %>
-    <div id="main-filter-grp-<%= @menu_id %>"></div>
+    <div id="main-filter-grp-<%= @menu_key %>"></div>
   <% end %>
   <%= content %>
   <div class="sticky bottom-0 z-[999] w-full bg-white pb-2.5 text-center"

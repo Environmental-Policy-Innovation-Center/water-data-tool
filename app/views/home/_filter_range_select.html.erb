@@ -1,0 +1,15 @@
+<%# Range filter rendered as paired min/max dropdowns (area, density). locals: field_key, group %>
+<% field = FieldRegistry.find(field_key) %>
+<% base = field.filter_param.to_s %>
+<% steps = (field.filter[:select_steps].to_s == "area") ? HomeHelper::AREA_STEPS : HomeHelper::DENSITY_STEPS %>
+<p class="my-2.5 mx-0 px-[15px] py-1.5 text-sm font-bold text-neutral-700"><%= field.filter[:label] %></p>
+<div class="mb-5" data-filter-kind="range_select" data-filter-group="<%= group %>"
+     data-filter-param-min="<%= base %>_min" data-filter-param-max="<%= base %>_max"
+     data-filter-min-sentinel="0" data-filter-max-sentinel="999999">
+  <select id="<%= filter_min_id(field_key) %>" aria-label="Minimum <%= field.filter[:label] %>" class="toggle-select min-select left bg-white border border-neutral-400 rounded-md py-2.5 px-[18px] w-[40%] ml-[15px] text-[.9em]">
+    <%= range_select_options(steps: steps, param: base, bound: :min) %>
+  </select>
+  <select id="<%= filter_max_id(field_key) %>" aria-label="Maximum <%= field.filter[:label] %>" class="toggle-select max-select right bg-white border border-neutral-400 rounded-md py-2.5 px-[18px] w-[40%] ml-[15px] text-[.9em]">
+    <%= range_select_options(steps: steps, param: base, bound: :max) %>
+  </select>
+</div>

@@ -20,6 +20,16 @@ module HomeHelper
   FILTER_TOOLTIPS = TOOLTIPS.fetch("filter_menus").freeze
   EXPORTS_TOOLTIPS = TOOLTIPS.fetch("exports").freeze
 
+  # Value ladders for the area / density range-select dropdowns.
+  AREA_STEPS = [1, 2, 4, 5, 10, 15, 20, 25, 50, 100, 250, 500].freeze
+  DENSITY_STEPS = [1, 10, 20, 50, 100, 250, 500, 1000, 2000, 4000, 8000, 10000].freeze
+
+  # Column display format → slider value format (see slider_format_for).
+  SLIDER_FORMAT_BY_DISPLAY = {"cur" => "currency", "pct" => "percent"}.freeze
+
+  # Filter controls that render their own block markup, not <li> rows in the category's <ul>.
+  BLOCK_FILTER_CONTROLS = %w[range_select pop_cat].freeze
+
   def datasets
     DATASETS
   end
@@ -30,6 +40,92 @@ module HomeHelper
 
   def exports_tooltips
     EXPORTS_TOOLTIPS
+  end
+
+  # Read the decoded filter blob so the menus render their active state server-side
+  # on page load. See docs/decisions/URL_MANAGEMENT.md.
+  def filter_state
+    @filter_state || {}
+  end
+
+  def filter_active?(param)
+    filter_state[param.to_s].present?
+  end
+
+  def filter_checked?(param, value)
+    current = filter_state[param.to_s]
+    current.is_a?(Array) ? current.include?(value) : current == value
+  end
+
+  def filter_range_value(param_base, bound)
+    filter_state["#{param_base}_#{bound}"]
+  end
+
+  # Active when a min or max bound is set; the URL omits both at default bounds.
+  def range_active?(field)
+    filter_range_value(field, :min).present? || filter_range_value(field, :max).present?
+  end
+
+  # Aggregate state of a subcat parent's child ranges: `any` drives the open panel/arrow,
+  # `all` drives the checkbox. "Some but not all" is the indeterminate case (JS-only).
+  def subcat_parent_state(parent_key)
+    fields = FilterLayout.placements.select { |p| p.parent == parent_key }.map { |p| p.key.to_s }
+    active = fields.count { |field| range_active?(field) }
+    {any: active.positive?, all: active == fields.size}
+  end
+
+  # Emits the `checked` attribute when the condition holds, nothing otherwise.
+  def checked_if(condition)
+    "checked" if condition
+  end
+
+  # DOM ids for a filter control, derived from its field/parent key (shared with filter_controller.js).
+  def filter_checkbox_id(key) = "filter-#{key}"
+
+  def filter_panel_id(key) = "panel-#{key}"
+
+  def filter_min_id(key) = "min-#{key}"
+
+  def filter_max_id(key) = "max-#{key}"
+
+  # A radio/multiselect option id, value-slugged.
+  def filter_option_id(param, value)
+    "filter-#{param}-#{value.present? ? value.to_s.parameterize : "any"}"
+  end
+
+  # A field's widget: its filter `control:` when set, else its `kind`.
+  def filter_control_for(field_key)
+    field = FieldRegistry.find(field_key)
+    (field.filter[:control] || field.filter_kind).to_s
+  end
+
+  def category_block?(category)
+    first = category[:filters].first
+    return false unless first.is_a?(String)
+    BLOCK_FILTER_CONTROLS.include?(filter_control_for(first))
+  end
+
+  # Slider value format: the histogram bin format, else the column's display format; "count" → none.
+  def slider_format_for(field)
+    fmt = (field.histogram && field.histogram[:format]) ||
+      SLIDER_FORMAT_BY_DISPLAY[field.display && field.display[:format]]
+    fmt unless fmt == "count"
+  end
+
+  # A radio/multiselect option's checked state: when the param is set, whether it
+  # includes this value; when the param is absent, the option's manifest default.
+  # (An all-or-none multiselect omits the param, so absent means "all defaults".)
+  def filter_option_checked?(param, value, default: false)
+    filter_active?(param) ? filter_checked?(param, value) : default
+  end
+
+  # The <option>s for one side of a range-select, with the option matching the current
+  # filter state (or the no-minimum / no-maximum sentinel, when unset) marked selected.
+  def range_select_options(steps:, param:, bound:)
+    sentinel = (bound == :min) ? ["No minimum", "0"] : ["No maximum", "999999"]
+    numeric = steps.map { |n| [n.to_s, n.to_s] }
+    choices = (bound == :min) ? [sentinel] + numeric : numeric + [sentinel]
+    options_for_select(choices, filter_range_value(param, bound).presence || sentinel.last)
   end
 
   def tooltip_icon(text)
@@ -88,6 +184,8 @@ module HomeHelper
     val.nil? ? BLANK_DISPLAY : number_to_currency(val, precision: precision)
   end
 
+  # Only the checkbox and the row-header name cell are sticky (frozen on horizontal scroll). NOTE: a
+  # layout-"pinned" column is always shown but NOT sticky — "pinned" controls visibility, not freezing.
   def render_table_cell(col, pws, row_stripe:)
     sticky_bg = (params[:sort] == Sortable::DEFAULT_SORT_COLUMN) ? "bg-blue-50" : row_stripe
 
@@ -155,9 +253,9 @@ module HomeHelper
   end
 
   def cell_value(pws, col)
-    return nil if col.source.nil?
-    source = (col.source == :pws) ? pws : pws.public_send(col.source)
-    source&.public_send(col.key)
+    return nil if col.read_from.nil?
+    record = (col.read_from == :pws) ? pws : pws.public_send(col.read_from)
+    record&.public_send(col.key)
   end
 
   def format_cell_value(value, format, opts)

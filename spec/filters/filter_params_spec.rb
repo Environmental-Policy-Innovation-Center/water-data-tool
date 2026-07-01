@@ -67,8 +67,7 @@ RSpec.describe FilterParams do
   end
 
   it "permits geographic params" do
-    result = permitted(place_geoid: "0805000", county_geoid: "08031", bounds: "-105,39,-104,40")
-    expect(result[:place_geoid]).to eq("0805000")
+    result = permitted(county_geoid: "08031", bounds: "-105,39,-104,40")
     expect(result[:county_geoid]).to eq("08031")
     expect(result[:bounds]).to eq("-105,39,-104,40")
   end

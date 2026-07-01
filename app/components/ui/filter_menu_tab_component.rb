@@ -7,8 +7,8 @@ class UI::FilterMenuTabComponent < ViewComponent::Base
     "[&.active]:bg-brand-primary [&.active]:border-brand-primary [&.active]:text-white " \
     "#{FOCUS_RING_CLASSES}".freeze
 
-  def initialize(menu_id:, label:, mobile_label: nil)
-    @menu_id = menu_id
+  def initialize(menu_key:, label:, mobile_label: nil)
+    @menu_key = menu_key
     @label = label
     @mobile_label = mobile_label
   end

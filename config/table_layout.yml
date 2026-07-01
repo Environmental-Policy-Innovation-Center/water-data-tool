@@ -1,0 +1,133 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# TABLE COLUMN LAYOUT — read by TableLayout (app/columns/table_layout.rb).
+# Owns ARRANGEMENT (which columns show, their ORDER, and their column-picker category). What each
+# column *is* — label, format, sort, source, csv_label — lives in the manifest, config/fields.yml;
+# here we only reference columns by their manifest key. The table mirror of config/filter_layout.yml.
+#
+# SOURCE OF TRUTH, ONE-DIRECTIONAL — the layout points at the manifest, never the reverse:
+#   • A field in fields.yml not listed here is simply hidden — no error (comment a column out to hide it).
+#   • A column listed here MUST be a field with a `display:` block in fields.yml; a typo / non-displayable
+#     key is skipped at runtime (no 500) and caught by the spec instead.
+#
+# ORDER = DEFINITION ORDER. Columns render left→right in the table (and top→bottom in the picker) in
+# the order listed here; categories in the order their blocks appear. To reorder, move the block.
+#
+# STRUCTURE (every key shown):
+#   pinned:                        # optional — field keys always shown and hidden from the picker
+#     - check                      #   (NOT frozen-on-scroll — only checkbox + name stick on sideways scroll)
+#     - pws_name
+#   categories:                    # the column picker's groups; every non-pinned column lives in one
+#     utility_details:             #   category key — internal group id, never shown to users
+#       label: "Utility Details"   #   heading shown in the column picker
+#       columns:                   #   ordered field keys, each a `display:` entry in fields.yml
+#         - pwsid                  #   (e.g. `pwsid` here ↔ `pwsid:` in fields.yml)
+#         - stusps
+#
+# spec/columns/table_layout_spec.rb keeps this in lockstep with the manifest (every column real,
+# displayable, and listed once).
+# ─────────────────────────────────────────────────────────────────────────────
+
+pinned:
+  - check
+  - pws_name
+
+categories:
+  utility_details:
+    label: "Utility Details"
+    columns:
+      - pwsid
+      - epa_report
+      - stusps
+      - counties
+      - gw_sw_code
+      - source_water_protection_code
+      - owner_type
+      - primacy_type
+      - is_wholesaler
+      - is_school_or_daycare
+      - is_grant_eligible
+      - symbology_field
+      - area_sq_miles
+
+  violations:
+    label: "Violations"
+    columns:
+      - open_health_viol
+      - health_violations_5yr
+      - groundwater_rule_5yr
+      - surface_water_treatment_5yr
+      - lead_and_copper_5yr
+      - radionuclides_5yr
+      - inorganic_chemicals_5yr
+      - synthetic_organic_chemicals_5yr
+      - volatile_organic_chemicals_5yr
+      - total_coliform_5yr
+      - stage_1_disinfectants_5yr
+      - stage_2_disinfectants_5yr
+      - health_violations_10yr
+      - groundwater_rule_10yr
+      - surface_water_treatment_10yr
+      - lead_and_copper_10yr
+      - radionuclides_10yr
+      - inorganic_chemicals_10yr
+      - synthetic_organic_chemicals_10yr
+      - volatile_organic_chemicals_10yr
+      - total_coliform_10yr
+      - stage_1_disinfectants_10yr
+      - stage_2_disinfectants_10yr
+      - paperwork_violations_5yr
+      - paperwork_violations_10yr
+      - total_notices
+
+  demographics:
+    label: "Demographics"
+    columns:
+      - total_population
+      - population_density
+      - population_pct_change
+      - mhi_pct_change
+      - poverty_rate
+      - unemployment_rate
+      - median_household_income
+      - bachelors_degree_rate
+      - age_under_5_rate
+      - age_over_61_rate
+      - poc_rate
+      - white_rate
+      - black_rate
+      - aian_rate
+      - napi_rate
+      - asian_rate
+      - hispanic_rate
+      - other_race_rate
+      - mixed_race_rate
+      - most_common_rate_tier
+      - water_rate_under_125
+      - water_rate_125_249
+      - water_rate_250_499
+      - water_rate_500_749
+      - water_rate_750_999
+      - water_rate_over_1000
+
+  environmental_justice:
+    label: "Environmental Justice"
+    columns:
+      - cejst_disadvantaged_pct
+      - svi_overall_pctl
+      - cvi_overall_score
+
+  funding:
+    label: "Funding"
+    columns:
+      - times_funded
+      - total_srf_assistance
+      - total_principal_forgiveness
+
+  watershed_hazards:
+    label: "Watershed Hazards"
+    columns:
+      - num_facilities
+      - permit_effluent_violations
+      - open_underground_storage_tanks
+      - risk_management_plan_facilities
+      - impaired_streams_303d

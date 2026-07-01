@@ -1,0 +1,10 @@
+<%# Boolean toggle filter, generated from a fields.yml bool field. locals: field_key, group %>
+<% field = FieldRegistry.find(field_key) %>
+<% param = field.filter[:param] %>
+<li class="<%= filter_row_classes %>">
+  <input type="checkbox" class="toggle" id="<%= filter_checkbox_id(param) %>"
+         data-filter-kind="bool" data-filter-param="<%= param %>" data-filter-value="true" data-filter-group="<%= group %>"
+         <%= checked_if filter_active?(param) %>>
+  <label for="<%= filter_checkbox_id(param) %>"><%= field.filter[:label] %></label>
+  <% if field.filter[:tooltip] %><%= tooltip_icon(filter_tooltips[field.filter[:tooltip]]) %><% end %>
+</li>

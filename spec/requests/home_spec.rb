@@ -49,6 +49,16 @@ RSpec.describe "Home", type: :request do
       expect(response.body).to include("ds-dataSource")
     end
 
+    it "renders the filter tabs in filter_layout.yml order with each menu's label" do
+      get root_path
+      dom = Nokogiri::HTML(response.body)
+      tab_ids = dom.css("li[id^='filter-tab-']").map { |li| li["id"] }
+      expect(tab_ids).to eq(FilterLayout.menus.keys.map { |key| "filter-tab-#{key}" })
+      FilterLayout.menus.each do |key, menu|
+        expect(dom.at_css("#filter-tab-#{key}").text).to include(menu[:label])
+      end
+    end
+
     it "returns 200 when encoded= param is present" do
       get root_path, params: {encoded: encode_state({"cols" => "stusps"})}
       expect(response).to have_http_status(:ok)
@@ -57,6 +67,241 @@ RSpec.describe "Home", type: :request do
     it "returns 200 for a malformed encoded= value" do
       get root_path, params: {encoded: "!!!invalid!!!"}
       expect(response).to have_http_status(:ok)
+    end
+  end
+
+  # Filter menus are server-rendered from the decoded `encoded=` blob so a shared URL
+  # shows its active filters on load. See docs/decisions/URL_MANAGEMENT.md.
+  describe "GET / filter menu server-render" do
+    # Assert against the parsed DOM rather than raw-string regex: several controls carry
+    # data-action="...->..." whose literal `>` breaks naive `[^>]*` tag matching.
+    def dom = Nokogiri::HTML(response.body)
+    def checked?(id) = dom.at_css("##{id}")&.attr("checked").present?
+    def label_text(id) = dom.at_css("##{id}")&.text
+    def selected_option(id) = dom.at_css("##{id} option[selected]")&.attr("value")
+    def has_class?(id, klass) = dom.at_css("##{id}")&.attr("class").to_s.split.include?(klass)
+    def input_value(id) = dom.at_css("##{id}")&.attr("value")
+
+    context "radio filters" do
+      it "checks the default radio when the param is absent" do
+        get root_path
+        expect(checked?("filter-gw_sw_code-any")).to be(true)
+        expect(checked?("filter-gw_sw_code-groundwater")).to be(false)
+      end
+
+      it "restores gw_sw_code (Groundwater) to the matching radio" do
+        get root_path, params: {encoded: encode_state({"filters" => {"gw_sw_code" => "Groundwater"}})}
+        expect(checked?("filter-gw_sw_code-groundwater")).to be(true)
+        expect(checked?("filter-gw_sw_code-any")).to be(false)
+        expect(checked?("filter-gw_sw_code-surface-water")).to be(false)
+      end
+
+      it "restores gw_sw_code (Surface Water) to the matching radio" do
+        get root_path, params: {encoded: encode_state({"filters" => {"gw_sw_code" => "Surface Water"}})}
+        expect(checked?("filter-gw_sw_code-surface-water")).to be(true)
+        expect(checked?("filter-gw_sw_code-any")).to be(false)
+      end
+
+      it "restores symbology_field (Modeled) to the matching boundary-type radio" do
+        get root_path, params: {encoded: encode_state({"filters" => {"symbology_field" => "Modeled"}})}
+        expect(checked?("filter-symbology_field-modeled")).to be(true)
+        expect(checked?("filter-symbology_field-any")).to be(false)
+      end
+    end
+
+    context "bool checkboxes" do
+      it "leaves bool checkboxes unchecked when their param is absent" do
+        get root_path
+        expect(checked?("filter-has_source_protection")).to be(false)
+        expect(checked?("filter-has_open_violations")).to be(false)
+      end
+
+      it "checks has_source_protection when set" do
+        get root_path, params: {encoded: encode_state({"filters" => {"has_source_protection" => "true"}})}
+        expect(checked?("filter-has_source_protection")).to be(true)
+      end
+
+      it "checks is_wholesaler when set" do
+        get root_path, params: {encoded: encode_state({"filters" => {"is_wholesaler" => "true"}})}
+        expect(checked?("filter-is_wholesaler")).to be(true)
+      end
+
+      it "checks has_open_violations when set" do
+        get root_path, params: {encoded: encode_state({"filters" => {"has_open_violations" => "true"}})}
+        expect(checked?("filter-has_open_violations")).to be(true)
+      end
+    end
+
+    context "multi-select groups" do
+      it "checks all owner_type options and the select-all when the param is absent" do
+        get root_path
+        expect(checked?("filter-owner_type-federal")).to be(true)
+        expect(checked?("filter-owner_type-public-private")).to be(true)
+        expect(checked?("owner_type-select-all")).to be(true)
+        expect(label_text("owner_type-select-all-txt")).to eq("Deselect all")
+      end
+
+      it "restores only the selected owner_type options (partial selection)" do
+        get root_path, params: {encoded: encode_state({"filters" => {"owner_type" => ["Federal", "Native American"]}})}
+        expect(checked?("filter-owner_type-federal")).to be(true)
+        expect(checked?("filter-owner_type-native-american")).to be(true)
+        expect(checked?("filter-owner_type-state")).to be(false)
+        expect(checked?("filter-owner_type-private")).to be(false)
+      end
+
+      it "unchecks the select-all and relabels it when the owner_type selection is partial" do
+        get root_path, params: {encoded: encode_state({"filters" => {"owner_type" => ["Federal"]}})}
+        expect(checked?("owner_type-select-all")).to be(false)
+        expect(label_text("owner_type-select-all-txt")).to eq("Select all")
+      end
+
+      it "restores only the selected primacy_type options" do
+        get root_path, params: {encoded: encode_state({"filters" => {"primacy_type" => ["State"]}})}
+        expect(checked?("filter-primacy_type-state")).to be(true)
+        expect(checked?("filter-primacy_type-tribal")).to be(false)
+        expect(checked?("filter-primacy_type-territory")).to be(false)
+      end
+    end
+
+    context "range selects (area / density)" do
+      it "selects the no-min / no-max sentinels when the params are absent" do
+        get root_path
+        expect(selected_option("min-area_sq_miles")).to eq("0")
+        expect(selected_option("max-area_sq_miles")).to eq("999999")
+        expect(selected_option("min-population_density")).to eq("0")
+        expect(selected_option("max-population_density")).to eq("999999")
+      end
+
+      it "restores the area min/max selections" do
+        get root_path, params: {encoded: encode_state({"filters" => {"area_min" => "5", "area_max" => "100"}})}
+        expect(selected_option("min-area_sq_miles")).to eq("5")
+        expect(selected_option("max-area_sq_miles")).to eq("100")
+      end
+
+      it "restores the density min/max selections" do
+        get root_path, params: {encoded: encode_state({"filters" => {"density_min" => "50", "density_max" => "2000"}})}
+        expect(selected_option("min-population_density")).to eq("50")
+        expect(selected_option("max-population_density")).to eq("2000")
+      end
+    end
+
+    context "rate-tier buttons" do
+      it "stays collapsed and unselected when the param is absent" do
+        get root_path
+        expect(checked?("filter-most_common_rate_tier")).to be(false)
+        expect(checked?("filter-most_common_rate_tier-no_information")).to be(false)
+        expect(has_class?("filter-most_common_rate_tier-under_125", "active")).to be(false)
+        expect(has_class?("panel-most_common_rate_tier", "hidden")).to be(true)
+      end
+
+      it "restores active tier buttons, the derived parent, and the expanded panel" do
+        get root_path, params: {encoded: encode_state({"filters" => {"most_common_rate_tier" => ["under_125", "over_1000"]}})}
+        expect(has_class?("filter-most_common_rate_tier-under_125", "active")).to be(true)
+        expect(has_class?("filter-most_common_rate_tier-over_1000", "active")).to be(true)
+        expect(has_class?("filter-most_common_rate_tier-tier_250_499", "active")).to be(false)
+        expect(checked?("filter-most_common_rate_tier")).to be(true)
+        expect(has_class?("panel-most_common_rate_tier", "hidden")).to be(false)
+      end
+
+      it "restores the no-information option" do
+        get root_path, params: {encoded: encode_state({"filters" => {"most_common_rate_tier" => ["no_information"]}})}
+        expect(checked?("filter-most_common_rate_tier-no_information")).to be(true)
+        expect(checked?("filter-most_common_rate_tier")).to be(true)
+      end
+    end
+
+    context "population-size buttons (pop_cat)" do
+      it "highlights no size when the param is absent" do
+        get root_path
+        expect(has_class?("filter-pop_cat_5-500", "active")).to be(false)
+        expect(has_class?("filter-pop_cat_5-10-001-100-000", "active")).to be(false)
+      end
+
+      it "highlights only the selected sizes" do
+        get root_path, params: {encoded: encode_state({"filters" => {"pop_cat_5" => ["<=500", "10,001-100,000"]}})}
+        expect(has_class?("filter-pop_cat_5-500", "active")).to be(true)
+        expect(has_class?("filter-pop_cat_5-10-001-100-000", "active")).to be(true)
+        expect(has_class?("filter-pop_cat_5-501-3-300", "active")).to be(false)
+        expect(has_class?("filter-pop_cat_5-3-301-10-000", "active")).to be(false)
+        expect(has_class?("filter-pop_cat_5-100-000", "active")).to be(false)
+      end
+    end
+
+    context "range sliders (GroupRangeComponent)" do
+      it "leaves a range row collapsed, unchecked, and empty when absent" do
+        get root_path
+        expect(checked?("filter-poverty_rate")).to be(false)
+        expect(has_class?("panel-poverty_rate", "hidden")).to be(true)
+        expect(input_value("min-poverty_rate")).to eq("")
+        expect(input_value("max-poverty_rate")).to eq("")
+      end
+
+      it "restores a standalone range: checkbox, expanded panel, and min/max values" do
+        get root_path, params: {encoded: encode_state({"filters" => {"poverty_rate_min" => "10", "poverty_rate_max" => "50"}})}
+        expect(checked?("filter-poverty_rate")).to be(true)
+        expect(has_class?("panel-poverty_rate", "hidden")).to be(false)
+        expect(input_value("min-poverty_rate")).to eq("10")
+        expect(input_value("max-poverty_rate")).to eq("50")
+      end
+
+      it "activates a range when only the min bound is set" do
+        get root_path, params: {encoded: encode_state({"filters" => {"poverty_rate_min" => "10"}})}
+        expect(checked?("filter-poverty_rate")).to be(true)
+        expect(input_value("min-poverty_rate")).to eq("10")
+        expect(input_value("max-poverty_rate")).to eq("")
+      end
+
+      it "restores a nested health sub-filter range (groundwater_rule_5yr)" do
+        get root_path, params: {encoded: encode_state({"filters" => {"groundwater_rule_5yr_min" => "2"}})}
+        expect(checked?("filter-groundwater_rule_5yr")).to be(true)
+        expect(has_class?("panel-groundwater_rule_5yr", "hidden")).to be(false)
+        expect(input_value("min-groundwater_rule_5yr")).to eq("2")
+      end
+    end
+
+    context "subcat parents (health / watershed)" do
+      # All bounds for a parent's child range fields, e.g. {"num_facilities_min" => "1", ...}.
+      def all_child_mins(parent_key)
+        FilterLayout.placements.select { |p| p.parent == parent_key }
+          .each_with_object({}) { |p, h| h["#{p.key}_min"] = "1" }
+      end
+
+      it "leaves a subcat parent unchecked with a hidden panel when absent" do
+        get root_path
+        expect(checked?("filter-health_5yr")).to be(false)
+        expect(has_class?("panel-health_5yr", "hidden")).to be(true)
+      end
+
+      it "expands the panel but leaves the parent unchecked when only some children are active" do
+        get root_path, params: {encoded: encode_state({"filters" => {"groundwater_rule_5yr_min" => "2"}})}
+        expect(has_class?("panel-health_5yr", "hidden")).to be(false)
+        expect(checked?("filter-health_5yr")).to be(false)
+      end
+
+      it "checks the parent and expands the panel when all children are active" do
+        get root_path, params: {encoded: encode_state({"filters" => all_child_mins(:watershed_hazards)})}
+        expect(checked?("filter-watershed_hazards")).to be(true)
+        expect(has_class?("panel-watershed_hazards", "hidden")).to be(false)
+      end
+    end
+
+    context "paperwork inline ranges" do
+      it "leaves the row collapsed, unchecked, and empty when absent" do
+        get root_path
+        expect(checked?("filter-paperwork_violations_5yr")).to be(false)
+        expect(has_class?("panel-paperwork_violations_5yr", "hidden")).to be(true)
+        expect(input_value("min-paperwork_violations_5yr")).to eq("")
+      end
+
+      it "restores the checkbox, expanded panel, and min/max values" do
+        get root_path, params: {encoded: encode_state({"filters" => {"paperwork_violations_5yr_min" => "5", "paperwork_violations_5yr_max" => "20"}})}
+        expect(checked?("filter-paperwork_violations_5yr")).to be(true)
+        expect(has_class?("panel-paperwork_violations_5yr", "hidden")).to be(false)
+        expect(input_value("min-paperwork_violations_5yr")).to eq("5")
+        expect(input_value("max-paperwork_violations_5yr")).to eq("20")
+        expect(input_value("panel-paperwork_violations_5yr-min-text")).to eq("5")
+        expect(input_value("panel-paperwork_violations_5yr-max-text")).to eq("20")
+      end
     end
   end
 

@@ -5,7 +5,7 @@ RSpec.describe ManageColumns::ColumnRowComponent, type: :component do
     TableColumn.new(
       key: :pwsid, label: "Utility ID", sort: "pwsid", format: :str,
       format_opts: {}, size: :default, row_header: false, pinned: false,
-      source: :pws, csv_label: "Utility ID", sql_expr: "pws.pwsid", category: nil
+      read_from: :pws, csv_label: "Utility ID", sql_expr: "pws.pwsid", category: nil
     )
   end
 
@@ -13,7 +13,7 @@ RSpec.describe ManageColumns::ColumnRowComponent, type: :component do
     TableColumn.new(
       key: :health_violations_5yr, label: "Health violations (5yr)", sort: "health_violations_5yr",
       format: :num, format_opts: {}, size: :default, row_header: false, pinned: false,
-      source: :violations_summary, csv_label: "Health violations in the last 5 years",
+      read_from: :violations_summary, csv_label: "Health violations in the last 5 years",
       sql_expr: "vs.health_violations_5yr", category: :violations
     )
   end
