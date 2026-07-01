@@ -28,7 +28,7 @@ module HomeHelper
   SLIDER_FORMAT_BY_DISPLAY = {"cur" => "currency", "pct" => "percent"}.freeze
 
   # Filter controls that render their own block markup, not <li> rows in the category's <ul>.
-  BLOCK_FILTER_CONTROLS = %w[range_select pop_cat place].freeze
+  BLOCK_FILTER_CONTROLS = %w[range_select pop_cat].freeze
 
   def datasets
     DATASETS

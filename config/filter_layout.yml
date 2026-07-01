@@ -6,14 +6,13 @@
 #
 # ORDER = DEFINITION ORDER. Menus render as tabs left→right in the order listed here;
 # categories top→bottom within a menu; filters top→bottom within a category. To reorder,
-# move the block — there is no sort key. (`id` wires a menu to its DOM/JS; it does NOT order.)
+# move the block — there is no sort key. The menu key itself is the stable DOM/badge/JS handle.
 #
 # STRUCTURE (every key shown):
 #   menus:
-#     source:                       # menu key — internal, never shown to users
+#     source:                       # menu key — internal, never shown to users; also the DOM/badge/JS handle
 #       label: "Source"             # tab text
 #       mobile_label: "Filters"     # optional — shorter tab label on phones (only "more" uses it)
-#       id: 1                       # stable DOM/badge/JS handle, NOT order (More = 10; see CONFIG_AUDIT task 15)
 #       width: "w-[390px]"          # optional — panel width (default "w-[350px]")
 #       more_menu: true             # optional — marks the "More" overflow panel
 #       reset_action: "click->filter#resetAll"   # optional — overrides the panel's Reset button action

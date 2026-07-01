@@ -76,7 +76,7 @@ custom_imports:
   epa_sabs_geoms:            {model: public_water_system, reason: "GeoJSON geometry file, not a flat CSV"}
   pwsid_npdes_usts_rmps_imp: {model: watershed_hazard,    reason: "sums the per-HUC12 watershed rows into one row per system"}
   sabs_pwsid_county:         {model: public_water_system, reason: "combines the counties served into one deduplicated list per system"}
-  sdwis_viols:               {model: violations_summary,  reason: "rolls raw violation rows up into 5- and 10-year totals"}
+  sdwis_viols:               {model: violations_summary,  reason: "splits one source file across two tables (public_water_systems + violations_summary)"}
 
 fields:
   # ── Row selection / identity (pinned, ungrouped) ───────────────────────────

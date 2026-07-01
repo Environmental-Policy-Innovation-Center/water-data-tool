@@ -41,24 +41,24 @@ module Etl
 
       private
 
-      # This file's manifest mapping: { model_sym => [{db_column:, header:, cast:}] }.
-      # Generic ingestion targets a single model, so the hash must have exactly one entry.
-      def file_mapping
-        by_model = FieldRegistry.etl_mapping.fetch(file_key.to_sym) do
-          raise KeyError, "no manifest source mapping for #{file_key.inspect}"
-        end
-        unless by_model.size == 1
-          raise "generic importer expects one destination model for #{file_key}, got #{by_model.keys}"
-        end
-        by_model
-      end
+      def model = mapping[:model]
 
-      def model
-        FieldRegistry.model_class(file_mapping.keys.first)
-      end
+      def column_mappings = mapping[:columns]
 
-      def column_mappings
-        file_mapping.values.first
+      # Resolves this file's manifest source mapping once: the destination model class and its
+      # column list [{db_column:, header:, cast:}, ...], read from FieldRegistry.etl_mapping.
+      # Generic ingestion targets a single model, so the manifest must map this file to one.
+      def mapping
+        @mapping ||= begin
+          by_model = FieldRegistry.etl_mapping.fetch(file_key.to_sym) do
+            raise KeyError, "no manifest source mapping for #{file_key.inspect}"
+          end
+          unless by_model.size == 1
+            raise "generic importer expects one destination model for #{file_key}, got #{by_model.keys}"
+          end
+          model_sym, columns = by_model.first
+          {model: FieldRegistry.model_class(model_sym), columns: columns}
+        end
       end
 
       def cast(token, value)
