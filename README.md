@@ -1,8 +1,10 @@
 # Drinking Water Explorer
 
-A public-facing data visualization tool that lets anyone explore public water systems across the United States. Filter, map, and download data about water quality, violations, demographics, and funding for ~70,000 community water systems.
+A public-facing data visualization tool that lets anyone explore public water systems across the United States. Filter, map, and download data about water quality, violations, demographics, and funding for ~44,000 community water systems.
 
-Built for [EPIC](https://www.policyinnovation.org/) (Environmental Policy Innovation Center).
+Built by [EPIC](https://www.policyinnovation.org/) (Environmental Policy Innovation Center) in collaboration with [Thrive](https://thriveteam.io/) and [Bitfoot](https://bitfoot.co/).
+
+Looking for the tool? See [here](https://www.policyinnovation.org/drinking-water-explorer-tool).
 
 ---
 
