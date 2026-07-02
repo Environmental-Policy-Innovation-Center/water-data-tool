@@ -15,6 +15,8 @@ module PublicWaterSystems
     end
 
     def summary_title
+      # Name comes from the canonical stusps lookup, not client-supplied params[:state_name] —
+      # that value is untrusted and can be stale/mismatched (state=VT + state_name=Texas → "Vermont").
       state_name = if params[:state].present?
         CartographicState.find_by(stusps: params[:state])&.name
       else
