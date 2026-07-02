@@ -4,7 +4,7 @@ A public-facing data visualization tool that lets anyone explore public water sy
 
 Built by [EPIC](https://www.policyinnovation.org/) (Environmental Policy Innovation Center) in collaboration with [Thrive](https://thriveteam.io/) and [Bitfoot](https://bitfoot.co/).
 
-v1.0 Developed in partnership with [Center for Neighborhood Technology](cnt.org)
+v1.0 Developed in partnership with [Center for Neighborhood Technology](cnt.org).
 
 Looking for the tool? See [here](https://www.policyinnovation.org/drinking-water-explorer-tool).
 
