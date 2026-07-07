@@ -1,6 +1,28 @@
 require "rails_helper"
 
 RSpec.describe HomeHelper, type: :helper do
+  def with_modified_env(values)
+    previous = values.keys.to_h { |key| [key, ENV[key]] }
+    values.each { |key, value| value.nil? ? ENV.delete(key) : ENV[key] = value }
+    yield
+  ensure
+    previous.each { |key, value| value.nil? ? ENV.delete(key) : ENV[key] = value }
+  end
+
+  describe "environment-backed public asset URLs" do
+    it "builds download URLs from PUBLIC_DOWNLOADS_BASE_URL" do
+      with_modified_env("PUBLIC_DOWNLOADS_BASE_URL" => "https://cdn.example.test/downloads/staging/") do
+        expect(helper.download_url("states/CO.zip")).to eq("https://cdn.example.test/downloads/staging/states/CO.zip")
+      end
+    end
+
+    it "uses METHODOLOGY_PDF_URL for documentation links" do
+      with_modified_env("METHODOLOGY_PDF_URL" => "https://cdn.example.test/methodology.pdf") do
+        expect(helper.methodology_pdf_url).to eq("https://cdn.example.test/methodology.pdf")
+      end
+    end
+  end
+
   describe "#hidden_inputs_for_params" do
     before do
       allow(helper).to receive(:request).and_return(
