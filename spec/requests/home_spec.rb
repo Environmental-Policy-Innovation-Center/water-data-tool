@@ -20,7 +20,7 @@ RSpec.describe "Home", type: :request do
         get root_path
       end
 
-      expect(response.body).to include("https://cdn.example.test/downloads/prod/national-dw-tool.zip")
+      expect(response.body).to include("https://cdn.example.test/downloads/prod/national-dw-tool-staged.zip")
     end
 
     it "renders state download links" do

@@ -9,20 +9,6 @@ RSpec.describe AppConfig do
     previous.each { |key, value| value.nil? ? ENV.delete(key) : ENV[key] = value }
   end
 
-  describe ".app_env" do
-    it "uses APP_ENV when present" do
-      with_modified_env("APP_ENV" => "staging") do
-        expect(described_class.app_env).to eq("staging")
-      end
-    end
-
-    it "falls back to the Rails environment" do
-      with_modified_env("APP_ENV" => nil) do
-        expect(described_class.app_env).to eq(Rails.env.to_s)
-      end
-    end
-  end
-
   describe ".public_downloads_base_url" do
     it "uses PUBLIC_DOWNLOADS_BASE_URL when present and removes a trailing slash" do
       with_modified_env("PUBLIC_DOWNLOADS_BASE_URL" => "https://cdn.example.test/downloads/staging/") do
@@ -30,17 +16,10 @@ RSpec.describe AppConfig do
       end
     end
 
-    it "generates the staging S3 downloads folder for APP_ENV=staging" do
-      with_modified_env("APP_ENV" => "staging", "PUBLIC_DOWNLOADS_BASE_URL" => nil) do
+    it "falls back to the single staged S3 downloads folder" do
+      with_modified_env("PUBLIC_DOWNLOADS_BASE_URL" => nil) do
         expect(described_class.public_downloads_base_url)
-          .to eq("https://tech-team-data.s3.us-east-1.amazonaws.com/national-dw-tool/public-data-downloads/staging")
-      end
-    end
-
-    it "generates the production S3 downloads folder for APP_ENV=production" do
-      with_modified_env("APP_ENV" => "production", "PUBLIC_DOWNLOADS_BASE_URL" => nil) do
-        expect(described_class.public_downloads_base_url)
-          .to eq("https://tech-team-data.s3.us-east-1.amazonaws.com/national-dw-tool/public-data-downloads/prod")
+          .to eq("https://tech-team-data.s3.us-east-1.amazonaws.com/national-dw-tool/public-data-downloads/staged")
       end
     end
   end
