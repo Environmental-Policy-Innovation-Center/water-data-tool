@@ -95,7 +95,6 @@ jobs:
 
           ENV_VARS_JSON='[
             {"name":"RAILS_ENV",           "value":"production"},
-            {"name":"APP_ENV",             "value":"preview"},
             {"name":"RAILS_LOG_TO_STDOUT", "value":"1"},
             {"name":"SOLID_QUEUE_IN_PUMA", "value":"true"},
             {"name":"HTTP_PORT",           "value":"3000"},
