@@ -312,17 +312,16 @@ The workflow reads these from the repository's **Settings → Secrets and variab
 
 ### App environment variables
 
-Set these in the ECS task definition or deployment workflow for each environment:
+Set on each ECS task definition. **Preview** = ephemeral per-PR services (`water_data_tool_pr_<N>`) provisioned by `deploy-client-aws.yml`.
 
-| Name | Staging | Production | Preview |
+| Name | Preview | Staging | Production |
 |---|---|---|---|
-| `APP_ENV` | `staging` | `production` | `preview` |
-| `ETL_SOURCE_URL` | `https://tech-team-data.s3.us-east-1.amazonaws.com/national-dw-tool/staging` | `https://tech-team-data.s3.us-east-1.amazonaws.com/national-dw-tool/prod` | `https://tech-team-data.s3.us-east-1.amazonaws.com/national-dw-tool/staging` |
-| `PUBLIC_DOWNLOADS_BASE_URL` | `https://tech-team-data.s3.us-east-1.amazonaws.com/national-dw-tool/public-data-downloads/staged` | `https://tech-team-data.s3.us-east-1.amazonaws.com/national-dw-tool/public-data-downloads/staged` | `https://tech-team-data.s3.us-east-1.amazonaws.com/national-dw-tool/public-data-downloads/staged` |
-| `METHODOLOGY_PDF_URL` | `https://tech-team-data.s3.us-east-1.amazonaws.com/national-dw-tool/public-data-downloads/EPIC's+Drinking+Water+Explorer+Tool+-+Methodology.pdf` | `https://tech-team-data.s3.us-east-1.amazonaws.com/national-dw-tool/public-data-downloads/EPIC's+Drinking+Water+Explorer+Tool+-+Methodology.pdf` | `https://tech-team-data.s3.us-east-1.amazonaws.com/national-dw-tool/public-data-downloads/EPIC's+Drinking+Water+Explorer+Tool+-+Methodology.pdf` |
-| `ETL_SCHEDULE_ENABLED` | `true` | `true` | unset or `false` |
+| `ETL_SOURCE_URL` | Required<br>`…/staging` | Required<br>`…/staging` | Required<br>`…/prod` |
+| `PUBLIC_DOWNLOADS_BASE_URL` | Optional<br>Default: shared downloads bucket<br>`…/public-data-downloads/staged` | Optional<br>Default: shared downloads bucket<br>`…/public-data-downloads/staged` | Optional<br>Default: shared downloads bucket<br>`…/public-data-downloads/staged` |
+| `METHODOLOGY_PDF_URL` | Optional<br>Default: shared methodology PDF on S3 | Optional<br>Default: shared methodology PDF on S3 | Optional<br>Default: shared methodology PDF on S3 |
+| `ETL_SCHEDULE_ENABLED` | unset or `false` | Strongly encouraged<br>`true` | Required<br>`true` |
 
-Do not use `RAILS_ENV` to distinguish staging from production app behavior. ECS services run Rails in production mode, so `APP_ENV` is the app-level environment identity and `ETL_SCHEDULE_ENABLED` is the recurring ETL gate.
+All ECS services run `RAILS_ENV=production`. Use `ETL_SOURCE_URL` and `ETL_SCHEDULE_ENABLED` — not `RAILS_ENV` — to control data source and recurring imports. `PUBLIC_DOWNLOADS_BASE_URL` and `METHODOLOGY_PDF_URL` have shared S3 defaults, though deploy workflows may still pass explicit values for clarity. PR deploys set `ETL_SOURCE_URL` directly to the staging S3 folder and leave recurring ETL off because PR environments share the preview database.
 
 ### Secrets
 
@@ -339,14 +338,14 @@ Do not use `RAILS_ENV` to distinguish staging from production app behavior. ECS 
 
 All three databases (`water_data_tool_production`, `water_data_tool_staging`, `water_data_tool_preview`) start empty after provisioning. Staging and production should populate from their own S3 folders via ETL:
 
-**Staging** — set `APP_ENV=staging`, `ETL_SOURCE_URL` to the S3 `staging` folder, `PUBLIC_DOWNLOADS_BASE_URL` to `public-data-downloads/staged`, and `ETL_SCHEDULE_ENABLED=true`.
+**Staging** — set `ETL_SOURCE_URL` to the S3 `staging` folder, keep `PUBLIC_DOWNLOADS_BASE_URL` on `public-data-downloads/staged`, and set `ETL_SCHEDULE_ENABLED=true`.
 
 ```bash
 # Via ECS exec after container is healthy
 bin/rails etl:import
 ```
 
-**Production** — set `APP_ENV=production`, `ETL_SOURCE_URL` to the S3 `prod` folder, `PUBLIC_DOWNLOADS_BASE_URL` to `public-data-downloads/staged`, and `ETL_SCHEDULE_ENABLED=true`.
+**Production** — set `ETL_SOURCE_URL` to the S3 `prod` folder, keep `PUBLIC_DOWNLOADS_BASE_URL` on `public-data-downloads/staged`, and set `ETL_SCHEDULE_ENABLED=true`.
 
 **PR / preview** — recommended: trigger a one-time state seed after the PR environment comes up, using the app's existing seed task. A few states is enough to exercise all features including the map.
 

@@ -134,9 +134,8 @@ Looking for the tool? See [here](https://www.policyinnovation.org/drinking-water
 | `MAPBOX_STYLE_URL` | Yes | Mapbox Style URL for account specific styling config |
 | `DB_PORT` | No | PostgreSQL port (default `5432`). Only needed if your Docker container is mapped to a non-default port to avoid a conflict with a local PostgreSQL install — see `docker-compose.override.yml`. |
 | `ETL_SOURCE_URL` | Yes (setup + ETL) | Base HTTPS URL to the S3 folder containing source data files. Staging should point at the S3 `staging` folder; production should point at `prod`. No AWS credentials needed for public reads. |
-| `PUBLIC_DOWNLOADS_BASE_URL` | Yes (deployed app) | Base HTTPS URL for ZIP downloads shown in the Downloads panel. Deployed environments currently use the S3 `public-data-downloads/staged` folder. |
-| `METHODOLOGY_PDF_URL` | Yes (deployed app) | Full HTTPS URL for the methodology/documentation PDF. |
-| `APP_ENV` | Yes (ECS) | Runtime app environment: `staging`, `production`, or `preview`. ECS services may share `RAILS_ENV=production`, so use this for app-level environment identity. |
+| `PUBLIC_DOWNLOADS_BASE_URL` | No | Base HTTPS URL for ZIP downloads shown in the Downloads panel. Defaults to the shared S3 `public-data-downloads/staged` folder. |
+| `METHODOLOGY_PDF_URL` | No | Full HTTPS URL for the methodology/documentation PDF. Defaults to the shared S3 location. |
 | `ETL_SCHEDULE_ENABLED` | No | Set to `true` only in the deployment that should enqueue recurring ETL imports. Defaults to off. |
 | `RAILS_ENV` | No | Defaults to `development` |
 
