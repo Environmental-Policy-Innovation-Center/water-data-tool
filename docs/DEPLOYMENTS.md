@@ -121,6 +121,26 @@ The job summary shows the task ARNs, environment, and the row counts from the ve
 
 This workflow does not backfill PWS generalized geometries. Those columns live on `service_area_geometries` and are derived from EPA SABS service-area polygons, not from TIGER cartographic boundaries.
 
+### Run ETL — preview database
+
+Use **Actions → Run ETL — Preview Database → Run workflow** to run `bin/rails etl:import` against the shared preview database as a one-off ECS task. All PR previews read this database, so one run refreshes data for every open preview.
+
+**Inputs:**
+
+| Input | Description |
+|---|---|
+| `table` | Single file/table key (e.g. `epa_sabs`). Leave blank for a full ETL run. |
+| `force` | Re-import every file, bypassing the per-file Last-Modified freshness check. |
+
+**How it works:**
+
+1. Borrows the staging task definition (preview has no dedicated service).
+2. Overrides `DATABASE_URL` to the shared preview database via Secrets Manager.
+3. Runs a one-off ECS task on spare cluster capacity — no scale-down of running services.
+4. Streams container logs live while polling task status (90-minute timeout).
+
+The job summary shows scope, force flag, task ARN, and who triggered the run.
+
 ### PWS generalized geometries
 
 Production backfills missing `service_area_geometries.geom_z0_4`, `geom_z5`, `geom_z6`, and `geom_z7` during the scheduled nightly ETL. This runs even when all source files are unchanged, because the ETL post-import step checks for missing generalized geometry columns before returning from a no-op import.
