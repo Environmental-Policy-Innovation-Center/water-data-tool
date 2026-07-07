@@ -33,6 +33,8 @@ jobs:
       SERVICE_BUILDER_IMAGE: ${{ vars.SERVICE_BUILDER_IMAGE_URI }}
 
     steps:
+      - uses: actions/checkout@v4
+
       - name: Configure AWS credentials (PR role)
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -108,26 +110,7 @@ jobs:
                 --source-group "$NODE_SG_ID" || true
             fi
 
-            docker run --rm \
-              -e EP_ACTION=destroy \
-              -e EP_ENV="pr-${PR_NUM}" \
-              -e EP_SERVICE_NAME="water_data_tool_pr_${PR_NUM}" \
-              -e EP_SERVICE_SHORT_NAME="pr${PR_NUM}" \
-              -e EP_ECS_CLUSTER_NAME="$ECS_CLUSTER" \
-              -e EP_TF_STATE_S3_BUCKET_NAME="ep-service-builder" \
-              -e EP_SERVICE_INSTANCE_TYPE="t3.small" \
-              -e EP_SERVICE_INSTANCE_COUNT="1" \
-              -e EP_SERVICE_CONTAINER_RAM_MB="1700" \
-              -e EP_SERVICE_DOMAIN="water-data-tool-pr-${PR_NUM}.policyinnovation.info" \
-              -e EP_SERVICE_PORT="3000" \
-              -e EP_SERVICE_HEALTH_PORT="3000" \
-              -e EP_SERVICE_HEALTH_CHECK_PATH="/up" \
-              -e EP_CREATE_ECR_REPO="false" \
-              -e AWS_ACCESS_KEY_ID="$AWS_ACCESS_KEY_ID" \
-              -e AWS_SECRET_ACCESS_KEY="$AWS_SECRET_ACCESS_KEY" \
-              -e AWS_SESSION_TOKEN="$AWS_SESSION_TOKEN" \
-              -e AWS_REGION="$AWS_REGION" \
-              "$SERVICE_BUILDER_IMAGE"
+            "$GITHUB_WORKSPACE/script/teardown_pr_environment" "$PR_NUM"
 
             gh pr close "${PR_NUM}" \
               --repo "$GITHUB_REPOSITORY" \
