@@ -14,6 +14,60 @@ be ticketed when there is capacity, or deleted if they're no longer relevant.
 
 ## Items
 
+### Config: Portal / CSV-driven manifest overrides (config-simplification Phase 6)
+
+The last deferred piece of the config-simplification refactor (CONFIG_AUDIT task 11 / Phase 6).
+With the four-file model in place (`fields.yml` + the two layout files + `tooltips.yml`), the
+back-end is now a single source of truth, which makes a CRUD-style override layer feasible:
+
+- **Manifest override source** — a CSV record or admin portal that writes/overrides `fields.yml`,
+  so "add or tweak a field" becomes a thin CRUD operation rather than a YAML edit + deploy.
+- **Generic filter applier** driven by `filter.kind`, with custom SQL only for the genuinely
+  special filters (the same least-custom discipline the ETL importers follow).
+
+Deferred intentionally — held off on CSV/portal import logic during the refactor. See
+docs/CONFIG_AUDIT.md §"Phase 6" and §"C. Portal / CSV-driven config". Pick up when there's a
+product need to edit fields without a code change.
+
+---
+
+### Config: Schema versioning for the config files
+
+The config files (`fields.yml`, `filter_layout.yml`, `table_layout.yml`) carried an inert
+`version: 1` key that no code, spec, or loader ever read. It was removed during cleanup rather
+than maintained as a placeholder that would silently drift across three files.
+
+Reintroduce a version scheme only when something will actually consume it — the most likely
+trigger is the Portal / CSV override layer above, where an external override may need to assert
+"I was written against fields schema vN" (or a loader/cache-key that busts on schema change).
+If that need lands, design the scheme deliberately: a single authoritative version (not one per
+file), a documented bump rule, and a consumer that enforces or branches on it.
+
+---
+
+### Testing: JS/system test for filter param collection
+
+We have no JS tests yet. A small system/JS test would lock down the filter→URL payload contract:
+e.g. check a histogram range's gate → Apply → assert the URL carries both `<base>_min` and `<base>_max`
+(even at the default domain, without dragging). This is the one layer not covered by the backend
+`filterable_spec` — see docs/FILTERING.md "how we know all filters send params" / the standalone-range
+seeding in `filter_controller.js#toggleSubcat`.
+
+---
+
+### URL sharing: `view=` param for map vs. table
+
+A shared URL currently always lands on the map; it can't carry which view (map/table) the
+sender was in. Add a `view=` URL param so a shared link opens directly on the correct section.
+The blocker that deferred this — client-side filter hydration creating cross-controller load
+races — is gone: `HomeController#index` now decodes all URL state once and the template
+server-renders the initial HTML. So the work is small: read `params[:view]` in
+`HomeController#index`, render the active section server-side, and have `nav_controller.js`
+write `view=` to the URL on section change. See docs/decisions/URL_MANAGEMENT.md (the `view`
+row in the URL Schema table).
+
+---
+
 ### Performance: Server-Side Cache for Default Table State
 
 The default table state (no filters, default sort, page 1) is identical for every user and
@@ -51,6 +105,18 @@ Would run post-import and report to a Slack channel or log. Useful for catching 
 `app/assets/tailwind/application.css` has some leftover notes and may have unconfirmed
 defaults around branding. Before the project is considered stable: confirm base defaults,
 verify brand values are intentional, and remove any stale comments.
+
+---
+
+### Frozen (sticky) pinned table columns
+
+`table_layout.yml`'s `pinned:` list makes a column always-visible and hides it from the column
+picker, but it does **not** freeze it on horizontal scroll. Only the checkbox (`format: check`)
+and name column (`row_header: true`) are sticky, via hardcoded `left-0` / `left-7` offsets in
+`home_helper.rb#render_table_cell` + `table_header_component`. So a third pinned column (e.g.
+`epa_report`) stays in the table but scrolls away. Freezing any pinned column needs cumulative
+`left` offsets — fixed widths for the leading columns, or JS-computed offsets (the name column is
+variable-width today). Revisit if freezing more than the identity columns is desired.
 
 ---
 

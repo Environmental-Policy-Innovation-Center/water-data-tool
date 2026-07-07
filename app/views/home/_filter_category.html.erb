@@ -1,0 +1,16 @@
+<%# A category's controls: list-style in a shared <ul>, block-style (dropdowns/place/pop-size) standalone. %>
+<%= render Filters::CategoryComponent.new(
+      label: category[:label],
+      tooltip_text: (category[:tooltip] && filter_tooltips[category[:tooltip]])) do %>
+  <% if category_block?(category) %>
+    <% category[:filters].each do |filter| %>
+      <%= render "home/filter_control", filter: filter, menu_key: menu_key %>
+    <% end %>
+  <% else %>
+    <ul class="my-[6px] mb-[10px] mx-0 list-none px-1">
+      <% category[:filters].each do |filter| %>
+        <%= render "home/filter_control", filter: filter, menu_key: menu_key %>
+      <% end %>
+    </ul>
+  <% end %>
+<% end %>

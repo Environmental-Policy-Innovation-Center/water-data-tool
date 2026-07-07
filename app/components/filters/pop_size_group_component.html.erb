@@ -1,4 +1,5 @@
 <button type="button"
         id="<%= @id %>"
         class="<%= button_classes %> pop-size-<%= @pop_number %>"
+        data-filter-value="<%= @value %>"
         data-action="click->filter#togglePopSize"><%= @label %><span class="block text-[.75em]"><%= @sublabel %></span></button>

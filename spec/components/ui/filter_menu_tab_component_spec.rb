@@ -2,31 +2,31 @@ require "rails_helper"
 
 RSpec.describe UI::FilterMenuTabComponent, type: :component do
   subject do
-    render_inline described_class.new(menu_id: 1, label: "Source")
+    render_inline described_class.new(menu_key: "source", label: "Source")
   end
 
-  it "renders an li with id derived from menu_id" do
+  it "renders an li with id derived from menu_key" do
     subject
     li = html.css("li").first
     expect(li).to be_present
-    expect(li["id"]).to eq("filter-tab-1")
+    expect(li["id"]).to eq("filter-tab-source")
   end
 
-  it "sets filter class from menu_id" do
+  it "sets filter class from menu_key" do
     subject
-    expect(html.css("li").first["class"]).to include("filter-1")
+    expect(html.css("li").first["class"]).to include("filter-source")
   end
 
   it "renders count badge container with expected id fragment" do
     subject
-    badge = html.css(".container-filter-count-menu-1").first
+    badge = html.css(".container-filter-count-menu-source").first
     expect(badge).to be_present
     expect(badge["aria-hidden"]).to eq("true")
   end
 
   it "renders count span with filter-count-group class" do
     subject
-    span = html.css("span.filter-count-group-1").first
+    span = html.css("span.filter-count-group-source").first
     expect(span).to be_present
     expect(span.text.strip).to eq("0")
   end
@@ -48,13 +48,13 @@ RSpec.describe UI::FilterMenuTabComponent, type: :component do
   it "sets data-menu and Stimulus action" do
     subject
     btn = html.css("button").first
-    expect(btn["data-menu"]).to eq("1")
+    expect(btn["data-menu"]).to eq("source")
     expect(btn["data-action"]).to eq("click->filter-menu#toggleMenu")
   end
 
-  it "sets button id container-menu-btn-{menu_id}" do
+  it "sets button id container-menu-btn-{menu_key}" do
     subject
-    expect(html.css("button").first["id"]).to eq("container-menu-btn-1")
+    expect(html.css("button").first["id"]).to eq("container-menu-btn-source")
   end
 
   it "uses w-auto instead of fixed pixel width" do
@@ -72,7 +72,7 @@ RSpec.describe UI::FilterMenuTabComponent, type: :component do
 
   context "with a mobile_label" do
     subject do
-      render_inline described_class.new(menu_id: 10, label: "More", mobile_label: "Filters")
+      render_inline described_class.new(menu_key: "more", label: "More", mobile_label: "Filters")
     end
 
     it "renders the desktop label hidden on mobile" do

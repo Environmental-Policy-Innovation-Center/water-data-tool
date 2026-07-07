@@ -1,0 +1,28 @@
+<%# Parent filter revealing nested range sub-filters (health 5/10yr, watershed). locals: parent, menu_key %>
+<% parent_key = parent.keys.first %>
+<% body = parent.values.first %>
+<% checkbox_id = filter_checkbox_id(parent_key) %>
+<% panel_id = filter_panel_id(parent_key) %>
+<% state = subcat_parent_state(parent_key) %>
+<li class="<%= filter_row_classes %>" data-filter-kind="subcat_parent" data-filter-group="<%= menu_key %>">
+  <input type="checkbox" class="toggle" id="<%= checkbox_id %>"
+         data-action="change->filter#toggleSubcat"
+         data-panel-id="<%= panel_id %>" <%= checked_if state[:all] %>>
+  <label for="<%= checkbox_id %>"><%= body[:label] %></label>
+  <% if body[:tooltip] %><%= tooltip_icon(filter_tooltips[body[:tooltip]]) %><% end %>
+  <button type="button" class="<%= filter_info_button_classes %>"
+          data-action="click->filter#toggleSubcatPanel"
+          data-panel-id="<%= panel_id %>"
+          aria-expanded="<%= state[:any] %>"
+          aria-controls="<%= panel_id %>">
+    <%= icon("arrow-down", classes: collapse_toggle_icon_classes(expanded: state[:any])) %>
+  </button>
+  <div id="<%= panel_id %>" class="<%= state[:any] ? "pl-2 pb-1" : "hidden pl-2 pb-1" %>" data-subcat-panel
+       data-action="change->filter#syncParentFromSubcat">
+    <ul class="mt-1 list-none px-1">
+      <% body[:sub_filters].each do |sub_key| %>
+        <%= render "home/filter_range", field_key: sub_key, group: menu_key, nested: true %>
+      <% end %>
+    </ul>
+  </div>
+</li>

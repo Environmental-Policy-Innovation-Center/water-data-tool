@@ -2,7 +2,7 @@ require "rails_helper"
 
 RSpec.describe Filters::PopSizeGroupComponent, type: :component do
   def render_pill(**overrides)
-    defaults = {id: "pop-medium", label: "Medium", sublabel: "3,301 - 10,000", pop_number: 3}
+    defaults = {id: "pop-medium", label: "Medium", sublabel: "3,301 - 10,000", pop_number: 3, value: "3,301-10,000"}
     render_inline described_class.new(**defaults.merge(overrides))
   end
 

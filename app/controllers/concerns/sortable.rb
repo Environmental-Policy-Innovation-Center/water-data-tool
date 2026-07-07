@@ -1,8 +1,8 @@
 module Sortable
   extend ActiveSupport::Concern
 
-  SORTABLE_COLUMNS = FilterRegistry.sortable_columns.freeze
-  TABLE_JOINS = FilterRegistry.sortable_table_joins.freeze
+  SORTABLE_COLUMNS = FieldRegistry.sortable_columns.freeze
+  TABLE_JOINS = FieldRegistry.sortable_table_joins.freeze
   DEFAULT_SORT_COLUMN = "pws_name"
 
   def apply_search(scope, term)

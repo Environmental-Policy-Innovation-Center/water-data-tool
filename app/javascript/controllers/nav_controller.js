@@ -133,9 +133,9 @@ export default class extends Controller {
   }
 
   #openFilterDropdown() {
-    const moreBtn = document.getElementById("container-menu-btn-10")
+    const moreBtn = document.getElementById("container-menu-btn-more")
     if (!moreBtn) return
-    const panel = document.getElementById("container-menu-10")
+    const panel = document.getElementById("container-menu-more")
     if (panel && !panel.classList.contains("hidden")) return
     moreBtn.click()
     // filter-menu#toggleMenu sets inline style.left via JS positioning — remove it on mobile
@@ -144,9 +144,9 @@ export default class extends Controller {
   }
 
   #closeFilterDropdown() {
-    const moreBtn = document.getElementById("container-menu-btn-10")
+    const moreBtn = document.getElementById("container-menu-btn-more")
     if (!moreBtn) return
-    const panel = document.getElementById("container-menu-10")
+    const panel = document.getElementById("container-menu-more")
     if (!panel || panel.classList.contains("hidden")) return
     moreBtn.click()
   }
@@ -164,9 +164,9 @@ export default class extends Controller {
 
   // Keeps #activePanel in sync when the filter dropdown is opened/closed by means
   // other than the FAB (e.g. tapping a filter tab directly, or outside-click close).
-  // Observes container-menu-btn-10 / container-menu-10 — the "More" filter menu (menu_id: 10).
+  // Observes container-menu-btn-more / container-menu-more — the "More" filter menu (menu key: more).
   #watchFilterPanelState() {
-    const moreBtn = document.getElementById("container-menu-btn-10")
+    const moreBtn = document.getElementById("container-menu-btn-more")
     if (!moreBtn) return
     this.#filterObserver = new MutationObserver(() => {
       if (window.innerWidth >= 640) return

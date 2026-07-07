@@ -1,0 +1,22 @@
+<%# Multi-select checkbox list, with an optional leading select-all. locals: field_key, group %>
+<% field = FieldRegistry.find(field_key) %>
+<% param = field.filter[:param] %>
+<% select_all = field.filter[:has_select_all] %>
+<% if select_all %>
+  <li class="<%= filter_row_classes %>">
+    <%= render UI::CircleToggleComponent.new(
+          id: "#{param}-select-all",
+          checked: !filter_active?(param),
+          label: filter_active?(param) ? "Select all" : "Deselect all",
+          data_action: "change->filter#toggleSelectAll",
+          input_classes: "toggle select-all default-checked") %>
+  </li>
+<% end %>
+<% field.filter[:options].each do |opt| %>
+  <% opt_id = filter_option_id(param, opt[:value]) %>
+  <% classes = ["toggle"] %>
+  <% classes << "default-checked" if opt[:default] %>
+  <li class="<%= filter_row_classes %>"><input type="checkbox" class="<%= classes.join(" ") %>" id="<%= opt_id %>"
+      data-filter-kind="multiselect" data-filter-param="<%= param %>" data-filter-value="<%= opt[:value] %>" data-filter-group="<%= group %>"
+      <% if select_all %> data-action="change->filter#syncSelectAll"<% end %> <%= checked_if filter_option_checked?(param, opt[:value], default: opt[:default] || false) %>><label for="<%= opt_id %>"><%= opt[:label] %></label></li>
+<% end %>

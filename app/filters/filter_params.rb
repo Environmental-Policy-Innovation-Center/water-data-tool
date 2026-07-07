@@ -2,6 +2,6 @@
 
 class FilterParams
   def self.permit(params)
-    params.permit(*FilterRegistry.permit_arguments)
+    params.permit(*FieldRegistry.permit_arguments)
   end
 end

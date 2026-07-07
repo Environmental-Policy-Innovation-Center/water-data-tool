@@ -1,0 +1,158 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# FILTER MENU LAYOUT — read by FilterLayout (app/filters/filter_layout.rb).
+# Owns ARRANGEMENT (which menu/category a filter sits in, plus nesting and ORDER) and the
+# copy for menus/categories/parent-filters. What each filterable FIELD *is* — kind, param,
+# label, tooltip, options, default — lives in the manifest, config/fields.yml.
+#
+# ORDER = DEFINITION ORDER. Menus render as tabs left→right in the order listed here;
+# categories top→bottom within a menu; filters top→bottom within a category. To reorder,
+# move the block — there is no sort key. The menu key itself is the stable DOM/badge/JS handle.
+#
+# STRUCTURE (every key shown):
+#   menus:
+#     source:                       # menu key — internal, never shown to users; also the DOM/badge/JS handle
+#       label: "Source"             # tab text
+#       mobile_label: "Filters"     # optional — shorter tab label on phones (only "more" uses it)
+#       width: "w-[390px]"          # optional — panel width (default "w-[350px]")
+#       more_menu: true             # optional — marks the "More" overflow panel
+#       reset_action: "click->filter#resetAll"   # optional — overrides the panel's Reset button action
+#       reset_label: "Reset All"                  # optional — overrides the Reset button text
+#       categories:
+#         primary_type:             # category key — internal
+#           label: "Primary type"   # header shown above its filters
+#           tooltip: primary_type   # optional — key into config/tooltips.yml
+#           filters: [gw_sw_code]   # ordered; each entry is ONE of:
+#             #  - a field key, e.g. gw_sw_code  → a filterable field in fields.yml (its copy lives there)
+#             #  - a parent filter, e.g.
+#             #      {health_5yr: {label: "Health violations…", tooltip: violations, sub_filters: [field keys]}}
+#             #    reveals nested sub-filters and gets a check-all just from having `sub_filters`;
+#             #    the parent key (health_5yr) is layout-only, never a field.
+#
+# A filterable field with NO entry here is simply URL-only: filterable via its param, shown in no menu.
+# spec/filters/filter_layout_spec.rb checks this file one-directionally — every filter it references
+# resolves to a real filterable field (listed once); it does NOT require every filter to be placed.
+# ─────────────────────────────────────────────────────────────────────────────
+
+menus:
+  source:
+    label: "Source"
+    categories:
+      primary_type: {label: "Primary type", tooltip: primary_type, filters: [gw_sw_code]}
+      protection:   {label: "Protection", filters: [source_water_protection_code]}
+
+  attributes:
+    label: "Attributes"
+    categories:
+      ownership:     {label: "Ownership", filters: [owner_type]}
+      authority:     {label: "Authority", filters: [primacy_type]}
+      distribution:  {label: "Distribution", filters: [is_wholesaler]}
+      facility_type: {label: "Facility type", filters: [is_school_or_daycare]}
+
+  boundaries:
+    label: "Boundaries"
+    categories:
+      boundary_type: {label: "Type", tooltip: boundary_type, filters: [symbology_field]}
+      size:          {label: "Size", filters: [area_sq_miles]}
+
+  compliance:
+    label: "Compliance"
+    width: "w-[390px]"
+    categories:
+      violations:
+        label: "Violations"
+        tooltip: violations
+        filters:
+          - open_health_viol
+          - health_5yr:
+              label: "Health violations in the last 5 years"
+              sub_filters:
+                - groundwater_rule_5yr
+                - surface_water_treatment_5yr
+                - lead_and_copper_5yr
+                - radionuclides_5yr
+                - inorganic_chemicals_5yr
+                - synthetic_organic_chemicals_5yr
+                - volatile_organic_chemicals_5yr
+                - total_coliform_5yr
+                - stage_1_disinfectants_5yr
+                - stage_2_disinfectants_5yr
+          - health_10yr:
+              label: "Health violations in the last 10 years"
+              sub_filters:
+                - groundwater_rule_10yr
+                - surface_water_treatment_10yr
+                - lead_and_copper_10yr
+                - radionuclides_10yr
+                - inorganic_chemicals_10yr
+                - synthetic_organic_chemicals_10yr
+                - volatile_organic_chemicals_10yr
+                - total_coliform_10yr
+                - stage_1_disinfectants_10yr
+                - stage_2_disinfectants_10yr
+          - paperwork_violations_5yr
+          - paperwork_violations_10yr
+      notices: {label: "Notices", tooltip: boil_water_notices, filters: [total_notices]}
+
+  population:
+    label: "Population"
+    width: "w-[450px]"
+    categories:
+      population_size: {label: "Population size", tooltip: population_size, filters: [pop_cat_5]}
+      density:         {label: "Density", filters: [population_density]}
+      change:          {label: "Change", filters: [population_pct_change, mhi_pct_change]}
+      socioeconomics:
+        label: "Socioeconomics"
+        filters:
+          - poverty_rate
+          - unemployment_rate
+          - median_household_income
+          - bachelors_degree_rate
+          - age_under_5_rate
+          - age_over_61_rate
+      race_ethnicity:
+        label: "Race/Ethnicity"
+        filters:
+          - poc_rate
+          - white_rate
+          - black_rate
+          - aian_rate
+          - napi_rate
+          - asian_rate
+          - hispanic_rate
+          - other_race_rate
+          - mixed_race_rate
+      vulnerability:
+        label: "Vulnerability"
+        filters:
+          - cejst_disadvantaged_pct
+          - svi_overall_pctl
+          - cvi_overall_score
+
+  more:
+    label: "More"
+    mobile_label: "Filters"
+    width: "w-[450px]"
+    more_menu: true
+    reset_action: "click->filter#resetAll"
+    reset_label: "Reset All"
+    categories:
+      financial: {label: "Financial", tooltip: annual_water_sewer_bill, filters: [most_common_rate_tier]}
+      funding:
+        label: "Funding (2021–2025)"
+        tooltip: funding_2021_2025
+        filters:
+          - times_funded
+          - total_srf_assistance
+          - total_principal_forgiveness
+      environmental:
+        label: "Environmental"
+        filters:
+          - watershed_hazards:
+              label: "Potential watershed hazards"
+              tooltip: watershed_hazards
+              sub_filters:
+                - num_facilities
+                - permit_effluent_violations
+                - open_underground_storage_tanks
+                - risk_management_plan_facilities
+                - impaired_streams_303d

@@ -9,19 +9,24 @@ class Filters::PopSizeGroupComponent < ViewComponent::Base
     "[&.active]:bg-[#eff6ea] [&.active]:!text-black [&.active]:!border-l [&.active]:!border-[#66a03b] " \
     "#{FOCUS_RING_CLASSES}".freeze
 
-  def initialize(id:, label:, sublabel:, pop_number:, position: :middle)
+  def initialize(id:, label:, sublabel:, pop_number:, value:, position: :middle)
     @id = id
     @label = label
     @sublabel = sublabel
     @pop_number = pop_number
+    @value = value
     @position = position
   end
 
+  # Highlighted when this size is in the pop_cat_5 selection.
+  def active? = helpers.filter_checked?("pop_cat_5", @value)
+
   def button_classes
-    case @position
+    positioned = case @position
     when :first then class_names(BASE_CLASSES, "border-l rounded-l-[10px]")
     when :last then class_names(BASE_CLASSES, "rounded-r-[10px]")
     else BASE_CLASSES
     end
+    class_names(positioned, "active" => active?)
   end
 end

@@ -56,12 +56,113 @@ RSpec.describe HomeHelper, type: :helper do
     end
   end
 
+  describe "filter state readers" do
+    describe "#filter_state" do
+      it "returns the assigned @filter_state" do
+        assign(:filter_state, {"gw_sw_code" => "Groundwater"})
+        expect(helper.filter_state).to eq({"gw_sw_code" => "Groundwater"})
+      end
+
+      it "defaults to an empty hash when unassigned" do
+        expect(helper.filter_state).to eq({})
+      end
+    end
+
+    describe "#filter_active?" do
+      it "is true when a scalar param is present" do
+        assign(:filter_state, {"has_source_protection" => "true"})
+        expect(helper.filter_active?("has_source_protection")).to be(true)
+      end
+
+      it "is true when an array param is non-empty" do
+        assign(:filter_state, {"owner_type" => ["Federal"]})
+        expect(helper.filter_active?("owner_type")).to be(true)
+      end
+
+      it "is false when the param is absent" do
+        assign(:filter_state, {})
+        expect(helper.filter_active?("has_source_protection")).to be(false)
+      end
+
+      it "is false when an array param is empty" do
+        assign(:filter_state, {"owner_type" => []})
+        expect(helper.filter_active?("owner_type")).to be(false)
+      end
+
+      it "accepts a symbol param" do
+        assign(:filter_state, {"has_source_protection" => "true"})
+        expect(helper.filter_active?(:has_source_protection)).to be(true)
+      end
+    end
+
+    describe "#filter_checked?" do
+      it "matches a scalar value (radio)" do
+        assign(:filter_state, {"gw_sw_code" => "Groundwater"})
+        expect(helper.filter_checked?("gw_sw_code", "Groundwater")).to be(true)
+        expect(helper.filter_checked?("gw_sw_code", "Surface Water")).to be(false)
+      end
+
+      it "matches membership in an array value (multiselect)" do
+        assign(:filter_state, {"owner_type" => ["Federal", "State"]})
+        expect(helper.filter_checked?("owner_type", "Federal")).to be(true)
+        expect(helper.filter_checked?("owner_type", "Private")).to be(false)
+      end
+
+      it "is false when the param is absent" do
+        assign(:filter_state, {})
+        expect(helper.filter_checked?("gw_sw_code", "Groundwater")).to be(false)
+      end
+    end
+
+    describe "#filter_range_value" do
+      it "reads the min and max keys for a param base" do
+        assign(:filter_state, {"area_min" => "5", "area_max" => "100"})
+        expect(helper.filter_range_value("area", :min)).to eq("5")
+        expect(helper.filter_range_value("area", :max)).to eq("100")
+      end
+
+      it "returns nil when the bound is absent" do
+        assign(:filter_state, {"area_min" => "5"})
+        expect(helper.filter_range_value("area", :max)).to be_nil
+      end
+    end
+
+    describe "#filter_option_checked?" do
+      it "falls back to the option default when the param is absent" do
+        assign(:filter_state, {})
+        expect(helper.filter_option_checked?("owner_type", "Federal", default: true)).to be(true)
+        expect(helper.filter_option_checked?("gw_sw_code", "Groundwater")).to be(false)
+      end
+
+      it "uses the URL value, not the default, when the param is present (scalar)" do
+        assign(:filter_state, {"gw_sw_code" => "Groundwater"})
+        expect(helper.filter_option_checked?("gw_sw_code", "Groundwater")).to be(true)
+        expect(helper.filter_option_checked?("gw_sw_code", "Surface Water")).to be(false)
+        # the nil-valued "Both" sentinel is unchecked once a real choice is made
+        expect(helper.filter_option_checked?("gw_sw_code", nil, default: true)).to be(false)
+      end
+
+      it "uses membership when the param is present (array)" do
+        assign(:filter_state, {"owner_type" => ["Federal"]})
+        expect(helper.filter_option_checked?("owner_type", "Federal", default: true)).to be(true)
+        expect(helper.filter_option_checked?("owner_type", "State", default: true)).to be(false)
+      end
+    end
+
+    describe "#checked_if" do
+      it "emits the checked attribute when true, nothing when false" do
+        expect(helper.checked_if(true)).to eq("checked")
+        expect(helper.checked_if(false)).to be_nil
+      end
+    end
+  end
+
   describe "#cell_value" do
     let(:pws) { create(:public_water_system, pwsid: "TX1234567", pws_name: "Test Water") }
 
-    it "reads directly from pws when source is :pws" do
+    it "reads directly from pws when read_from is :pws" do
       col = TableColumn.new(key: :pwsid, label: "Utility ID", sort: nil,
-        format: :str, format_opts: {}, size: :default, row_header: false, pinned: false, source: :pws,
+        format: :str, format_opts: {}, size: :default, row_header: false, pinned: false, read_from: :pws,
         csv_label: nil, sql_expr: nil, category: nil)
       expect(helper.cell_value(pws, col)).to eq("TX1234567")
     end
@@ -70,21 +171,21 @@ RSpec.describe HomeHelper, type: :helper do
       create(:demographic, pwsid: pws.pwsid, total_population: 5_000)
       pws_loaded = PublicWaterSystem.includes(:demographic).find(pws.id)
       col = TableColumn.new(key: :total_population, label: "Population", sort: nil,
-        format: :num, format_opts: {}, size: :default, row_header: false, pinned: false, source: :demographic,
+        format: :num, format_opts: {}, size: :default, row_header: false, pinned: false, read_from: :demographic,
         csv_label: nil, sql_expr: nil, category: nil)
       expect(helper.cell_value(pws_loaded, col)).to eq(5_000)
     end
 
-    it "returns nil when source is nil (check/link columns)" do
+    it "returns nil when read_from is nil (check/link columns)" do
       col = TableColumn.new(key: :check, label: nil, sort: nil,
-        format: :check, format_opts: {}, size: :check, row_header: false, pinned: false, source: nil,
+        format: :check, format_opts: {}, size: :check, row_header: false, pinned: false, read_from: nil,
         csv_label: nil, sql_expr: nil, category: nil)
       expect(helper.cell_value(pws, col)).to be_nil
     end
 
     it "returns nil when the associated record does not exist" do
       col = TableColumn.new(key: :total_population, label: "Population", sort: nil,
-        format: :num, format_opts: {}, size: :default, row_header: false, pinned: false, source: :demographic,
+        format: :num, format_opts: {}, size: :default, row_header: false, pinned: false, read_from: :demographic,
         csv_label: nil, sql_expr: nil, category: nil)
       expect(helper.cell_value(pws, col)).to be_nil
     end

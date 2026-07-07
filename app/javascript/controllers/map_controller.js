@@ -45,7 +45,6 @@ const STATE_FIT_BOUNDS = {
   DE: [[-75.79, 38.45], [-75.05, 39.84]],
   FL: [[-87.63, 24.52], [-80.03, 31.0]],
   GA: [[-85.61, 30.36], [-80.84, 35.0]],
-  GU: [[144.62, 13.23],  [144.96, 13.65]],
   HI: [[-160.5, 18.5],  [-154.5, 22.3]],
   IA: [[-96.64, 40.38], [-90.14, 43.5]],
   ID: [[-117.24, 41.99], [-111.04, 49.0]],
@@ -60,7 +59,6 @@ const STATE_FIT_BOUNDS = {
   MI: [[-90.42, 41.7],  [-82.41, 48.24]],
   MN: [[-97.24, 43.5],  [-89.49, 49.38]],
   MO: [[-95.77, 36.0],  [-89.1, 40.61]],
-  MP: [[144.89, 14.11], [146.06, 20.55]],
   MS: [[-91.66, 30.18], [-88.1, 35.0]],
   MT: [[-116.05, 44.36], [-104.04, 49.0]],
   NC: [[-84.32, 33.84], [-75.46, 36.59]],
@@ -89,14 +87,14 @@ const STATE_FIT_BOUNDS = {
   WI: [[-92.89, 42.49], [-86.81, 47.08]],
   WV: [[-82.64, 37.2],  [-77.72, 40.64]],
   WY: [[-111.05, 40.99], [-104.05, 45.01]]
-  // AK omitted — bbox crosses the antimeridian; REGION_CAMERAS handles it
+  // AK/GU/MP use REGION_CAMERAS below instead.
 }
+// Regions a bounding box can't frame: AK crosses the antimeridian; GU/MP are too small (a box fit
+// hits the state zoom cap and lands too far out). #fitToState flies to these, keyed by stusps.
 const REGION_CAMERAS = {
-  AK: { center: [-149.504, 61.342], zoom: 4.9, settleZoom: 5 },
-  HI: { center: [-157.0, 20.5], zoom: 4.9, settleZoom: 7 },
-  PR: { center: [-66.590, 18.220], zoom: 5, settleZoom: 8 },
-  GU: { center: [144.794, 13.444], zoom: 7, settleZoom: 10 },
-  MP: { center: [145.674, 15.180], zoom: 7, settleZoom: 9 }
+  AK: { center: [-149.504, 61.342], zoom: 5 },
+  GU: { center: [144.794, 13.444], zoom: 10 },
+  MP: { center: [145.674, 15.180], zoom: 9 }
 }
 
 export default class extends Controller {
@@ -598,14 +596,9 @@ export default class extends Controller {
 
   #zoomRegion(regionKey) {
     const state = REGION_STATES[regionKey]
-    const camera = REGION_CAMERAS[regionKey]
-    if (!state || !camera) return
-
+    if (!state) return
     this.#selectState(state)
-    this.map.flyTo({ center: camera.center, zoom: camera.zoom })
-    this.map.once("idle", () => {
-      this.map.flyTo({ zoom: camera.settleZoom, duration: 3600 })
-    })
+    this.#fitToState(state.stusps)
   }
 
   #onResetAll() {
@@ -850,8 +843,15 @@ export default class extends Controller {
   #fitToState(stusps) {
     const leftInset = this.#sidebarLeftInset()
     const padding = leftInset ? { top: 60, bottom: 60, right: 60, left: leftInset + 60 } : 60
-    const fitOptions = { padding, maxZoom: SYSTEMS_ENTRY_ZOOM - 0.01 }
 
+    // Regions a bounding box can't frame (see REGION_CAMERAS) fly to a fixed camera instead.
+    const camera = REGION_CAMERAS[stusps]
+    if (camera) {
+      this.map.flyTo({ center: camera.center, zoom: camera.zoom, padding })
+      return true
+    }
+
+    const fitOptions = { padding, maxZoom: SYSTEMS_ENTRY_ZOOM - 0.01 }
     if (STATE_FIT_BOUNDS[stusps]) {
       this.map.fitBounds(STATE_FIT_BOUNDS[stusps], fitOptions)
       return true
