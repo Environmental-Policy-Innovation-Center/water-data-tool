@@ -134,7 +134,7 @@ jobs:
             echo "|---|---|"
             echo "| **Image digest** | \`$DIGEST\` |"
             echo "| **ECR tag** | \`$IMMUTABLE_TAG\` |"
-            echo "| **Production URL** | https://water-data-tool.policyinnovation.info/ |"
+            echo "| **Production URL** | https://watertool.policyinnovation.info/ |"
             echo "| **Triggered by** | @${{ github.actor }} |"
             echo "| **Time** | $(date -u '+%Y-%m-%d %H:%M UTC') |"
           } >> "$GITHUB_STEP_SUMMARY"

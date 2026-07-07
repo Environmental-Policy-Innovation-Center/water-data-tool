@@ -15,7 +15,7 @@ There are three environments. Pushing to `main` does **not** trigger a deploy �
 | **Trigger** | GitHub Actions → **Promote Staging to Production** | GitHub Actions → **Deploy to Staging** | PR opened/updated against `main` |
 | **Teardown** | Manual | Manual | Automatic on PR close |
 | **ECS service** | `ep_app__water_data_tool__dev_us-east-1` | `ep_app__water_data_tool_staging__dev_us-east-1` | `ep_app__water_data_tool_pr_<N>__dev_us-east-1` |
-| **URL** | `water-data-tool.policyinnovation.info` | `water-data-tool-staging.policyinnovation.info` | `water-data-tool-pr-<N>.policyinnovation.info` |
+| **URL** | `watertool.policyinnovation.info` | `water-data-tool-staging.policyinnovation.info` | `water-data-tool-pr-<N>.policyinnovation.info` |
 | **Database** | `water_data_tool_production` | `water_data_tool_staging` | `water_data_tool_preview` (shared across all PRs) |
 | **ECR image tags** | `prod-promoted-<digest>`, `prod-latest` | `staging-<sha>`, `staging-latest` | `pr-<N>-<sha>`, `pr-<N>-latest` |
 | **IAM role** | `ep_gha__water_data_tool` | `ep_gha__water_data_tool` | `ep_gha__water_data_tool_pr` |
@@ -166,7 +166,7 @@ There is also a `pr-teardowns` environment used exclusively by the two manual te
 
 ```bash
 # Production
-curl -fsSI https://water-data-tool.policyinnovation.info/up
+curl -fsSI https://watertool.policyinnovation.info/up
 
 # Staging
 curl -fsSI https://water-data-tool-staging.policyinnovation.info/up

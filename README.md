@@ -35,7 +35,7 @@ Looking for the tool? See [here](https://www.policyinnovation.org/drinking-water
 
 
 ## Current Deployed Instances
-- **Production**: https://water-data-tool.policyinnovation.info
+- **Production**: https://watertool.policyinnovation.info
 - **Staging**: https://water-data-tool-staging.policyinnovation.info
 - **PR previews**: https://water-data-tool-pr-\<N\>.policyinnovation.info (spun up automatically for each open PR)
 
