@@ -307,7 +307,7 @@ The workflow reads these from the repository's **Settings → Secrets and variab
 | `ECS_CLUSTER` | `ep_core__dev_us-east-1` |
 | `ECS_SERVICE_PROD` | `ep_app__water_data_tool__dev_us-east-1` |
 | `ECS_SERVICE_STAGING` | `ep_app__water_data_tool_staging__dev_us-east-1` |
-| `RDS_SG_ID` | RDS security group ID used by PR preview deploys |
+| `RDS_SG_ID` | RDS security group ID used by PR preview deploy/teardown workflows. This is a GitHub repository variable, not an app `.env` value. |
 | `SERVICE_BUILDER_IMAGE_URI` | `516937823875.dkr.ecr.us-east-1.amazonaws.com/ep_service_builder:latest` |
 
 ### App environment variables
@@ -319,9 +319,9 @@ Set on each ECS task definition. **Preview** = ephemeral per-PR services (`water
 | `ETL_SOURCE_URL` | Required<br>`…/staging` | Required<br>`…/staging` | Required<br>`…/prod` |
 | `PUBLIC_DOWNLOADS_BASE_URL` | Optional<br>Default: shared downloads bucket<br>`…/public-data-downloads/staged` | Optional<br>Default: shared downloads bucket<br>`…/public-data-downloads/staged` | Optional<br>Default: shared downloads bucket<br>`…/public-data-downloads/staged` |
 | `METHODOLOGY_PDF_URL` | Optional<br>Default: shared methodology PDF on S3 | Optional<br>Default: shared methodology PDF on S3 | Optional<br>Default: shared methodology PDF on S3 |
-| `ETL_SCHEDULE_ENABLED` | unset or `false` | Strongly encouraged<br>`true` | Required<br>`true` |
+| `ETL_SCHEDULE_ENABLED` | `true` | Strongly encouraged<br>`true` | Required<br>`true` |
 
-All ECS services run `RAILS_ENV=production`. Use `ETL_SOURCE_URL` and `ETL_SCHEDULE_ENABLED` — not `RAILS_ENV` — to control data source and recurring imports. `PUBLIC_DOWNLOADS_BASE_URL` and `METHODOLOGY_PDF_URL` have shared S3 defaults, though deploy workflows may still pass explicit values for clarity. PR deploys set `ETL_SOURCE_URL` directly to the staging S3 folder and leave recurring ETL off because PR environments share the preview database.
+All ECS services run `RAILS_ENV=production`. Use `ETL_SOURCE_URL` and `ETL_SCHEDULE_ENABLED` — not `RAILS_ENV` — to control data source and recurring imports. `PUBLIC_DOWNLOADS_BASE_URL` and `METHODOLOGY_PDF_URL` have shared S3 defaults, though deploy workflows may still pass explicit values for clarity. PR deploys set `ETL_SOURCE_URL` directly to the staging S3 folder and enable recurring ETL; all PR environments share the preview database, so `EtlImportJob` concurrency and S3 `Last-Modified` checks keep overlapping nightly runs serialized and mostly no-op when source files are unchanged.
 
 ### Secrets
 
@@ -347,21 +347,7 @@ bin/rails etl:import
 
 **Production** — set `ETL_SOURCE_URL` to the S3 `prod` folder, keep `PUBLIC_DOWNLOADS_BASE_URL` on `public-data-downloads/staged`, and set `ETL_SCHEDULE_ENABLED=true`.
 
-**PR / preview** — recommended: trigger a one-time state seed after the PR environment comes up, using the app's existing seed task. A few states is enough to exercise all features including the map.
-
-```bash
-# Via ECS exec after container is healthy
-aws ecs execute-command \
-  --cluster ep_core__dev_us-east-1 \
-  --task <task-arn> \
-  --container water_data_tool_pr_<N> \
-  --interactive \
-  --command "bin/rails 'db:seed:states[VT,RI,OH,CO]'"
-```
-
-This seed command pulls public data from S3 over HTTPS using `ETL_SOURCE_URL` — no AWS credentials required. It could be added as a post-deploy step directly in the `pr-deploy` workflow job once the ECS task is confirmed healthy.
-
-Preview data seeding is still a day-two operational item before PR environments are used for meaningful review work.
+**PR / preview** — recurring ETL is enabled in each preview service. Preview imports read from the staging S3 folder and share the `water_data_tool_preview` database across PRs. ECS exec is disabled; if immediate preview data is needed before the nightly schedule runs, define and run a one-off ECS task for `bin/rails etl:import`, usually with other container memory reservations scaled down so the task can fit on the cluster.
 
 ---
 
