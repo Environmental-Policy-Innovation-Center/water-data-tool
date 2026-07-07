@@ -313,17 +313,16 @@ The workflow reads these from the repository's **Settings → Secrets and variab
 
 ### App environment variables
 
-Set these in the ECS task definition or deployment workflow for each environment:
+Set on each ECS task definition. **Preview** = ephemeral per-PR services (`water_data_tool_pr_<N>`) provisioned by `deploy-client-aws.yml`.
 
-| Name | Staging | Production | Preview |
+| Name | Preview | Staging | Production |
 |---|---|---|---|
-| `APP_ENV` | `staging` | `production` | `preview` |
-| `ETL_SOURCE_URL` | `https://tech-team-data.s3.us-east-1.amazonaws.com/national-dw-tool/staging` | `https://tech-team-data.s3.us-east-1.amazonaws.com/national-dw-tool/prod` | staging or PR-specific S3 folder |
-| `PUBLIC_DOWNLOADS_BASE_URL` | `https://tech-team-data.s3.us-east-1.amazonaws.com/national-dw-tool/public-data-downloads/staging` | `https://tech-team-data.s3.us-east-1.amazonaws.com/national-dw-tool/public-data-downloads/prod` | staging or PR-specific downloads folder |
-| `METHODOLOGY_PDF_URL` | Full methodology PDF URL | Full methodology PDF URL | Full methodology PDF URL |
-| `ETL_SCHEDULE_ENABLED` | `false` unless staging should run recurring imports | `true` only if production should run recurring imports | `false` |
+| `ETL_SOURCE_URL` | Required<br>`…/staging` | Required<br>`…/staging` | Required<br>`…/prod` |
+| `PUBLIC_DOWNLOADS_BASE_URL` | Optional<br>Default: shared downloads bucket<br>`…/public-data-downloads/staged` | Optional<br>Default: shared downloads bucket<br>`…/public-data-downloads/staged` | Optional<br>Default: shared downloads bucket<br>`…/public-data-downloads/staged` |
+| `METHODOLOGY_PDF_URL` | Optional<br>Default: shared methodology PDF on S3 | Optional<br>Default: shared methodology PDF on S3 | Optional<br>Default: shared methodology PDF on S3 |
+| `ETL_SCHEDULE_ENABLED` | Encouraged<br>`true` (testing) | Strongly encouraged<br>`true` | Required<br>`true` |
 
-Do not use `RAILS_ENV` to distinguish staging from production app behavior. ECS services run Rails in production mode, so `APP_ENV` is the app-level environment identity and `ETL_SCHEDULE_ENABLED` is the recurring ETL gate.
+All ECS services run `RAILS_ENV=production`. Use `ETL_SOURCE_URL` and `ETL_SCHEDULE_ENABLED` — not `RAILS_ENV` — to control data source and recurring imports. PR deploys set `ETL_SOURCE_URL` from the `ETL_SOURCE_URL` GitHub variable.
 
 ### Secrets
 
@@ -331,42 +330,3 @@ Do not use `RAILS_ENV` to distinguish staging from production app behavior. ECS 
 |---|---|
 | `AWS_DEPLOY_ROLE_ARN` | IAM role ARN for branch deploys (production + staging) |
 | `AWS_PR_DEPLOY_ROLE_ARN` | IAM role ARN for per-PR provisioning and teardown |
-
----
-
-## Known gaps / TODO
-
-### Data population strategy
-
-All three databases (`water_data_tool_production`, `water_data_tool_staging`, `water_data_tool_preview`) start empty after provisioning. Staging and production should populate from their own S3 folders via ETL:
-
-**Staging** — set `APP_ENV=staging`, `ETL_SOURCE_URL` to the S3 `staging` folder, and `PUBLIC_DOWNLOADS_BASE_URL` to `public-data-downloads/staging`. Run `bin/rails etl:import` manually or set `ETL_SCHEDULE_ENABLED=true` if staging should maintain its own recurring imports.
-
-```bash
-# Via ECS exec after container is healthy
-bin/rails etl:import
-```
-
-**Production** — set `APP_ENV=production`, `ETL_SOURCE_URL` to the S3 `prod` folder, `PUBLIC_DOWNLOADS_BASE_URL` to `public-data-downloads/prod`, and `ETL_SCHEDULE_ENABLED=true` only in the production service that should enqueue recurring imports.
-
-**PR / preview** — recommended: trigger a one-time state seed after the PR environment comes up, using the app's existing seed task. A few states is enough to exercise all features including the map.
-
-```bash
-# Via ECS exec after container is healthy
-aws ecs execute-command \
-  --cluster ep_core__dev_us-east-1 \
-  --task <task-arn> \
-  --container water_data_tool_pr_<N> \
-  --interactive \
-  --command "bin/rails 'db:seed:states[VT,RI,OH,CO]'"
-```
-
-This seed command pulls public data from S3 over HTTPS using `ETL_SOURCE_URL` — no AWS credentials required. It could be added as a post-deploy step directly in the `pr-deploy` workflow job once the ECS task is confirmed healthy.
-
-Preview data seeding is still a day-two operational item before PR environments are used for meaningful review work.
-
----
-
-### Stale PR environment cleanup
-
-PR environments are torn down automatically by the `pr-teardowns` job when a PR is closed. If teardown fails, environments can be cleaned up manually using the **Teardown PR Environment** or **Teardown Stale PR Environments** workflows (see [Tear down a specific PR environment manually](#tear-down-a-specific-pr-environment-manually) above).
