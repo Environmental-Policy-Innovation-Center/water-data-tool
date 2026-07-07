@@ -95,11 +95,14 @@ jobs:
 
           ENV_VARS_JSON='[
             {"name":"RAILS_ENV",           "value":"production"},
+            {"name":"APP_ENV",             "value":"preview"},
             {"name":"RAILS_LOG_TO_STDOUT", "value":"1"},
             {"name":"SOLID_QUEUE_IN_PUMA", "value":"true"},
             {"name":"HTTP_PORT",           "value":"3000"},
             {"name":"TARGET_PORT",         "value":"3001"},
-            {"name":"ETL_SOURCE_URL",      "value":"${{ vars.ETL_SOURCE_URL }}"}
+            {"name":"ETL_SOURCE_URL",      "value":"https://tech-team-data.s3.us-east-1.amazonaws.com/national-dw-tool/staging"},
+            {"name":"PUBLIC_DOWNLOADS_BASE_URL", "value":"https://tech-team-data.s3.us-east-1.amazonaws.com/national-dw-tool/public-data-downloads/staged"},
+            {"name":"METHODOLOGY_PDF_URL", "value":"https://tech-team-data.s3.us-east-1.amazonaws.com/national-dw-tool/public-data-downloads/EPIC'\''s+Drinking+Water+Explorer+Tool+-+Methodology.pdf"}
           ]'
 
           docker run --rm \

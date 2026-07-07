@@ -102,7 +102,7 @@ jobs:
             echo "|---|---|"
             echo "| **SHA** | \`${DEPLOY_SHA:0:8}\` |"
             echo "| **ECR tag** | \`staging-${DEPLOY_SHA}\` |"
-            echo "| **Staging URL** | ${{ vars.STAGING_URL }} |"
+            echo "| **Staging URL** | https://water-data-tool-staging.policyinnovation.info/ |"
             echo "| **Triggered by** | @${{ github.actor }} |"
             echo "| **Time** | $(date -u '+%Y-%m-%d %H:%M UTC') |"
           } >> "$GITHUB_STEP_SUMMARY"

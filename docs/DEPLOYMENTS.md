@@ -307,8 +307,7 @@ The workflow reads these from the repository's **Settings → Secrets and variab
 | `ECS_CLUSTER` | `ep_core__dev_us-east-1` |
 | `ECS_SERVICE_PROD` | `ep_app__water_data_tool__dev_us-east-1` |
 | `ECS_SERVICE_STAGING` | `ep_app__water_data_tool_staging__dev_us-east-1` |
-| `PROD_URL` | `https://water-data-tool.policyinnovation.info/` |
-| `STAGING_URL` | `https://water-data-tool-staging.policyinnovation.info/` |
+| `RDS_SG_ID` | RDS security group ID used by PR preview deploys |
 | `SERVICE_BUILDER_IMAGE_URI` | `516937823875.dkr.ecr.us-east-1.amazonaws.com/ep_service_builder:latest` |
 
 ### App environment variables
@@ -318,10 +317,10 @@ Set these in the ECS task definition or deployment workflow for each environment
 | Name | Staging | Production | Preview |
 |---|---|---|---|
 | `APP_ENV` | `staging` | `production` | `preview` |
-| `ETL_SOURCE_URL` | `https://tech-team-data.s3.us-east-1.amazonaws.com/national-dw-tool/staging` | `https://tech-team-data.s3.us-east-1.amazonaws.com/national-dw-tool/prod` | staging or PR-specific S3 folder |
-| `PUBLIC_DOWNLOADS_BASE_URL` | `https://tech-team-data.s3.us-east-1.amazonaws.com/national-dw-tool/public-data-downloads/staging` | `https://tech-team-data.s3.us-east-1.amazonaws.com/national-dw-tool/public-data-downloads/prod` | staging or PR-specific downloads folder |
-| `METHODOLOGY_PDF_URL` | Full methodology PDF URL | Full methodology PDF URL | Full methodology PDF URL |
-| `ETL_SCHEDULE_ENABLED` | `false` unless staging should run recurring imports | `true` only if production should run recurring imports | `false` |
+| `ETL_SOURCE_URL` | `https://tech-team-data.s3.us-east-1.amazonaws.com/national-dw-tool/staging` | `https://tech-team-data.s3.us-east-1.amazonaws.com/national-dw-tool/prod` | `https://tech-team-data.s3.us-east-1.amazonaws.com/national-dw-tool/staging` |
+| `PUBLIC_DOWNLOADS_BASE_URL` | `https://tech-team-data.s3.us-east-1.amazonaws.com/national-dw-tool/public-data-downloads/staged` | `https://tech-team-data.s3.us-east-1.amazonaws.com/national-dw-tool/public-data-downloads/staged` | `https://tech-team-data.s3.us-east-1.amazonaws.com/national-dw-tool/public-data-downloads/staged` |
+| `METHODOLOGY_PDF_URL` | `https://tech-team-data.s3.us-east-1.amazonaws.com/national-dw-tool/public-data-downloads/EPIC's+Drinking+Water+Explorer+Tool+-+Methodology.pdf` | `https://tech-team-data.s3.us-east-1.amazonaws.com/national-dw-tool/public-data-downloads/EPIC's+Drinking+Water+Explorer+Tool+-+Methodology.pdf` | `https://tech-team-data.s3.us-east-1.amazonaws.com/national-dw-tool/public-data-downloads/EPIC's+Drinking+Water+Explorer+Tool+-+Methodology.pdf` |
+| `ETL_SCHEDULE_ENABLED` | `true` | `true` | unset or `false` |
 
 Do not use `RAILS_ENV` to distinguish staging from production app behavior. ECS services run Rails in production mode, so `APP_ENV` is the app-level environment identity and `ETL_SCHEDULE_ENABLED` is the recurring ETL gate.
 
@@ -340,14 +339,14 @@ Do not use `RAILS_ENV` to distinguish staging from production app behavior. ECS 
 
 All three databases (`water_data_tool_production`, `water_data_tool_staging`, `water_data_tool_preview`) start empty after provisioning. Staging and production should populate from their own S3 folders via ETL:
 
-**Staging** — set `APP_ENV=staging`, `ETL_SOURCE_URL` to the S3 `staging` folder, and `PUBLIC_DOWNLOADS_BASE_URL` to `public-data-downloads/staging`. Run `bin/rails etl:import` manually or set `ETL_SCHEDULE_ENABLED=true` if staging should maintain its own recurring imports.
+**Staging** — set `APP_ENV=staging`, `ETL_SOURCE_URL` to the S3 `staging` folder, `PUBLIC_DOWNLOADS_BASE_URL` to `public-data-downloads/staged`, and `ETL_SCHEDULE_ENABLED=true`.
 
 ```bash
 # Via ECS exec after container is healthy
 bin/rails etl:import
 ```
 
-**Production** — set `APP_ENV=production`, `ETL_SOURCE_URL` to the S3 `prod` folder, `PUBLIC_DOWNLOADS_BASE_URL` to `public-data-downloads/prod`, and `ETL_SCHEDULE_ENABLED=true` only in the production service that should enqueue recurring imports.
+**Production** — set `APP_ENV=production`, `ETL_SOURCE_URL` to the S3 `prod` folder, `PUBLIC_DOWNLOADS_BASE_URL` to `public-data-downloads/staged`, and `ETL_SCHEDULE_ENABLED=true`.
 
 **PR / preview** — recommended: trigger a one-time state seed after the PR environment comes up, using the app's existing seed task. A few states is enough to exercise all features including the map.
 

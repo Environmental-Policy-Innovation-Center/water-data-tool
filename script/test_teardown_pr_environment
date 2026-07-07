@@ -1,0 +1,95 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+TMP_DIR="$(mktemp -d)"
+trap 'rm -rf "$TMP_DIR"' EXIT
+
+CALL_LOG="$TMP_DIR/calls.log"
+DOCKER_COUNT="$TMP_DIR/docker-count"
+echo 0 > "$DOCKER_COUNT"
+touch "$CALL_LOG"
+
+cat > "$TMP_DIR/aws" <<'STUB'
+#!/usr/bin/env bash
+set -euo pipefail
+echo "aws $*" >> "$CALL_LOG"
+
+case "$1 $2" in
+  "s3api head-bucket")
+    exit 0
+    ;;
+  "s3 rm")
+    exit 0
+    ;;
+  "s3api list-object-versions")
+    cat <<'JSON'
+{
+  "Versions": [
+    {"Key": "AWSLogs/123/current.log", "VersionId": "v1"}
+  ],
+  "DeleteMarkers": [
+    {"Key": "AWSLogs/123/deleted.log", "VersionId": "d1"}
+  ]
+}
+JSON
+    ;;
+  "s3api delete-objects")
+    exit 0
+    ;;
+  "s3api delete-bucket")
+    exit 0
+    ;;
+esac
+STUB
+
+cat > "$TMP_DIR/docker" <<'STUB'
+#!/usr/bin/env bash
+set -euo pipefail
+echo "docker $*" >> "$CALL_LOG"
+count="$(cat "$DOCKER_COUNT")"
+count=$((count + 1))
+echo "$count" > "$DOCKER_COUNT"
+
+if [ "$count" -eq 1 ]; then
+  exit 42
+fi
+exit 0
+STUB
+
+chmod +x "$TMP_DIR/aws" "$TMP_DIR/docker"
+
+export PATH="$TMP_DIR:$PATH"
+export CALL_LOG
+export DOCKER_COUNT
+export AWS_ACCESS_KEY_ID=test-access-key
+export AWS_SECRET_ACCESS_KEY=test-secret-key
+export AWS_SESSION_TOKEN=test-session-token
+export AWS_REGION=us-east-1
+export ECS_CLUSTER=ep_core__dev_us-east-1
+export SERVICE_BUILDER_IMAGE=service-builder:test
+
+"$ROOT_DIR/script/teardown_pr_environment" 243
+
+EXPECTED_BUCKET="ep-app--water-data-tool-pr-243-alb-logs--dev-us-east-1-epic"
+
+grep -q "aws s3api head-bucket --bucket $EXPECTED_BUCKET" "$CALL_LOG"
+grep -q "aws s3 rm s3://$EXPECTED_BUCKET --recursive --only-show-errors" "$CALL_LOG"
+grep -q "aws s3api delete-objects --bucket $EXPECTED_BUCKET" "$CALL_LOG"
+grep -q "aws s3api delete-bucket --bucket $EXPECTED_BUCKET" "$CALL_LOG"
+grep -q -- "-e EP_ACTION=destroy" "$CALL_LOG"
+grep -q -- "-e EP_ENV=pr-243" "$CALL_LOG"
+grep -q -- "-e EP_SERVICE_NAME=water_data_tool_pr_243" "$CALL_LOG"
+grep -q -- "-e EP_SERVICE_SHORT_NAME=pr243" "$CALL_LOG"
+
+if [ "$(cat "$DOCKER_COUNT")" -ne 2 ]; then
+  echo "expected service_builder destroy to be retried once" >&2
+  exit 1
+fi
+
+first_empty_line="$(grep -n "aws s3 rm s3://$EXPECTED_BUCKET" "$CALL_LOG" | head -1 | cut -d: -f1)"
+first_docker_line="$(grep -n "docker run --rm" "$CALL_LOG" | head -1 | cut -d: -f1)"
+if [ "$first_empty_line" -ge "$first_docker_line" ]; then
+  echo "expected bucket emptying before first service_builder destroy" >&2
+  exit 1
+fi

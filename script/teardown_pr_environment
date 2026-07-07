@@ -1,0 +1,108 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+PR_NUM="${1:-${PR_NUM:-}}"
+
+if [[ ! "$PR_NUM" =~ ^[0-9]+$ ]]; then
+  echo "Usage: $0 <pr-number>" >&2
+  exit 2
+fi
+
+ALB_LOG_BUCKET="ep-app--water-data-tool-pr-${PR_NUM}-alb-logs--dev-us-east-1-epic"
+
+bucket_exists() {
+  aws s3api head-bucket --bucket "$ALB_LOG_BUCKET" >/dev/null 2>&1
+}
+
+delete_versioned_objects() {
+  local versions_file delete_file
+  versions_file="$(mktemp)"
+  delete_file="$(mktemp)"
+
+  aws s3api list-object-versions \
+    --bucket "$ALB_LOG_BUCKET" \
+    --output json > "$versions_file"
+
+  jq -c '
+    [
+      (.Versions // [])[] | {Key: .Key, VersionId: .VersionId}
+    ] + [
+      (.DeleteMarkers // [])[] | {Key: .Key, VersionId: .VersionId}
+    ] | {Objects: ., Quiet: true}
+  ' "$versions_file" > "$delete_file"
+
+  if jq -e '.Objects | length > 0' "$delete_file" >/dev/null; then
+    aws s3api delete-objects \
+      --bucket "$ALB_LOG_BUCKET" \
+      --delete "file://$delete_file" >/dev/null
+  fi
+
+  rm -f "$versions_file" "$delete_file"
+}
+
+empty_alb_log_bucket() {
+  if ! bucket_exists; then
+    echo "ALB log bucket not found: $ALB_LOG_BUCKET"
+    return 0
+  fi
+
+  echo "Emptying ALB log bucket: $ALB_LOG_BUCKET"
+  aws s3 rm "s3://$ALB_LOG_BUCKET" --recursive --only-show-errors
+  delete_versioned_objects
+}
+
+empty_and_delete_alb_log_bucket() {
+  if ! bucket_exists; then
+    echo "ALB log bucket already gone: $ALB_LOG_BUCKET"
+    return 0
+  fi
+
+  empty_alb_log_bucket
+  echo "Deleting ALB log bucket: $ALB_LOG_BUCKET"
+  aws s3api delete-bucket --bucket "$ALB_LOG_BUCKET" >/dev/null || true
+}
+
+run_service_builder_destroy() {
+  docker run --rm \
+    -e EP_ACTION=destroy \
+    -e EP_ENV="pr-${PR_NUM}" \
+    -e EP_SERVICE_NAME="water_data_tool_pr_${PR_NUM}" \
+    -e EP_SERVICE_SHORT_NAME="pr${PR_NUM}" \
+    -e EP_ECS_CLUSTER_NAME="$ECS_CLUSTER" \
+    -e EP_TF_STATE_S3_BUCKET_NAME="ep-service-builder" \
+    -e EP_SERVICE_INSTANCE_TYPE="t3.small" \
+    -e EP_SERVICE_INSTANCE_COUNT="1" \
+    -e EP_SERVICE_CONTAINER_RAM_MB="1700" \
+    -e EP_SERVICE_DOMAIN="water-data-tool-pr-${PR_NUM}.policyinnovation.info" \
+    -e EP_SERVICE_PORT="3000" \
+    -e EP_SERVICE_HEALTH_PORT="3000" \
+    -e EP_SERVICE_HEALTH_CHECK_PATH="/up" \
+    -e EP_CREATE_ECR_REPO="false" \
+    -e AWS_ACCESS_KEY_ID="$AWS_ACCESS_KEY_ID" \
+    -e AWS_SECRET_ACCESS_KEY="$AWS_SECRET_ACCESS_KEY" \
+    -e AWS_SESSION_TOKEN="$AWS_SESSION_TOKEN" \
+    -e AWS_REGION="$AWS_REGION" \
+    "$SERVICE_BUILDER_IMAGE"
+}
+
+empty_alb_log_bucket
+
+set +e
+run_service_builder_destroy
+destroy_status=$?
+set -e
+
+empty_and_delete_alb_log_bucket
+
+if [ "$destroy_status" -ne 0 ]; then
+  echo "service_builder destroy failed with status $destroy_status; retrying once after ALB log bucket cleanup."
+  set +e
+  run_service_builder_destroy
+  retry_status=$?
+  set -e
+
+  if [ "$retry_status" -ne 0 ]; then
+    echo "service_builder destroy retry failed with status $retry_status." >&2
+    exit "$retry_status"
+  fi
+fi
