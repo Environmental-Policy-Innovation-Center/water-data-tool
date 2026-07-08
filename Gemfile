@@ -41,9 +41,6 @@ gem "csv", "~> 3.3.5"
 # Use Active Storage variants [https://guides.rubyonrails.org/active_storage_overview.html#transforming-images]
 gem "image_processing", "~> 1.14.0"
 
-# Deploy this application anywhere as a Docker container [https://kamal-deploy.org]
-gem "kamal", "~> 2.11.0", require: false
-
 # Structured, single-line logs (and SQL metadata) instead of verbose multi-line Rails logs — easier to scan in production and in log aggregators [https://github.com/roidrage/lograge]
 gem "lograge", "~> 0.14.0"
 gem "lograge-sql", "~> 2.6.1"

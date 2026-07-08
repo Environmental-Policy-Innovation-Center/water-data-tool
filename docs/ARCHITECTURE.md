@@ -20,110 +20,42 @@
 
 ## Directory Layout
 
-```
-app/
-├── controllers/
-│   ├── home_controller.rb                   # root page (GET /), map filter JSON (GET /map), table (GET /table)
-│   ├── public_water_systems/                # stats, export, histogram, report (nested under /public_water_systems)
-│   ├── tiles_controller.rb                  # MVT tile endpoint
-│   ├── places_controller.rb                 # place autocomplete search (GET /places/search)
-│   └── [pages_controller.rb]                # planned for M12: datasets, downloads, static pages
-├── models/
-│   ├── public_water_system.rb               # central model (pwsid PK)
-│   ├── service_area_geometry.rb
-│   ├── demographic.rb
-│   ├── violations_summary.rb
-│   ├── environmental_justice.rb
-│   ├── funding_summary.rb
-│   ├── watershed_hazard.rb
-│   ├── boil_water_summary.rb
-│   ├── trend_datum.rb
-│   ├── tile_cache.rb
-│   ├── data_import.rb
-│   ├── place_system_crosswalk.rb
-│   ├── cartographic_state.rb
-│   ├── cartographic_county.rb
-│   └── cartographic_place.rb
-├── models/concerns/
-│   └── filterable.rb                        # filter scopes for PublicWaterSystem
-├── columns/
-│   ├── column_registry.rb                   # loads/memoizes columns.yml; csv_columns, geojson_columns
-│   ├── table_column.rb                      # Data.define value object for a single column
-│   └── category_def.rb                      # Data.define value object for a column category
-├── exporters/
-│   └── public_water_system_exporter.rb      # to_csv_stream, to_geojson_stream (streaming, no AR objects)
-├── components/
-│   ├── ui/
-│   │   └── table_header_component.rb        # sortable/check column <th> rendering
-│   └── manage_columns/
-│       ├── pinned_row_component.rb          # always-visible pinned column row
-│       ├── category_header_row_component.rb # collapse/expand category header row
-│       └── column_row_component.rb          # checkbox column row with drag handle icon (SortableJS wiring deferred to #180)
-├── jobs/
-│   ├── etl_import_job.rb                    # SolidQueue: full ETL pipeline
-│   └── tile_cache_warm_job.rb               # SolidQueue: pre-generate common tiles
-├── javascript/
-│   ├── selection_state.js                   # inversion-of-selection state (mode, excluded/included Sets)
-│   └── controllers/                         # Stimulus controllers
-│       ├── map_controller.js                # Mapbox GL JS init, tile loading, click
-│       ├── filter_controller.js             # filter form submit/reset, URL sync (preserves cols/sort)
-│       ├── slider_controller.js             # range slider with histogram
-│       ├── export_controller.js             # builds and POSTs export form; reads #table-query-state
-│       ├── row_selection_controller.js      # checkbox state, export badge, export button disabled state
-│       ├── manage_columns_controller.js     # column visibility panel, category collapse, Turbo.visit
-│       ├── clipboard_controller.js          # copy-to-clipboard for utility IDs
-│       ├── nav_controller.js                # map/table/section view toggle
-│       ├── place_autocomplete_controller.js # debounced place search dropdown
-│       └── report_controller.js             # report overlay open/close
-├── views/
-│   ├── home/
-│   │   ├── index.html.erb                   # root page — map view, table, all UI sections
-│   │   ├── _filter_menus.html.erb           # filter dropdown menus partial
-│   │   └── _sidebar.html.erb               # left sidebar partial
-│   ├── public_water_systems/
-│   │   ├── reports/                           # printable report (show + shared partial)
-│   │   ├── stats/                             # stats bar Turbo Frame partial
-│   │   └── sections/                          # 8 partials shared by report
-│   │       ├── _overview.html.erb
-│   │       ├── _demographics.html.erb
-│   │       ├── _environmental_justice.html.erb
-│   │       ├── _violations.html.erb
-│   │       ├── _funding.html.erb
-│   │       ├── _watershed_hazards.html.erb
-│   │       ├── _boil_water.html.erb
-│   │       └── _trends.html.erb
-│   └── layouts/
-│       └── application.html.erb
-└── assets/
-    └── stylesheets/
-        └── application.tailwind.css
+This is a mostly-standard Rails app, with a few extra `app/` directories that hold the **config-driven data layer**. The guide below is by directory and purpose — "what lives here and when would I touch it" — so it stays useful as individual files come and go. When in doubt, open the directory.
 
-config/
-├── routes.rb
-├── database.yml
-└── initializers/
-    └── solid_queue.rb
+### The config-driven data layer (start here)
 
-db/
-├── migrate/                                 # schema migrations
-└── seeds.rb
+A **data field** (say, `population_served`) is declared once in config and the app derives everything from that declaration — its table column, its filter, its ETL mapping, its export column. Four YAML files own this, each read by one Ruby directory:
 
-lib/
-└── tasks/
-    ├── etl.rake                             # bin/rails etl:import
-    └── seed_states.rake                     # bin/rails db:seed:states[VT,RI]
+| Config file | Read by | Owns |
+|-------------|---------|------|
+| `config/fields.yml` — the **manifest** | `app/fields/` (`FieldRegistry`, `FieldDefinition`) | What each field *is*: how it's ingested (`source`), displayed (`display`), filtered (`filter`), charted (`histogram`). The single source of truth. |
+| `config/filter_layout.yml` | `app/filters/` (`FilterLayout`) | Where a filter *appears* — its menu/category, nesting, order, and the AND/OR grouping. `app/filters/` also holds `FilterParams` (permits + decodes filter params). |
+| `config/table_layout.yml` | `app/columns/` (`TableLayout`, `ColumnRegistry`) | Which columns show, their order, and picker grouping. `ColumnRegistry` builds each column from manifest × layout; `TableColumn`/`CategoryDef` are the value objects. |
+| `config/tooltips.yml` | (loaded where copy is rendered) | User-facing tooltip/help text, kept out of the structural config. |
 
-spec/
-├── models/                                  # model specs (scopes, associations)
-├── requests/                                # request specs (controller integration)
-├── system/                                  # system specs (Capybara, critical flows)
-├── jobs/                                    # job specs (ETL pipeline)
-├── factories/                               # FactoryBot factories
-├── support/
-│   └── shoulda_matchers.rb
-├── rails_helper.rb
-└── spec_helper.rb
-```
+To add or change a data field you edit config, not code. See **[CONFIG_AUDIT.md](CONFIG_AUDIT.md)** for the model, **[FILTERING.md](FILTERING.md)** for filters, and **[docs/how_to/](how_to/)** for step-by-step guides.
+
+### The rest of `app/`
+
+| Directory | What lives here |
+|-----------|-----------------|
+| `controllers/` | Thin HTTP entry points. `home_controller` (root page, `GET /map` JSON, `GET /table`), `public_water_systems/*` (stats, export, histogram, report), `tiles_controller` (MVT tiles). |
+| `models/` | One ActiveRecord model per table. `public_water_system` is the hub (string `pwsid` PK); the rest (`demographic`, `violations_summary`, `funding_summary`, …) are `has_one` satellites joined on `pwsid`. `models/concerns/filterable.rb` is the filter combiner (see [Filter Architecture](#filter-architecture)). |
+| `exporters/` | Streaming CSV / GeoJSON generation (`to_csv_stream`, `to_geojson_stream`) — builds rows straight from SQL, no ActiveRecord objects, for large downloads. |
+| `components/` | [ViewComponents](https://viewcomponent.org/) — server-rendered UI widgets with their own class + template, grouped by area (`filters/`, `ui/`, `manage_columns/`, `report/`). `previews/` holds Lookbook previews for developing them in isolation. |
+| `services/` | Plain-Ruby objects for logic that isn't a model or controller: `etl/` (the ingest pipeline — see [ETL.md](ETL.md)), `tile_generator` / `tile_impact` (PostGIS MVT tiles), `url_state_codec` (filter-state URL encoding), `cartographic_boundaries`. |
+| `jobs/` | SolidQueue background jobs: `etl_import_job`, `tile_cache_refresh_job`, `tile_cache_warm_job`. |
+| `javascript/` | Stimulus controllers in `controllers/`, plus shared singletons `filter_state.js` and `selection_state.js`. See [Stimulus Controllers](#stimulus-controllers). |
+| `views/` | ERB. `home/index.html.erb` is the app shell; the `home/_filter_*.html.erb` partials are the **generated** filter menus (driven by the manifest × layout, not hand-authored). `public_water_systems/` holds the report, stats-bar frame, and shared section partials. |
+
+### Outside `app/`
+
+| Path | What lives here |
+|------|-----------------|
+| `config/` | `routes.rb`, the four data-config files above, `datasets.yml`, `recurring.yml` (SolidQueue schedule), env initializers. |
+| `db/` | `migrate/` schema migrations and `seeds.rb`. |
+| `lib/tasks/` | Rake tasks — `etl.rake` (`bin/rails etl:import`), `seed_states.rake`, `seed_geometries.rake`. |
+| `spec/` | RSpec, mirroring `app/`: `models/`, `requests/`, `system/` (Capybara), `jobs/`, `fields/`, `filters/`, `columns/`, plus `factories/` and `support/`. |
 
 ---
 
@@ -187,135 +119,35 @@ Utility endpoints namespaced under `/public_water_systems/`. The top-level `Publ
 - **`show`** — receives `z/x/y` params, checks `TileCache`, generates MVT via PostGIS `ST_AsMVT`
   on cache miss, returns binary protobuf with `Content-Type: application/x-protobuf`.
 
-### `PlacesController`
-
-- **`search`** — `GET /places/search?q=...`. Prefix ILIKE match against `cartographic_places`.
-  Returns up to 10 `{geoid, name, stusps}` results as JSON. Used by `place_autocomplete_controller.js`.
-  1-hour cache headers.
-
-### `PagesController` *(planned — M12)*
-
-Not yet built. Will serve:
-- **`datasets`** — describes source datasets.
-- **`downloads`** — lists pre-built S3 zip download links.
-
 ---
 
 ## Filter Architecture
 
-Filters flow from URL params through the `Filterable` concern to SQL scopes. The concern lives on `PublicWaterSystem` and provides a single entry point:
+Filters flow from the URL to SQL: `FilterParams` (`app/filters/`) permits and decodes the params, then `PublicWaterSystem.apply_filters` — the `Filterable` concern (`app/models/concerns/filterable.rb`) — turns them into a scope.
 
-```ruby
-# app/models/concerns/filterable.rb
-module Filterable
-  extend ActiveSupport::Concern
+The concern is **config-driven, not hardcoded** — there is no per-field `if params[...]` list. It reads each filter's kind, param, and table from the manifest (`FieldRegistry` / `config/fields.yml`) and groups filters by their menu category (`FilterLayout.category_of`). Joins are derived from each field's `model:`, so no join SQL is hand-written. The public entry point is `apply_filters(params)`; the internals split into `apply_category_filters`, `apply_rate_tier_filter`, and `apply_geographic_filters`.
 
-  class_methods do
-    def apply_filters(params)
-      scope = all
+**Combination logic — the grouping *is* the boolean:**
+- **Within a category:** OR (e.g. two `owner_type` values match either).
+- **Across categories:** AND (a system must satisfy every active category).
 
-      # Categorical filters (AND between groups, OR within)
-      scope = scope.where(gw_sw_code: params[:gw_sw_code]) if params[:gw_sw_code].present?
-      scope = scope.where(owner_type: params[:owner_type]) if params[:owner_type].present?
-      scope = scope.where(primacy_type: params[:primacy_type]) if params[:primacy_type].present?
-      scope = scope.where(service_area_type: params[:service_area_type]) if params[:service_area_type].present?
-      scope = scope.where(pop_cat_5: params[:pop_cat_5]) if params[:pop_cat_5].present?
-
-      # Boolean filters
-      scope = scope.where(is_wholesaler: true) if params[:is_wholesaler] == "true"
-      scope = scope.where(is_school_or_daycare: true) if params[:is_school_or_daycare] == "true"
-      scope = scope.where(source_water_protection_code: "Yes") if params[:has_source_protection] == "true"
-      scope = scope.where(open_health_viol: "Yes") if params[:has_open_violations] == "true"
-
-      # Range filters (min/max pairs)
-      scope = scope.where("area_sq_miles >= ?", params[:area_min]) if params[:area_min].present?
-      scope = scope.where("area_sq_miles <= ?", params[:area_max]) if params[:area_max].present?
-
-      # Geographic filters
-      scope = scope.where(stusps: params[:state]) if params[:state].present?
-
-      # ... violation range filters via joins to violations_summaries
-      # ... demographic range filters via joins to demographics
-      # ... and so on for each filter group
-
-      scope
-    end
-  end
-end
-```
-
-**Combination logic:**
-- **Between filter groups:** AND (a system must match all active filter groups)
-- **Within a filter group:** OR for multi-select (e.g., `owner_type[]=Federal&owner_type[]=State` matches either)
-- **Range filters:** AND (min AND max must both be satisfied)
+So which category you place a filter in (in `config/filter_layout.yml`) decides how it combines. See **[FILTERING.md](FILTERING.md)** for the full model. (The pre-refactor `config/filters.yml` + `FilterRegistry` were retired — see [CONFIG_AUDIT.md](CONFIG_AUDIT.md).)
 
 ---
 
 ## Stimulus Controllers
 
-### `map_controller.js`
+Client behavior lives in `app/javascript/controllers/`. Each file is a **Stimulus controller** — a small JS class attached to markup via a `data-controller="name"` attribute, so the server renders the HTML and the controller only wires up the interactive bits (clicks, fetches, DOM toggles). New to Stimulus? Read a controller top-to-bottom: its `static targets`/`values` name the DOM it touches, and its action methods are what the HTML calls.
 
-The largest Stimulus controller. Manages the Mapbox GL JS map instance.
+They group by the surface they drive. This is the shape, not an exhaustive list — open the directory for the current set:
 
-**Responsibilities:**
-- Initialize Mapbox GL JS with the project's style
-- Add vector tile source pointing to `/tiles/:z/:x/:y`
-- Handle map click → load system detail in Turbo Frame
-- Geocoder result → context-aware flyTo (state → z5, county → z7, city → z8)
-- Alaska/Hawaii quick-zoom buttons
+- **Map** — `map_controller` is the largest. It owns the Mapbox GL JS instance (its own DOM, so it's *not* a Turbo Frame): the vector-tile source at `/tiles/:z/:x/:y`, click-to-open-a-system, geocoder fly-to, and re-applying the polygon/`pwsid` filter when filters change.
+- **Filters** — `filter_controller` orchestrates Apply/Reset (see [Turbo Patterns](#turbo-patterns) for the flow it drives); `slider_controller` is the dual-handle range slider that fetches histogram bins; `filter_layout_controller` / `filter_menu_controller` handle responsive tab collapse and menu open/close.
+- **Table** — `table_frame_controller`, `table_search_controller`, `manage_columns_controller` (the column picker), and `row_selection_controller` (checkbox selection feeding exports).
+- **Panels & overlays** — `report_controller` (full-screen system report), `sidebar_controller`, `nav_controller` (Map ↔ Table view switch), `tooltip_controller`.
+- **Datasets & exports** — `datasets_controller` / `dataset_card_controller` (the datasets browse view), `export_controller` (CSV / GeoJSON download of the current filter params), `clipboard_controller`.
 
-### `filter_controller.js`
-
-Manages the filter dropdown menus.
-
-**Responsibilities:**
-- Toggle filter menus open/close; dismiss on outside click
-- Collect DOM filter state on Apply → write to `FilterState` → dispatch `filters:changed`
-- Reset all filter inputs to defaults on Reset
-- Serialize active filters to URL query params (`replaceState`) for shareable URLs
-- Restore filter state from URL on page load
-- Track active filter count per group (badge display)
-
-### `nav_controller.js`
-
-Handles view switching between Map and Table modes, and sidebar navigation.
-
-**Responsibilities:**
-- Show/hide `#container-map`, `#container-table`, `#container-datasets`, etc.
-- Toggle active state on nav items
-- Dispatch view-change events when switching between map and table modes
-
-### `export_controller.js`
-
-**Responsibilities:**
-- Trigger CSV or GeoJSON download by submitting current filter params to the export endpoint
-
-### `place_autocomplete_controller.js`
-
-Debounced place search in the **Source** filter menu (menu 1).
-
-**Responsibilities:**
-- Fetch `/places/search?q=...` with 250ms debounce
-- Clone `<template>` rows from `_filter_menus.html.erb` (markup in ERB, not JS)
-- Accessible combobox: keyboard (↑/↓/Enter/Escape), `aria-activedescendant`, strict selection (`place_geoid` cleared on edit; partial text cleared on dismiss/Apply)
-- On selection: populate hidden `#place-geoid` and visible `.js-place-search` (filter apply via existing `filter_controller` — does not dispatch `filters:changed` itself)
-
-See `docs/MISC_CHANGES_WORKLOG.md` § A11y for manual test steps.
-
-### `report_controller.js`
-
-**Responsibilities:**
-- Open/close the full-screen report overlay (`#container-report`)
-- Wire print and close buttons
-
-### `slider_controller.js`
-
-Dual-handle range slider with inline SVG histogram.
-
-**Responsibilities:**
-- Fetch histogram bins from `GET /public_water_systems/histogram?field=`
-- Render dual-handle min/max range inputs with distribution overlay
-- Update hidden form fields with selected range (committed on pointer-up)
+The one cross-controller contract worth knowing: **filters flow through a shared singleton**, `app/javascript/filter_state.js`. `filter_controller` writes it; `map_controller`, `export_controller`, and the stats/table frames read it. That's what keeps the map, stats bar, and table showing the same filter set. See [Turbo Patterns](#turbo-patterns).
 
 ---
 
@@ -331,11 +163,11 @@ The main app page (`home/index`) uses Turbo Frames to update independent section
 │                                                     │
 │   Map (NOT a Turbo Frame — managed by Stimulus)     │
 │                                                     │
-│              ┌───────────────────────┐               │
-│              │ Detail Panel          │               │
-│              │ (Turbo Frame:         │               │
-│              │  "system-detail")     │               │
-│              └───────────────────────┘               │
+│              ┌───────────────────────┐              │
+│              │ Detail Panel          │              │
+│              │ (Turbo Frame:         │              │
+│              │  "system-detail")     │              │
+│              └───────────────────────┘              │
 │                                                     │
 ├─────────────────────────────────────────────────────┤
 │  Stats Bar (Turbo Frame: "stats-bar")               │
@@ -346,7 +178,24 @@ The main app page (`home/index`) uses Turbo Frames to update independent section
 └─────────────────────────────────────────────────────┘
 ```
 
-**Key pattern:** The map is **not** inside a Turbo Frame. Mapbox GL JS manages its own DOM and state. When filters change, the filter form submits via Turbo, which replaces the stats bar and table frames. The map controller listens for the Turbo response and updates its layer filters accordingly.
+**Key pattern:** The map is **not** inside a Turbo Frame — Mapbox GL JS manages its own DOM and state, so it can't be swapped like HTML.
+
+**What happens on Apply.** There is no form submit. `filter_controller` is the single orchestrator: it reads the filter DOM, writes the shared `FilterState` (a JS singleton, `app/javascript/filter_state.js`), and then refreshes the three surfaces — each by a different mechanism, only one of which is event-based:
+
+```
+User clicks Apply
+  └── filter_controller.apply()
+        ├── writes FilterState (shared singleton) + syncs the URL
+        ├── dispatches "filters:changed" ─────────→ map_controller re-fetches GET /map,
+        │                                            then map.setFilter() re-renders tiles
+        │                                            (the map is the ONLY listener)
+        ├── syncStatsFrame() sets the stats-bar ──→ Turbo loads GET /public_water_systems/stats
+        │   <turbo-frame> src                        and swaps the stats bar in place
+        └── Turbo.visit(/table, { frame }) ───────→ Turbo loads GET /table
+                                                     and swaps the table rows in place
+```
+
+The stats and table refreshes are **direct calls**, not reactions to `filters:changed` — only the map listens for that event. Each frame updates independently with no full-page reload.
 
 ---
 
@@ -442,8 +291,6 @@ Rails.application.routes.draw do
 
   get "/tiles/:z/:x/:y", to: "tiles#show", as: :tile,
       constraints: {z: /\d+/, x: /\d+/, y: /\d+/}
-
-  get "/places/search", to: "places#search"
 
   resources :public_water_systems, param: :pwsid, only: [],
       constraints: {pwsid: /[A-Z0-9;%]+/} do
