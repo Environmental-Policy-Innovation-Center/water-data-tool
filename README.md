@@ -136,7 +136,9 @@ Looking for the tool? See [here](https://www.policyinnovation.org/drinking-water
 | `ETL_SOURCE_URL` | Yes (setup + ETL) | Base HTTPS URL to the S3 folder containing source data files. Staging should point at the S3 `staging` folder; production should point at `prod`. No AWS credentials needed for public reads. |
 | `PUBLIC_DOWNLOADS_BASE_URL` | No | Base HTTPS URL for ZIP downloads shown in the Downloads panel. Defaults to the shared S3 `public-data-downloads/staged` folder. |
 | `METHODOLOGY_PDF_URL` | No | Full HTTPS URL for the methodology/documentation PDF. Defaults to the shared S3 location. |
-| `ETL_SCHEDULE_ENABLED` | No | Set to `true` only in the deployment that should enqueue recurring ETL imports. Defaults to off. |
+| `SOLID_QUEUE_ROLE` | No | `web` processes only lightweight web queues; `worker` processes ETL and tile queues. Defaults to `web`. |
+| `ETL_SCHEDULE_ENABLED` | No | Set to `true` only on dedicated worker services that should enqueue recurring ETL imports. Defaults to off. |
+| `ETL_SCHEDULE` | No | Optional Solid Queue recurring schedule string for worker services. Defaults to `every day at 12am America/New_York`. |
 | `RAILS_ENV` | No | Defaults to `development` |
 
 ---
@@ -206,7 +208,7 @@ docker compose down
 
 Normal ETL imports refresh cached map tiles selectively. Importers report changed PWS IDs and affected map layers, `TileImpact` converts those changes into z5-z8 XYZ tile coordinates, and `TileCacheRefreshJob` overwrites only those cached tile rows on the `tile_refresh` queue. Existing cached tiles remain readable until replacements are ready.
 
-The full `TileCacheWarmJob` still exists for explicit full-refresh or maintenance cases. In production, SolidQueue processes background jobs persistently. In development, the ETL runs as a short-lived rake task (`bin/rails etl:import`) -- queued refresh/warm jobs only run automatically if a SolidQueue worker is running.
+The full `TileCacheWarmJob` still exists for explicit full-refresh or maintenance cases and runs on the `tile_warm` queue. In production-style deployments, web services use `SOLID_QUEUE_ROLE=web` and never process `etl`, `tile_refresh`, or `tile_warm`; dedicated worker services use `SOLID_QUEUE_ROLE=worker` and run those heavy queues. In development, the ETL runs as a short-lived rake task (`bin/rails etl:import`) -- queued refresh/warm jobs only run automatically if a SolidQueue worker is running.
 
 After loading the national dataset locally, you can warm the full z0-z8 cache manually if you need cold-cache performance testing:
 

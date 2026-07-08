@@ -1,6 +1,10 @@
 require "rails_helper"
 
 RSpec.describe TileCacheWarmJob, type: :job do
+  it "uses the tile_warm queue" do
+    expect(described_class.queue_name).to eq("tile_warm")
+  end
+
   before do
     allow(TileGenerator).to receive(:generate_tile!)
     allow($stdout).to receive(:puts)

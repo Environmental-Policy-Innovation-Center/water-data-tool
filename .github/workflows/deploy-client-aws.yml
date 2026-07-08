@@ -93,12 +93,13 @@ jobs:
               {"name":"MAPBOX_STYLE_URL",    "valueFrom":$style}
             ]')
 
-          # ETL_SCHEDULE_ENABLED intentionally omitted for preview — the nightly ETL is
-          # handled by the run-etl-preview.yml GitHub Actions cron (dedicated ECS task).
+          # ETL_SCHEDULE_ENABLED intentionally omitted for preview web services.
+          # Nightly preview ETL is owned by the persistent preview worker service.
           ENV_VARS_JSON='[
             {"name":"RAILS_ENV",           "value":"production"},
             {"name":"RAILS_LOG_TO_STDOUT", "value":"1"},
             {"name":"SOLID_QUEUE_IN_PUMA", "value":"true"},
+            {"name":"SOLID_QUEUE_ROLE",    "value":"web"},
             {"name":"HTTP_PORT",           "value":"3000"},
             {"name":"TARGET_PORT",         "value":"3001"},
             {"name":"ETL_SOURCE_URL",      "value":"https://tech-team-data.s3.us-east-1.amazonaws.com/national-dw-tool/staging"},

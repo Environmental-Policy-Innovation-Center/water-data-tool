@@ -239,12 +239,12 @@ production:
   etl_import:
     class: EtlImportJob
     queue: etl
-    schedule: every day at 12am America/New_York
+    schedule: <%= ENV.fetch("ETL_SCHEDULE", "every day at 12am America/New_York") %>
 ```
 
 The job runs on the dedicated `etl` queue and has a concurrency limit so imports cannot overlap. It issues HEAD requests per file and only imports files with updated `Last-Modified` timestamps. If a source omits `Last-Modified`, the file imports as changed.
 
-Because staging and production ECS services use `RAILS_ENV=production`, recurring ETL is gated by `ETL_SCHEDULE_ENABLED=true` rather than Rails environment alone. Leave the variable unset or false anywhere recurring imports should not run. Preview intentionally leaves it unset — its single ephemeral instance can be down or mid-redeploy at the scheduled time and the in-puma import can OOM the small container, so the nightly refresh runs decoupled as a dedicated ECS task via the `run-etl-preview.yml` GitHub Actions cron (see `DEPLOYMENTS.md`).
+Because ECS services use `RAILS_ENV=production`, recurring ETL is gated by `ETL_SCHEDULE_ENABLED=true` rather than Rails environment alone. Leave the variable unset or false anywhere recurring imports should not run. Set it only on dedicated worker services, and use `ETL_SCHEDULE` to stagger the shared worker pool: staging at 12am America/New_York, production at 1:30am America/New_York, and preview at 3am America/New_York. Preview web services intentionally leave scheduling disabled; the persistent preview worker owns the nightly refresh of the shared preview DB (see `DEPLOYMENTS.md`).
 
 ---
 
@@ -273,11 +273,14 @@ Imports are designed to keep Puma responsive while data refreshes:
 
 - `EtlImportJob` runs on the dedicated single-thread `etl` queue.
 - Tile refresh jobs run on the dedicated single-thread `tile_refresh` queue.
+- Tile warm jobs run on the dedicated single-thread `tile_warm` queue.
+- Web services use `SOLID_QUEUE_ROLE=web` and exclude `etl`, `tile_refresh`, and `tile_warm`.
+- Worker services use `SOLID_QUEUE_ROLE=worker` and process only `etl`, `tile_refresh`, and `tile_warm`.
 - Existing cached tiles stay readable during normal selective refreshes.
 - Geometry-derived work is scoped to changed systems when import metadata can identify them.
 - Full cache bust/warm remains available only for explicit full-refresh fallbacks.
 
-If health checks still fail during a full national geometry refresh, the next operational step is a separate worker process or ECS service so ETL cannot compete with web requests in the same container.
+If health checks still fail during a full national geometry refresh, inspect RDS load and the shared worker host. If the worker task cannot place or the full `epa_sabs_geoms` import OOMs, move the shared worker host from `t3.small` to `t3.medium` and increase the worker memory reservation.
 
 ---
 

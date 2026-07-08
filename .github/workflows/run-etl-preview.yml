@@ -1,7 +1,8 @@
-name: Run ETL — Preview Database
+name: Refresh Preview Database
 
-# Runs the ETL import against the shared preview DB as a one-off ECS task (nightly cron + on-demand dispatch).
-# Borrows the staging task def, overriding DATABASE_URL to preview.
+# Runs an on-demand ETL import against the shared preview DB as a one-off ECS task.
+# Nightly preview refreshes are owned by the persistent preview worker service.
+# This manual path borrows the staging task def, overriding DATABASE_URL to preview.
 
 on:
   workflow_dispatch:
@@ -16,37 +17,13 @@ on:
         type: boolean
         default: false
 
-  # Nightly refresh, pinned to midnight America/New_York. GitHub cron is UTC-only (no DST),
-  # so both offsets fire and the gate job lets only the true NY-midnight firing through.
-  schedule:
-    - cron: "0 4 * * *"   # 00:00 EDT (summer)
-    - cron: "0 5 * * *"   # 00:00 EST (winter)
-
 concurrency:
   group: run-etl-preview
   cancel-in-progress: false
 
 jobs:
-  # Both scheduled offsets fire year-round; only the one that is actually midnight in
-  # New York proceeds. Manual dispatch always proceeds.
-  gate:
-    if: vars.AWS_DEPLOY_ENABLED == 'true'
-    runs-on: ubuntu-latest
-    outputs:
-      run: ${{ steps.check.outputs.run }}
-    steps:
-      - id: check
-        run: |
-          if [ "${{ github.event_name }}" != "schedule" ] || [ "$(TZ=America/New_York date +%H)" = "00" ]; then
-            echo "run=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "run=false" >> "$GITHUB_OUTPUT"
-            echo "Not midnight in New York — skipping this off-DST cron firing."
-          fi
-
   run-etl:
-    needs: gate
-    if: needs.gate.outputs.run == 'true'
+    if: vars.AWS_DEPLOY_ENABLED == 'true'
     runs-on: ubuntu-latest
     environment: pr-previews
     permissions:

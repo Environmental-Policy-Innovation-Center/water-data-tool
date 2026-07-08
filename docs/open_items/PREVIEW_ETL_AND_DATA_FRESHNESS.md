@@ -4,7 +4,7 @@ _Working implementation doc. **[COREY]** = app/workflow work; **[LUKE]** = infra
 
 ## TL;DR
 
-- Preview's nightly ETL is unreliable and likely OOMs on a first full seed. Move it to a GitHub-cron-triggered **dedicated ECS task** (reuse `run-etl-preview.yml`) instead of the in-puma scheduler.
+- Preview's nightly ETL is unreliable and likely OOMs on a first full seed. Move it to the shared always-on worker pool instead of the in-puma scheduler or a GitHub cron.
 - The cartographic job bumps the public "Latest data update" timestamp even when nothing changed. Fix by running it through the **same per-file freshness gate as every other importer**.
 
 ## TODO
@@ -13,13 +13,9 @@ _On completion, replace the owner tag with `[x]` (e.g. `- [x]: A1 …`)._
 
 ### A. Preview nightly ETL reliability
 
-- [x]: A1 — Add a `schedule:` cron trigger to `.github/workflows/run-etl-preview.yml` (fires from `main`; runs one dedicated ECS task against the preview DB).
-- [x]: A2 — Remove `ETL_SCHEDULE_ENABLED=true` from the preview env block in `deploy-client-aws.yml` so the nightly is owned solely by the cron in A1.
-- [LUKE]: A3 — Verify the nightly cron's permissions. No new IAM is needed — `RunTask`/`PassRole`/secrets already work, proven by `refresh-cartographic-boundaries.yml` — but scheduled runs execute in `main`'s context, so two gates must hold:
-  1. The `pr-previews` GitHub Environment deployment-branch policy must allow `main` (most likely toggle needed).
-  2. The OIDC trust on `AWS_PR_DEPLOY_ROLE_ARN` must accept the environment-based `sub` (`repo:<org>/<repo>:environment:pr-previews`) — already true for the manual dispatch, so this passes unless the trust is scoped to PR refs.
-
-  The manual workflow needs nothing new; it only had to reach `main` to be dispatchable.
+- [x]: A1 — Remove the `schedule:` cron trigger from `.github/workflows/run-etl-preview.yml`; keep it manual-only as **Refresh Preview Database**.
+- [x]: A2 — Remove `ETL_SCHEDULE_ENABLED=true` from preview web env and set preview web queue role to `SOLID_QUEUE_ROLE=web`, so nightly ETL is owned by the persistent preview worker.
+- [LUKE]: A3 — Add the persistent preview worker service on the shared worker pool. It should connect to the shared preview DB, read from the staging S3 source, set `SOLID_QUEUE_ROLE=worker`, set `ETL_SCHEDULE_ENABLED=true`, and use `ETL_SCHEDULE=every day at 3am America/New_York`.
 - [LUKE]: A4 — Confirm OOM vs. scheduler-never-fired for the missed nightly — check CloudWatch for the preview service around 12am ET (did `epa_sabs` record a row but `epa_sabs_geoms` not?).
 
 ### B. Cartographic job & the "Latest data update" timestamp
@@ -40,9 +36,9 @@ _On completion, replace the owner tag with `[x]` (e.g. `- [x]: A1 …`)._
 
 - **Cartographic writes a `DataImport` row unconditionally** _(Confirmed)_ — `CartographicBoundaries#record_import` (`file_url: "cartographic-boundaries"`) runs on every load and bumps the public timestamp. This is the bug B1 addresses. The tile refresh is driven separately by `ImportResult(full_refresh_required: true)`.
 - **Preview is its own ECS service** _(Confirmed)_ — each PR preview is a separate service (`water_data_tool_pr_<N>`) with its own `t3.small` on the shared cluster `ep_core__dev_us-east-1`, borrowing the staging task definition. It does not run inside staging. The three RDS databases (`_production` / `_staging` / `_preview`) are separate; preview is seeded independently via ETL, and its DB is shared across open PRs.
-- **The in-puma scheduler is unreliable on preview** _(Confirmed)_ — `SOLID_QUEUE_IN_PUMA=true` schedules the nightly in-process, but the single ephemeral instance may be down/redeploying at 12am ET and SolidQueue does not backfill missed runs. Staging/prod are reliable only because their services are always-on.
-- **A dedicated task avoids the OOM** _(Pretty sure)_ — running ETL as its own ECS task removes the in-puma coupling; geoms streams with bounded memory, and the task inherits staging's proven memory. Residual risk is task placement/capacity (a clear `run-task` error, not a silent kill).
-- **Root cause of preview not updating** _(Pretty sure)_ — preview was likely never fully seeded, so all 13 files looked new → the nightly attempted a full heavy import in-puma on 1700 MB → OOM → nothing recorded. Staging/prod only did a 2-file delta.
+- **The in-puma scheduler is unreliable on preview** _(Confirmed)_ — `SOLID_QUEUE_IN_PUMA=true` schedules the nightly in-process, but the single ephemeral instance may be down/redeploying at 12am ET and SolidQueue does not backfill missed runs. Staging/prod were more reliable only because their services are always-on.
+- **The shared worker pool isolates ETL from web health checks** _(Expected)_ — worker services run `bin/jobs start` with `SOLID_QUEUE_ROLE=worker`; web services use `SOLID_QUEUE_ROLE=web` and exclude `etl`, `tile_refresh`, and `tile_warm`.
+- **Root cause of preview not updating** _(Pretty sure)_ — preview was likely never fully seeded, so all 13 files looked new, then the nightly attempted a full heavy import in-puma on 1700 MB, OOMed, and recorded nothing. Staging/prod only did a 2-file delta.
 
 ---
 

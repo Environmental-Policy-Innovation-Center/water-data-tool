@@ -1,5 +1,5 @@
 class TileCacheWarmJob < ApplicationJob
-  queue_as :default
+  queue_as :tile_warm
 
   MAX_WARM_ZOOM = 8
 

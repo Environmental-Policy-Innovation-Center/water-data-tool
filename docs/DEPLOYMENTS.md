@@ -121,9 +121,9 @@ The job summary shows the task ARNs, environment, and the row counts from the ve
 
 This workflow does not backfill PWS generalized geometries. Those columns live on `service_area_geometries` and are derived from EPA SABS service-area polygons, not from TIGER cartographic boundaries.
 
-### Run ETL — preview database
+### Refresh preview database
 
-Use **Actions → Run ETL — Preview Database → Run workflow** to run `bin/rails etl:import` against the shared preview database as a one-off ECS task. All PR previews read this database, so one run refreshes data for every open preview.
+Use **Actions → Refresh Preview Database → Run workflow** to run `bin/rails etl:import` against the shared preview database as a manual one-off ECS task. All PR previews read this database, so one run refreshes data for every open preview. Nightly refreshes are owned by the persistent preview worker service, not this workflow.
 
 **Inputs:**
 
@@ -134,7 +134,7 @@ Use **Actions → Run ETL — Preview Database → Run workflow** to run `bin/ra
 
 **How it works:**
 
-1. Borrows the staging task definition (preview has no dedicated service).
+1. Borrows the staging task definition for the manual one-off task.
 2. Overrides `DATABASE_URL` to the shared preview database via Secrets Manager.
 3. Overrides the one-off task/container memory reservation to 1700 MiB, matching the ETL pipeline's bounded-memory importer instead of staging's larger web task reservation.
 4. Runs a one-off ECS task on spare cluster capacity — no scale-down of running services.
@@ -327,7 +327,10 @@ The workflow reads these from the repository's **Settings → Secrets and variab
 | `ECR_REPO_URI` | `516937823875.dkr.ecr.us-east-1.amazonaws.com/ep_app_service_water_data_tool` |
 | `ECS_CLUSTER` | `ep_core__dev_us-east-1` |
 | `ECS_SERVICE_PROD` | `ep_app__water_data_tool__dev_us-east-1` |
+| `ECS_SERVICE_PROD_WORKER` | `ep_app__water_data_tool_worker__dev_us-east-1` |
 | `ECS_SERVICE_STAGING` | `ep_app__water_data_tool_staging__dev_us-east-1` |
+| `ECS_SERVICE_STAGING_WORKER` | `ep_app__water_data_tool_staging_worker__dev_us-east-1` |
+| `ECS_SERVICE_PREVIEW_WORKER` | `ep_app__water_data_tool_preview_worker__dev_us-east-1` |
 | `RDS_SG_ID` | RDS security group ID used by PR preview deploy/teardown workflows. This is a GitHub repository variable, not an app `.env` value. |
 | `SERVICE_BUILDER_IMAGE_URI` | `516937823875.dkr.ecr.us-east-1.amazonaws.com/ep_service_builder:latest` |
 
@@ -340,11 +343,27 @@ Set on each ECS task definition. **Preview** = ephemeral per-PR services (`water
 | `ETL_SOURCE_URL` | Required<br>`…/staging` | Required<br>`…/staging` | Required<br>`…/prod` |
 | `PUBLIC_DOWNLOADS_BASE_URL` | Optional<br>Default: shared downloads bucket<br>`…/public-data-downloads/staged` | Optional<br>Default: shared downloads bucket<br>`…/public-data-downloads/staged` | Optional<br>Default: shared downloads bucket<br>`…/public-data-downloads/staged` |
 | `METHODOLOGY_PDF_URL` | Optional<br>Default: shared methodology PDF on S3 | Optional<br>Default: shared methodology PDF on S3 | Optional<br>Default: shared methodology PDF on S3 |
-| `ETL_SCHEDULE_ENABLED` | Omit<br>Nightly runs via `run-etl-preview.yml` cron, not the in-puma scheduler | Strongly encouraged<br>`true` | Required<br>`true` |
+| `SOLID_QUEUE_ROLE` | Web: `web`<br>Preview worker: `worker` | Web: `web`<br>Staging worker: `worker` | Web: `web`<br>Production worker: `worker` |
+| `ETL_SCHEDULE_ENABLED` | Web: omit<br>Preview worker: `true` | Web: omit<br>Staging worker: `true` | Web: omit<br>Production worker: `true` |
+| `ETL_SCHEDULE` | Preview worker: `every day at 3am America/New_York` | Staging worker: `every day at 12am America/New_York` | Production worker: `every day at 1:30am America/New_York` |
 
-All ECS services run `RAILS_ENV=production`. Use `ETL_SOURCE_URL` and `ETL_SCHEDULE_ENABLED` — not `RAILS_ENV` — to control data source and recurring imports. `PUBLIC_DOWNLOADS_BASE_URL` and `METHODOLOGY_PDF_URL` have shared S3 defaults, though deploy workflows may still pass explicit values for clarity.
+All ECS services run `RAILS_ENV=production`. Use `ETL_SOURCE_URL`, `SOLID_QUEUE_ROLE`, `ETL_SCHEDULE_ENABLED`, and `ETL_SCHEDULE` — not `RAILS_ENV` — to control data source, queue ownership, and recurring imports. `PUBLIC_DOWNLOADS_BASE_URL` and `METHODOLOGY_PDF_URL` have shared S3 defaults, though deploy workflows may still pass explicit values for clarity.
 
-Preview deploys set `ETL_SOURCE_URL` to the staging S3 folder but **deliberately omit `ETL_SCHEDULE_ENABLED`**. All PR previews share the `water_data_tool_preview` database and run on a single ephemeral instance, so per-service in-puma scheduling would be redundant and is prone to OOM on the small instance. Preview's nightly refresh instead runs once, as a dedicated ECS task, via the `run-etl-preview.yml` cron — decoupled from the web instance. Local development omits the var too; the recurring schedule only exists inside `config/recurring.yml`'s `production:` block. `EtlImportJob` concurrency and S3 `Last-Modified` checks keep any overlapping runs serialized and mostly no-op when source files are unchanged.
+Web services set `SOLID_QUEUE_IN_PUMA=true` and `SOLID_QUEUE_ROLE=web`, and deliberately omit `ETL_SCHEDULE_ENABLED`. They process lightweight web jobs only; `etl`, `tile_refresh`, and `tile_warm` are excluded from the web queue config. Worker services run `bin/jobs start` with `SOLID_QUEUE_ROLE=worker`, `ETL_SCHEDULE_ENABLED=true`, and an environment-specific `ETL_SCHEDULE`.
+
+Preview deploys set `ETL_SOURCE_URL` to the staging S3 folder but PR web services **deliberately omit `ETL_SCHEDULE_ENABLED`**. All PR previews share the `water_data_tool_preview` database. The persistent preview worker refreshes that shared DB once nightly at 3am America/New_York. The `Refresh Preview Database` workflow is manual-only for on-demand refreshes; it is not the nightly owner. Local development omits the var too; the recurring schedule only exists inside `config/recurring.yml`'s `production:` block. `EtlImportJob` concurrency and S3 `Last-Modified` checks keep any overlapping runs serialized and mostly no-op when source files are unchanged.
+
+### Shared worker pool
+
+The shared worker pool is owned by the infra/service-builder layer, not this Rails repository. Expected ECS shape:
+
+- One always-on EC2 capacity pool using `t3.small`, desired/min/max `1`, with ECS instance attribute `worker_pool=water_data_tool`.
+- Three worker services with no ALB, target group, listener, Route53 record, or ACM cert: production worker, staging worker, and persistent preview worker.
+- Worker command: `bin/jobs start`.
+- Worker placement constraint: `attribute:worker_pool == water_data_tool`.
+- Worker container memory: soft reservation `512` MiB and hard limit `1500` MiB on `t3.small`. The low reservation lets three idle worker services place on one host; the hard cap bounds a heavy run. Upgrade the host to `t3.medium` and raise the reservation if placement or full `epa_sabs_geoms` imports OOM.
+- RDS allows inbound `5432` from the worker security group.
+- Web services keep their existing web placement and load balancer resources and never set `ETL_SCHEDULE_ENABLED`.
 
 ### Secrets
 
@@ -361,16 +380,16 @@ Preview deploys set `ETL_SOURCE_URL` to the staging S3 folder but **deliberately
 
 All three databases (`water_data_tool_production`, `water_data_tool_staging`, `water_data_tool_preview`) start empty after provisioning. Staging and production should populate from their own S3 folders via ETL:
 
-**Staging** — set `ETL_SOURCE_URL` to the S3 `staging` folder, keep `PUBLIC_DOWNLOADS_BASE_URL` on `public-data-downloads/staged`, and set `ETL_SCHEDULE_ENABLED=true`.
+**Staging** — web service uses `SOLID_QUEUE_ROLE=web` and no `ETL_SCHEDULE_ENABLED`. Staging worker uses `SOLID_QUEUE_ROLE=worker`, `ETL_SOURCE_URL` set to the S3 `staging` folder, `ETL_SCHEDULE_ENABLED=true`, and `ETL_SCHEDULE=every day at 12am America/New_York`.
 
 ```bash
 # Via ECS exec after container is healthy
 bin/rails etl:import
 ```
 
-**Production** — set `ETL_SOURCE_URL` to the S3 `prod` folder, keep `PUBLIC_DOWNLOADS_BASE_URL` on `public-data-downloads/staged`, and set `ETL_SCHEDULE_ENABLED=true`.
+**Production** — web service uses `SOLID_QUEUE_ROLE=web` and no `ETL_SCHEDULE_ENABLED`. Production worker uses `SOLID_QUEUE_ROLE=worker`, `ETL_SOURCE_URL` set to the S3 `prod` folder, `ETL_SCHEDULE_ENABLED=true`, and `ETL_SCHEDULE=every day at 1:30am America/New_York`.
 
-**PR / preview** — preview **omits** `ETL_SCHEDULE_ENABLED`; its nightly refresh runs as a single dedicated ECS task via the `run-etl-preview.yml` cron, not the in-puma scheduler. This decouples the heavy import from the small, ephemeral preview instance (which can OOM or be mid-redeploy at the scheduled time). Preview reads from the staging S3 folder and shares the `water_data_tool_preview` database across all PRs. To refresh on demand before the nightly, run the **Run ETL — Preview Database** workflow (same dedicated-task path, with an optional single-`table` or `force` run). ECS exec is disabled.
+**PR / preview** — PR web services use `SOLID_QUEUE_ROLE=web` and omit `ETL_SCHEDULE_ENABLED`. The persistent preview worker uses `SOLID_QUEUE_ROLE=worker`, reads from the staging S3 folder, connects to the shared `water_data_tool_preview` database, and runs at `every day at 3am America/New_York`. To refresh on demand before the nightly, run the **Refresh Preview Database** workflow with an optional single-`table` or `force` run. ECS exec is disabled.
 
 ---
 
