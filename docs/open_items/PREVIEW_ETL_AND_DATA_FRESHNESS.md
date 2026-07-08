@@ -25,7 +25,7 @@ _On completion, replace the owner tag with `[x]` (e.g. `- [x]: A1 …`)._
 ### B. Cartographic job & the "Latest data update" timestamp
 
 - [COREY]: B1 — Run the cartographic load through the **same freshness gate as `FileImporter`**: check each TIGER source zip's S3 `Last-Modified`, reload only changed layers, and record a `DataImport` **only on a real change**. Today `CartographicBoundaries` sits off the `FileImporter` path (it's an `ogr2ogr` shapefile loader, not a `parse`/`import!` row importer), so it never inherited `needs_import?` — it reloads and calls `record_import` on every run, which is the false timestamp bump. Reusing the gate fixes that **and** makes the job self-triggering on a TIGER update (no separate "watcher" needed): invoke it each ETL cycle and it no-ops unless a source changed.
-- [COREY]: B2 — `loaded?` remnant cleanup: the guard is gone from `post_import_steps.rb` (bare `.load`), but the dead method remains at `cartographic_boundaries.rb:44`, kept alive only by specs. Delete the method + `cartographic_boundaries_spec.rb:24–34` + the 3 stale stubs in `post_import_steps_spec.rb` (197/344/367).
+- [x]: B2 — `loaded?` remnant cleanup: the guard is gone from `post_import_steps.rb` (bare `.load`), but the dead method remains at `cartographic_boundaries.rb:44`, kept alive only by specs. Delete the method + `cartographic_boundaries_spec.rb:24–34` + the 3 stale stubs in `post_import_steps_spec.rb` (197/344/367).
 
 ### C. Environment & infra config
 

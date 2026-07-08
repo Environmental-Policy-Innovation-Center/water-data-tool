@@ -194,7 +194,6 @@ RSpec.describe Etl::PostImportSteps do
   describe ".call" do
     before do
       insert_state("VT", VERMONT_STATE_WKT)
-      allow(CartographicBoundaries).to receive(:loaded?).and_return(true)
       allow(CartographicBoundaries).to receive(:load)
       allow(described_class).to receive(:rebuild_spatial_indexes)
       allow(TileCacheWarmJob).to receive(:perform_later)
@@ -340,31 +339,7 @@ RSpec.describe Etl::PostImportSteps do
       )
     end
 
-    it "reloads CartographicBoundaries for selective geometry imports when boundaries are already loaded" do
-      allow(CartographicBoundaries).to receive(:loaded?).and_return(true)
-      result = Etl::ImportResult.imported(
-        file_key: "epa_sabs_geoms",
-        changed_pwsids: ["VT0000001"],
-        changed_layers: %w[pws places],
-        geometry_changed: true
-      )
-
-      allow(described_class).to receive(:fix_invalid_geometries)
-      allow(described_class).to receive(:generate_centroids)
-      allow(described_class).to receive(:generate_generalized_geometries)
-      allow(described_class).to receive(:assign_state_codes)
-      allow(described_class).to receive(:analyze_spatial_tables)
-      allow(described_class).to receive(:build_place_crosswalks).and_return([])
-      allow(TileImpact).to receive(:for_pwsids).and_return({})
-      allow(TileImpact).to receive(:for_place_geoids).and_return({})
-      allow(TileImpact).to receive(:enqueue_refreshes)
-
-      expect(CartographicBoundaries).to receive(:load)
-      described_class.call(import_results: [result])
-    end
-
-    it "loads CartographicBoundaries for selective geometry imports when boundaries are missing" do
-      allow(CartographicBoundaries).to receive(:loaded?).and_return(false)
+    it "reloads CartographicBoundaries for selective geometry imports" do
       result = Etl::ImportResult.imported(
         file_key: "epa_sabs_geoms",
         changed_pwsids: ["VT0000001"],

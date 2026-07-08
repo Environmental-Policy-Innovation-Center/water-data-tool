@@ -35,16 +35,6 @@ class CartographicBoundaries
     new.load
   end
 
-  # Returns true when all three boundary tables contain data. Census TIGER
-  # geometries change at most once per year, so we skip reloading on every
-  # ETL run. Note: this guard only checks row presence — it does not detect
-  # when LAYERS URLs have been updated for a new TIGER year. When that happens,
-  # the cartographic_* tables must be cleared (or load must be forced) before
-  # the new shapefiles will be picked up.
-  def self.loaded?
-    CartographicState.exists? && CartographicCounty.exists? && CartographicPlace.exists?
-  end
-
   def load
     raise "ogr2ogr not found. Install GDAL: brew install gdal (macOS) or apt-get install gdal-bin (Linux)" unless system("which ogr2ogr > /dev/null 2>&1")
 
