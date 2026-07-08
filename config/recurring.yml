@@ -11,10 +11,8 @@
 
 production:
 <% if ENV["ETL_SCHEDULE_ENABLED"] == "true" %>
-  # Enabled explicitly per deployment with ETL_SCHEDULE_ENABLED=true.
-  # Runs daily at 6am in the timezone configured via config.time_zone (default UTC).
-  # Coordinate with EPIC's data team to ensure this fires after the S3 manifest
-  # is refreshed upstream.
+  # Enabled per deployment via ETL_SCHEDULE_ENABLED=true
+  # Omitted in preview — its nightly runs via the run-etl-preview.yml GitHub Actions cron.
   etl_import:
     class: EtlImportJob
     queue: etl

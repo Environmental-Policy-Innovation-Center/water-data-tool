@@ -1,18 +1,7 @@
 name: Run ETL — Preview Database
 
-# Manually run the ETL import against the SHARED preview database as a one-off ECS task.
-#
-# Purpose: test a PR branch's data flow on demand — without waiting for the nightly schedule
-# and without needing direct ECS/RDS credentials. All PR previews read one preview database,
-# so a single run refreshes the data for every open preview.
-#
-# Preview borrows the staging task definition; DATABASE_URL is overridden to the preview DB
-# (mirrors refresh-cartographic-boundaries.yml). Scoped to preview only — staging/production
-# run the schedule via ETL_SCHEDULE_ENABLED (see config/recurring.yml).
-#
-# The one-off task runs on spare cluster capacity. If it ever fails to place, that surfaces
-# as a clear run-task error — address capacity then rather than pre-emptively taking a
-# running service offline.
+# Runs the ETL import against the shared preview DB as a one-off ECS task (nightly cron + on-demand dispatch).
+# Borrows the staging task def, overriding DATABASE_URL to preview.
 
 on:
   workflow_dispatch:
@@ -27,13 +16,37 @@ on:
         type: boolean
         default: false
 
+  # Nightly refresh, pinned to midnight America/New_York. GitHub cron is UTC-only (no DST),
+  # so both offsets fire and the gate job lets only the true NY-midnight firing through.
+  schedule:
+    - cron: "0 4 * * *"   # 00:00 EDT (summer)
+    - cron: "0 5 * * *"   # 00:00 EST (winter)
+
 concurrency:
   group: run-etl-preview
   cancel-in-progress: false
 
 jobs:
-  run-etl:
+  # Both scheduled offsets fire year-round; only the one that is actually midnight in
+  # New York proceeds. Manual dispatch always proceeds.
+  gate:
     if: vars.AWS_DEPLOY_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    outputs:
+      run: ${{ steps.check.outputs.run }}
+    steps:
+      - id: check
+        run: |
+          if [ "${{ github.event_name }}" != "schedule" ] || [ "$(TZ=America/New_York date +%H)" = "00" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            echo "Not midnight in New York — skipping this off-DST cron firing."
+          fi
+
+  run-etl:
+    needs: gate
+    if: needs.gate.outputs.run == 'true'
     runs-on: ubuntu-latest
     environment: pr-previews
     permissions:
@@ -54,8 +67,7 @@ jobs:
       - name: Resolve ECS target
         id: target
         run: |
-          # Preview borrows the staging service's task definition; DATABASE_URL is overridden
-          # below to point at the shared preview database.
+          # Borrow the staging service's task definition (DATABASE_URL is overridden per-run below).
           SERVICE="$ECS_SERVICE_STAGING"
 
           TASK_DEF=$(aws ecs describe-services \
@@ -100,8 +112,7 @@ jobs:
           TABLE: ${{ github.event.inputs.table }}
           FORCE: ${{ github.event.inputs.force }}
         run: |
-          # Build the rake invocation from the table/force inputs. Passed as an argv array
-          # (not a shell string), so the [ ] brackets are safe — no glob expansion.
+          # Build the rake task; passed as an argv element (not a shell string), so [ ] is safe.
           if [ -n "$TABLE" ] && [ "$FORCE" = "true" ]; then
             RAKE_TASK="etl:import[$TABLE,force]"
           elif [ -n "$TABLE" ]; then
@@ -148,8 +159,7 @@ jobs:
           TASK_ID="${TASK_ARN##*/}"
           LOG_STREAM="${LOG_PREFIX}/${CONTAINER_NAME}/${TASK_ID}"
 
-          # Poll task status every 30s, printing any new container log lines each round so a
-          # long import (e.g. the ~1 GB geoms file) shows live progress instead of looking hung.
+          # Poll status every 30s, streaming new log lines so a long import shows live progress.
           echo "--- streaming container output (task status pinged every 30s) ---"
           NEXT_TOKEN=""
           print_new_logs() {

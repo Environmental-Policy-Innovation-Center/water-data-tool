@@ -13,8 +13,8 @@ _On completion, replace the owner tag with `[x]` (e.g. `- [x]: A1 …`)._
 
 ### A. Preview nightly ETL reliability
 
-- [COREY]: A1 — Add a `schedule:` cron trigger to `.github/workflows/run-etl-preview.yml` (fires from `main`; runs one dedicated ECS task against the preview DB).
-- [COREY]: A2 — Remove `ETL_SCHEDULE_ENABLED=true` from the preview env block in `deploy-client-aws.yml` so the nightly is owned solely by the cron in A1.
+- [x]: A1 — Add a `schedule:` cron trigger to `.github/workflows/run-etl-preview.yml` (fires from `main`; runs one dedicated ECS task against the preview DB).
+- [x]: A2 — Remove `ETL_SCHEDULE_ENABLED=true` from the preview env block in `deploy-client-aws.yml` so the nightly is owned solely by the cron in A1.
 - [LUKE]: A3 — Verify the nightly cron's permissions. No new IAM is needed — `RunTask`/`PassRole`/secrets already work, proven by `refresh-cartographic-boundaries.yml` — but scheduled runs execute in `main`'s context, so two gates must hold:
   1. The `pr-previews` GitHub Environment deployment-branch policy must allow `main` (most likely toggle needed).
   2. The OIDC trust on `AWS_PR_DEPLOY_ROLE_ARN` must accept the environment-based `sub` (`repo:<org>/<repo>:environment:pr-previews`) — already true for the manual dispatch, so this passes unless the trust is scoped to PR refs.

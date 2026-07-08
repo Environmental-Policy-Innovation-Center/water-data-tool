@@ -93,6 +93,8 @@ jobs:
               {"name":"MAPBOX_STYLE_URL",    "valueFrom":$style}
             ]')
 
+          # ETL_SCHEDULE_ENABLED intentionally omitted for preview — the nightly ETL is
+          # handled by the run-etl-preview.yml GitHub Actions cron (dedicated ECS task).
           ENV_VARS_JSON='[
             {"name":"RAILS_ENV",           "value":"production"},
             {"name":"RAILS_LOG_TO_STDOUT", "value":"1"},
@@ -100,7 +102,6 @@ jobs:
             {"name":"HTTP_PORT",           "value":"3000"},
             {"name":"TARGET_PORT",         "value":"3001"},
             {"name":"ETL_SOURCE_URL",      "value":"https://tech-team-data.s3.us-east-1.amazonaws.com/national-dw-tool/staging"},
-            {"name":"ETL_SCHEDULE_ENABLED", "value":"true"},
             {"name":"PUBLIC_DOWNLOADS_BASE_URL", "value":"https://tech-team-data.s3.us-east-1.amazonaws.com/national-dw-tool/public-data-downloads/staged"},
             {"name":"METHODOLOGY_PDF_URL", "value":"https://tech-team-data.s3.us-east-1.amazonaws.com/national-dw-tool/public-data-downloads/EPIC'\''s+Drinking+Water+Explorer+Tool+-+Methodology.pdf"}
           ]'

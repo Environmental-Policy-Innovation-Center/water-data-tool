@@ -244,7 +244,7 @@ production:
 
 The job runs on the dedicated `etl` queue and has a concurrency limit so imports cannot overlap. It issues HEAD requests per file and only imports files with updated `Last-Modified` timestamps. If a source omits `Last-Modified`, the file imports as changed.
 
-Because staging, production, and preview ECS services may all use `RAILS_ENV=production`, recurring ETL is gated by `ETL_SCHEDULE_ENABLED=true` rather than Rails environment alone. Leave the variable unset or false anywhere recurring imports should not run.
+Because staging and production ECS services use `RAILS_ENV=production`, recurring ETL is gated by `ETL_SCHEDULE_ENABLED=true` rather than Rails environment alone. Leave the variable unset or false anywhere recurring imports should not run. Preview intentionally leaves it unset — its single ephemeral instance can be down or mid-redeploy at the scheduled time and the in-puma import can OOM the small container, so the nightly refresh runs decoupled as a dedicated ECS task via the `run-etl-preview.yml` GitHub Actions cron (see `DEPLOYMENTS.md`).
 
 ---
 
