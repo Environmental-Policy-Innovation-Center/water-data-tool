@@ -32,9 +32,6 @@ Below `Context`, use whichever sections apply:
 - **`Implementation Guide`** — for work that is ready to be done. Include code changes,
   architecture decisions, step-by-step instructions, and a checklist.
 
-Both sections can coexist in the same doc when a piece of work has a discovery phase followed
-by a known implementation plan (see `ETL_DEPLOY_INVESTIGATION.md`).
-
 End every doc with the cleanup footer so whoever finishes the work knows to delete it.
 
 ```markdown
@@ -60,6 +57,6 @@ Code changes, architecture decisions, steps, checklist.
 ```
 
 Not every document needs every section — use judgment. An informal list of small TODOs
-(like `OPEN_WORK_ITEMS.md`) doesn't need this structure. A multi-week migration with
-external dependencies (like `TIGER_ETL_SOURCE_MIGRATION.md`) does.
+(like `OPEN_WORK_ITEMS.md`) doesn't need this structure. A multi-week effort with external
+(cross-repo or data-team) dependencies does.
 

@@ -1,0 +1,217 @@
+name: Run ETL — Preview Database
+
+# Runs the ETL import against the shared preview DB as a one-off ECS task (nightly cron + on-demand dispatch).
+# Borrows the staging task def, overriding DATABASE_URL to preview.
+
+on:
+  workflow_dispatch:
+    inputs:
+      table:
+        description: "Single file/table key to import (e.g. epa_sabs, ejscreen). Leave blank to run the full ETL."
+        required: false
+        default: ""
+      force:
+        description: "Re-import EVERY file even if its source Last-Modified is unchanged (bypasses the per-file freshness check)"
+        required: true
+        type: boolean
+        default: false
+
+  # Nightly refresh, pinned to midnight America/New_York. GitHub cron is UTC-only (no DST),
+  # so both offsets fire and the gate job lets only the true NY-midnight firing through.
+  schedule:
+    - cron: "0 4 * * *"   # 00:00 EDT (summer)
+    - cron: "0 5 * * *"   # 00:00 EST (winter)
+
+concurrency:
+  group: run-etl-preview
+  cancel-in-progress: false
+
+jobs:
+  # Both scheduled offsets fire year-round; only the one that is actually midnight in
+  # New York proceeds. Manual dispatch always proceeds.
+  gate:
+    if: vars.AWS_DEPLOY_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    outputs:
+      run: ${{ steps.check.outputs.run }}
+    steps:
+      - id: check
+        run: |
+          if [ "${{ github.event_name }}" != "schedule" ] || [ "$(TZ=America/New_York date +%H)" = "00" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            echo "Not midnight in New York — skipping this off-DST cron firing."
+          fi
+
+  run-etl:
+    needs: gate
+    if: needs.gate.outputs.run == 'true'
+    runs-on: ubuntu-latest
+    environment: pr-previews
+    permissions:
+      id-token: write
+      contents: read
+    env:
+      AWS_REGION:          ${{ vars.AWS_REGION }}
+      ECS_CLUSTER:         ${{ vars.ECS_CLUSTER }}
+      ECS_SERVICE_STAGING: ${{ vars.ECS_SERVICE_STAGING }}
+
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_PR_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Resolve ECS target
+        id: target
+        run: |
+          # Borrow the staging service's task definition (DATABASE_URL is overridden per-run below).
+          SERVICE="$ECS_SERVICE_STAGING"
+
+          TASK_DEF=$(aws ecs describe-services \
+            --cluster "$ECS_CLUSTER" --services "$SERVICE" \
+            --query 'services[0].taskDefinition' --output text)
+          if [ -z "$TASK_DEF" ] || [ "$TASK_DEF" = "None" ]; then
+            echo "::error::Could not resolve task definition for service '$SERVICE'"
+            exit 1
+          fi
+
+          CONTAINER_NAME=$(aws ecs describe-task-definition \
+            --task-definition "$TASK_DEF" \
+            --query 'taskDefinition.containerDefinitions[0].name' --output text)
+
+          PLACEMENT_CONSTRAINTS=$(aws ecs describe-services \
+            --cluster "$ECS_CLUSTER" --services "$SERVICE" \
+            --query 'services[0].placementConstraints' --output json | jq -c .)
+
+          DB_URL=$(aws secretsmanager get-secret-value \
+            --secret-id "ep/wdt/dev/database_url" \
+            --query 'SecretString' --output text | jq -r '.preview')
+          if [ -z "$DB_URL" ] || [ "$DB_URL" = "null" ]; then
+            echo "::error::Could not resolve the preview DATABASE_URL"
+            exit 1
+          fi
+
+          {
+            echo "task_definition=$TASK_DEF"
+            echo "container_name=$CONTAINER_NAME"
+            echo "placement_constraints=$PLACEMENT_CONSTRAINTS"
+            echo "db_url=$DB_URL"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Run ETL import
+        id: import
+        timeout-minutes: 90
+        env:
+          TASK_DEF: ${{ steps.target.outputs.task_definition }}
+          CONTAINER_NAME: ${{ steps.target.outputs.container_name }}
+          PLACEMENT_CONSTRAINTS: ${{ steps.target.outputs.placement_constraints }}
+          DB_URL: ${{ steps.target.outputs.db_url }}
+          TABLE: ${{ github.event.inputs.table }}
+          FORCE: ${{ github.event.inputs.force }}
+        run: |
+          # Build the rake task; passed as an argv element (not a shell string), so [ ] is safe.
+          if [ -n "$TABLE" ] && [ "$FORCE" = "true" ]; then
+            RAKE_TASK="etl:import[$TABLE,force]"
+          elif [ -n "$TABLE" ]; then
+            RAKE_TASK="etl:import[$TABLE]"
+          elif [ "$FORCE" = "true" ]; then
+            RAKE_TASK="etl:import[,force]"
+          else
+            RAKE_TASK="etl:import"
+          fi
+          echo "Running: bin/rails $RAKE_TASK against the preview DB"
+
+          OVERRIDES=$(jq -cn \
+            --arg name "$CONTAINER_NAME" \
+            --arg task "$RAKE_TASK" \
+            --arg db_url "$DB_URL" \
+            '{containerOverrides:[{name:$name,command:["env",("DATABASE_URL="+$db_url),"./bin/rails",$task]}]}')
+
+          RUN_ARGS=(
+            --cluster "$ECS_CLUSTER"
+            --launch-type EC2
+            --task-definition "$TASK_DEF"
+            --started-by "gha-etl-preview"
+            --overrides "$OVERRIDES"
+          )
+          if [ "$PLACEMENT_CONSTRAINTS" != "[]" ]; then
+            RUN_ARGS+=(--placement-constraints "$PLACEMENT_CONSTRAINTS")
+          fi
+
+          RUN_TASK_RESPONSE=$(aws ecs run-task "${RUN_ARGS[@]}" --output json)
+          TASK_ARN=$(jq -r '.tasks[0].taskArn // empty' <<< "$RUN_TASK_RESPONSE")
+          if [ -z "$TASK_ARN" ] || [ "$TASK_ARN" = "None" ]; then
+            echo "::error::Failed to start ETL import task (often a capacity/placement issue — see failures below)."
+            jq -r '.failures // []' <<< "$RUN_TASK_RESPONSE"
+            exit 1
+          fi
+          echo "task_arn=$TASK_ARN" >> "$GITHUB_OUTPUT"
+          echo "ETL import task started: $TASK_ARN"
+
+          # Resolve the CloudWatch stream so we can tail container output live.
+          LOG_GROUP=$(aws ecs describe-task-definition --task-definition "$TASK_DEF" \
+            --query 'taskDefinition.containerDefinitions[0].logConfiguration.options."awslogs-group"' --output text)
+          LOG_PREFIX=$(aws ecs describe-task-definition --task-definition "$TASK_DEF" \
+            --query 'taskDefinition.containerDefinitions[0].logConfiguration.options."awslogs-stream-prefix"' --output text)
+          TASK_ID="${TASK_ARN##*/}"
+          LOG_STREAM="${LOG_PREFIX}/${CONTAINER_NAME}/${TASK_ID}"
+
+          # Poll status every 30s, streaming new log lines so a long import shows live progress.
+          echo "--- streaming container output (task status pinged every 30s) ---"
+          NEXT_TOKEN=""
+          print_new_logs() {
+            local args=(--log-group-name "$LOG_GROUP" --log-stream-name "$LOG_STREAM" --start-from-head --output json)
+            [ -n "$NEXT_TOKEN" ] && args+=(--next-token "$NEXT_TOKEN")
+            local events
+            events=$(aws logs get-log-events "${args[@]}" 2>/dev/null || echo '{}')
+            jq -r '.events[]?.message' <<< "$events"
+            local token
+            token=$(jq -r '.nextForwardToken // empty' <<< "$events")
+            [ -n "$token" ] && NEXT_TOKEN="$token"
+          }
+
+          while true; do
+            print_new_logs
+            TASK_DESCRIPTION=$(aws ecs describe-tasks --cluster "$ECS_CLUSTER" --tasks "$TASK_ARN")
+            STATUS=$(jq -r '.tasks[0].lastStatus // empty' <<< "$TASK_DESCRIPTION")
+            echo "$(date -u '+%H:%M:%S') task status: $STATUS"
+            [ "$STATUS" = "STOPPED" ] && break
+            sleep 30
+          done
+
+          # Final flush — catch anything written between the last poll and STOPPED.
+          sleep 3
+          print_new_logs
+
+          EXIT_CODE=$(jq -r '.tasks[0].containers[0].exitCode // empty' <<< "$TASK_DESCRIPTION")
+          if [ "$EXIT_CODE" != "0" ]; then
+            echo "::error::ETL import task exited with code $EXIT_CODE. Task: $TASK_ARN"
+            jq '.tasks[0].containers[0] | {name, lastStatus, exitCode, reason}' <<< "$TASK_DESCRIPTION"
+            echo "--- CloudWatch logs ---"
+            sleep 5
+            aws logs get-log-events \
+              --log-group-name "$LOG_GROUP" \
+              --log-stream-name "$LOG_STREAM" \
+              --start-from-head \
+              --query 'events[*].message' \
+              --output text || true
+            exit 1
+          fi
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "## ETL import — preview DB"
+            echo ""
+            echo "| | |"
+            echo "|---|---|"
+            echo "| **Scope** | \`${{ github.event.inputs.table || 'full ETL' }}\` |"
+            echo "| **Force** | \`${{ github.event.inputs.force }}\` |"
+            echo "| **Import task** | \`${{ steps.import.outputs.task_arn }}\` |"
+            echo "| **Triggered by** | @${{ github.actor }} |"
+            echo "| **Time** | $(date -u '+%Y-%m-%d %H:%M UTC') |"
+          } >> "$GITHUB_STEP_SUMMARY"

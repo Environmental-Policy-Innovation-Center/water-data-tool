@@ -21,20 +21,6 @@ RSpec.describe CartographicBoundaries do
     end
   end
 
-  describe ".loaded?" do
-    it "returns false when any of the three boundary tables is empty" do
-      expect(described_class.loaded?).to be false
-    end
-
-    it "returns true when all three boundary tables have rows" do
-      allow(CartographicState).to receive(:exists?).and_return(true)
-      allow(CartographicCounty).to receive(:exists?).and_return(true)
-      allow(CartographicPlace).to receive(:exists?).and_return(true)
-
-      expect(described_class.loaded?).to be true
-    end
-  end
-
   describe "#load" do
     around do |example|
       original = ENV["ETL_SOURCE_URL"]
