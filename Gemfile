@@ -64,7 +64,7 @@ gem "puma", "~> 8.0.2"
 gem "thruster", "~> 0.1.20", require: false
 
 # ViewComponent — server-rendered UI components [https://viewcomponent.org]
-gem "view_component", "~> 4.11.0"
+gem "view_component", "~> 4.12.0"
 
 # Use Active Model has_secure_password [https://guides.rubyonrails.org/active_model_basics.html#securepassword]
 # gem "bcrypt", "~> 3.1.7"
