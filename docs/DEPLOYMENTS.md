@@ -136,8 +136,9 @@ Use **Actions → Run ETL — Preview Database → Run workflow** to run `bin/ra
 
 1. Borrows the staging task definition (preview has no dedicated service).
 2. Overrides `DATABASE_URL` to the shared preview database via Secrets Manager.
-3. Runs a one-off ECS task on spare cluster capacity — no scale-down of running services.
-4. Streams container logs live while polling task status (90-minute timeout).
+3. Overrides the one-off task/container memory reservation to 1700 MiB, matching the ETL pipeline's bounded-memory importer instead of staging's larger web task reservation.
+4. Runs a one-off ECS task on spare cluster capacity — no scale-down of running services.
+5. Streams container logs live while polling task status (90-minute timeout).
 
 The job summary shows scope, force flag, task ARN, and who triggered the run.
 

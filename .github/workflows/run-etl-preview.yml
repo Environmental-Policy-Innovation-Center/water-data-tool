@@ -56,6 +56,7 @@ jobs:
       AWS_REGION:          ${{ vars.AWS_REGION }}
       ECS_CLUSTER:         ${{ vars.ECS_CLUSTER }}
       ECS_SERVICE_STAGING: ${{ vars.ECS_SERVICE_STAGING }}
+      ETL_TASK_MEMORY:     "1700"
 
     steps:
       - name: Configure AWS credentials
@@ -128,7 +129,8 @@ jobs:
             --arg name "$CONTAINER_NAME" \
             --arg task "$RAKE_TASK" \
             --arg db_url "$DB_URL" \
-            '{containerOverrides:[{name:$name,command:["env",("DATABASE_URL="+$db_url),"./bin/rails",$task]}]}')
+            --arg memory "$ETL_TASK_MEMORY" \
+            '{memory:$memory,containerOverrides:[{name:$name,memory:($memory|tonumber),command:["env",("DATABASE_URL="+$db_url),"./bin/rails",$task]}]}')
 
           RUN_ARGS=(
             --cluster "$ECS_CLUSTER"
