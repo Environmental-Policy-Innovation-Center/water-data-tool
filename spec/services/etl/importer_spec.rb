@@ -15,6 +15,7 @@ RSpec.describe Etl::Importer do
   describe "#call" do
     before do
       allow(importer).to receive(:build_file_entries).and_return(file_entries)
+      allow(CartographicBoundaries).to receive(:load).and_return(Etl::ImportResult.skipped(file_key: "cartographic-boundaries"))
     end
 
     it "dispatches each recognised file to the correct file importer" do
@@ -108,6 +109,49 @@ RSpec.describe Etl::Importer do
       expect(Etl::Importers::EpaSabs).to have_received(:new).with(hash_including(force: true))
     end
 
+    context "cartographic boundaries step" do
+      it "runs the cartographic step and includes its result when it reloads" do
+        allow_all_importers_to_skip
+        carto_result = Etl::ImportResult.imported(file_key: "cartographic-boundaries", changed_boundary_layers: %w[states counties places])
+        allow(CartographicBoundaries).to receive(:load).and_return(carto_result)
+
+        expect(Etl::PostImportSteps).to receive(:call).with(import_results: [carto_result])
+        importer.call
+      end
+
+      it "does not run the cartographic step when a non-cartographic table filter is set" do
+        filtered = described_class.new(only: "epa_sabs")
+        allow(filtered).to receive(:build_file_entries).and_return(file_entries)
+        allow(Etl::PostImportSteps).to receive(:call)
+        epa = instance_double(Etl::Importers::EpaSabs, call: Etl::ImportResult.skipped(file_key: "epa_sabs"))
+        allow(Etl::Importers::EpaSabs).to receive(:new).and_return(epa)
+
+        expect(CartographicBoundaries).not_to receive(:load)
+        filtered.call
+      end
+
+      it "runs only the cartographic step when filtered to the cartographic key" do
+        filtered = described_class.new(only: "cartographic-boundaries")
+        allow(filtered).to receive(:build_file_entries).and_return([])
+        carto_result = Etl::ImportResult.imported(file_key: "cartographic-boundaries", changed_boundary_layers: %w[states counties places])
+        allow(CartographicBoundaries).to receive(:load).with(force: false).and_return(carto_result)
+
+        expect(Etl::PostImportSteps).to receive(:call).with(import_results: [carto_result])
+        filtered.call
+      end
+
+      it "records an error when the cartographic step raises" do
+        allow_all_importers_to_skip
+        allow(CartographicBoundaries).to receive(:load).and_raise(StandardError, "ogr2ogr blew up")
+        allow(Etl::PostImportSteps).to receive(:call)
+
+        errors = importer.call
+
+        expect(errors.sole[:file_key]).to eq("cartographic-boundaries")
+        expect(errors.sole[:error]).to be_a(StandardError)
+      end
+    end
+
     context "when a table filter is specified" do
       it "only dispatches to the matching importer" do
         filtered_importer = described_class.new(only: "epa_sabs")
@@ -173,6 +217,7 @@ RSpec.describe Etl::Importer do
   describe "imported_files tracking" do
     before do
       allow(importer).to receive(:build_file_entries).and_return(file_entries)
+      allow(CartographicBoundaries).to receive(:load).and_return(Etl::ImportResult.skipped(file_key: "cartographic-boundaries"))
       allow(Etl::PostImportSteps).to receive(:call)
     end
 

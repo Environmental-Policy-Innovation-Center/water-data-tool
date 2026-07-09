@@ -13,6 +13,7 @@ class CartographicBoundaries
       shapefile: "us_state_500k.shp",
       staging_table: "cartographic_states_staging",
       target_table: "cartographic_states",
+      tile_layer: "states",
       columns: "gid, statefp, stusps, name, geoid, geom"
     },
     {
@@ -20,6 +21,7 @@ class CartographicBoundaries
       shapefile: "us_county_500k.shp",
       staging_table: "cartographic_counties_staging",
       target_table: "cartographic_counties",
+      tile_layer: "counties",
       columns: "gid, statefp, countyfp, geoid, name, namelsad, stusps, geom"
     },
     {
@@ -27,15 +29,20 @@ class CartographicBoundaries
       shapefile: "us_place_500k.shp",
       staging_table: "cartographic_places_staging",
       target_table: "cartographic_places",
+      tile_layer: "places",
       columns: "gid, statefp, placefp, geoid, name, namelsad, stusps, affgeoid, geom"
     }
   ].freeze
 
-  def self.load
-    new.load
+  def self.load(force: false)
+    new.load(force: force)
   end
 
-  def load
+  # When nothing is newer it skips without recording a DataImport record
+  def load(force: false)
+    layers = force ? LAYERS : stale_layers
+    return Etl::ImportResult.skipped(file_key: IMPORT_FILE_URL) if layers.empty?
+
     raise "ogr2ogr not found. Install GDAL: brew install gdal (macOS) or apt-get install gdal-bin (Linux)" unless system("which ogr2ogr > /dev/null 2>&1")
 
     tmp_dir = Rails.root.join("tmp/cartographic")
@@ -45,12 +52,28 @@ class CartographicBoundaries
     config = ApplicationRecord.connection_db_config.configuration_hash
     pg_conn_string, pg_password = build_pg_connection_string(config)
 
-    LAYERS.each { |layer| load_layer(layer, tmp_dir, conn, pg_conn_string, pg_password) }
+    layers.each { |layer| load_layer(layer, tmp_dir, conn, pg_conn_string, pg_password) }
     record_import
-    Etl::ImportResult.imported(file_key: IMPORT_FILE_URL, full_refresh_required: true)
+    Etl::ImportResult.imported(
+      file_key: IMPORT_FILE_URL,
+      changed_boundary_layers: layers.map { |layer| layer[:tile_layer] }
+    )
   end
 
   private
+
+  # Mirrors Etl::FileImporter#needs_import? — layers whose source is newer than the last import (all on first run).
+  def stale_layers
+    last_import = DataImport.where(file_url: IMPORT_FILE_URL).maximum(:imported_at)
+    return LAYERS if last_import.nil?
+
+    LAYERS.select { |layer| source_newer_than?(zip_url(layer), last_import) }
+  end
+
+  def source_newer_than?(url, last_import)
+    last_modified = last_modified_at(url)
+    last_modified.nil? || last_modified > last_import
+  end
 
   def record_import
     DataImport.create!(file_url: IMPORT_FILE_URL, imported_at: Time.current)
