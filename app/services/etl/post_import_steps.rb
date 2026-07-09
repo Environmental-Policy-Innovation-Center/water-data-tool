@@ -1,6 +1,7 @@
 module Etl
   # Runs PostGIS-derived data steps after epa_sabs_geoms.geojson is imported.
   # Equivalent to the legacy post_import_scripts.sql.
+  # Cartographic_* boundary tables are loaded upstream by Etl::Importer, so the joins here can assume they exist.
   module PostImportSteps
     module_function
 
@@ -17,6 +18,8 @@ module Etl
 
       return if import_results.empty?
 
+      refresh_changed_boundaries(import_results)
+
       return legacy_call(import_results.map(&:file_key)) if import_results.any?(&:full_refresh_required)
 
       changed_pwsids = import_results.flat_map(&:changed_pwsids).compact.uniq
@@ -29,7 +32,6 @@ module Etl
         fix_invalid_geometries(pwsids: geometry_pwsids)
         generate_centroids(pwsids: geometry_pwsids)
         generate_generalized_geometries(pwsids: geometry_pwsids)
-        CartographicBoundaries.load
         assign_state_codes(pwsids: geometry_pwsids)
         analyze_spatial_tables
         affected_place_geoids = build_place_crosswalks(pwsids: geometry_pwsids)
@@ -96,7 +98,6 @@ module Etl
       fix_invalid_geometries
       generate_centroids
       generate_generalized_geometries
-      CartographicBoundaries.load
 
       # Assign state codes and county associations based on the new geometries,
       # then rebuild spatial indexes and place crosswalks that depend on those joins.
@@ -105,6 +106,32 @@ module Etl
       build_place_crosswalks
       bust_tile_cache
       TileCacheWarmJob.perform_later
+    end
+
+    def refresh_changed_boundaries(import_results)
+      layers = import_results.flat_map(&:changed_boundary_layers).compact.uniq
+      return if layers.empty?
+
+      # A full geoms refresh recomputes these joins and busts all tiles anyway.
+      return if full_geoms_refresh_pending?(import_results)
+
+      refresh_boundary_layers(layers)
+      TileCacheWarmJob.perform_later(layers: layers)
+    end
+
+    # Joins + bust only; caller warms (nightly async, manual one-off inline).
+    def refresh_boundary_layers(layers)
+      return if layers.blank?
+
+      assign_state_codes if layers.include?("states")
+      build_place_crosswalks if layers.include?("places")
+      bust_cartographic_boundary_tile_cache(layers)
+      Rails.logger.info("[ETL] cartographic boundary refresh: layers=#{layers.inspect}")
+    end
+
+    def full_geoms_refresh_pending?(import_results)
+      import_results.any?(&:full_refresh_required) &&
+        import_results.map(&:file_key).include?("epa_sabs_geoms")
     end
 
     # Repair invalid geometries using ST_Buffer trick. Runs until none remain
@@ -286,9 +313,9 @@ module Etl
       Rails.logger.info("[ETL] bust_tile_cache: deleted #{deleted} cached tile(s)")
     end
 
-    def bust_cartographic_boundary_tile_cache
-      deleted = TileCache.where(layer: %w[states counties places]).delete_all
-      Rails.logger.info("[ETL] bust_cartographic_boundary_tile_cache: deleted #{deleted} cached boundary tile(s)")
+    def bust_cartographic_boundary_tile_cache(layers)
+      deleted = TileCache.where(layer: layers).delete_all
+      Rails.logger.info("[ETL] bust_cartographic_boundary_tile_cache: deleted #{deleted} cached boundary tile(s) for #{layers.inspect}")
     end
 
     # Rebuild GiST spatial indexes and update query-planner statistics after

@@ -455,7 +455,7 @@ namespace :db do
       # ---------------------------------------------------------------------------
       if CartographicState.count == 0
         puts "\n→ Loading cartographic boundaries..."
-        CartographicBoundaries.load
+        CartographicBoundaries.load(force: true)
       else
         puts "\n  Cartographic boundaries: already loaded (#{CartographicState.count} states)"
       end

@@ -16,6 +16,11 @@ on:
         required: true
         type: boolean
         default: false
+      force:
+        description: "Force-reload every cartographic layer (bypass the freshness gate). Uncheck to reload only layers whose source zip changed."
+        required: true
+        type: boolean
+        default: true
       confirm:
         description: 'Type "refresh-staging-boundaries", "refresh-production-boundaries", or "refresh-preview-boundaries"; append "-with-downtime" when scale_service_down is true'
         required: true
@@ -139,9 +144,10 @@ jobs:
           CONTAINER_NAME: ${{ steps.target.outputs.container_name }}
           PLACEMENT_CONSTRAINTS: ${{ steps.target.outputs.placement_constraints }}
           ENV_OVERRIDE: ${{ steps.target.outputs.env_override }}
+          FORCE_RELOAD: ${{ github.event.inputs.force }}
         run: |
           DB_URL=$(jq -r '.[0].value // ""' <<< "$ENV_OVERRIDE")
-          RAILS_CMD="CartographicBoundaries.load; Etl::PostImportSteps.bust_cartographic_boundary_tile_cache; TileCacheWarmJob.perform_now(max_zoom: 5, layers: %w[states counties places])"
+          RAILS_CMD="layers = CartographicBoundaries.load(force: ${FORCE_RELOAD}).changed_boundary_layers; Etl::PostImportSteps.refresh_boundary_layers(layers); TileCacheWarmJob.perform_now(max_zoom: 5, layers: layers) if layers.any?"
           if [ -n "$DB_URL" ]; then
             OVERRIDES=$(jq -cn \
               --arg name "$CONTAINER_NAME" \
