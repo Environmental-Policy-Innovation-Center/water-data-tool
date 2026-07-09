@@ -6,16 +6,10 @@ A scratchpad for docs housekeeping — things to write, update, remove, or decid
 
 ### Add
 
-- **Column Management** — how the config works, where it's used, what the helpers do
-- **How to add new data** — full guide covering filters, table columns, exports, etc. (flesh out
-  the `docs/how_to/ADD_NEW_DATA_FIELD.md` stub; once written, cross-link it from the headers of
-  `config/fields.yml`, `config/filter_layout.yml`, and `config/table_layout.yml`). Must cover: the filter
-  AND/OR rule (same category = OR, different categories = AND) and **base-vs-join tables**
-  (`public_water_systems` is the base; every other `model:` is LEFT-joined automatically).
 - **Github Workflows** — document the deploy pipeline and PR environment lifecycle
 
 
-### Update
+### Update (in progress)
 
 - `ETL.md`
 - `FILTERING.md`
@@ -38,8 +32,6 @@ A scratchpad for docs housekeeping — things to write, update, remove, or decid
 
 - `ETL_STRING_NORMALIZATION.md` — still relevant?
 - `API.md` — still accurate / needed?
-- `OPEN_WORK_ITEMS.md` — ready to delete once fully extracted _(see `NICE_TO_HAVES.md`)_
-- `DRAG_DROP_SORTABLE_JS.md` — keep as open item or move to nice-to-have?
 
 - `mocks` directory
 
@@ -57,6 +49,3 @@ A scratchpad for docs housekeeping — things to write, update, remove, or decid
 - Reorganize `docs/` structure — remove stale implementation guides, consider new categories
   (runbooks, guides, architecture, domain concepts)
 - **Test GeoJSON exports**
-
-
-- Remove Place filter
