@@ -35,6 +35,7 @@ Domain acronyms, data source names, field abbreviations, and technical terms use
 | **STUSPS** | State USPS Abbreviation — 2-letter postal code (e.g., `VT`, `RI`); used as the state component of PWSID and as a filter/index field |
 | **SVI** | Social Vulnerability Index — CDC composite index measuring community vulnerability to hazards; see `environmental_justices.svi_overall_pctl` |
 | **SW** | Surface Water — water sourced from rivers, lakes, or reservoirs; one of the two values for `gw_sw_code` |
+| **TIGER** | Topologically Integrated Geographic Encoding and Referencing — the U.S. Census Bureau geographic dataset. Our boundary layers load the Census **Cartographic Boundary** shapefiles (`us_state/county/place_500k`, a generalized form of TIGER/Line) into `cartographic_states/counties/places`; see Data Sources |
 | **UST** | Underground Storage Tank — tracked by EPA for contamination risk; see `watershed_hazards.open_underground_storage_tanks` |
 | **xwalk** | Crosswalk — a mapping table joining two datasets by a shared key. `place_system_crosswalks` maps Census places to PWS service areas with overlap fractions |
 
@@ -45,6 +46,7 @@ Domain acronyms, data source names, field abbreviations, and technical terms use
 | Source | Description |
 |--------|-----------|
 | **ACS** | American Community Survey — U.S. Census Bureau periodic demographic survey; source for `demographics` and `trend_data` |
+| **Census TIGER** | U.S. Census Bureau boundary shapefiles — the 1:500k Cartographic Boundary Files for states, counties, and places; loaded via `ogr2ogr` into `cartographic_states/counties/places`, powering the `states`, `counties`, `places` map layers |
 | **CEJST** | Climate and Economic Justice Screening Tool — White House Council on Environmental Quality; source for `environmental_justices.cejst_*` fields |
 | **CVI** | Community Vulnerability Index — composite index from redlining, life expectancy, and cancer risk data; source for `environmental_justices.cvi_*` fields |
 | **EPA EJScreen** | EPA Environmental Justice Screening Tool — provides disability and drinking water compliance scores; source for `environmental_justices.ejscreen_*` fields |
@@ -78,9 +80,10 @@ Domain acronyms, data source names, field abbreviations, and technical terms use
 |------|-----------|
 | **GiST Index** | Generalized Search Tree — PostgreSQL index type used on geometry columns (`geom`, `centroid`) to enable fast spatial queries |
 | **MVT** | See Mapbox Vector Tile above |
+| **ogr2ogr** | GDAL command-line tool for converting between geospatial formats; the ETL uses it to load Census boundary shapefiles into PostGIS (`cartographic_*` tables) |
 | **PostGIS** | PostgreSQL extension providing geometry data types (`multi_polygon`, `st_point`) and spatial functions (`ST_Transform`, `ST_PointOnSurface`, `ST_Buffer`) |
 | **ST_Transform** | PostGIS function converting geometries between coordinate systems; used to reproject from EPSG:4326 (stored) to EPSG:3857 (tile rendering) |
-| **Tile Cache** | `tile_cache` table — stores MVT protobuf binaries keyed by `(layer, z, x, y)`. Normal ETL runs selectively overwrite affected cached rows; full cache invalidation is reserved for explicit full-refresh fallbacks. Layers: `pws`, `places`, `counties`, `states` |
+| **Tile Cache** | `tile_cache` table — stores MVT protobuf binaries keyed by `(layer, z, x, y)`. Normal ETL runs selectively overwrite affected cached rows; full cache invalidation is reserved for explicit full-refresh fallbacks. Layers: `pws`, `places`, `counties`, `states`, plus `pws_low_poly_v1` (the low-zoom, z<5, simplified pws cache) |
 | **TileBBox** | PostGIS utility function converting tile coordinates `(z, x, y)` to a bounding box geometry for use in MVT generation queries |
 | **WGS 84** | World Geodetic System 1984 — coordinate reference system (EPSG:4326) used to store all geometries in this database |
 | **Web Mercator** | EPSG:3857 — projected coordinate system used by Mapbox GL JS for tile rendering; geometries are reprojected to this system at tile generation time |

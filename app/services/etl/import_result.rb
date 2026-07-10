@@ -6,9 +6,10 @@ module Etl
     :changed_layers,
     :geometry_changed,
     :full_refresh_required,
-    :previous_geometry_bboxes
+    :previous_geometry_bboxes,
+    :changed_boundary_layers
   ) do
-    def self.imported(file_key:, changed_pwsids: [], changed_layers: [], geometry_changed: false, full_refresh_required: false, previous_geometry_bboxes: [])
+    def self.imported(file_key:, changed_pwsids: [], changed_layers: [], geometry_changed: false, full_refresh_required: false, previous_geometry_bboxes: [], changed_boundary_layers: [])
       new(
         file_key: file_key,
         status: :imported,
@@ -16,7 +17,8 @@ module Etl
         changed_layers: changed_layers.compact.uniq,
         geometry_changed: geometry_changed,
         full_refresh_required: full_refresh_required,
-        previous_geometry_bboxes: previous_geometry_bboxes.compact.uniq
+        previous_geometry_bboxes: previous_geometry_bboxes.compact.uniq,
+        changed_boundary_layers: changed_boundary_layers.compact.uniq
       )
     end
 
@@ -28,7 +30,8 @@ module Etl
         changed_layers: [],
         geometry_changed: false,
         full_refresh_required: false,
-        previous_geometry_bboxes: []
+        previous_geometry_bboxes: [],
+        changed_boundary_layers: []
       )
     end
 

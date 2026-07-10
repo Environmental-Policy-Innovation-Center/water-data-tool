@@ -48,6 +48,14 @@ module Etl
       end
     end
 
+    def last_modified_at(url)
+      value = head_url(url)["last-modified"]
+      return Time.zone.parse(value) if value
+
+      Rails.logger.warn("[ETL] Missing Last-Modified header for #{url}; treating as changed")
+      nil
+    end
+
     def validated_https_uri(url)
       uri = URI.parse(url)
       unless uri.is_a?(URI::HTTPS)

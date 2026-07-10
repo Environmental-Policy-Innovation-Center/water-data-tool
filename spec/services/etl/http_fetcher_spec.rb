@@ -6,7 +6,7 @@ RSpec.describe Etl::HttpFetcher do
     Class.new do
       include Etl::HttpFetcher
 
-      public :fetch_url, :head_url, :stream_to_tempfile
+      public :fetch_url, :head_url, :stream_to_tempfile, :last_modified_at
     end
   end
 
@@ -105,6 +105,28 @@ RSpec.describe Etl::HttpFetcher do
         expect { fetcher.head_url("http://example.com/data.csv") }.to raise_error(Etl::HttpFetcher::InsecureUrlError)
         expect(Net::HTTP).not_to have_received(:start)
       end
+    end
+  end
+
+  describe "#last_modified_at" do
+    let(:url) { "https://s3.example.com/epa_sabs.csv" }
+
+    it "parses a present Last-Modified header into a Time" do
+      response = instance_double(Net::HTTPOK)
+      allow(response).to receive(:[]).with("last-modified").and_return("Wed, 15 Jan 2026 10:00:00 GMT")
+      allow(fetcher).to receive(:head_url).with(url).and_return(response)
+
+      expect(fetcher.last_modified_at(url)).to eq(Time.zone.parse("Wed, 15 Jan 2026 10:00:00 GMT"))
+    end
+
+    it "returns nil and warns when the header is absent" do
+      response = instance_double(Net::HTTPOK)
+      allow(response).to receive(:[]).with("last-modified").and_return(nil)
+      allow(fetcher).to receive(:head_url).with(url).and_return(response)
+      allow(Rails.logger).to receive(:warn)
+
+      expect(fetcher.last_modified_at(url)).to be_nil
+      expect(Rails.logger).to have_received(:warn).with(/Missing Last-Modified header/)
     end
   end
 

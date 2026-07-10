@@ -249,6 +249,7 @@ Benchmark scripts have different cache behavior:
 | [docs/GLOSSARY.md](docs/GLOSSARY.md) | Terminology and domain definitions |
 | [docs/LOOKBOOK.md](docs/LOOKBOOK.md) | ViewComponent preview catalog — how to access and add previews |
 | [docs/MAPPING.md](docs/MAPPING.md) | Mapping design information |
+| [docs/RUNBOOK.md](docs/RUNBOOK.md) | Operational runbook — manual GitHub workflows and rake tasks for deploy, ETL, and preview envs |
 | [docs/SCHEMA.md](docs/SCHEMA.md) | Database schema — all tables, columns, types, indexes |
 | [docs/TRANSITION.md](docs/TRANSITION.md) | Migration notes from the legacy PHP app to Rails |
 | [docs/open_items/](docs/open_items/) | Known issues, discovery work, and planned improvements not yet ticketed |

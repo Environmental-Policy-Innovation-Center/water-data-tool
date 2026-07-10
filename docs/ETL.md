@@ -214,7 +214,31 @@ Normal scoped imports run `ANALYZE service_area_geometries` so the planner sees 
 
 ---
 
+## Cartographic boundaries (TIGER)
+
+The Census TIGER tables (`cartographic_states/counties/places`) aren't `FILE_IMPORTERS` entries — they're three `.zip` shapefiles under `ETL_SOURCE_URL/cartographic-boundaries/`, loaded by `CartographicBoundaries` via `ogr2ogr`. The importer runs this as a peer step on every cycle:
+
+- **Freshness-gated, per layer** — HEADs each zip and reloads only the layer(s) whose source is newer than the last `cartographic-boundaries` `DataImport` (all layers on first run or when forced). A no-op records no `DataImport`, so an unchanged run does not bump the public "Latest data update" timestamp. The result names the changed boundary layers via `ImportResult#changed_boundary_layers`.
+- **Selective boundary refresh** — a changed layer re-runs only its boundary-dependent join (`assign_state_codes` for `states`, `build_place_crosswalks` for `places`; `counties` has no join), then busts and warms **only that layer's tiles** (`bust_cartographic_boundary_tile_cache(layers)` + `TileCacheWarmJob(layers:)`). The pws selective tile cache and the full-refresh path are untouched.
+- **Reload on demand** via the `refresh-cartographic-boundaries.yml` workflow. Its `force` input (default on) reloads every layer; unchecking it runs the same freshness gate as the nightly. It then mirrors the nightly's selective refresh — running only the changed layers' joins and busting/warming only their tiles (`PostImportSteps.refresh_boundary_layers`), warming inline since it's a one-off task.
+
+### Tile layers by data source
+
+Which cached tile layers each source feeds — this is why a boundary change and a water-system change touch different (and sometimes overlapping) layers:
+
+| Tile layer | Data source | Notes |
+|---|---|---|
+| `states`, `counties` | TIGER only | pure Census boundary shapes |
+| `pws`, `pws_low_poly_v1` | EPA SABS only | water-system geometries; `pws_low_poly_v1` is the low-zoom (z<5) pws cache |
+| `places` | Both | place *shape* from TIGER + `place_pwsids` (which systems serve it) from the crosswalk (EPA SABS) |
+
+The `places` overlap is why an EPA SABS geometry change reports `changed_layers = [pws, places]` and refreshes the `places` tiles too, not just `pws`.
+
+---
+
 ## Running the ETL
+
+For the full catalog of manual workflows and operational rake tasks, see [RUNBOOK.md](RUNBOOK.md).
 
 ### Manually
 

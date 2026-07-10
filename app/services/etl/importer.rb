@@ -74,6 +74,8 @@ module Etl
         end
       end
 
+      import_cartographic_boundaries(import_results, errors)
+
       log_run_summary(import_results: import_results, errors: errors)
       Etl::PostImportSteps.call(import_results: import_results)
 
@@ -81,6 +83,18 @@ module Etl
     end
 
     private
+
+    # Cartographic boundaries (three ogr2ogr-loaded zips, not manifest files)
+    # Runs as a peer step, checks its own source freshness and no-ops when unchanged.
+    def import_cartographic_boundaries(import_results, errors)
+      return unless @only.nil? || @only == CartographicBoundaries::IMPORT_FILE_URL
+
+      result = CartographicBoundaries.load(force: @force)
+      import_results << result if result.imported?
+    rescue => e
+      errors << {file_key: CartographicBoundaries::IMPORT_FILE_URL, error: e}
+      Rails.logger.error("[ETL] #{CartographicBoundaries::IMPORT_FILE_URL} failed: #{e.class} — #{e.message}")
+    end
 
     def normalize_result(file_key, result)
       return result if result.is_a?(Etl::ImportResult)
@@ -104,16 +118,12 @@ module Etl
     def build_file_entries
       base_url = ENV.fetch("ETL_SOURCE_URL") { raise "ETL_SOURCE_URL is not set" }.chomp("/")
 
-      file_keys = @only ? [@only] : FILE_IMPORTERS.keys
+      file_keys = @only ? [@only] & FILE_IMPORTERS.keys : FILE_IMPORTERS.keys
 
       file_keys.map do |key|
         ext = FILE_EXTENSIONS[key]
         url = "#{base_url}/#{key}#{ext}"
-        response = head_url(url)
-        last_modified = response["last-modified"]
-        Rails.logger.warn("[ETL] Missing Last-Modified header for #{url}; importing as changed") if last_modified.nil?
-
-        {"file_key" => key, "http_path" => url, "last_updated" => last_modified ? Time.zone.parse(last_modified) : Time.current}
+        {"file_key" => key, "http_path" => url, "last_updated" => last_modified_at(url) || Time.current}
       end
     end
   end

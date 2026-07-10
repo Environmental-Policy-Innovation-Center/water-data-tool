@@ -124,13 +124,13 @@ RSpec.describe CartographicBoundaries do
         expect(import.imported_at).to be_within(5.seconds).of(Time.current)
       end
 
-      it "returns an imported ImportResult after the audit row is recorded" do
+      it "returns an imported ImportResult naming the loaded boundary layers" do
         result = instance.load
 
         expect(result).to have_attributes(
           file_key: "cartographic-boundaries",
           status: :imported,
-          full_refresh_required: true
+          changed_boundary_layers: %w[states counties places]
         )
         expect(DataImport.last.file_url).to eq("cartographic-boundaries")
       end
@@ -142,6 +142,59 @@ RSpec.describe CartographicBoundaries do
           file.write("fake-zip-data")
           file.rewind
         end
+      end
+    end
+
+    context "freshness gating" do
+      let(:old_time) { "Mon, 01 Jan 2020 00:00:00 GMT" }
+      let(:new_time) { "Wed, 01 Jan 2031 00:00:00 GMT" }
+
+      def head_response(last_modified)
+        instance_double(Net::HTTPOK).tap do |r|
+          allow(r).to receive(:[]).with("last-modified").and_return(last_modified)
+        end
+      end
+
+      before do
+        create(:data_import, file_url: "cartographic-boundaries", imported_at: 1.day.ago)
+        allow(instance).to receive(:system).with("which ogr2ogr > /dev/null 2>&1").and_return(true)
+        allow(instance).to receive(:load_layer)
+      end
+
+      it "skips the reload when every source is older than the last import" do
+        allow(instance).to receive(:head_url).and_return(head_response(old_time))
+
+        expect(instance).not_to receive(:load_layer)
+        result = nil
+        expect { result = instance.load }.not_to change(DataImport, :count)
+        expect(result).to have_attributes(file_key: "cartographic-boundaries", status: :skipped)
+      end
+
+      it "reloads only the layers whose source zip is newer" do
+        # Only the places zip is newer than the last import.
+        allow(instance).to receive(:head_url) do |url|
+          head_response(url.include?("us_place_500k") ? new_time : old_time)
+        end
+        loaded = []
+        allow(instance).to receive(:load_layer) { |layer, *| loaded << layer[:tile_layer] }
+
+        result = nil
+        expect { result = instance.load }.to change(DataImport, :count).by(1)
+        expect(loaded).to eq(["places"])
+        expect(result).to have_attributes(status: :imported, changed_boundary_layers: ["places"])
+      end
+
+      it "treats a missing Last-Modified header as changed" do
+        allow(instance).to receive(:head_url).and_return(head_response(nil))
+
+        expect { instance.load }.to change(DataImport, :count).by(1)
+      end
+
+      it "reloads every layer when forced, without a HEAD request" do
+        expect(instance).not_to receive(:head_url)
+        result = nil
+        expect { result = instance.load(force: true) }.to change(DataImport, :count).by(1)
+        expect(result.changed_boundary_layers).to eq(%w[states counties places])
       end
     end
 
