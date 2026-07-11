@@ -12,6 +12,14 @@ Thank you for your interest in contributing to the Drinking Water Explorer. This
 
 ---
 
+## Requesting access to config values
+
+A few environment values aren't committed to the repo (they're placeholders in [`.env.example`](.env.example)) — notably `ETL_SOURCE_URL`, `MAPBOX_ACCESS_TOKEN`, and `MAPBOX_STYLE_URL`. To get them for local development, email a project admin at **watertool@policyinnovation.org**.
+
+(Mapbox is also self-serve — you can create your own free token; see [docs/GETTING_STARTED.md](docs/GETTING_STARTED.md).)
+
+---
+
 ## How to Contribute
 
 ### Reporting Bugs
@@ -94,4 +102,4 @@ This project follows the [Contributor Covenant](https://www.contributor-covenant
 
 ## Questions?
 
-Open a GitHub Issue or reach out to the EPIC team.
+Open a GitHub Issue, or email the EPIC team at **watertool@policyinnovation.org**.

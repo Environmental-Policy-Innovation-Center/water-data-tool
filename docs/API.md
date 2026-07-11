@@ -20,7 +20,7 @@ The app uses a **Hotwire-first** architecture. Most UI data is server-rendered H
 | `/places/search` | GET | JSON | Place autocomplete for filter UI |
 | `/tiles/:z/:x/:y` | GET | MVT (protobuf) | Map vector tiles |
 
-There is **no** general-purpose JSON list or detail API (`GET /public_water_systems`, `GET /public_water_systems/:pwsid`) — those endpoints were removed in June 2026.
+There is **no** general-purpose JSON list or detail API (`GET /public_water_systems`, `GET /public_water_systems/:pwsid`).
 
 ---
 

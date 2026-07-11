@@ -28,7 +28,7 @@ S3 Bucket (ETL_SOURCE_URL)
 
 The data publisher overwrites files in place at the same S3 keys. The ETL issues an HTTP HEAD request per file, reads the `Last-Modified` header, and imports any files whose timestamp is newer than the last recorded import in the `data_imports` table. No manifest file is needed.
 
-There is no per-environment S3 bucket — a single bucket serves development, staging, and production. The `ETL_SOURCE_URL` env var controls which folder path each environment reads from. Staging should point at the S3 `staging` folder, and production should point at the S3 `prod` folder.
+A single S3 bucket serves every environment, with source files partitioned into per-environment folders. The `ETL_SOURCE_URL` env var points each environment at its folder — local development and staging read the `staging` folder, and production reads the `prod` folder.
 
 ---
 
@@ -50,6 +50,21 @@ There is no per-environment S3 bucket — a single bucket serves development, st
 | `pwsid_funded_highlevel_summary.csv` | `FundingSummary`                                    | CSV     | SRF funding summaries                    |
 | `pwsid_npdes_usts_rmps_imp.csv`      | `WatershedHazard`                                   | CSV     | Watershed hazards (aggregated at import) |
 
+
+---
+
+## Generic vs. custom importers
+
+Flat CSVs — where each source column is cast and copied straight into one column of a **single model** — are all handled by one class, `Etl::Importers::Generic`. It has no per-file code: its column map (`header → db_column` + `cast`) is derived at runtime from the `source:` blocks in `config/fields.yml` (`FieldRegistry.etl_mapping`). Files that **derive values** (compute, aggregate, parse geometry) or **write to more than one model** keep a custom importer, listed under `custom_imports:` in the manifest. A file is *either* generic (its fields carry `source:` blocks) *or* custom (listed in `custom_imports:`) — never both, enforced by `spec/services/etl/importer_coverage_spec.rb`.
+
+**Nothing is ingested unless it's declared.** Neither importer blindly saves every column in a source file. The generic importer reads only the headers named in `source:` blocks; a custom importer reads only the columns it lists in Ruby. Any other column present in the source file is ignored — never read, never saved. So adding a column to a source file has **no effect** until you declare it (a `source:` block for a generic file, or a line in the custom importer).
+
+**Why one generic importer instead of a class per flat file?**
+- The `header → column → cast` mapping already lives in the manifest. A per-file importer would restate it in Ruby — two sources of truth that can drift — for no real gain in traceability, since you'd read the manifest either way.
+- It keeps a single, well-tested executor instead of ~8 near-identical classes of casting boilerplate.
+- It makes the common change — surfacing a new column from an existing flat file — **config-only**: add a `source:` block, no Ruby.
+
+Custom importers are reserved for loads that genuinely need code. The trade-off: the generic path is all-or-nothing per file — if a flat file later needs even one computed column, that whole file graduates to a custom importer.
 
 ---
 
