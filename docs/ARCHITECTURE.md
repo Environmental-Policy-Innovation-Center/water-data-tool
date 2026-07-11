@@ -33,8 +33,6 @@ A **data field** (say, `population_served`) is declared once in config and the a
 | `config/table_layout.yml` | `app/columns/` (`TableLayout`, `ColumnRegistry`) | Which columns show, their order, and picker grouping. `ColumnRegistry` builds each column from manifest × layout; `TableColumn`/`CategoryDef` are the value objects. |
 | `config/tooltips.yml` | (loaded where copy is rendered) | User-facing tooltip/help text, kept out of the structural config. |
 
-To add or change a data field you edit config, not code. See **[CONFIG_AUDIT.md](CONFIG_AUDIT.md)** for the model, **[FILTERING.md](FILTERING.md)** for filters, and **[docs/how_to/](how_to/)** for step-by-step guides.
-
 ### The rest of `app/`
 
 | Directory | What lives here |
@@ -55,7 +53,7 @@ To add or change a data field you edit config, not code. See **[CONFIG_AUDIT.md]
 | `config/` | `routes.rb`, the four data-config files above, `datasets.yml`, `recurring.yml` (SolidQueue schedule), env initializers. |
 | `db/` | `migrate/` schema migrations and `seeds.rb`. |
 | `lib/tasks/` | Rake tasks — `etl.rake` (`bin/rails etl:import`), `seed_states.rake`, `seed_geometries.rake`. |
-| `spec/` | RSpec, mirroring `app/`: `models/`, `requests/`, `system/` (Capybara), `jobs/`, `fields/`, `filters/`, `columns/`, plus `factories/` and `support/`. |
+| `spec/` | RSpec, mirroring `app/`: `models/`, `requests/`, `jobs/`, `fields/`, `filters/`, `columns/`, `components/`, `services/`, plus `factories/` and `support/`. |
 
 ---
 
@@ -94,7 +92,7 @@ end
 
 ### `HomeController`
 
-Primary data surface for the Hotwire UI. See `docs/FRONTEND_DECISION.md` for the frontend architecture decision.
+Primary data surface for the Hotwire UI. See [docs/decisions/FRONTEND_DECISION.md](decisions/FRONTEND_DECISION.md) for the frontend architecture decision.
 
 - **`index`** — renders `home/index.html.erb`, the main app page (map, filter bar, table, all UI).
   Also queries `DataImport.maximum(:imported_at)` for the "last updated" display.
@@ -106,8 +104,7 @@ Primary data surface for the Hotwire UI. See `docs/FRONTEND_DECISION.md` for the
 
 ### `PublicWaterSystems::*` (nested controllers)
 
-Utility endpoints namespaced under `/public_water_systems/`. The top-level `PublicWaterSystemsController`
-(JSON `index`/`show`) was removed in June 2026 — it was never wired to the frontend.
+Utility endpoints namespaced under `/public_water_systems/`.
 
 - **`ExportsController#create`** — `POST /public_water_systems/export`. Streaming CSV or GeoJSON download. Accepts filter params, `pwsids[]`, `exclude_pwsids[]`, `cols`, `sort`, `direction`, `search`. See `docs/EXPORTS.md`.
 - **`StatsController#show`** — `GET /public_water_systems/stats`. Turbo Frame HTML partial for the stats bar.
@@ -125,13 +122,13 @@ Utility endpoints namespaced under `/public_water_systems/`. The top-level `Publ
 
 Filters flow from the URL to SQL: `FilterParams` (`app/filters/`) permits and decodes the params, then `PublicWaterSystem.apply_filters` — the `Filterable` concern (`app/models/concerns/filterable.rb`) — turns them into a scope.
 
-The concern is **config-driven, not hardcoded** — there is no per-field `if params[...]` list. It reads each filter's kind, param, and table from the manifest (`FieldRegistry` / `config/fields.yml`) and groups filters by their menu category (`FilterLayout.category_of`). Joins are derived from each field's `model:`, so no join SQL is hand-written. The public entry point is `apply_filters(params)`; the internals split into `apply_category_filters`, `apply_rate_tier_filter`, and `apply_geographic_filters`.
+The concern is **config-driven, not hardcoded** — there is no per-field `if params[...]` list. It reads each filter's kind, param, and table from the manifest (`FieldRegistry` / `config/fields.yml`) and groups filters by their menu category (`FilterLayout.category_of`). Joins are derived from each field's `model:`, so no join SQL is hand-written. The public entry point is `apply_filters(params)`; the internals split into `apply_category_filters`, `apply_direct_filters`, `apply_rate_tier_filter`, and `apply_geographic_filters`.
 
 **Combination logic — the grouping *is* the boolean:**
 - **Within a category:** OR (e.g. two `owner_type` values match either).
 - **Across categories:** AND (a system must satisfy every active category).
 
-So which category you place a filter in (in `config/filter_layout.yml`) decides how it combines. See **[FILTERING.md](FILTERING.md)** for the full model. (The pre-refactor `config/filters.yml` + `FilterRegistry` were retired — see [CONFIG_AUDIT.md](CONFIG_AUDIT.md).)
+So which category you place a filter in (in `config/filter_layout.yml`) decides how it combines. See **[FILTERING.md](FILTERING.md)** for the full model.
 
 ---
 
@@ -263,47 +260,3 @@ Maintenance fallback. Pre-generates tiles for common zoom levels (z0-z8 across U
 ### `TileCacheRefreshJob`
 
 Normal post-import tile refresh job. Regenerates bounded batches of affected layer/z/x/y tiles on the low-concurrency `tile_refresh` queue.
-
----
-
-## Testing Strategy
-
-| Layer | Tool | Focus |
-|-------|------|-------|
-| Models | RSpec + Shoulda Matchers | Filter scopes, associations, validations |
-| Requests | RSpec request specs | Filter params produce correct results, response shapes, pagination |
-| System | RSpec + Capybara | Critical user flows: filter → map update → table update |
-| Jobs | RSpec | ETL pipeline: CSV parsing, type casting, post-import steps |
-| Factories | FactoryBot | Test data generation for all models |
-
-Use FactoryBot factories with realistic data from a small state subset. Shoulda Matchers for declarative association and validation testing.
-
----
-
-## Routes
-
-```ruby
-# config/routes.rb
-Rails.application.routes.draw do
-  root "home#index"
-  get "/table", to: "home#table", as: :table
-  get "/map", to: "home#map", as: :map
-
-  get "/tiles/:z/:x/:y", to: "tiles#show", as: :tile,
-      constraints: {z: /\d+/, x: /\d+/, y: /\d+/}
-
-  resources :public_water_systems, param: :pwsid, only: [],
-      constraints: {pwsid: /[A-Z0-9;%]+/} do
-    collection do
-      resource :export, only: :create, module: :public_water_systems
-      resource :histogram, only: :show, module: :public_water_systems
-      resource :stats, only: :show, module: :public_water_systems
-    end
-    member do
-      resource :report, only: :show, module: :public_water_systems
-    end
-  end
-
-  get "up" => "rails/health#show", as: :rails_health_check
-end
-```

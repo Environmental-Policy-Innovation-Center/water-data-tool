@@ -12,7 +12,7 @@ Filters are config-driven and split across files by concern. The menu UI is **ge
 |--------|------|
 | `config/fields.yml` (via `FieldRegistry`) | What each filterable FIELD *is*: `filter.kind`, `param` / `param_base`, `label`, `tooltip`, `options` (value/label/default), `has_select_all`, an optional `control:` widget override (e.g. `range_select`, `pop_cat`, `rate_tier`), and the `histogram:` block that drives its slider. |
 | `config/filter_layout.yml` (via `FilterLayout`) | How filters are ARRANGED: which menu/category each sits in, nesting (parent → sub-filters), and **order** (definition order — see [Menu layout & order](#menu-layout--order)). Also owns the copy for menus/categories/parent-filters, which are not fields. |
-| `Filterable` | A category-grouped combiner (`apply_category_filters`) builds each range/bool filter from the manifest (`FieldRegistry`) and **ORs within each `FilterLayout.category_of`, ANDing across categories**; radio/multiselect, rate-tier, and geographic filters are applied with custom logic (each a single-filter category → AND). `permit_arguments` + the sortable maps also derive from `FieldRegistry`. (`config/filters.yml` + `FilterRegistry` were retired in Thread A — docs/CONFIG_AUDIT.md.) |
+| `Filterable` | A category-grouped combiner (`apply_category_filters`) builds each range/bool filter from the manifest (`FieldRegistry`) and **ORs within each `FilterLayout.category_of`, ANDing across categories**; radio/multiselect, rate-tier, and geographic filters are applied with custom logic (each a single-filter category → AND). `permit_arguments` + the sortable maps also derive from `FieldRegistry`. |
 
 **The menu UI is generated, not hand-authored.** `app/views/home/_filter_menus.html.erb` is a ~25-line driver that loops `FilterLayout.menus → categories → filters` and renders one `_filter_*` partial per control kind; the tab bar in `index.html.erb` loops the same `FilterLayout.menus`. The generated markup emits a **`data-filter-*` DOM contract** (below) rather than hand-matched element ids.
 
@@ -34,7 +34,7 @@ Menus, categories, and filters render in **definition order** from `config/filte
 
 ## Table Search
 
-Table search is a separate mechanism from the faceted filter system — it is **not** a `Filterable` filter, not in `FilterRegistry`, and has no `data-filter-*` control collected by `filter_controller.js`. It runs as a post-filter `ILIKE` query via `Sortable#apply_search` after `apply_filters` has already narrowed the scope.
+Table search is a separate mechanism from the faceted filter system — it is **not** a `Filterable` filter and has no `data-filter-*` control collected by `filter_controller.js`. It runs as a post-filter `ILIKE` query via `Sortable#apply_search` after `apply_filters` has already narrowed the scope.
 
 **State:** The search term lives in `SearchState` (a separate singleton from `FilterState`) and is encoded into `?encoded=` as a top-level `"search"` key alongside `"filters"` and `"cols"`. `HomeController#table` reads it from `decoded_state["search"]` independently of `filter_params`.
 
@@ -96,7 +96,7 @@ different category in the layout — no code change.
 
 **What we query in SQL:** `Filterable` compares the user’s bounds only to `trend_data.population_pct_change_capped` and `trend_data.mhi_pct_change_capped`. We do **not** filter on the raw columns.
 
-**Why cap:** Raw percent changes can explode when the 2011 baseline is tiny (e.g. a military installation going from a handful of connections to thousands). That produces meaningless percentages for mapping and makes histograms collapse into a single bin. ETL stores **capped** values (typically clipped to a band such as ±200%) so filters, sliders, and histograms stay on a human scale. See [frontend_refactor/HISTOGRAMS.md](./frontend_refactor/HISTOGRAMS.md).
+**Why cap:** Raw percent changes can explode when the 2011 baseline is tiny (e.g. a military installation going from a handful of connections to thousands). That produces meaningless percentages for mapping and makes histograms collapse into a single bin. ETL stores **capped** values (typically clipped to a band such as ±200%) so filters, sliders, and histograms stay on a human scale. See [HISTORGRAMS.md](./HISTORGRAMS.md).
 
 **Why we still store raw:** `population_pct_change` and `mhi_pct_change` keep the **true** calculated change for exports, API payloads, and completeness. They are not used for map filtering.
 

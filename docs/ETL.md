@@ -40,6 +40,7 @@ A single S3 bucket serves every environment, with source files partitioned into 
 | `epa_sabs_geoms.geojson`             | `ServiceAreaGeometry`                               | GeoJSON | MultiPolygon service area boundaries     |
 | `epa_sabs.csv`                       | `PublicWaterSystem` (partial)                       | CSV     | Core PWS attributes                      |
 | `sdwis_viols.csv`                    | `PublicWaterSystem` (partial) + `ViolationsSummary` | CSV     | Attributes split between two models      |
+| `sabs_pwsid_county.csv`              | `PublicWaterSystem` (partial)                       | CSV     | County/ies served, semicolon-joined      |
 | `epa_sabs_xwalk.csv`                 | `Demographic`                                       | CSV     | ACS census crosswalk                     |
 | `xwalk_pct_change_10yr.csv`          | `TrendDatum`                                        | CSV     | 10yr demographic changes                 |
 | `cejst.csv`                          | `EnvironmentalJustice` (partial)                    | CSV     | CEJST indicators                         |
@@ -121,20 +122,6 @@ The legacy ETL imports everything as TEXT. The new ETL casts at import time via 
 **"NA" is a missing-value sentinel in the source CSVs** (a common convention in R/pandas pipelines). All five helpers normalize it to `NULL` in the database. No raw `"NA"` strings are stored.
 
 > **Open question — descriptive sentinel strings:** Some CSV columns contain longer explanatory strings instead of `"NA"` for missing data (e.g. `most_common_rate_tidy` uses `"No Information on annual water & sewer rates"`). These are not currently normalized and are stored as-is. Confirm with the EPIC data team whether these strings should be displayed to users or suppressed in favour of a `NULL` / "No data" display.
-
-### Column Name Mapping
-
-The ETL must map legacy CSV column headers to new schema column names. The mapping is defined in TRANSITION.md. Example:
-
-```ruby
-# Mapping for epa_sabs.csv → public_water_systems
-COLUMN_MAP = {
-  "epic_area_mi2" => { column: "area_sq_miles", type: :decimal },
-  "population_served_count" => { column: "population_served_count", type: :integer },
-  "service_connections_count" => { column: "service_connections_count", type: :integer },
-  # ...
-}
-```
 
 ### Special Cases
 

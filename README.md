@@ -274,14 +274,11 @@ See [docs/FILTERING.md](docs/FILTERING.md) for how filtering works end-to-end.
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Rails app structure — models, controllers, Stimulus, Turbo patterns |
 | [docs/BENCHMARKING.md](docs/BENCHMARKING.md) | Optional local performance scripts — server query paths and map-tile timing |
 | [docs/DEPLOYMENTS.md](docs/DEPLOYMENTS.md) | Deploy environments, how to trigger deploys, checking live state, rollback |
-| [docs/DISCOVERY.md](docs/DISCOVERY.md) | Discovery notes from the legacy PHP app analysis |
 | [docs/ETL.md](docs/ETL.md) | Data pipeline design — S3 to PostgreSQL import flow |
 | [docs/GLOSSARY.md](docs/GLOSSARY.md) | Terminology and domain definitions |
 | [docs/LOOKBOOK.md](docs/LOOKBOOK.md) | ViewComponent preview catalog — how to access and add previews |
 | [docs/MAPPING.md](docs/MAPPING.md) | Mapping design information |
 | [docs/RUNBOOK.md](docs/RUNBOOK.md) | Operational runbook — manual GitHub workflows and rake tasks for deploy, ETL, and preview envs |
-| [docs/SCHEMA.md](docs/SCHEMA.md) | Database schema — all tables, columns, types, indexes |
-| [docs/TRANSITION.md](docs/TRANSITION.md) | Migration notes from the legacy PHP app to Rails |
 | [docs/open_items/](docs/open_items/) | Known issues, discovery work, and planned improvements not yet ticketed |
 
 ---
