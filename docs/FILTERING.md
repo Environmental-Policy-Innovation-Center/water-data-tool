@@ -1,6 +1,6 @@
 # Filtering
 
-The map page exposes a multi-level filter system that narrows the set of public water systems shown on the map and in the data table. Filters are collected by `filter_controller.js` on Apply, written to `FilterState`, and dispatched as a `filters:changed` event. `map_controller.js` and the Turbo Frame table listen for that event and re-fetch with the current params. Backend filtering is implemented in the `Filterable` concern on `PublicWaterSystem` (`app/models/concerns/filterable.rb`).
+The map page exposes a multi-level filter system that narrows the set of public water systems shown on the map and in the data table. On Apply, `filter_controller.js` collects the filter DOM, writes the shared `FilterState` singleton, and refreshes three surfaces from it: it dispatches a `filters:changed` event that `map_controller.js` listens for (re-fetching `/map`), and directly reloads the stats-bar and table Turbo Frames. (See [Turbo Patterns](ARCHITECTURE.md#turbo-patterns) for the full flow.) Backend filtering is implemented in the `Filterable` concern on `PublicWaterSystem` (`app/models/concerns/filterable.rb`).
 
 ---
 
@@ -12,7 +12,7 @@ Filters are config-driven and split across files by concern. The menu UI is **ge
 |--------|------|
 | `config/fields.yml` (via `FieldRegistry`) | What each filterable FIELD *is*: `filter.kind`, `param` / `param_base`, `label`, `tooltip`, `options` (value/label/default), `has_select_all`, an optional `control:` widget override (e.g. `range_select`, `pop_cat`, `rate_tier`), and the `histogram:` block that drives its slider. |
 | `config/filter_layout.yml` (via `FilterLayout`) | How filters are ARRANGED: which menu/category each sits in, nesting (parent → sub-filters), and **order** (definition order — see [Menu layout & order](#menu-layout--order)). Also owns the copy for menus/categories/parent-filters, which are not fields. |
-| `Filterable` | A category-grouped combiner (`apply_category_filters`) builds each range/bool filter from the manifest (`FieldRegistry`) and **ORs within each `FilterLayout.category_of`, ANDing across categories**; radio/multiselect, rate-tier, and geographic filters are applied with custom logic (each a single-filter category → AND). `permit_arguments` + the sortable maps also derive from `FieldRegistry`. (`config/filters.yml` + `FilterRegistry` were retired in Thread A — docs/CONFIG_AUDIT.md.) |
+| `Filterable` | A category-grouped combiner (`apply_category_filters`) builds each range/bool filter from the manifest (`FieldRegistry`) and **ORs within each `FilterLayout.category_of`, ANDing across categories**; radio/multiselect, rate-tier, and geographic filters are applied with custom logic (each a single-filter category → AND). `permit_arguments` + the sortable maps also derive from `FieldRegistry`. |
 
 **The menu UI is generated, not hand-authored.** `app/views/home/_filter_menus.html.erb` is a ~25-line driver that loops `FilterLayout.menus → categories → filters` and renders one `_filter_*` partial per control kind; the tab bar in `index.html.erb` loops the same `FilterLayout.menus`. The generated markup emits a **`data-filter-*` DOM contract** (below) rather than hand-matched element ids.
 
@@ -20,7 +20,7 @@ Filters are config-driven and split across files by concern. The menu UI is **ge
 
 ### The `data-filter-*` contract
 
-Each control's root carries `data-filter-kind` (`radio` · `bool` · `multiselect` · `pop_cat` · `rate_tier` · `place` · `range` · `range_select` · `subcat_parent`) and `data-filter-group` (the menu `id`, used for badge counting). Options carry `data-filter-value` (+ `data-filter-param`). A `range` reuses the slider's `data-slider-field-value` (the param base → `<base>_min` / `<base>_max`) and its `data-slider-target` min/max inputs; `range_select` carries `data-filter-param-min/max` + `data-filter-min/max-sentinel`; `place` carries `data-filter-param` + `data-filter-name-param`. `filter_controller.js` is the single reader of this contract.
+Each control's root carries `data-filter-kind` (`radio` · `bool` · `multiselect` · `pop_cat` · `rate_tier` · `range` · `range_select` · `subcat_parent`) and `data-filter-group` (the menu key, used for badge counting). Options carry `data-filter-value` (+ `data-filter-param`). A `range` reuses the slider's `data-slider-field-value` (the param base → `<base>_min` / `<base>_max`) and its `data-slider-target` min/max inputs; `range_select` carries `data-filter-param-min/max` + `data-filter-min/max-sentinel`. `filter_controller.js` is the single reader of this contract.
 
 **Checklist when adding a filter:** add the field's `filter:` block to `config/fields.yml` → place it in `config/filter_layout.yml` under a menu→category (filters in the **same category OR**; **different categories AND** — so pick the category to get the combining behavior you want) → for a histogram slider, add the manifest `histogram:` block → add/extend specs. **No JS, no ERB id edits, and no `Filterable` changes** — the combiner is generic, and the menu markup + collect/restore/badge logic are generated and DOM-driven.
 
@@ -28,13 +28,13 @@ Each control's root carries `data-filter-kind` (`radio` · `bool` · `multiselec
 
 ### Menu layout & order
 
-Menus, categories, and filters render in **definition order** from `config/filter_layout.yml`: the tab bar, the dropdown panels, and the More-overflow placeholders all loop `FilterLayout.menus`, so moving a block in the YAML reorders the UI. Each menu's integer `id` is a stable DOM/badge/JS handle (More = `10`) and does **not** affect order. A menu may also set `mobile_label`, `width`, and (for the More panel) `more_menu` / `reset_action` / `reset_label`. `spec/requests/home_spec.rb` asserts the tabs render in layout order. (The responsive collapse breakpoints in `filter_layout_controller.js` still reference menus by `id`; adding a menu needs a breakpoint entry there.)
+Menus, categories, and filters render in **definition order** from `config/filter_layout.yml`: the tab bar, the dropdown panels, and the More-overflow placeholders all loop `FilterLayout.menus`, so moving a block in the YAML reorders the UI. Each menu's key is itself the stable DOM/badge/JS handle and does **not** affect order. A menu may also set `mobile_label`, `width`, and (for the More panel) `more_menu` / `reset_action` / `reset_label`. `spec/requests/home_spec.rb` asserts the tabs render in layout order. (The responsive collapse breakpoints in `filter_layout_controller.js` still reference menus by key; adding a menu needs a breakpoint entry there.)
 
 ---
 
 ## Table Search
 
-Table search is a separate mechanism from the faceted filter system — it is **not** a `Filterable` filter, not in `FilterRegistry`, and has no `data-filter-*` control collected by `filter_controller.js`. It runs as a post-filter `ILIKE` query via `Sortable#apply_search` after `apply_filters` has already narrowed the scope.
+Table search is a separate mechanism from the faceted filter system — it is **not** a `Filterable` filter and has no `data-filter-*` control collected by `filter_controller.js`. It runs as a post-filter `ILIKE` query via `Sortable#apply_search` after `apply_filters` has already narrowed the scope.
 
 **State:** The search term lives in `SearchState` (a separate singleton from `FilterState`) and is encoded into `?encoded=` as a top-level `"search"` key alongside `"filters"` and `"cols"`. `HomeController#table` reads it from `decoded_state["search"]` independently of `filter_params`.
 
@@ -42,7 +42,7 @@ Table search is a separate mechanism from the faceted filter system — it is **
 
 **Lifecycle:** Written to `SearchState` on debounce (300ms, 2-character minimum). Unaffected by filter Apply (lives outside `FilterState`). Cleared by Reset All (`filter:reset-all` event). Does not affect the map endpoint.
 
-**What it is not:** Unlike the "Place" filter (Source menu), which filters by a census place geoid and affects both map and table, the search term only affects the table. It is not a faceted dimension and carries no badge count.
+**What it is not:** It is not a faceted dimension and carries no badge count — it only narrows the table, unlike the faceted filters above which affect both map and table.
 
 ---
 
@@ -96,7 +96,7 @@ different category in the layout — no code change.
 
 **What we query in SQL:** `Filterable` compares the user’s bounds only to `trend_data.population_pct_change_capped` and `trend_data.mhi_pct_change_capped`. We do **not** filter on the raw columns.
 
-**Why cap:** Raw percent changes can explode when the 2011 baseline is tiny (e.g. a military installation going from a handful of connections to thousands). That produces meaningless percentages for mapping and makes histograms collapse into a single bin. ETL stores **capped** values (typically clipped to a band such as ±200%) so filters, sliders, and histograms stay on a human scale. See [frontend_refactor/HISTOGRAMS.md](./frontend_refactor/HISTOGRAMS.md).
+**Why cap:** Raw percent changes can explode when the 2011 baseline is tiny (e.g. a military installation going from a handful of connections to thousands). That produces meaningless percentages for mapping and makes histograms collapse into a single bin. ETL stores **capped** values (typically clipped to a band such as ±200%) so filters, sliders, and histograms stay on a human scale. See [HISTORGRAMS.md](./HISTORGRAMS.md).
 
 **Why we still store raw:** `population_pct_change` and `mhi_pct_change` keep the **true** calculated change for exports, API payloads, and completeness. They are not used for map filtering.
 
@@ -123,8 +123,6 @@ different category in the layout — no code change.
 
 - **Primary type** *(Category)*
   - Water source type — Ground only / Surface only / Both *(Group, radio)*
-- **Place** *(Category)*
-  - City or town search *(Group, place autocomplete)*
 - **Protection** *(Category)*
   - Has source water protection *(Group, bool)*
 
@@ -253,7 +251,7 @@ Rules per filter type:
 
 | Type | Counting rule |
 |------|---------------|
-| `bool` / `radio` / `place` | +1 per set param |
+| `bool` / `radio` | +1 per set param |
 | `group` (`owner_type`, `primacy_type`, `most_common_rate_tier`) | +1 per individually selected option; all selected (default) or none = 0 |
 | `pop_cat` | +1 per selected population size category |
 | `range` (histograms) | +1 per active parent row, regardless of where min/max handles land |
