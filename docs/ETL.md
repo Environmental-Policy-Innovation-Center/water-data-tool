@@ -28,7 +28,7 @@ S3 Bucket (ETL_SOURCE_URL)
 
 The data publisher overwrites files in place at the same S3 keys. The ETL issues an HTTP HEAD request per file, reads the `Last-Modified` header, and imports any files whose timestamp is newer than the last recorded import in the `data_imports` table. No manifest file is needed.
 
-A single S3 bucket serves every environment, with source files partitioned into per-environment folders. The `ETL_SOURCE_URL` env var points each environment at its folder — local development and staging read the `staging` folder, and production reads the `prod` folder.
+All environments share the same S3 bucket (`tech-team-data`) — it's one bucket, not one per environment. What differs is the folder: `ETL_SOURCE_URL` points at `s3://tech-team-data/national-dw-tool/prod/` for production, or `s3://tech-team-data/national-dw-tool/staging/` for staging, PR preview, and local development (by default). See [DEPLOYMENTS.md](DEPLOYMENTS.md) for the full per-environment breakdown.
 
 ---
 
