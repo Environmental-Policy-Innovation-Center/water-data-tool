@@ -12,11 +12,11 @@
 production:
 <% if ENV["ETL_SCHEDULE_ENABLED"] == "true" %>
   # Enabled per deployment via ETL_SCHEDULE_ENABLED=true
-  # Omitted in preview — its nightly runs via the run-etl-preview.yml GitHub Actions cron.
+  # Set ETL_SCHEDULE per worker service to stagger shared worker usage.
   etl_import:
     class: EtlImportJob
     queue: etl
-    schedule: every day at 12am America/New_York
+    schedule: <%= ENV.fetch("ETL_SCHEDULE", "every day at 12am America/New_York") %>
 <% end %>
 
   clear_solid_queue_finished_jobs:

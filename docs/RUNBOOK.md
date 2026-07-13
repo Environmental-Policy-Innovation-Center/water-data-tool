@@ -22,7 +22,7 @@ Run these from the repo's **Actions** tab (each is `workflow_dispatch`). Files l
 
 | Workflow | What it does | Inputs |
 |---|---|---|
-| `run-etl-preview.yml` | Run the ETL against the shared preview DB as a one-off ECS task (also the nightly preview cron). | `table` — single file key, blank = full run · `force` — re-import ignoring `Last-Modified` |
+| `run-etl-preview.yml` | Run the ETL against the shared preview DB as a manual one-off ECS task. Nightly preview ETL is owned by the persistent preview worker service. | `table` — single file key, blank = full run · `force` — re-import ignoring `Last-Modified` |
 | `refresh-cartographic-boundaries.yml` | Reload the Census TIGER boundary tables and refresh their tiles. | `target_environment` (staging/production/preview) · `scale_service_down` · `force` (default on; off = freshness-gated) · `confirm` (typed phrase) |
 
 ### Preview environment management

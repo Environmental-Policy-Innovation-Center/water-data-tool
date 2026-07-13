@@ -29,6 +29,8 @@ jobs:
       ECR_REPO_URI:        ${{ vars.ECR_REPO_URI }}
       ECS_CLUSTER:         ${{ vars.ECS_CLUSTER }}
       ECS_SERVICE_STAGING: ${{ vars.ECS_SERVICE_STAGING }}
+      ECS_SERVICE_STAGING_WORKER: ${{ vars.ECS_SERVICE_STAGING_WORKER }}
+      ECS_SERVICE_PREVIEW_WORKER: ${{ vars.ECS_SERVICE_PREVIEW_WORKER }}
 
     steps:
       - name: Resolve deploy SHA
@@ -78,18 +80,20 @@ jobs:
 
       - name: Force ECS redeploy
         run: |
-          aws ecs update-service \
-            --cluster "$ECS_CLUSTER" \
-            --service "$ECS_SERVICE_STAGING" \
-            --force-new-deployment \
-            --no-cli-pager
+          for service in "$ECS_SERVICE_STAGING" "$ECS_SERVICE_STAGING_WORKER" "$ECS_SERVICE_PREVIEW_WORKER"; do
+            aws ecs update-service \
+              --cluster "$ECS_CLUSTER" \
+              --service "$service" \
+              --force-new-deployment \
+              --no-cli-pager
+          done
 
       - name: Wait for ECS service to stabilize
         timeout-minutes: 15
         run: |
           aws ecs wait services-stable \
             --cluster "$ECS_CLUSTER" \
-            --services "$ECS_SERVICE_STAGING"
+            --services "$ECS_SERVICE_STAGING" "$ECS_SERVICE_STAGING_WORKER" "$ECS_SERVICE_PREVIEW_WORKER"
 
       - name: Summary
         env:
