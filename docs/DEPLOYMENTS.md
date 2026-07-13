@@ -8,11 +8,11 @@ For the infrastructure setup and one-time provisioning steps, see the separate A
 
 ## Environments
 
-There are three environments. Pushing to `main` does **not** trigger a deploy — `main` is the stable canonical branch.
+There are three environments. When CI succeeds on `main`, staging deploys automatically. Production promotion remains manual.
 
 | | Production | Staging | Per-PR (ephemeral) |
 |---|---|---|---|
-| **Trigger** | GitHub Actions → **Promote Staging to Production** | GitHub Actions → **Deploy to Staging** | PR opened/updated against `main` |
+| **Trigger** | GitHub Actions → **Promote Staging to Production** | CI success on `main`, or GitHub Actions → **Deploy to Staging** | PR opened/updated against `main` |
 | **Teardown** | Manual | Manual | Automatic on PR close |
 | **ECS service** | `ep_app__water_data_tool__dev_us-east-1` | `ep_app__water_data_tool_staging__dev_us-east-1` | `ep_app__water_data_tool_pr_<N>__dev_us-east-1` |
 | **URL** | `watertool.policyinnovation.info` | `water-data-tool-staging.policyinnovation.info` | `water-data-tool-pr-<N>.policyinnovation.info` |
@@ -32,7 +32,7 @@ Authentication to AWS uses OIDC — no static IAM access keys are stored anywher
 
 ### Deploy to staging (`deploy-to-staging.yml`)
 
-Triggered manually via **Actions → Deploy to Staging → Run workflow**. Select a branch to deploy (defaults to `main`).
+Triggered automatically after CI succeeds on `main`. It can also be re-run manually via **Actions → Deploy to Staging → Run workflow** from `main`.
 
 1. Docker image is built and pushed to ECR with two tags: an immutable `staging-<sha>` tag and a moving `staging-latest` tag.
 2. `aws ecs update-service --force-new-deployment` is called — ECS cycles in containers running the new image.
@@ -75,8 +75,10 @@ When the PR is closed, `service_builder` runs with `EP_ACTION=destroy` and tears
 
 ### Deploy to staging
 
+Staging deploys automatically after CI passes on `main`. To re-run it manually:
+
 1. Go to **Actions → Deploy to Staging → Run workflow**
-2. Select the branch to deploy (default: `main`)
+2. Select `main`
 3. Click **Run workflow**
 
 ### Promote staging to production
