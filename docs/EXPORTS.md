@@ -8,7 +8,7 @@ Exports are delivered synchronously via streaming — the browser receives bytes
 
 `POST /public_water_systems/export`
 
-Export is always POST. GET was removed — GET silently breaks for large payloads (URL length limits), which is the exact problem POST solves. An export is an ephemeral action, not a shareable URL, so there is no bookmarking trade-off.
+Export is always POST — GET silently breaks for large payloads (URL length limits), which is exactly the problem POST solves. An export is an ephemeral action, not a shareable URL, so there is no bookmarking trade-off.
 
 ---
 

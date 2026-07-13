@@ -14,7 +14,7 @@ Looking for the tool? See [here](https://www.policyinnovation.org/drinking-water
 
 - **Backend:** Rails 8
 - **Frontend:** Hotwire (Turbo + Stimulus), Tailwind CSS
-- **Database:** PostgreSQL 15+ with PostGIS (runs in Docker)
+- **Database:** PostgreSQL 15+ with PostGIS (via Docker by default)
 - **Map:** Mapbox GL JS v3
 - **Background jobs:** SolidQueue
 - **Testing:** RSpec, FactoryBot, Shoulda Matchers
@@ -23,15 +23,14 @@ Looking for the tool? See [here](https://www.policyinnovation.org/drinking-water
 
 ## Prerequisites
 
-- [Ruby](https://www.ruby-lang.org/) (version specified in `.ruby-version`) — we recommend [mise](https://mise.jdx.dev/) or [asdf](https://asdf-vm.com/) to manage Ruby versions
-- [Node.js](https://nodejs.org/) (for asset compilation)
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/) (for PostgreSQL + PostGIS)
-- [Git](https://git-scm.com/)
+- [Ruby](https://www.ruby-lang.org/) (version specified in `.ruby-version`), installed via a version manager — [rbenv](https://github.com/rbenv/rbenv) (recommended), [RVM](https://rvm.io/), [mise](https://mise.jdx.dev/), or [asdf](https://asdf-vm.com/)
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) — used only to run PostgreSQL + PostGIS. Not otherwise required; any PostgreSQL 15+ with PostGIS works if you'd rather run it natively.
+- [Git](https://git-scm.com/) — version control, used to clone the repo and manage changes. Often already installed; check with `git --version`.
 - A [Mapbox](https://www.mapbox.com/) access token (free tier is sufficient for development)
 - [GDAL](https://gdal.org/) (`ogr2ogr`) — for loading Census cartographic boundary shapefiles
   - macOS: `brew install gdal`
   - Ubuntu/Debian: `apt-get install gdal-bin`
-- `ETL_SOURCE_URL` env var — the base HTTPS URL to the S3 folder containing source data files. Required to seed the database. Get this value from the project team and add it to your `.env` before running `bin/setup`.
+- `ETL_SOURCE_URL` env var — the base HTTPS URL to the S3 folder containing source data files. Required to seed the database. **Provided by a project admin** (not committed to the repo); add it to your `.env` before running `bin/setup`.
 
 
 ## Current Deployed Instances
@@ -43,86 +42,102 @@ Looking for the tool? See [here](https://www.policyinnovation.org/drinking-water
 
 ## Quick Start
 
-1. **Clone the repo**
+> **New to Rails?** For a from-scratch walkthrough — installing Docker, a Ruby version manager, GDAL, and the rest, with troubleshooting — see **[docs/GETTING_STARTED.md](docs/GETTING_STARTED.md)**. The steps below are the condensed version.
 
-   ```bash
-   git clone https://github.com/epicenter/water-data-tool.git
-   cd water-data-tool
-   ```
+#### 1. Clone the repo
 
-   If you are working from a transferred/forked repository, use your own Git remote URL.
+```bash
+git clone https://github.com/epicenter/water-data-tool.git
+cd water-data-tool
+```
 
-2. **Install Ruby dependencies**
+#### 2. Install Ruby dependencies
 
-   ```bash
-   bundle install
-   ```
+```bash
+bundle install
+```
 
-3. **Set up environment variables**
+#### 3. Set up environment variables
 
-   ```bash
-   cp .env.example .env
-   ```
+```bash
+cp .env.example .env
+```
 
-   Edit `.env` and fill in the required values:
-   - `MAPBOX_ACCESS_TOKEN` — for map rendering
-   - `MAPBOX_STYLE_URL` — for account specific styling configs
-      - _placeholder value: `mapbox://styles/mapbox/light-v11Mapbox`_ 
-   - `ETL_SOURCE_URL` — required for the database seed step. Both seeding and the ETL pipeline use this URL to locate source data files on S3 (see Prerequisites above)
+Edit `.env` and fill in the required values:
+- `MAPBOX_ACCESS_TOKEN` — for map rendering
+- `MAPBOX_STYLE_URL` — for account-specific styling configs
+   - _placeholder value: `mapbox://styles/mapbox/light-v11`_
+- `ETL_SOURCE_URL` — required for the database seed step; get it from a project admin (see Prerequisites above). Both seeding and the ETL pipeline use this URL to locate source data files on S3.
 
-   See the Environment Variables section below for the full list. If you have a port conflict with a local PostgreSQL install, also set `DB_PORT`.
+See the Environment Variables section below for the full list. If you have a port conflict with a local PostgreSQL install, also set `DB_PORT`.
 
-4. **Start PostgreSQL**
+#### 4. Start PostgreSQL + PostGIS
 
-   ```bash
-   docker compose up -d
-   ```
+The app needs PostgreSQL 15 with the PostGIS extension reachable on `localhost:5432`. Pick one:
 
-   This starts a PostGIS-enabled PostgreSQL container. The database runs on `localhost:5432`.
+**Option A — Docker (recommended; matches CI and production):**
 
-5. **Set up the app**
+```bash
+docker compose up -d
+```
 
-   ```bash
-   bin/setup
-   ```
+Starts a PostGIS-enabled PostgreSQL container, preconfigured with the `postgres` / `postgres` credentials the app expects.
 
-   Installs dependencies, creates and migrates the database, and seeds development data. The seed step downloads water system data from S3 (requires `ETL_SOURCE_URL`) and loads Census cartographic boundaries (requires `ogr2ogr`). This will take several minutes on first run — the national GeoJSON is large but is cached in `tmp/seeds/` for subsequent runs.
+**Option B — Native install (Homebrew, macOS):**
 
-   By default this seeds four states for broad filter coverage:
+```bash
+brew install postgresql@15 postgis
+brew services start postgresql@15
+createuser -s postgres   # the app defaults to a `postgres` superuser role
+```
 
-   | State | Purpose |
-   |---|---|
-   | VT + RI | Small, fast to load; cover most common filter cases (~477 systems) |
-   | OH | Adds wholesaler and school/daycare systems (zero in VT/RI) |
-   | CO | Medium size; adds tribal systems (Ute) for tribal primacy/owner filter coverage |
-   | PR | Territory; covers `primacy_type = "Territory"` and `owner_type = "Territory"` filters |
+Notes for the native path:
+- Make sure the PostGIS build matches PostgreSQL 15.
+- Instead of creating a `postgres` role, you can point the app at your own local role by setting `DB_USERNAME` / `DB_PASSWORD` in `.env`.
+- If another PostgreSQL is already on port 5432, set a different port in `.env` (e.g. `DB_PORT=5433`) to avoid the conflict.
 
-   To seed only the small states (faster, still useful for most work):
-   ```bash
-   bin/rails 'db:seed:states[VT,RI]'
-   ```
+#### 5. Set up the app
 
-   After seeding, the map is fully functional — tile generation happens on-demand. No additional setup steps are required.
+```bash
+bin/setup
+```
 
-6. **Install Git hooks (Lefthook)** (recommended)
+Installs dependencies, creates and migrates the database, and seeds development data. The seed step downloads water system data from S3 (requires `ETL_SOURCE_URL`) and loads Census cartographic boundaries (requires `ogr2ogr`). This will take several minutes on first run — the national GeoJSON is large but is cached in `tmp/seeds/` for subsequent runs.
 
-   The repo includes [`lefthook.yml`](lefthook.yml), which runs [Standard](https://github.com/standardrb/standard) on staged `.rb` files and [ERB Lint](https://github.com/Shopify/erb-lint) on staged `.html.erb` files before each commit. After `bundle install`, register the hooks **once per clone**:
+By default this seeds four states for broad filter coverage:
 
-   ```bash
-   bundle exec lefthook install
-   ```
+| State | Purpose |
+|---|---|
+| VT + RI | Small, fast to load; cover most common filter cases (~477 systems) |
+| OH | Adds wholesaler and school/daycare systems (zero in VT/RI) |
+| CO | Medium size; adds tribal systems (Ute) for tribal primacy/owner filter coverage |
+| PR | Territory; covers `primacy_type = "Territory"` and `owner_type = "Territory"` filters |
 
-   To replace hook scripts that are already installed (for example after a Lefthook upgrade), use `bundle exec lefthook install -f`.
+```bash
+bin/rails 'db:seed:states[VT,RI,OH,CO,PR]'
+```
 
-   You can still lint without Git hooks (see [Development workflow](#development-workflow)): check with `bin/standardrb` / `bin/erb_lint --lint-all`, or apply safe auto-fixes with `bin/standardrb --fix` / `bin/erb_lint --lint-all --autocorrect`. ERB Lint config lives in [`.erb_lint.yml`](.erb_lint.yml) at the repo root (see [Shopify erb-lint](https://github.com/Shopify/erb-lint#configuration)).
+After seeding, the map is fully functional — tile generation happens on-demand. No additional setup steps are required.
 
-7. **Start the app**
+#### 6. Install Git hooks (Lefthook) — recommended
 
-   ```bash
-   bin/dev
-   ```
+The repo includes [`lefthook.yml`](lefthook.yml), which runs [Standard](https://github.com/standardrb/standard) on staged `.rb` files and [ERB Lint](https://github.com/Shopify/erb-lint) on staged `.html.erb` files before each commit. After `bundle install`, register the hooks **once per clone**:
 
-   Visit [http://localhost:3000](http://localhost:3000)
+```bash
+bundle exec lefthook install
+```
+
+To replace hook scripts that are already installed (for example after a Lefthook upgrade), use `bundle exec lefthook install -f`.
+
+You can still lint without Git hooks (see [Development workflow](#development-workflow)): check with `bin/standardrb` / `bin/erb_lint --lint-all`, or apply safe auto-fixes with `bin/standardrb --fix` / `bin/erb_lint --lint-all --autocorrect`. ERB Lint config lives in [`.erb_lint.yml`](.erb_lint.yml) at the repo root (see [Shopify erb-lint](https://github.com/Shopify/erb-lint#configuration)).
+
+#### 7. Start the app
+
+```bash
+bin/dev
+```
+
+Visit [http://localhost:3000](http://localhost:3000)
 
 ---
 
@@ -145,23 +160,24 @@ Looking for the tool? See [here](https://www.policyinnovation.org/drinking-water
 
 ## Deploying
 
-### Kamal (portable, single host)
+The app deploys to **AWS ECS**. There are three deploy targets — PR previews, staging, and production — all gated on the GitHub Actions **repository variable** `AWS_DEPLOY_ENABLED=true` (GitHub → Settings → Secrets and variables → Actions → Variables); forks that don't set it skip every deploy job:
 
-The app ships with [Kamal](https://kamal-deploy.org/) as a portable self-hosting option. Configuration lives in `config/deploy.yml` and `.kamal/secrets`. Refer to the Kamal docs and the `config/deploy.yml` comments for setup.
+- **PR preview** — opening a pull request against `main` spins up an ephemeral environment via the **"Deploy to AWS ECS"** workflow (`deploy-client-aws.yml`); it's torn down automatically when the PR closes.
+- **Staging** — deployed **automatically** when a PR merges to `main` and CI passes, via the **"Deploy to Staging"** workflow (`deploy-to-staging.yml`). Can also be triggered manually.
+- **Production** — deployed **manually only**, via the **"Promote Staging to Production"** workflow (`promote-to-production.yml`), which re-tags the exact image already tested on staging (no rebuild) and requires typing `promote` to confirm.
 
-### AWS ECS (EPIC production deployment)
-
-The EPIC production, staging, and per-PR preview environments run on AWS ECS, deployed via `.github/workflows/deploy-client-aws.yml`. The workflow is gated on `AWS_DEPLOY_ENABLED=true` — forks and other deployments that don't set this variable will see the job silently skipped.
-
-See [docs/DEPLOYMENTS.md](docs/DEPLOYMENTS.md) for the full reference: environment URLs, how to trigger deploys, how to check what's running, and rollback procedures.
+See [docs/DEPLOYMENTS.md](docs/DEPLOYMENTS.md) for the full reference — environment URLs, ECS/ECR details, triggering deploys, checking what's running, and rollback.
 
 ---
 
 ## Development Workflow
 
+Everyday commands once you're set up — for first-time setup see [Quick Start](#quick-start) (or [docs/GETTING_STARTED.md](docs/GETTING_STARTED.md)). Branch off `main`, and follow the branch-naming and conventional-commit conventions in [CONTRIBUTING.md](CONTRIBUTING.md).
+
 ```bash
 # Start PostgreSQL (if not already running)
-docker compose up -d
+docker compose up -d                    # Docker
+# brew services start postgresql@15     # ...or native (Homebrew)
 
 # Start the Rails app (web server + asset watcher)
 bin/dev
@@ -171,9 +187,6 @@ bundle exec rspec
 
 # Run the deterministic project CI
 bin/ci
-
-# Optional local pre-merge tile performance guard
-bin/rails runner bin/benchmark-tiles
 
 # Lint (check only — same tools as Lefthook pre-commit; no Git hook required)
 bin/standardrb
@@ -186,54 +199,69 @@ bin/erb_lint --lint-all --autocorrect
 # Rails console
 bin/rails console
 
-# Seed specific states (downloads from S3 via HTTPS — only needs ETL_SOURCE_URL)
+# Seed specific states for local dev. NOT the ETL pipeline — a separate, state-scoped
+# loader (SeedImport) that downloads the same S3 files but maps them itself.
+# Only needs ETL_SOURCE_URL.
 bin/rails 'db:seed:states[VT,RI,OH,CO,PR]'
 
 # Re-seed with fresh data from S3 (seed files are cached in tmp/seeds/ and reused by default)
 rm -rf tmp/seeds/ && bin/rails 'db:seed:states[VT,RI,OH,CO,PR]'
 
-# Run full ETL import — loads the entire national dataset (~70k systems)
-# Requires ETL_SOURCE_URL. Safe to run locally for performance testing
-# (exports, large filter sets, map rendering at scale).
+# Run the full ETL import — the real pipeline, loading the entire national dataset
+# (~44k+ public water systems). Requires ETL_SOURCE_URL. Safe to run locally for
+# performance testing (exports, large filter sets, map rendering at scale).
 bin/rails etl:import
 
 # Run ETL import (single table)
 bin/rails 'etl:import[epa_sabs]'
 
 # Stop PostgreSQL
-docker compose down
+docker compose down                     # Docker
+# brew services stop postgresql@15      # ...or native (Homebrew)
 ```
 
 ### Background jobs and tile cache refresh
 
-Normal ETL imports refresh cached map tiles selectively. Importers report changed PWS IDs and affected map layers, `TileImpact` converts those changes into z5-z8 XYZ tile coordinates, and `TileCacheRefreshJob` overwrites only those cached tile rows on the `tile_refresh` queue. Existing cached tiles remain readable until replacements are ready.
+**Why we cache tiles.** The map is drawn from vector tiles produced by spatial SQL. Generating them on every request would be slow, so the app caches each tile the first time it's requested: the cache **builds up as the app is used**, and any later view of an already-cached area/zoom is served instantly. When a user pans or zooms to an area that isn't cached yet, the app generates those tiles on the fly and stores them for next time.
 
-The full `TileCacheWarmJob` still exists for explicit full-refresh or maintenance cases and runs on the `tile_warm` queue. In production-style deployments, web services use `SOLID_QUEUE_ROLE=web` and never process `etl`, `tile_refresh`, or `tile_warm`; dedicated worker services use `SOLID_QUEUE_ROLE=worker` and run those heavy queues. In development, the ETL runs as a short-lived rake task (`bin/rails etl:import`) -- queued refresh/warm jobs only run automatically if a SolidQueue worker is running.
+**Keeping the cache fresh.** When new geo-related data is imported, the app refreshes only the *affected* tiles rather than clearing the whole cache. Importers report changed PWS IDs and affected map layers; `TileImpact` converts those into **z5–z8 XYZ tile coordinates**; and `TileCacheRefreshJob` overwrites only those cached rows on the `tile_refresh` queue. Existing tiles stay readable until replacements are ready. See [docs/ETL.md](docs/ETL.md) for how an import drives tile refresh.
 
-After loading the national dataset locally, you can warm the full z0-z8 cache manually if you need cold-cache performance testing:
+The full `TileCacheWarmJob` still exists for explicit full-refresh or maintenance cases and runs on the `tile_warm` queue. In production-style deployments, web services use `SOLID_QUEUE_ROLE=web` and never process `etl`, `tile_refresh`, or `tile_warm`; dedicated worker services use `SOLID_QUEUE_ROLE=worker` and run those heavy queues. In development, the ETL runs as a short-lived rake task (`bin/rails etl:import`) -- queued refresh/warm jobs only run automatically if a Solid Queue worker is running.
+
+After loading the national dataset locally, you can warm the full z0–z8 cache manually if you need cold-cache performance testing:
 
 ```bash
 bin/rails runner "TileCacheWarmJob.perform_now"
 ```
 
-This blocks until all z0-z8 tiles are generated. Progress is logged to stdout.
+This runs in the foreground and **blocks that terminal** (not the app) until every z0–z8 tile is generated — roughly **half an hour at national scale**. Progress is logged to stdout so you can watch it advance; it's a one-time cost, and once warm the tiles are served straight from the cache.
 
 ### Local performance checks
 
-Keep `bin/ci` as the deterministic pre-merge baseline. When a change touches map tiles, spatial SQL, or cache behavior, run the safe tile performance guard after CI:
+`bin/ci` is the deterministic pre-merge baseline (if it fails, see [docs/how_to/FIX_BIN_CI_CHECK_FAILURES.md](docs/how_to/FIX_BIN_CI_CHECK_FAILURES.md)) — but it does **not** measure performance.
 
-```bash
-bin/ci
-bin/rails runner bin/benchmark-tiles
-```
+When a change touches map tiles, spatial SQL, or cache behavior, there are optional local benchmark scripts (e.g. `bin/rails runner bin/benchmark-tiles` for the safe tile-SQL guard). They aren't part of CI — see **[docs/BENCHMARKING.md](docs/BENCHMARKING.md)** for what each script does and when to reach for it.
 
-Benchmark scripts have different cache behavior:
+---
 
-| Script | Purpose | Cache behavior |
-|---|---|---|
-| `bin/benchmark` | Broad query benchmarking for filters, stats, table loads, search, and warm tile retrieval by zoom tier | Non-destructive |
-| `bin/benchmark-tiles` | Safe local regression gate for tile SQL at overview, state-selection, and system-browsing zooms | Non-destructive; cold timings call `TileGenerator.generate_layer` directly |
-| `bin/benchmark-cold` | Manual cold-cache investigation for full tile generation | Destructive; deletes all rows from `tile_cache` before measuring |
+## Configuration: filters, table columns, tooltips
+
+The map's filters, the data-table columns, and their copy are **config-driven** — you add, remove, or edit them by editing YAML, usually without touching Ruby. Four files own it:
+
+| File | Owns |
+|------|------|
+| `config/fields.yml` (the "manifest") | What each data field **is** — how it loads, and whether it's a table column, a filter, and/or a histogram. The source of truth. |
+| `config/filter_layout.yml` | Which **menu / category** a filter sits in, and its order. |
+| `config/table_layout.yml` | Which **columns** show in the table, their order, and column-picker group. |
+| `config/tooltips.yml` | Tooltip **copy**, referenced by key from the other files. |
+
+Most changes are YAML-only — permit args, sorting, exports, histograms, and the rendered filter menus all **derive** from these files. The main exception: ingesting a **brand-new source file** also needs a one-line entry in `app/services/etl/importer.rb` (a new DB column needs a migration too). Step-by-step guides live in **[`docs/how_to/`](docs/how_to/)**:
+
+- [`docs/how_to/ADD_NEW_DATA_FIELD.md`](docs/how_to/ADD_NEW_DATA_FIELD.md) — add a data field / filter / column
+- [`docs/how_to/EDIT_EXISTING_DATA_FIELD.md`](docs/how_to/EDIT_EXISTING_DATA_FIELD.md) — edit an existing one
+- [`docs/how_to/REMOVE_EXISTING_DATA_FIELD.md`](docs/how_to/REMOVE_EXISTING_DATA_FIELD.md) — remove one
+
+See [docs/FILTERING.md](docs/FILTERING.md) for how filtering works end-to-end.
 
 ---
 
@@ -241,17 +269,18 @@ Benchmark scripts have different cache behavior:
 
 | Document | Description |
 |----------|-------------|
+| [docs/GETTING_STARTED.md](docs/GETTING_STARTED.md) | First-time setup walkthrough — install every tool from scratch, with troubleshooting |
 | [docs/API.md](docs/API.md) | Endpoint specifications — filter API, tiles, export |
+| [docs/FILTERING.md](docs/FILTERING.md) | Filter system — config sources, AND/OR combining, the `data-filter-*` DOM contract |
+| [docs/how_to/](docs/how_to/) | Step-by-step guides — add / edit / remove a data field, filter, or column |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Rails app structure — models, controllers, Stimulus, Turbo patterns |
+| [docs/BENCHMARKING.md](docs/BENCHMARKING.md) | Optional local performance scripts — server query paths and map-tile timing |
 | [docs/DEPLOYMENTS.md](docs/DEPLOYMENTS.md) | Deploy environments, how to trigger deploys, checking live state, rollback |
-| [docs/DISCOVERY.md](docs/DISCOVERY.md) | Discovery notes from the legacy PHP app analysis |
 | [docs/ETL.md](docs/ETL.md) | Data pipeline design — S3 to PostgreSQL import flow |
 | [docs/GLOSSARY.md](docs/GLOSSARY.md) | Terminology and domain definitions |
 | [docs/LOOKBOOK.md](docs/LOOKBOOK.md) | ViewComponent preview catalog — how to access and add previews |
 | [docs/MAPPING.md](docs/MAPPING.md) | Mapping design information |
 | [docs/RUNBOOK.md](docs/RUNBOOK.md) | Operational runbook — manual GitHub workflows and rake tasks for deploy, ETL, and preview envs |
-| [docs/SCHEMA.md](docs/SCHEMA.md) | Database schema — all tables, columns, types, indexes |
-| [docs/TRANSITION.md](docs/TRANSITION.md) | Migration notes from the legacy PHP app to Rails |
 | [docs/open_items/](docs/open_items/) | Known issues, discovery work, and planned improvements not yet ticketed |
 
 ---

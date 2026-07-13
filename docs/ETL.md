@@ -28,7 +28,7 @@ S3 Bucket (ETL_SOURCE_URL)
 
 The data publisher overwrites files in place at the same S3 keys. The ETL issues an HTTP HEAD request per file, reads the `Last-Modified` header, and imports any files whose timestamp is newer than the last recorded import in the `data_imports` table. No manifest file is needed.
 
-There is no per-environment S3 bucket — a single bucket serves development, staging, and production. The `ETL_SOURCE_URL` env var controls which folder path each environment reads from. Staging should point at the S3 `staging` folder, and production should point at the S3 `prod` folder.
+All environments share the same S3 bucket (`tech-team-data`) — it's one bucket, not one per environment. What differs is the folder: `ETL_SOURCE_URL` points at `s3://tech-team-data/national-dw-tool/prod/` for production, or `s3://tech-team-data/national-dw-tool/staging/` for staging, PR preview, and local development (by default). See [DEPLOYMENTS.md](DEPLOYMENTS.md) for the full per-environment breakdown.
 
 ---
 
@@ -40,6 +40,7 @@ There is no per-environment S3 bucket — a single bucket serves development, st
 | `epa_sabs_geoms.geojson`             | `ServiceAreaGeometry`                               | GeoJSON | MultiPolygon service area boundaries     |
 | `epa_sabs.csv`                       | `PublicWaterSystem` (partial)                       | CSV     | Core PWS attributes                      |
 | `sdwis_viols.csv`                    | `PublicWaterSystem` (partial) + `ViolationsSummary` | CSV     | Attributes split between two models      |
+| `sabs_pwsid_county.csv`              | `PublicWaterSystem` (partial)                       | CSV     | County/ies served, semicolon-joined      |
 | `epa_sabs_xwalk.csv`                 | `Demographic`                                       | CSV     | ACS census crosswalk                     |
 | `xwalk_pct_change_10yr.csv`          | `TrendDatum`                                        | CSV     | 10yr demographic changes                 |
 | `cejst.csv`                          | `EnvironmentalJustice` (partial)                    | CSV     | CEJST indicators                         |
@@ -50,6 +51,21 @@ There is no per-environment S3 bucket — a single bucket serves development, st
 | `pwsid_funded_highlevel_summary.csv` | `FundingSummary`                                    | CSV     | SRF funding summaries                    |
 | `pwsid_npdes_usts_rmps_imp.csv`      | `WatershedHazard`                                   | CSV     | Watershed hazards (aggregated at import) |
 
+
+---
+
+## Generic vs. custom importers
+
+Flat CSVs — where each source column is cast and copied straight into one column of a **single model** — are all handled by one class, `Etl::Importers::Generic`. It has no per-file code: its column map (`header → db_column` + `cast`) is derived at runtime from the `source:` blocks in `config/fields.yml` (`FieldRegistry.etl_mapping`). Files that **derive values** (compute, aggregate, parse geometry) or **write to more than one model** keep a custom importer, listed under `custom_imports:` in the manifest. A file is *either* generic (its fields carry `source:` blocks) *or* custom (listed in `custom_imports:`) — never both, enforced by `spec/services/etl/importer_coverage_spec.rb`.
+
+**Nothing is ingested unless it's declared.** Neither importer blindly saves every column in a source file. The generic importer reads only the headers named in `source:` blocks; a custom importer reads only the columns it lists in Ruby. Any other column present in the source file is ignored — never read, never saved. So adding a column to a source file has **no effect** until you declare it (a `source:` block for a generic file, or a line in the custom importer).
+
+**Why one generic importer instead of a class per flat file?**
+- The `header → column → cast` mapping already lives in the manifest. A per-file importer would restate it in Ruby — two sources of truth that can drift — for no real gain in traceability, since you'd read the manifest either way.
+- It keeps a single, well-tested executor instead of ~8 near-identical classes of casting boilerplate.
+- It makes the common change — surfacing a new column from an existing flat file — **config-only**: add a `source:` block, no Ruby.
+
+Custom importers are reserved for loads that genuinely need code. The trade-off: the generic path is all-or-nothing per file — if a flat file later needs even one computed column, that whole file graduates to a custom importer.
 
 ---
 
@@ -106,20 +122,6 @@ The legacy ETL imports everything as TEXT. The new ETL casts at import time via 
 **"NA" is a missing-value sentinel in the source CSVs** (a common convention in R/pandas pipelines). All five helpers normalize it to `NULL` in the database. No raw `"NA"` strings are stored.
 
 > **Open question — descriptive sentinel strings:** Some CSV columns contain longer explanatory strings instead of `"NA"` for missing data (e.g. `most_common_rate_tidy` uses `"No Information on annual water & sewer rates"`). These are not currently normalized and are stored as-is. Confirm with the EPIC data team whether these strings should be displayed to users or suppressed in favour of a `NULL` / "No data" display.
-
-### Column Name Mapping
-
-The ETL must map legacy CSV column headers to new schema column names. The mapping is defined in TRANSITION.md. Example:
-
-```ruby
-# Mapping for epa_sabs.csv → public_water_systems
-COLUMN_MAP = {
-  "epic_area_mi2" => { column: "area_sq_miles", type: :decimal },
-  "population_served_count" => { column: "population_served_count", type: :integer },
-  "service_connections_count" => { column: "service_connections_count", type: :integer },
-  # ...
-}
-```
 
 ### Special Cases
 

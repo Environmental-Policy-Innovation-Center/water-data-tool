@@ -186,7 +186,7 @@ $(document).ready(function(){
 		},0);		
 	});
 
-	mapboxgl.accessToken = 'pk.eyJ1IjoiY250Z3JpZCIsImEiOiJjamp1NnB2bnQwZWZ5M2xxa21tOWl5c3BqIn0.W6lxZ5TNMb0dbkvlUqqfFA';
+	mapboxgl.accessToken = 'pk.YOUR_MAPBOX_ACCESS_TOKEN'; // placeholder — real token removed (legacy reference code, not run)
 	map = new mapboxgl.Map({
 		container: 'map', // container ID
 		style: 'mapbox://styles/cntgrid/cke9g093i0b3p1amudlyqay3t', // style URL
