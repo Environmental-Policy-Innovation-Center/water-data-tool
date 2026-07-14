@@ -1,0 +1,285 @@
+name: Bust Tile Cache
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_environment:
+        description: "Environment to bust. Run this after a deploy changes what a tile embeds (e.g. new water system popup 'tooltip' fields) — old cached tiles keep serving stale data otherwise. Impact: deletes matching tile_cache rows; map keeps working, but those tiles regenerate live (slower first load) until re-requested or warmed."
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+          - preview
+      layers:
+        description: "Comma-separated tile_cache layer values to delete (e.g. pws,pws_low_poly_v1). pws_low_poly_v1 is the separate low-zoom (z<5) pws cache row and must be listed explicitly if you want it cleared too."
+        required: true
+        default: "pws,pws_low_poly_v1"
+      scale_service_down:
+        description: "Temporarily scale the staging web service to zero while the one-off task runs (required for preview; recommended for staging/production during off-hours)"
+        required: true
+        type: boolean
+        default: false
+      confirm:
+        description: 'Type "bust-staging-tiles", "bust-production-tiles", or "bust-preview-tiles"; append "-with-downtime" when scale_service_down is true'
+        required: true
+
+concurrency:
+  group: bust-tile-cache-${{ github.event.inputs.target_environment }}
+  cancel-in-progress: false
+
+jobs:
+  bust:
+    if: vars.AWS_DEPLOY_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.target_environment == 'preview' && 'pr-previews' || github.event.inputs.target_environment }}
+    permissions:
+      id-token: write
+      contents: read
+    env:
+      AWS_REGION:          ${{ vars.AWS_REGION }}
+      ECS_CLUSTER:         ${{ vars.ECS_CLUSTER }}
+      ECS_SERVICE_PROD:    ${{ vars.ECS_SERVICE_PROD }}
+      ECS_SERVICE_STAGING: ${{ vars.ECS_SERVICE_STAGING }}
+      TARGET_ENV:          ${{ github.event.inputs.target_environment }}
+      SCALE_SERVICE_DOWN:  ${{ github.event.inputs.scale_service_down }}
+      LAYERS_INPUT:        ${{ github.event.inputs.layers }}
+
+    steps:
+      - name: Validate confirmation input
+        run: |
+          EXPECTED="bust-${TARGET_ENV}-tiles"
+          if [ "$SCALE_SERVICE_DOWN" = "true" ]; then
+            EXPECTED="${EXPECTED}-with-downtime"
+          fi
+
+          if [ "${{ github.event.inputs.confirm }}" != "$EXPECTED" ]; then
+            echo "::error::Confirmation input must be exactly '$EXPECTED'."
+            exit 1
+          fi
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ github.event.inputs.target_environment == 'preview' && secrets.AWS_PR_DEPLOY_ROLE_ARN || secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Resolve ECS target
+        id: target
+        run: |
+          # preview borrows the staging task definition — same app image, DATABASE_URL is
+          # overridden in the task overrides below to point at the shared preview database.
+          if [ "$TARGET_ENV" = "staging" ] || [ "$TARGET_ENV" = "preview" ]; then
+            SERVICE="$ECS_SERVICE_STAGING"
+          elif [ "$TARGET_ENV" = "production" ]; then
+            SERVICE="$ECS_SERVICE_PROD"
+          else
+            echo "::error::Unknown target environment: $TARGET_ENV"
+            exit 1
+          fi
+
+          TASK_DEF=$(aws ecs describe-services \
+            --cluster "$ECS_CLUSTER" \
+            --services "$SERVICE" \
+            --query 'services[0].taskDefinition' \
+            --output text)
+
+          if [ -z "$TASK_DEF" ] || [ "$TASK_DEF" = "None" ]; then
+            echo "::error::Could not resolve task definition for service '$SERVICE'"
+            exit 1
+          fi
+
+          CONTAINER_NAME=$(aws ecs describe-task-definition \
+            --task-definition "$TASK_DEF" \
+            --query 'taskDefinition.containerDefinitions[0].name' \
+            --output text)
+
+          DESIRED_COUNT=$(aws ecs describe-services \
+            --cluster "$ECS_CLUSTER" \
+            --services "$SERVICE" \
+            --query 'services[0].desiredCount' \
+            --output text)
+
+          PLACEMENT_CONSTRAINTS=$(aws ecs describe-services \
+            --cluster "$ECS_CLUSTER" \
+            --services "$SERVICE" \
+            --query 'services[0].placementConstraints' \
+            --output json | jq -c .)
+
+          ENV_OVERRIDE="[]"
+          if [ "$TARGET_ENV" = "preview" ]; then
+            DB_URL=$(aws secretsmanager get-secret-value \
+              --secret-id "ep/wdt/dev/database_url" \
+              --query 'SecretString' --output text | jq -r '.preview')
+            ENV_OVERRIDE=$(jq -cn --arg url "$DB_URL" '[{name:"DATABASE_URL",value:$url}]')
+          fi
+
+          {
+            echo "service=$SERVICE"
+            echo "task_definition=$TASK_DEF"
+            echo "container_name=$CONTAINER_NAME"
+            echo "desired_count=$DESIRED_COUNT"
+            echo "placement_constraints=$PLACEMENT_CONSTRAINTS"
+            echo "env_override=$ENV_OVERRIDE"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Scale service down
+        if: github.event.inputs.scale_service_down == 'true'
+        run: |
+          aws ecs update-service \
+            --cluster "$ECS_CLUSTER" \
+            --service "${{ steps.target.outputs.service }}" \
+            --desired-count 0 \
+            --no-cli-pager
+
+          aws ecs wait services-stable \
+            --cluster "$ECS_CLUSTER" \
+            --services "${{ steps.target.outputs.service }}"
+
+      - name: Bust tile cache
+        id: bust
+        timeout-minutes: 10
+        env:
+          TASK_DEF: ${{ steps.target.outputs.task_definition }}
+          CONTAINER_NAME: ${{ steps.target.outputs.container_name }}
+          PLACEMENT_CONSTRAINTS: ${{ steps.target.outputs.placement_constraints }}
+          ENV_OVERRIDE: ${{ steps.target.outputs.env_override }}
+        run: |
+          LAYERS_RUBY=$(printf '%s' "$LAYERS_INPUT" | tr ',' '\n' | sed 's/^ *//;s/ *$//' | grep -v '^$' | jq -R . | jq -s -c .)
+          if [ "$LAYERS_RUBY" = "[]" ]; then
+            echo "::error::No layers provided."
+            exit 1
+          fi
+
+          RAILS_CMD="layers = ${LAYERS_RUBY}; deleted = TileCache.where(layer: layers).delete_all; puts({layers: layers, deleted: deleted, remaining_total: TileCache.count}.to_json)"
+
+          DB_URL=$(jq -r '.[0].value // ""' <<< "$ENV_OVERRIDE")
+          if [ -n "$DB_URL" ]; then
+            OVERRIDES=$(jq -cn \
+              --arg name "$CONTAINER_NAME" \
+              --arg code "$RAILS_CMD" \
+              --arg db_url "$DB_URL" \
+              '{memory:"512",containerOverrides:[{name:$name,memory:512,command:["env",("DATABASE_URL="+$db_url),"./bin/rails","runner",$code]}]}')
+          else
+            OVERRIDES=$(jq -cn \
+              --arg name "$CONTAINER_NAME" \
+              --arg code "$RAILS_CMD" \
+              '{memory:"512",containerOverrides:[{name:$name,memory:512,command:["./bin/rails","runner",$code]}]}')
+          fi
+
+          RUN_ARGS=(
+            --cluster "$ECS_CLUSTER"
+            --launch-type EC2
+            --task-definition "$TASK_DEF"
+            --started-by "gha-bust-tile-cache-${TARGET_ENV}"
+            --overrides "$OVERRIDES"
+          )
+
+          if [ "$PLACEMENT_CONSTRAINTS" != "[]" ]; then
+            RUN_ARGS+=(--placement-constraints "$PLACEMENT_CONSTRAINTS")
+          fi
+
+          RUN_TASK_RESPONSE=$(aws ecs run-task "${RUN_ARGS[@]}" --output json)
+          TASK_ARN=$(jq -r '.tasks[0].taskArn // empty' <<< "$RUN_TASK_RESPONSE")
+          if [ -z "$TASK_ARN" ] || [ "$TASK_ARN" = "None" ]; then
+            echo "::error::Failed to start bust task."
+            jq -r '.failures // []' <<< "$RUN_TASK_RESPONSE"
+            exit 1
+          fi
+
+          echo "task_arn=$TASK_ARN" >> "$GITHUB_OUTPUT"
+          echo "Bust task started: $TASK_ARN"
+
+          while true; do
+            TASK_DESCRIPTION=$(aws ecs describe-tasks \
+              --cluster "$ECS_CLUSTER" \
+              --tasks "$TASK_ARN")
+            STATUS=$(jq -r '.tasks[0].lastStatus // empty' <<< "$TASK_DESCRIPTION")
+            echo "$(date -u '+%H:%M:%S') status: $STATUS"
+            [ "$STATUS" = "STOPPED" ] && break
+            sleep 10
+          done
+
+          EXIT_CODE=$(jq -r '.tasks[0].containers[0].exitCode // empty' <<< "$TASK_DESCRIPTION")
+
+          LOG_GROUP=$(aws ecs describe-task-definition \
+            --task-definition "$TASK_DEF" \
+            --query 'taskDefinition.containerDefinitions[0].logConfiguration.options."awslogs-group"' \
+            --output text)
+          LOG_PREFIX=$(aws ecs describe-task-definition \
+            --task-definition "$TASK_DEF" \
+            --query 'taskDefinition.containerDefinitions[0].logConfiguration.options."awslogs-stream-prefix"' \
+            --output text)
+          TASK_ID="${TASK_ARN##*/}"
+          LOG_STREAM="${LOG_PREFIX}/${CONTAINER_NAME}/${TASK_ID}"
+
+          if [ "$EXIT_CODE" != "0" ]; then
+            echo "::error::Bust task exited with code $EXIT_CODE. Task: $TASK_ARN"
+            jq '.tasks[0].containers[0] | {name, lastStatus, exitCode, reason}' <<< "$TASK_DESCRIPTION"
+            echo "--- CloudWatch logs ---"
+            sleep 5
+            aws logs get-log-events \
+              --log-group-name "$LOG_GROUP" \
+              --log-stream-name "$LOG_STREAM" \
+              --start-from-head \
+              --query 'events[*].message' \
+              --output text || true
+            exit 1
+          fi
+
+          sleep 5
+          RESULT=$(aws logs get-log-events \
+            --log-group-name "$LOG_GROUP" \
+            --log-stream-name "$LOG_STREAM" \
+            --start-from-head \
+            --query 'events[*].message' \
+            --output text 2>/dev/null || echo "")
+
+          DELIM=$(openssl rand -hex 8)
+          {
+            echo "bust_result<<$DELIM"
+            echo "$RESULT"
+            echo "$DELIM"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Restore service desired count
+        if: always() && github.event.inputs.scale_service_down == 'true' && steps.target.outputs.service != '' && steps.target.outputs.desired_count != ''
+        run: |
+          aws ecs update-service \
+            --cluster "$ECS_CLUSTER" \
+            --service "${{ steps.target.outputs.service }}" \
+            --desired-count "${{ steps.target.outputs.desired_count }}" \
+            --no-cli-pager
+
+          aws ecs wait services-stable \
+            --cluster "$ECS_CLUSTER" \
+            --services "${{ steps.target.outputs.service }}"
+
+      - name: Summary
+        if: always()
+        env:
+          BUST_RESULT: ${{ steps.bust.outputs.bust_result }}
+        run: |
+          {
+            echo "## Tile cache bust"
+            echo ""
+            echo "| | |"
+            echo "|---|---|"
+            echo "| **Environment** | \`${TARGET_ENV}\` |"
+            echo "| **Layers** | \`${LAYERS_INPUT}\` |"
+            echo "| **Service** | \`${{ steps.target.outputs.service }}\` |"
+            echo "| **Task** | \`${{ steps.bust.outputs.task_arn }}\` |"
+            echo "| **Scaled service down** | \`${SCALE_SERVICE_DOWN}\` |"
+            echo "| **Triggered by** | @${{ github.actor }} |"
+            echo "| **Time** | $(date -u '+%Y-%m-%d %H:%M UTC') |"
+            echo ""
+            echo "### Result"
+            echo ""
+            echo '```json'
+            if [ -n "$BUST_RESULT" ]; then
+              printf '%s\n' "$BUST_RESULT"
+            else
+              echo "Result was not captured."
+            fi
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
