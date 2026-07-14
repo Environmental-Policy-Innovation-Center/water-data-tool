@@ -175,6 +175,16 @@ RSpec.describe TileGenerator do
       expect(sql).to include("pws.area_sq_miles")
     end
 
+    it "includes popup detail attributes and the violations summary join at system browsing zooms" do
+      sql = described_class.layer_sql("pws", 8, 76, 93, 0.0005)
+
+      expect(sql).to include("pws.phone_number")
+      expect(sql).to include("pws.owner_type")
+      expect(sql).to include("pws.years_operating")
+      expect(sql).to include("vs.total_violations_10yr")
+      expect(sql).to include("LEFT JOIN violations_summaries vs ON vs.pwsid = pws.pwsid")
+    end
+
     it "uses simplified polygons with reduced attributes for low-zoom public water systems" do
       sql = described_class.layer_sql("pws", 3, 1, 2, 0.05)
 
@@ -184,6 +194,8 @@ RSpec.describe TileGenerator do
       expect(sql).not_to include("sag.centroid")
       expect(sql).not_to include("pws.pws_name")
       expect(sql).not_to include("pws.population_served_count")
+      expect(sql).not_to include("pws.phone_number")
+      expect(sql).not_to include("violations_summaries")
     end
 
     it "uses the matching precomputed public water system geometry for zooms 0 through 7" do
