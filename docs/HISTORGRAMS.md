@@ -57,8 +57,9 @@ Provides `histogram_bins(field, format: nil, num_bins: nil, min_threshold: 0)`. 
 - Pointer drag — moves handle, shows floating value tooltip. No server calls.
 - `pointerup` — commits current min/max to hidden inputs.
 - `resetToFullRange()` — called by `filter_controller.js` on Reset; restores handles, clears hidden inputs, and calls `#syncTextInputs()` to clear the visible text inputs (restoring placeholders).
+- `#handleStateChange()` (on `filters:changed`) — when the geo `state` param actually changed, clears the cached bins/inputs and, if the panel is currently visible, re-fetches for the new state (see [State scoping](#state-scoping) below).
 
-**Module-level cache:** Responses are stored in a module-level `Map` keyed by field name. Each unique field fetches exactly once per browser session regardless of how many times its panel opens or closes.
+**Module-level cache:** Responses are stored in a module-level `Map` keyed by `"{field}|{state}"` (empty string for national scope). Each unique field/state pair fetches exactly once per browser session regardless of how many times its panel opens, closes, or the geo scope changes and changes back.
 
 ### `format` Value
 
@@ -66,10 +67,12 @@ Controls bin count, axis label formatting, and domain clamping applied in `#init
 
 | Value | Labels | Domain clamping | Bin strategy |
 |---|---|---|---|
-| *(not set / count)* | `1,234` (integer, no symbol) | `domain_min` floored at 1 | Integer bins up to cap of 30, then equal-width (see Bin Strategy) |
-| `currency` | `$1,234` | `domain_min` floored at 1 | Equal-width, 30 bins |
+| *(not set / count)* | `1,234` (integer, no symbol) | `domain_min` floored at 1; `domain_max` padded to a nice round number **unless** it's a small-count domain (below) | Integer bins up to cap of 30, then equal-width (see Bin Strategy) |
+| `currency` | `$1,234` | `domain_min` floored at 1; `domain_max` padded to a nice round number (`#niceMax`) | Equal-width, 30 bins |
 | `percent` | `96%` | Always 0–100, ignoring server values | Fixed 20 bins of 5 percentage points |
 | `percent_change` | `-45%` / `+12%` | Always −200 to +200 (matches ETL cap on `_capped` columns) | Fixed 40 bins of 10 percentage points |
+
+**Small-count domain exception:** when a `count` field has few enough distinct integer values that the server's own 30-bin cap never kicks in (`#isSmallCountDomain()`: `format === "count" && bins.length > 0 && bins.length < 30`), the frontend keeps the literal `domain_max` instead of padding it with `#niceMax`. A field with only values 1 and 2 (e.g. boil water notices in a low-volume state) renders a domain of exactly `[1, 2]`, not `[1, 5]` or similar — see [Small-count domain layout](#small-count-domain-layout) below. A large-range count field (e.g. hundreds or thousands of violations at national scope) still gets the same `niceMax` padding as currency.
 
 ---
 
@@ -95,6 +98,10 @@ Bars are positioned by **value** — each bar's left and right pixel edges are c
 The track is inset asymmetrically: `PAD_L` on the left (reserves space for the y-axis label and tick marks) and `PAD_R` on the right (handle clearance only).
 
 Empty bins (`count: 0`) render as zero-height paths — genuine visual gaps in the distribution.
+
+### Small-count domain layout
+
+Value-based positioning breaks down for a small-count domain (see the domain clamping exception above): with `domain_max` left unpadded, the last bin's theoretical span is squeezed almost to zero width by the server's `upper_bound = max_val + 1` convention, producing one giant bar plus a barely-visible sliver instead of evenly-sized bars. When `#isSmallCountDomain()` is true, `#draw()` switches to **index-based** equal-width bars instead — each of the `n` bins gets an equal `1/n` share of the track, keyed by array position rather than by value. Tick marks switch too: instead of `#autoTicks`' nicely-rounded values, only the boundaries *between* bars are marked (the handles already mark the two ends), avoiding a run of visually meaningless fractional ticks on a domain that's only 1-2 wide.
 
 ### Handle-to-bar alignment
 The min handle at `domMin` sits at the left edge of the first bar. The max handle at `domMax` (the `niceMax`-extended boundary) sits at the right edge of the track, leaving a small visual gap between the last bar and the track edge for readability. Handles at intermediate values land somewhere within the bar that contains that value (not necessarily centered — this is expected and correct). The floating tooltip above the handle shows the precise value; bar coloring is approximate visual context.
@@ -142,6 +149,14 @@ Handles move freely to any value. For integer count fields, `Math.round()` in `#
 ### Server-side histograms
 
 The legacy app computed histograms client-side from Mapbox vector tile features (visible features only, naturally limiting the distribution). The Rails app uses vector tiles — feature data is not available as JS objects. PostgreSQL `width_bucket` runs a single query server-side; the response is stable between ETL imports and cached in the browser for the session.
+
+### State scoping
+
+Every histogram is scoped to the current geo `state` when one is active, not just BWN's. `HistogramsController#show` passes `params[:state]` through to `model_scope`, which — when a state is present — narrows the model to `pwsid`s in that state via a subquery on `PublicWaterSystem` (`model.where(pwsid: PublicWaterSystem.where(stusps:).select(:pwsid))`) before calling `histogram_bins`. So a slider's domain and bins reflect only that state's data, e.g. TX's `groundwater_rule_10yr` max is TX's own max, not the national one.
+
+On the frontend, `slider_controller.js` reads `FilterState.get().state` and includes it in both the fetch (`?field=...&state=...`) and the cache key. `#handleStateChange` clears cached bins and re-fetches whenever the state actually changes (not on every `filters:changed` — see `#loadedState` in `load()`) and the panel is currently visible; a collapsed panel picks up the new state's data the next time it's expanded instead of fetching in the background.
+
+Because a slider's domain is state-specific, a stale min/max from the previous state could silently misfilter or become meaningless in the new one. `map_controller.js`'s `#setStateFilter`/`#clearStateFilter` strip `_min`/`_max` keys from `FilterState` (`#withoutRangeParams`) whenever the geo state changes — but only for slider-backed (`data-filter-kind="range"`) fields, resolved from the DOM the same way `filter_controller.js`'s `#rangeBaseParam` does. A `range_select` field (density, size) has a fixed, state-independent domain (a static dropdown step list, not a histogram) and is left untouched, so it keeps filtering and its badge across any state change — same as every non-range filter kind. The checked slider itself doesn't drop either: `#refreshCheckedRangeDefaults` repopulates the new state's domain defaults once the strip runs, so the filter re-applies rather than silently disappearing (see `docs/open_items/BWN_MANUAL_TEST_PLAN.md` §9 for the manual test).
 
 ---
 
@@ -201,11 +216,13 @@ Empty input resets that side to the domain default (handle snaps back, placehold
 
 ## Edge Cases
 
-- **Single-value data** (`domain_max === domain_min`): renders as a flat horizontal line with handles at both ends.
-- **Integer field with small range** (e.g., max=4): returns 4 bins of width 1. Each bar is noticeably wide and represents exactly one integer value.
+- **Single-value data** (`domain_max === domain_min`, e.g. every matching system has exactly 1 violation): renders one full-width bar sized to the total count, with the "# of utilities" y-axis label and hover tooltip — the same bar-drawing path as any other histogram, just with one bin spanning the whole track. (Previously this drew a bare flat line with no bar and no y-axis label; that early-return branch now reaches the normal rendering calls instead of stopping short.)
+- **Integer field with small range** (e.g., max=4): returns 4 bins of width 1, rendered as 4 equal-width bars via the small-count domain layout above, each representing exactly one integer value.
+- **Overlapping drag handles:** if a drag or typed value causes the min and max handles to land on the same pixel, the one most recently moved is brought to the front of the SVG paint order (`#raiseHandle`, tracked in `#topHandle`) so it stays independently clickable/draggable instead of being covered by the other. A pixel-offset approach was tried first and rejected — a few pixels of separation isn't visually obvious enough for a user to tell which handle they're grabbing.
 - **Max handle at `domMax`**: sits at the right edge of the last bar. The backend's `upper_bound = max_val + 1` in `width_bucket` ensures the maximum data value always falls in the last bucket (not an overflow bucket).
 - **Reset before fetch completes:** `resetToFullRange()` returns early if bins haven't loaded.
-- **Fetch on page load:** all connected slider panels fire their fetch immediately, not on first reveal. The module-level cache ensures each unique field fetches once regardless.
+- **Fetch on page load:** all connected slider panels fire their fetch immediately, not on first reveal. The module-level cache ensures each unique field/state pair fetches once regardless.
+- **A state transitions through a zero-result state with the panel open** (e.g. TX → a state with zero matching rows for this field → OH, panel never collapsed): the histogram correctly re-fetches and re-renders for the third state. The reload trigger in `#handleStateChange` is gated only on the panel being visible, not on the *previous* fetch having returned any bins — a state legitimately having zero matching rows must not suppress the next state's reload.
 
 ---
 
