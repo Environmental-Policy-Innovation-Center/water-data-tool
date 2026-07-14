@@ -72,8 +72,7 @@ jobs:
       - name: Resolve ECS target
         id: target
         run: |
-          # preview borrows the staging task definition — same app image, DATABASE_URL is
-          # overridden in the task overrides below to point at the shared preview database.
+          # preview borrows the staging task definition; DATABASE_URL is overridden below to point at the shared preview database.
           if [ "$TARGET_ENV" = "staging" ] || [ "$TARGET_ENV" = "preview" ]; then
             SERVICE="$ECS_SERVICE_STAGING"
           elif [ "$TARGET_ENV" = "production" ]; then
@@ -222,27 +221,31 @@ jobs:
           TASK_ID="${TASK_ARN##*/}"
           LOG_STREAM="${LOG_PREFIX}/${CONTAINER_NAME}/${TASK_ID}"
 
+          # CloudWatch log ingestion lags task completion — retry instead of a single fixed sleep.
+          fetch_log_events() {
+            local out=""
+            for _ in 1 2 3 4 5 6; do
+              out=$(aws logs get-log-events \
+                --log-group-name "$LOG_GROUP" \
+                --log-stream-name "$LOG_STREAM" \
+                --start-from-head \
+                --query 'events[*].message' \
+                --output text 2>/dev/null || echo "")
+              [ -n "$out" ] && break
+              sleep 5
+            done
+            printf '%s' "$out"
+          }
+
           if [ "$EXIT_CODE" != "0" ]; then
             echo "::error::Warm task exited with code $EXIT_CODE. Task: $TASK_ARN"
             jq '.tasks[0].containers[0] | {name, lastStatus, exitCode, reason}' <<< "$TASK_DESCRIPTION"
             echo "--- CloudWatch logs ---"
-            sleep 5
-            aws logs get-log-events \
-              --log-group-name "$LOG_GROUP" \
-              --log-stream-name "$LOG_STREAM" \
-              --start-from-head \
-              --query 'events[*].message' \
-              --output text || true
+            fetch_log_events
             exit 1
           fi
 
-          sleep 5
-          RESULT=$(aws logs get-log-events \
-            --log-group-name "$LOG_GROUP" \
-            --log-stream-name "$LOG_STREAM" \
-            --start-from-head \
-            --query 'events[*].message' \
-            --output text 2>/dev/null || echo "")
+          RESULT=$(fetch_log_events)
 
           DELIM=$(openssl rand -hex 8)
           {
