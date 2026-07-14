@@ -27,7 +27,7 @@ module Etl
 
         rows = []
         CSV.parse(content, headers: true) do |row|
-          attrs = {pwsid: row["pwsid"], created_at: now, updated_at: now}
+          attrs = {pwsid: row["pwsid"]&.strip, created_at: now, updated_at: now}
           columns.each { |col| attrs[col[:db_column]] = cast(col[:cast], row[col[:header]]) }
           rows << attrs
         end
