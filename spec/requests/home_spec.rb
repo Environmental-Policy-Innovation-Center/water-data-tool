@@ -328,6 +328,31 @@ RSpec.describe "Home", type: :request do
         expect(input_value("panel-paperwork_violations_5yr-max-text")).to eq("20")
       end
     end
+
+    context "boil water notices" do
+      it "renders a disabled checkbox when no state is scoped" do
+        get root_path
+        checkbox = dom.at_css("#filter-total_notices")
+        expect(checkbox).to be_present
+        expect(checkbox["disabled"]).to be_present
+        label = dom.at_css("label[for='filter-total_notices']")&.text
+        expect(label).to include("Boil water notices")
+        expect(dom.at_css(".bwn-disabled-txt")&.text).to include("data unavailable")
+      end
+
+      it "enables the checkbox when scoped to a BWN state" do
+        get root_path, params: {encoded: encode_state({"filters" => {"state" => "TX"}})}
+        checkbox = dom.at_css("#filter-total_notices")
+        expect(checkbox["disabled"]).to be_nil
+      end
+
+      it "restores an active range when scoped to a BWN state" do
+        get root_path, params: {encoded: encode_state({"filters" => {"state" => "TX", "boil_water_notices_min" => "2"}})}
+        expect(checked?("filter-total_notices")).to be(true)
+        expect(has_class?("panel-total_notices", "hidden")).to be(false)
+        expect(input_value("min-total_notices")).to eq("2")
+      end
+    end
   end
 
   describe "GET /map with encoded= param" do
@@ -460,6 +485,31 @@ RSpec.describe "Home", type: :request do
       expect(response.body).to include("State")
       expect(response.body).to include("County")
       expect(response.body).to include("Grant eligible")
+    end
+
+    context "total_notices column follows cols like other columns" do
+      it "includes the column when cols is absent (default all visible)" do
+        get table_path
+        expect(response.body).to include("Boil water notices")
+      end
+
+      it "includes the column at national scope when checked in cols" do
+        get table_path, params: {encoded: encode_state({cols: "total_notices,stusps"})}
+        expect(response.body).to include("Boil water notices")
+      end
+
+      it "includes the column for a non-BWN state when checked in cols" do
+        get table_path, params: {encoded: encode_state({
+          "filters" => {"state" => "CA"},
+          "cols" => "total_notices,stusps"
+        })}
+        expect(response.body).to include("Boil water notices")
+      end
+
+      it "excludes the column when cols marks it hidden" do
+        get table_path, params: {encoded: encode_state({cols: "-total_notices,stusps"})}
+        expect(response.body).not_to include("Boil water notices")
+      end
     end
 
     it "renders pws_name in the table body" do

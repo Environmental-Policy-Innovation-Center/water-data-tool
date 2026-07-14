@@ -80,3 +80,46 @@ filter_menus:
 # Data export affordances
 exports:
   geojson: "GeoJSON files can be exported here by state and additional filtering. Full data downloads are also available on the Downloads page."
+
+# State-specific boil water notice metadata — shown in the Notices filter tooltip when scoped to a BWN state.
+# Each entry: text (methodology note) + source_url (state agency data page).
+boil_water_notices_states:
+  AK:
+    text: "Continuous data collection started on Sept 10th, 2025, and updates are completed quarterly. Please refer to the source link for the most current information."
+    source_url: "https://gis.data.alaska.gov/datasets/ADEC::boil-water-and-do-not-drink-notice-open/explore?location=56.210819%2C-157.551116%2C7.85&showTable=true"
+  AR:
+    text: "The last update of this dataset occurred on Feb 3rd, 2026. This is not a comprehensive record. Please refer to the source link for the most current information."
+    source_url: "https://health.arkansas.gov/wa_engTraining/boilwaterorder.aspx"
+  LA:
+    text: "The last update of this dataset was completed on July 9th, 2025. Due to data download limits, this dataset includes system-issued boil water notices from 2024-2025, and state-issued boil water advisories that were open from 2020-2025. This is not a comprehensive record. Please refer to the source link for the most current information."
+    source_url: "https://sdw.ldh.la.gov/"
+  MA:
+    text: "The last update of this dataset occurred on Oct 30th, 2025 and we are working on updating this dataset. Please refer to the source link for the most current information."
+    source_url: "https://eeaonline.eea.state.ma.us/DEP/Boil_Order/"
+  ME:
+    text: "Continuous data collection started on Sept 12th, 2025, and updates are completed quarterly. This is not a comprehensive record, as water system IDs are not always provided. Please refer to the source link for the most current information."
+    source_url: "https://www.maine.gov/dhhs/mecdc/healthy-living/health-safety/drinking-water-safety/information-for-consumers/drinking-water-safety-alerts"
+  MO:
+    text: "Continuous data collection started on Sept 25th, 2025, and updates are completed quarterly. This is not a comprehensive record, as this dataset only contains advisories from long-term contaminant issues. Please refer to the source link for the most current information."
+    source_url: "https://data.mo.gov/Regulatory/DNR-WPP-Boil-Order-Report/j2a5-itxh/data_preview"
+  NM:
+    text: "Continuous data collection started on Oct 2nd, 2025, and updates are completed quarterly. This is not a comprehensive record, as water system IDs are not always provided. Please refer to the source link for the most current information."
+    source_url: "https://www.env.nm.gov/drinking_water/boil-water-advisories/"
+  OH:
+    text: "The last update of this dataset occurred on July 30th, 2025. This dataset is no longer maintained by the state of Ohio, and is not a comprehensive record. Please refer to your water system for the most current information."
+    source_url: "https://geo.epa.ohio.gov/portal/apps/experiencebuilder/experience/?id=72cf2af9e2dd459aa5d758b54fb10c0c&page=Page-1&views=About"
+  OR:
+    text: "Continuous data collection started on Oct 2nd, 2025, and updates are completed quarterly. Please refer to the source link for the most current information."
+    source_url: "https://yourwater.oregon.gov/advisories.php?areasw=x&areap=x&popa=x&popv=x&open=x&lifted=x&begin=&end=&sort=start"
+  RI:
+    text: "The last update of this dataset occurred on July 30th, 2025, and we are working on updating this dataset. Some records may be missing the date the advisory was issued because that information is not provided for recently lifted advisories. Please refer to the source link for the most current information."
+    source_url: "https://health.ri.gov/drinking-water-quality/information/public-water-emergency-information-consumers"
+  TX:
+    text: "The last update of this dataset was completed on April 17th, 2024 through a Freedom of Information Act Request (FOIA). This is not a comprehensive record, and we are working to automatically update this dataset in the future using the data contained in the source link. Please refer to the source link for the most current information, as it is provided on the state SDWIS website."
+    source_url: "https://dww2.tceq.texas.gov/DWW/JSP/SearchDispatch?number=&name=&ActivityStatusCD=All&county=All&WaterSystemType=All&SourceWaterType=All&SampleType=null&begin_date=10%2F28%2F2023&end_date=10%2F28%2F2025&action=Search+For+Water+Systems"
+  WA:
+    text: "Continuous data collection started on Sept 12th, 2025, and updates are completed quarterly. This is not a comprehensive record, as water system IDs are not always provided. Please refer to the source link for the most current information."
+    source_url: "https://doh.wa.gov/community-and-environment/drinking-water/active-alerts?county=All&combine="
+  WV:
+    text: "Continuous data collection started on Oct 2nd, 2025, and updates are completed quarterly. Please note that a water system in this dataset may report multiple & potentially separate advisories on the same day. They are treated as distinct advisories, and therefore numbers may appear large. Please refer to the source link for the most current information."
+    source_url: "https://oehsportal.wvdhhr.org/boilwater"

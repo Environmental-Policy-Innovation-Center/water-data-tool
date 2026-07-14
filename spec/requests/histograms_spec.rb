@@ -66,5 +66,58 @@ RSpec.describe "Histograms", type: :request do
         expect(response).to have_http_status(:bad_request)
       end
     end
+
+    context "state scoping" do
+      let!(:tx_pws) { create(:public_water_system, stusps: "TX") }
+      let!(:or_pws) { create(:public_water_system, stusps: "OR") }
+
+      before do
+        create(:boil_water_summary, pwsid: tx_pws.pwsid, total_notices: 45)
+        create(:boil_water_summary, pwsid: or_pws.pwsid, total_notices: 500)
+      end
+
+      it "returns the global domain when no state is given" do
+        get histogram_path, params: {field: "total_notices"}
+
+        json = response.parsed_body
+        expect(json["domain_max"]).to eq(500)
+        expect(json["bins"].sum { |b| b["count"] }).to eq(2)
+      end
+
+      it "scopes domain to the requested state" do
+        get histogram_path, params: {field: "total_notices", state: "TX"}
+
+        json = response.parsed_body
+        expect(json["domain_max"]).to eq(45)
+        expect(json["bins"].sum { |b| b["count"] }).to eq(1)
+      end
+
+      it "returns a different domain for a different state" do
+        get histogram_path, params: {field: "total_notices", state: "OR"}
+
+        json = response.parsed_body
+        expect(json["domain_max"]).to eq(500)
+        expect(json["bins"].sum { |b| b["count"] }).to eq(1)
+      end
+
+      it "scoping also works for non-BWN fields like violations" do
+        create(:violations_summary, pwsid: tx_pws.pwsid, paperwork_violations_5yr: 3)
+        create(:violations_summary, pwsid: or_pws.pwsid, paperwork_violations_5yr: 99)
+
+        get histogram_path, params: {field: "paperwork_violations_5yr", state: "TX"}
+
+        json = response.parsed_body
+        expect(json["domain_max"]).to eq(3)
+        expect(json["bins"].sum { |b| b["count"] }).to eq(1)
+      end
+
+      it "returns empty bins for an unknown state" do
+        get histogram_path, params: {field: "total_notices", state: "ZZ"}
+
+        json = response.parsed_body
+        expect(json["bins"]).to be_an(Array)
+        expect(json["bins"].sum { |b| b["count"] }).to eq(0)
+      end
+    end
   end
 end

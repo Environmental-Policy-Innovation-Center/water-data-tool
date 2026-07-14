@@ -1,2 +1,52 @@
-<%# Boil-water notices — disabled placeholder (data unavailable). locals: field_key, group %>
-<li class="<%= filter_row_classes %>"><input type="checkbox" class="toggle" disabled="disabled" id="boil-water-notices"><label class="text-[#888]" for="boil-water-notices">Boil water notices <span class="bwn-disabled-txt">(data unavailable <span class="geo-filter"></span>)</span></label></li>
+<%# Boil-water notices — state-gated range filter (control: notices). locals: field_key, group %>
+<% field = FieldRegistry.find(field_key) %>
+<% param_base = field.filter_param.to_s %>
+<% checkbox_id = filter_checkbox_id(field_key) %>
+<% panel_id = filter_panel_id(field_key) %>
+<% bwn_available = BoilWaterStateConfig.bwn_state?(filter_state["state"]) %>
+<% active = bwn_available && range_active?(param_base) %>
+<li class="<%= filter_row_classes %> [&_input.rounded-checkbox]:h-[35px] [&_input.rounded-checkbox]:w-[35px]"
+    data-filter-kind="range"
+    data-filter-group="<%= group %>"
+    data-filter-param="<%= param_base %>"
+    data-controller="bwn-filter"
+    data-bwn-filter-bwn-states-value="<%= BoilWaterStateConfig.states_json %>"
+    data-bwn-filter-tooltips-value="<%= bwn_tooltips_html_json %>">
+  <div class="flex items-start">
+    <input type="checkbox" class="<%= filter_checkbox_classes %>" id="<%= checkbox_id %>"
+           data-bwn-filter-target="checkbox"
+           data-action="change->filter#toggleSubcat"
+           data-panel-id="<%= panel_id %>"
+           <%= "disabled" unless bwn_available %>
+           <%= checked_if(active) %>>
+    <div class="flex-1 min-w-0 leading-snug">
+      <label class="<%= bwn_available ? "" : "text-[#888]" %>" for="<%= checkbox_id %>" data-bwn-filter-target="label">
+        <%= field.filter[:label] %>
+      </label>
+      <span class="relative ml-1 items-center align-middle cursor-default hidden"
+            data-bwn-filter-target="stateTooltip"
+            data-controller="tooltip"
+            data-tooltip-text-value=""
+            tabindex="0"
+            data-action="mouseenter->tooltip#show mouseleave->tooltip#hide focus->tooltip#show blur->tooltip#hide">
+        <%= icon "info", classes: "h-3.5 w-3.5 inline align-middle" %>
+      </span>
+      <span class="text-sm text-[#888] ml-1 bwn-disabled-txt<%= " hidden" if bwn_available %>"
+            data-bwn-filter-target="disabledText">
+        (data unavailable <span class="geo-filter"></span>)
+      </span>
+      <button type="button" class="<%= filter_info_button_classes %><%= " hidden" unless bwn_available %>"
+              data-bwn-filter-target="arrowButton"
+              data-action="click->filter#toggleSubcatPanel"
+              data-panel-id="<%= panel_id %>"
+              aria-expanded="<%= active %>"
+              aria-controls="<%= panel_id %>">
+        <%= icon("arrow-down", classes: collapse_toggle_icon_classes(expanded: active)) %>
+      </button>
+    </div>
+  </div>
+  <%= render "home/slider_panel", panel_id: panel_id, field: field.histogram_col.to_s,
+             min_input_id: filter_min_id(field_key), max_input_id: filter_max_id(field_key),
+             label: field.filter.fetch(:slider_label, "Number of notices"), format: slider_format_for(field),
+             expanded: active, min_value: filter_range_value(param_base, :min), max_value: filter_range_value(param_base, :max) %>
+</li>

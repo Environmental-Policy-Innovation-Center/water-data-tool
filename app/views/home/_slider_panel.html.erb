@@ -6,7 +6,7 @@
   <p class="text-sm font-bold text-neutral-700"><%= local_assigns.fetch(:label, "Number of violations") %></p>
   <svg data-slider-target="chart" class="w-full overflow-visible" height="128"></svg>
   <%# pl-[31px] = PAD_L (Y_AXIS_W + HANDLE_R), pr-[5px] = PAD_R (HANDLE_R) — must match slider_controller.js %>
-  <div id="<%= panel_id %>-range-axis" aria-hidden="true" class="flex justify-between text-sm text-neutral-700 pl-[31px] pr-[5px]">
+  <div id="<%= panel_id %>-range-axis" data-slider-target="axisRow" aria-hidden="true" class="flex justify-between text-sm text-neutral-700 pl-[31px] pr-[5px]">
     <span data-slider-target="minLabel"></span>
     <span data-slider-target="maxLabel"></span>
   </div>
@@ -22,7 +22,7 @@
              autocomplete="off"
              aria-label="Minimum filter value"
              value="<%= slider_min %>"
-             class="w-full text-sm font-bold bg-neutral-50 border border-neutral-300 rounded px-1.5 py-1 text-neutral-700">
+             class="w-full text-sm font-bold bg-neutral-50 border border-neutral-300 rounded px-1.5 py-1 text-neutral-700 disabled:opacity-50 disabled:cursor-not-allowed">
     </div>
     <span aria-hidden="true">-</span>
     <div class="flex flex-col flex-1 min-w-0">
@@ -35,7 +35,7 @@
              autocomplete="off"
              aria-label="Maximum filter value"
              value="<%= slider_max %>"
-             class="w-full text-sm font-bold bg-neutral-50 border border-neutral-300 rounded px-1.5 py-1 text-neutral-700 text-right">
+             class="w-full text-sm font-bold bg-neutral-50 border border-neutral-300 rounded px-1.5 py-1 text-neutral-700 text-right disabled:opacity-50 disabled:cursor-not-allowed">
     </div>
   </div>
   <input type="hidden" data-slider-target="minInput" id="<%= min_input_id %>" value="<%= slider_min %>">

@@ -11,7 +11,14 @@ module PublicWaterSystems
 
       model = field_config[:model]
       kwargs = field_config.except(:model)
-      render json: model.histogram_bins(field, **kwargs)
+      render json: model_scope(model, params[:state]).histogram_bins(field, **kwargs)
+    end
+
+    private
+
+    def model_scope(model, stusps)
+      return model unless stusps.present?
+      model.where(pwsid: PublicWaterSystem.where(stusps: stusps).select(:pwsid))
     end
   end
 end
