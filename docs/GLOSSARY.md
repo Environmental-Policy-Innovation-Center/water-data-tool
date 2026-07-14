@@ -83,7 +83,7 @@ Domain acronyms, data source names, field abbreviations, and technical terms use
 | **ogr2ogr** | GDAL command-line tool for converting between geospatial formats; the ETL uses it to load Census boundary shapefiles into PostGIS (`cartographic_*` tables) |
 | **PostGIS** | PostgreSQL extension providing geometry data types (`multi_polygon`, `st_point`) and spatial functions (`ST_Transform`, `ST_PointOnSurface`, `ST_Buffer`) |
 | **ST_Transform** | PostGIS function converting geometries between coordinate systems; used to reproject from EPSG:4326 (stored) to EPSG:3857 (tile rendering) |
-| **Tile Cache** | `tile_cache` table — stores MVT protobuf binaries keyed by `(layer, z, x, y)`. Normal ETL runs selectively overwrite affected cached rows; full cache invalidation is reserved for explicit full-refresh fallbacks. Layers: `pws`, `places`, `counties`, `states`, plus `pws_low_poly_v1` (the low-zoom, z<5, simplified pws cache) |
+| **Tile Cache** | `tile_cache` table — stores MVT protobuf binaries keyed by `(layer, z, x, y)`. Layers: `pws`, `places`, `counties`, `states`, plus `pws_low_poly_v1` (the low-zoom, z<5, simplified pws cache). See [TILE_CACHE.md](TILE_CACHE.md) for lifecycle, invalidation, and manual bust/warm workflows |
 | **TileBBox** | PostGIS utility function converting tile coordinates `(z, x, y)` to a bounding box geometry for use in MVT generation queries |
 | **WGS 84** | World Geodetic System 1984 — coordinate reference system (EPSG:4326) used to store all geometries in this database |
 | **Web Mercator** | EPSG:3857 — projected coordinate system used by Mapbox GL JS for tile rendering; geometries are reprojected to this system at tile generation time |

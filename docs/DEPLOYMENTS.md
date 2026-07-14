@@ -123,6 +123,50 @@ The job summary shows the task ARNs, environment, and the row counts from the ve
 
 This workflow does not backfill PWS generalized geometries. Those columns live on `service_area_geometries` and are derived from EPA SABS service-area polygons, not from TIGER cartographic boundaries.
 
+### Bust tile cache
+
+See [TILE_CACHE.md](TILE_CACHE.md) for the full background on cache lifecycle and why this can't be automatic for code changes.
+
+Use **Actions → Bust Tile Cache → Run workflow** to delete cached `tile_cache` rows for one or more layers in a single environment. Run this after a deploy changes what a tile embeds (e.g. new attributes on an existing layer) — the tile cache doesn't key on code version, so previously-cached rows keep serving the old shape indefinitely until cleared. The map keeps working either way; uncached tiles just regenerate live (slower first load) until re-requested or explicitly warmed.
+
+**Inputs:**
+
+| Input | Description |
+|---|---|
+| `target_environment` | `staging`, `production`, or `preview` |
+| `layers` | Comma-separated `tile_cache.layer` values to delete (e.g. `pws,pws_low_poly_v1`). `pws_low_poly_v1` is the separate low-zoom (`z<5`) `pws` cache row and must be listed explicitly if it should be cleared too — it's a distinct row key, not covered by listing `pws` alone. |
+| `scale_service_down` | Scale the staging web service to zero while the task runs. Required for preview (constrained instance memory); optional for staging/production. |
+| `confirm` | Type `bust-<env>-tiles` exactly. Append `-with-downtime` if `scale_service_down` is true. |
+
+**How it works:**
+
+1. Resolves the ECS task definition from the staging or production service (preview borrows staging's task definition and service — scaling down for a `preview` run scales down the actual staging web service).
+2. For preview: overrides `DATABASE_URL` to the shared preview database via Secrets Manager, same as the cartographic boundaries workflow.
+3. Runs a one-off ECS task executing `TileCache.where(layer: [...]).delete_all` and reports the deleted row count.
+
+The job summary shows the targeted layers and the before/after row counts.
+
+### Warm tile cache
+
+Use **Actions → Warm Tile Cache → Run workflow** to pre-generate and cache map tiles for the given layers and zoom range, so the first real visitor after a bust (or any cold cache) doesn't pay the live-generation cost. It's read-only regeneration — safe to run at any time and safe to re-run (tile rows are upserted, not appended).
+
+**Inputs:**
+
+| Input | Description |
+|---|---|
+| `target_environment` | `staging`, `production`, or `preview` |
+| `layers` | Comma-separated logical layers to warm (`pws`, `places`, `counties`, `states`). Leave blank to warm every layer valid at each zoom. `pws_low_poly_v1` is not a valid value here — warming `pws` at `z<5` populates it automatically. |
+| `max_zoom` | Highest zoom level to warm (0-8, default 8). `z9+` always generates on-demand and is never pre-warmed. |
+| `scale_service_down` | Scale the staging web service to zero while the task runs. Required for preview (constrained instance memory); optional for staging/production. |
+| `confirm` | Type `warm-<env>-tiles` exactly. Append `-with-downtime` if `scale_service_down` is true. |
+
+**How it works:**
+
+1. Resolves the ECS task definition the same way as **Bust tile cache** (preview borrows staging's service).
+2. Runs a one-off ECS task executing `TileCacheWarmJob.perform_now(layers:, max_zoom:)` and reports the before/after row counts for the targeted layers.
+
+A full `pws` warm at `max_zoom: 8` is the most expensive of the four layers (by far the largest row count) and can take a while — the workflow allows up to 90 minutes for the one-off task.
+
 ### Refresh preview database
 
 Use **Actions → Refresh Preview Database → Run workflow** to run `bin/rails etl:import` against the shared preview database as a manual one-off ECS task. All PR previews read this database, so one run refreshes data for every open preview. Nightly refreshes are owned by the persistent preview worker service, not this workflow.

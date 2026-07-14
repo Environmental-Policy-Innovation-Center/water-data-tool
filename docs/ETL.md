@@ -99,9 +99,7 @@ If `epa_sabs_geoms.geojson` changed geometry rows, run the derived spatial steps
 
 ### Step 5: Refresh affected tiles
 
-For normal imports, do not truncate the full `tile_cache` table. `TileImpact` converts changed PWS/place bounds into affected z5-z8 tile coordinates with a one-tile edge margin, then enqueues small `TileCacheRefreshJob` batches on the `tile_refresh` queue. Those jobs overwrite affected cached rows; old rows remain readable until replacements are generated.
-
-If an import result explicitly requires a full refresh, the legacy full cache bust plus `TileCacheWarmJob` path is used as a maintenance fallback.
+See **[TILE_CACHE.md](TILE_CACHE.md)** for the full mechanics — selective refresh (`TileImpact` + `TileCacheRefreshJob`) for normal imports, full bust + `TileCacheWarmJob` as a fallback for explicit full refreshes, which importers actually report `changed_pwsids` (not all of them do), and when a manual bust is required outside of any ETL run entirely.
 
 ---
 

@@ -22,7 +22,7 @@ The source contains four **source layers** (data channels baked into each tile):
 
 | Source layer | Contains | Notes |
 |---|---|---|
-| `pws` | PWS service area polygons | Properties: `pwsid`, `pws_name`, `stusps`, `symbology_field`, `population_served_count`, `service_connections_count` |
+| `pws` | PWS service area polygons | Properties: `pwsid`, `pws_name`, `stusps`, `symbology_field`, `population_served_count`, `service_connections_count`, `phone_number`, `owner_type`, `years_operating`, `total_violations_10yr` (joined from `violations_summaries`), `area_sq_miles`, `pop_cat_5`. Below `PWS_MIN_ZOOM` (z<5) only `pwsid`/`stusps` are included — see below. |
 | `places` | Census place boundaries | Properties: `geoid`, `name`, `place_pwsids` |
 | `counties` | County boundaries | Properties: `geoid`, `name` |
 | `states` | State boundaries | Properties: `geoid`, `stusps`, `name` |
@@ -31,49 +31,7 @@ The source contains four **source layers** (data channels baked into each tile):
 
 ## Tile Caching
 
-Tiles are generated on-demand by PostGIS (`ST_AsMVT`) and cached in the `tile_cache` database table as binary blobs. The cache is **global and shared across all users** — the first user to request any tile pays the generation cost; every subsequent user gets the cached version instantly regardless of who originally generated it.
-
-### Find-or-create per request
-
-`TileGenerator.build_tile(z, x, y)` checks the cache for all 4 layers at once. Any layers already cached are returned immediately; missing layers are generated, persisted, and returned. A partially-cached tile coordinate (e.g. 3 of 4 layers present) only generates the missing layers.
-
-### Cache lifecycle
-
-1. **Cold** — tile has never been requested; PostGIS generates it from `service_area_geometries` (slow, especially at low zoom where many polygons are included)
-2. **Warm** — tile exists in `tile_cache`; returned as a simple DB lookup (fast)
-3. **Refreshing** — ETL identifies affected tile coordinates and `TileCacheRefreshJob` overwrites those cached rows in the background; old cached rows remain readable until replacements are ready
-
-Normal imports refresh selectively. `epa_sabs.csv` reports PWS IDs when map-relevant attributes change, `epa_sabs_geoms.geojson` reports PWS IDs and previous geometry bounds when geometry digests change, and `TileImpact` converts those bounds into affected z5-z8 layer coordinates with a small edge margin.
-
-The full `bust_tile_cache` + `TileCacheWarmJob` path remains available for explicit full-refresh fallbacks, such as broad cartographic boundary changes.
-
-### Pre-warming (TileCacheWarmJob)
-
-For full-refresh maintenance, `TileCacheWarmJob` pre-generates tiles for z0-z8 using US region bounding boxes (continental US, AK, HI, PR, Guam+CNMI). This skips empty ocean and land tiles entirely and covers through city/district zoom — the level where users first interact with individual water utility polygons. z9+ tiles generate on-demand (fast, small area).
-
-The warm job takes ~32 minutes at national scale (~44k systems). See `scratch/performance_work.md` for full timing data.
-
-### Selective refresh (TileImpact + TileCacheRefreshJob)
-
-After normal imports, `TileImpact` calculates affected z5-z8 coordinates for changed PWS and place bounds. It adds a one-tile margin so edge-adjacent tiles are refreshed, deduplicates coordinates, and enqueues bounded `TileCacheRefreshJob` batches on the `tile_refresh` queue. Each refresh job calls `TileGenerator.generate_tile!` for the affected layer/z/x/y rows.
-
-### Zoom level tile counts
-
-Warming stops at z8 because z9+ on-demand generation is fast (each tile covers a small area with few polygons). The smart bounding-box approach uses far fewer coordinates than a blind full-grid warm:
-
-| Zoom | US-only coords | Full grid | Reduction | × 4 layers |
-|------|---------------|-----------|-----------|------------|
-| z0 | 1 | 1 | 0% | 4 |
-| z1 | 2 | 4 | 50% | 8 |
-| z2 | 4 | 16 | 75% | 16 |
-| z3 | 9 | 64 | 86% | 36 |
-| z4 | 23 | 256 | 91% | 92 |
-| z5 | 59 | 1,024 | 94% | 236 |
-| z6 | 172 | 4,096 | 96% | 688 |
-| z7 | 608 | 16,384 | 96% | 2,432 |
-| z8 | 2,335 | 65,536 | 96% | 9,340 |
-| **z0–z8 total** | **3,213** | **349,525** | **96.5%** | **~12,852 ops** |
-| z9+ | — | millions | — | impractical to warm |
+Tiles are generated on-demand by PostGIS (`ST_AsMVT`) and cached in the `tile_cache` database table. For the full explanation of the cache lifecycle, automatic vs. manual invalidation, selective refresh vs. full bust+warm, and the operational workflows — see **[TILE_CACHE.md](TILE_CACHE.md)**.
 
 ### Geometry simplification by zoom
 

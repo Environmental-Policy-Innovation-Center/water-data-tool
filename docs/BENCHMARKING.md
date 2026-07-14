@@ -34,4 +34,4 @@ bin/rails runner "TileCacheWarmJob.perform_now"
 
 This blocks the terminal until every z0–z8 tile is regenerated — **~30 minutes at national scale**. Progress is logged to stdout.
 
-See the [tile cache section of the README](../README.md#background-jobs-and-tile-cache-refresh) for how tile caching and refresh work.
+See **[TILE_CACHE.md](TILE_CACHE.md)** for how tile caching and refresh work.

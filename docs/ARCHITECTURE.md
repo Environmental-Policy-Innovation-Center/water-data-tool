@@ -233,9 +233,7 @@ Geometries are simplified at lower zoom levels for performance (same approach as
 
 ### Cache invalidation
 
-Normal ETL imports do not truncate the full `tile_cache` table. Importers return changed PWS IDs, affected layers, and geometry metadata; `TileImpact` converts those changes into affected z5-z8 tile coordinates; and `TileCacheRefreshJob` overwrites those cached rows in small batches. Existing cached tiles remain readable until replacements are written.
-
-The full bust-and-warm path still exists for legacy importer results or imports that explicitly require a full refresh, such as broad cartographic boundary changes.
+See **[TILE_CACHE.md](TILE_CACHE.md)** for the full explanation of selective refresh vs. full bust+warm, which importers trigger which, and when a manual bust is required (code changes to what a tile embeds, not just data changes).
 
 ---
 
@@ -253,10 +251,6 @@ SolidQueue recurring job. Runs the full ETL pipeline:
 
 See [ETL.md](ETL.md) for full pipeline details.
 
-### `TileCacheWarmJob`
+### `TileCacheWarmJob` / `TileCacheRefreshJob`
 
-Maintenance fallback. Pre-generates tiles for common zoom levels (z0-z8 across US region bounds) after an explicit full cache refresh.
-
-### `TileCacheRefreshJob`
-
-Normal post-import tile refresh job. Regenerates bounded batches of affected layer/z/x/y tiles on the low-concurrency `tile_refresh` queue.
+See **[TILE_CACHE.md](TILE_CACHE.md#pre-warming-tilecachewarmjob)** — full pre-warm vs. targeted selective refresh, on the `tile_warm` and `tile_refresh` queues respectively.
