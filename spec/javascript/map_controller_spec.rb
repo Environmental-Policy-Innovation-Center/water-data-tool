@@ -1693,6 +1693,244 @@ RSpec.describe "map_controller state selection" do
     run_node_script(script)
   end
 
+  it "comma-formats popup counts and passes text fields through unformatted" do
+    controller_setup = <<~JS
+      class PopupRoot {
+        constructor() {
+          this.fields = ["pws_name", "phone_number", "owner_type", "years_operating", "total_violations_10yr"].map((field) => ({
+            dataset: { popupField: field },
+            textContent: ""
+          }))
+        }
+
+        cloneNode() { return new PopupRoot() }
+        querySelectorAll(selector) { return selector === "[data-popup-field]" ? this.fields : [] }
+        querySelector() { return null }
+        get outerHTML() { return this.fields.map((field) => field.textContent).join(" ") }
+      }
+
+      controller.popupTemplateTarget = { content: { firstElementChild: new PopupRoot() } }
+    JS
+
+    script = map_controller_script(zoom: 8.5, popup: true, controller_setup: controller_setup, body: <<~JS)
+      mapStub.handlers["click:states"]({
+        lngLat: { lng: -105.5, lat: 39.0 },
+        features: [{ properties: { stusps: "CO", name: "Colorado", geoid: "08" } }]
+      })
+      mapStub.zoom = 8.5
+      mapStub.handlers.zoomend()
+
+      mapStub.handlers["mousemove:pws"]({
+        lngLat: { lng: -105.1, lat: 39.1 },
+        features: [{ properties: {
+          pwsid: "CO0000001",
+          pws_name: "Clear Creek Water",
+          phone_number: "(785) 472-4486",
+          owner_type: "Local",
+          years_operating: "1234",
+          total_violations_10yr: "2300"
+        } }]
+      })
+
+      if (!hoverHtml?.includes("(785) 472-4486")) throw new Error(`expected phone number passed through, got ${hoverHtml}`)
+      if (!hoverHtml?.includes("Local")) throw new Error(`expected service type passed through, got ${hoverHtml}`)
+      if (!hoverHtml?.includes("1,234")) throw new Error(`expected years in operation comma-formatted, got ${hoverHtml}`)
+      if (!hoverHtml?.includes("2,300")) throw new Error(`expected total violations comma-formatted, got ${hoverHtml}`)
+    JS
+
+    run_node_script(script)
+  end
+
+  it "falls back to an em dash for missing years in operation or violations counts" do
+    controller_setup = <<~JS
+      class PopupRoot {
+        constructor() {
+          this.fields = ["pws_name", "years_operating", "total_violations_10yr"].map((field) => ({
+            dataset: { popupField: field },
+            textContent: ""
+          }))
+        }
+
+        cloneNode() { return new PopupRoot() }
+        querySelectorAll(selector) { return selector === "[data-popup-field]" ? this.fields : [] }
+        querySelector() { return null }
+        get outerHTML() { return this.fields.map((field) => field.textContent).join(" ") }
+      }
+
+      controller.popupTemplateTarget = { content: { firstElementChild: new PopupRoot() } }
+    JS
+
+    script = map_controller_script(zoom: 8.5, popup: true, controller_setup: controller_setup, body: <<~JS)
+      mapStub.handlers["click:states"]({
+        lngLat: { lng: -105.5, lat: 39.0 },
+        features: [{ properties: { stusps: "CO", name: "Colorado", geoid: "08" } }]
+      })
+      mapStub.zoom = 8.5
+      mapStub.handlers.zoomend()
+
+      mapStub.handlers["mousemove:pws"]({
+        lngLat: { lng: -105.1, lat: 39.1 },
+        features: [{ properties: {
+          pwsid: "CO0000001",
+          pws_name: "Clear Creek Water"
+        } }]
+      })
+
+      if (hoverHtml !== "Clear Creek Water — —") throw new Error(`expected missing counts to fall back to em dash, got ${hoverHtml}`)
+    JS
+
+    run_node_script(script)
+  end
+
+  it "refreshes popup content from the newly loaded tile after a below-systems-zoom click flies in" do
+    script = <<~JS
+      const fs = require("fs")
+      class Controller {}
+      const filterStateCurrent = {}
+      const FilterState = {
+        get: () => ({ ...filterStateCurrent }),
+        set: (params) => {
+          Object.keys(filterStateCurrent).forEach((key) => delete filterStateCurrent[key])
+          Object.assign(filterStateCurrent, params)
+        },
+        toUrlParams: () => new URLSearchParams(filterStateCurrent)
+      }
+      global.document = {
+        head: { querySelector: () => ({ content: "token" }) },
+        querySelector: () => null,
+        getElementById: () => null,
+        addEventListener: () => {},
+        removeEventListener: () => {},
+        dispatchEvent: () => {}
+      }
+      global.CustomEvent = class {
+        constructor(type) { this.type = type }
+      }
+      global.history = { replaceState: () => {} }
+      global.window = {
+        location: new URL("http://example.test/"),
+        mapboxgl: {}
+      }
+      global.Turbo = { visit: () => {} }
+
+      class PopupRoot {
+        constructor() {
+          this.fields = ["pws_name", "years_operating"].map((field) => ({
+            dataset: { popupField: field },
+            textContent: ""
+          }))
+        }
+
+        cloneNode() { return new PopupRoot() }
+        querySelectorAll(selector) { return selector === "[data-popup-field]" ? this.fields : [] }
+        querySelector() { return null }
+        get outerHTML() { return this.fields.map((field) => field.textContent).join(" ") }
+      }
+
+      class PopupStub {
+        setHTML(html) { this.html = html; globalThis.clickHtml = html; return this }
+        setLngLat() { return this }
+        addTo() { return this }
+        remove() {}
+        on() {}
+      }
+
+      class MapStub {
+        constructor() {
+          this.handlers = {}
+          this.moveendCallbacks = []
+          this.zoom = 6
+          this.filters = {}
+          this.layers = []
+          globalThis.mapStub = this
+        }
+
+        dragRotate = { disable: () => {} }
+        touchZoomRotate = { disableRotation: () => {} }
+        getStyle() { return { layers: [{ id: "base-line", type: "line" }] } }
+        getCanvas() { return { style: {} } }
+        getZoom() { return this.zoom }
+        addControl() {}
+        addSource() {}
+        addLayer(layer) { this.layers.push(layer) }
+        setPaintProperty() {}
+        getLayer() { return true }
+        setFilter(layer, filter) { this.filters[layer] = filter }
+        setMaxZoom() {}
+        fitBounds() {}
+        querySourceFeatures() { return [] }
+        // Below systems-entry zoom the rendered tile is coarser and lacks
+        // years_operating; once flyTo lands at systems zoom, a re-query
+        // returns the fully-detailed tile.
+        queryRenderedFeatures() {
+          const detailed = this.zoom >= 8
+          return [{ properties: {
+            pwsid: "CO0000001",
+            pws_name: "Clear Creek Water",
+            stusps: "CO",
+            ...(detailed ? { years_operating: "12" } : {})
+          } }]
+        }
+        project() { return { x: 400, y: 300 } }
+        setFeatureState() {}
+        removeFeatureState() {}
+        jumpTo(options) { if (options.zoom !== undefined) this.zoom = options.zoom }
+        flyTo(options) { if (options.zoom !== undefined) this.zoom = options.zoom }
+        once(event, callback) {
+          if (event === "moveend") this.moveendCallbacks.push(callback)
+        }
+        on(event, layerOrCallback, callback) {
+          if (callback) {
+            this.handlers[`${event}:${layerOrCallback}`] = callback
+          } else {
+            this.handlers[event] = layerOrCallback
+          }
+        }
+      }
+
+      window.mapboxgl.Map = MapStub
+      window.mapboxgl.NavigationControl = class {}
+      window.mapboxgl.Popup = PopupStub
+
+      let source = fs.readFileSync(#{controller_source_path.to_s.inspect}, "utf8")
+      source = source.replace(/^import .*\\n/gm, "")
+      source = source.replace("export default class extends Controller", "globalThis.MapController = class extends Controller")
+      eval(source)
+
+      const controller = new MapController()
+      controller.element = { dataset: {} }
+      controller.tileUrlValue = "/tiles/{z}/{x}/{y}.mvt"
+      controller.popupTemplateTarget = { content: { firstElementChild: new PopupRoot() } }
+      controller.connect()
+      mapStub.handlers.load()
+
+      mapStub.handlers["click:states"]({
+        lngLat: { lng: -105.5, lat: 39.0 },
+        features: [{ properties: { stusps: "CO", name: "Colorado", geoid: "08" } }]
+      })
+
+      mapStub.handlers["click:pws"]({
+        point: { x: 400, y: 300 },
+        lngLat: { lng: -105.1, lat: 39.1 },
+        features: [{ properties: {
+          pwsid: "CO0000001",
+          pws_name: "Clear Creek Water",
+          stusps: "CO"
+        } }]
+      })
+
+      if (mapStub.zoom !== 8.5) throw new Error(`expected fly-in to zoom 8.5, got ${mapStub.zoom}`)
+      if (mapStub.moveendCallbacks.length !== 1) throw new Error("expected a moveend callback to be registered")
+
+      // Simulate the fly-in completing: the map has now loaded the more detailed tile.
+      mapStub.moveendCallbacks[0]()
+
+      if (!clickHtml?.includes("12")) throw new Error(`expected popup to refresh with the newly loaded tile's years_operating, got ${clickHtml}`)
+    JS
+
+    run_node_script(script)
+  end
+
   it "prioritizes service area clicks over state clicks at overlapping locations" do
     map_methods = <<~JS
       queryRenderedFeatures(_box, options) {

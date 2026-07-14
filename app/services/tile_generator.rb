@@ -130,15 +130,18 @@ module TileGenerator
 
     case layer
     when "pws"
-      attrs = if z < PWS_MIN_ZOOM
+      low_zoom = z < PWS_MIN_ZOOM
+      attrs = if low_zoom
         "pws.pwsid, pws.stusps"
       else
         <<~SQL.squish
           pws.pwsid, pws.stusps, pws.pws_name, pws.symbology_field,
           pws.pop_cat_5, pws.population_served_count, pws.service_connections_count,
-          pws.area_sq_miles
+          pws.area_sq_miles, pws.phone_number, pws.owner_type, pws.years_operating,
+          vs.total_violations_10yr
         SQL
       end
+      violations_join = low_zoom ? "" : "LEFT JOIN violations_summaries vs ON vs.pwsid = pws.pwsid"
 
       <<~SQL.squish
         SELECT ST_AsMVT(t, 'pws', #{EXTENT}, 'mvtgeom') AS mvt
@@ -151,6 +154,7 @@ module TileGenerator
             #{attrs}
           FROM service_area_geometries sag
           JOIN public_water_systems pws ON pws.pwsid = sag.pwsid
+          #{violations_join}
           WHERE sag.geom IS NOT NULL
             AND sag.geom && ST_Transform(#{query_envelope}, 4326)
         ) t

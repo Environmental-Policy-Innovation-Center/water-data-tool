@@ -999,7 +999,10 @@ export default class extends Controller {
     }
     const { props, lngLat } = this._pendingPwsClick
     this._pendingPwsClick = null
-    this.#openClickPopup(props, lngLat)
+
+    // Zoomed in: re-query the location to load more detailed tile data.
+    const freshProps = this.#pwsFeatureFromEvent({ point: this.map.project(lngLat) })?.properties
+    this.#openClickPopup(freshProps || props, lngLat)
   }
 
   #openClickPopup(props, lngLat) {
@@ -1027,8 +1030,8 @@ export default class extends Controller {
       const field = el.dataset.popupField
       let value = props[field]
 
-      if (field === "population_served_count" || field === "service_connections_count") {
-        value = value ? Number(value).toLocaleString("en-US") : "—"
+      if (["population_served_count", "service_connections_count", "years_operating", "total_violations_10yr"].includes(field)) {
+        value = (value === null || value === undefined) ? "—" : Number(value).toLocaleString("en-US")
       } else {
         value = value || "—"
       }
