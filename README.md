@@ -222,19 +222,16 @@ docker compose down                     # Docker
 
 ### Background jobs and tile cache refresh
 
-**Why we cache tiles.** The map is drawn from vector tiles produced by spatial SQL. Generating them on every request would be slow, so the app caches each tile the first time it's requested: the cache **builds up as the app is used**, and any later view of an already-cached area/zoom is served instantly. When a user pans or zooms to an area that isn't cached yet, the app generates those tiles on the fly and stores them for next time.
+The map is drawn from vector tiles produced by spatial SQL, cached in the `tile_cache` table and
+built up as the app is used. `tile_refresh` (selective, post-import) and `tile_warm` (full
+pre-warm) are separate SolidQueue queues from `etl` — web services never process any of the three;
+dedicated worker services own them. In development, queued refresh/warm jobs only run
+automatically if a SolidQueue worker is running; the ETL itself runs as a short-lived rake task
+(`bin/rails etl:import`) regardless.
 
-**Keeping the cache fresh.** When new geo-related data is imported, the app refreshes only the *affected* tiles rather than clearing the whole cache. Importers report changed PWS IDs and affected map layers; `TileImpact` converts those into **z5–z8 XYZ tile coordinates**; and `TileCacheRefreshJob` overwrites only those cached rows on the `tile_refresh` queue. Existing tiles stay readable until replacements are ready. See [docs/ETL.md](docs/ETL.md) for how an import drives tile refresh.
-
-The full `TileCacheWarmJob` still exists for explicit full-refresh or maintenance cases and runs on the `tile_warm` queue. In production-style deployments, web services use `SOLID_QUEUE_ROLE=web` and never process `etl`, `tile_refresh`, or `tile_warm`; dedicated worker services use `SOLID_QUEUE_ROLE=worker` and run those heavy queues. In development, the ETL runs as a short-lived rake task (`bin/rails etl:import`) -- queued refresh/warm jobs only run automatically if a Solid Queue worker is running.
-
-After loading the national dataset locally, you can warm the full z0–z8 cache manually if you need cold-cache performance testing:
-
-```bash
-bin/rails runner "TileCacheWarmJob.perform_now"
-```
-
-This runs in the foreground and **blocks that terminal** (not the app) until every z0–z8 tile is generated — roughly **half an hour at national scale**. Progress is logged to stdout so you can watch it advance; it's a one-time cost, and once warm the tiles are served straight from the cache.
+See **[docs/TILE_CACHE.md](docs/TILE_CACHE.md)** for the full explanation — cache lifecycle,
+selective refresh vs. full bust+warm, when a manual bust is required, and how to warm the full
+local cache for cold-cache performance testing.
 
 ### Local performance checks
 
@@ -277,6 +274,7 @@ See [docs/FILTERING.md](docs/FILTERING.md) for how filtering works end-to-end.
 | [docs/BENCHMARKING.md](docs/BENCHMARKING.md) | Optional local performance scripts — server query paths and map-tile timing |
 | [docs/DEPLOYMENTS.md](docs/DEPLOYMENTS.md) | Deploy environments, how to trigger deploys, checking live state, rollback |
 | [docs/ETL.md](docs/ETL.md) | Data pipeline design — S3 to PostgreSQL import flow |
+| [docs/TILE_CACHE.md](docs/TILE_CACHE.md) | Map tile caching — lifecycle, automatic vs. manual invalidation, bust/warm workflows |
 | [docs/GLOSSARY.md](docs/GLOSSARY.md) | Terminology and domain definitions |
 | [docs/LOOKBOOK.md](docs/LOOKBOOK.md) | ViewComponent preview catalog — how to access and add previews |
 | [docs/MAPPING.md](docs/MAPPING.md) | Mapping design information |

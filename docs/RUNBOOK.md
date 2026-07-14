@@ -25,6 +25,15 @@ Run these from the repo's **Actions** tab (each is `workflow_dispatch`). Files l
 | `run-etl-preview.yml` | Run the ETL against the shared preview DB as a manual one-off ECS task. Nightly preview ETL is owned by the persistent preview worker service. | `table` — single file key, blank = full run · `force` — re-import ignoring `Last-Modified` |
 | `refresh-cartographic-boundaries.yml` | Reload the Census TIGER boundary tables and refresh their tiles. | `target_environment` (staging/production/preview) · `scale_service_down` · `force` (default on; off = freshness-gated) · `confirm` (typed phrase) |
 
+### Tile cache
+
+See [TILE_CACHE.md](TILE_CACHE.md) for why/when these are needed — in short, automatic refresh only fires from ETL data changes, never from a code change to what a tile embeds.
+
+| Workflow | What it does | Inputs |
+|---|---|---|
+| `bust-tile-cache.yml` | Delete cached `tile_cache` rows for the given layers in one environment. Run after a code change alters what a tile embeds (e.g. new attributes) — existing cached tiles otherwise keep serving the old shape indefinitely. | `target_environment` (staging/production/preview) · `layers` (comma-separated `tile_cache.layer` values, default `pws,pws_low_poly_v1`) · `scale_service_down` · `confirm` (typed phrase) |
+| `warm-tile-cache.yml` | Pre-generate and cache map tiles for the given layers/zoom range, so the first real visitor after a bust doesn't pay the live-generation cost. Safe to re-run. | `target_environment` (staging/production/preview) · `layers` (comma-separated logical layers, blank = all) · `max_zoom` (default 8) · `scale_service_down` · `confirm` (typed phrase) |
+
 ### Preview environment management
 
 | Workflow | What it does | Inputs |
