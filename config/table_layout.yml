@@ -78,6 +78,7 @@ categories:
       - paperwork_violations_5yr
       - paperwork_violations_10yr
       - total_notices
+      - rra_certification
 
   demographics:
     label: "Demographics"
