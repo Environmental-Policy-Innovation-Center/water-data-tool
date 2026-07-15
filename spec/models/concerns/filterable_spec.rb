@@ -478,6 +478,28 @@ RSpec.describe Filterable, type: :model do
       end
     end
 
+    context "bool filters with a custom checked_value" do
+      # Synthetic field, not from the manifest — proves checked_value works on any column, without needing a field that declares it yet.
+      let(:field) do
+        FieldDefinition.new(
+          key: :test_bool_field, model: :public_water_system, table: :public_water_systems,
+          db_column: :gw_sw_code, source: nil, display: nil,
+          filter: {kind: :bool, param: :test_bool_field, checked_value: "Groundwater"}, histogram: nil
+        )
+      end
+
+      it "compares against the configured value instead of a literal true" do
+        groundwater = create(:public_water_system, gw_sw_code: "Groundwater")
+        surface = create(:public_water_system, gw_sw_code: "Surface Water")
+        params = {test_bool_field: "Groundwater"}
+
+        expect(PublicWaterSystem.send(:filter_active?, field, params)).to be true
+        results = PublicWaterSystem.where(PublicWaterSystem.send(:filter_predicate, field, params))
+        expect(results).to include(groundwater)
+        expect(results).not_to include(surface)
+      end
+    end
+
     context "funding filters" do
       it "filters by total_srf_assistance_min" do
         low_funded = create(:public_water_system)
