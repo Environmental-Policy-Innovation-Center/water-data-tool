@@ -27,7 +27,8 @@ module Etl
       "svi" => Etl::Importers::Generic,
       "cvi" => Etl::Importers::Generic,
       "national_bwn_highlevel_summary" => Etl::Importers::Generic,
-      "pwsid_funded_highlevel_summary" => Etl::Importers::Generic
+      "pwsid_funded_highlevel_summary" => Etl::Importers::Generic,
+      "awia_certification" => Etl::Importers::Generic
     }.freeze
 
     FILE_EXTENSIONS = {
@@ -45,7 +46,8 @@ module Etl
       "svi" => ".csv",
       "cvi" => ".csv",
       "national_bwn_highlevel_summary" => ".csv",
-      "pwsid_funded_highlevel_summary" => ".csv"
+      "pwsid_funded_highlevel_summary" => ".csv",
+      "awia_certification" => ".csv"
     }.freeze
 
     def initialize(force: false, only: nil)
