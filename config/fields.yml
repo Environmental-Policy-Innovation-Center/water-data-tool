@@ -44,6 +44,7 @@
 #       coercion: decimal               #   decimal | integer (range only)
 #       label: "Poverty rate"           #   MENU label (often differs from display.label; omit for radio/multiselect — they use options)
 #       tooltip: poverty_rate           #   tooltips.yml key (omit if none)
+#       checked_value: Certified        #   bool only — value compared against when checked (omit → real boolean true)
 #       has_select_all: true            #   multiselect only — render a select-all/deselect-all control (omit → none)
 #       options:                        #   radio + multiselect ONLY — the discrete choices (range/bool never use it); list one block per choice
 #         - {value: GW, label: "Ground only", default: true}   #   value stored, label shown; default: true = selected at load

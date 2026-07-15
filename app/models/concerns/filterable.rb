@@ -82,7 +82,7 @@ module Filterable
     def filter_active?(field, params)
       case field.filter_kind
       when :range then params[:"#{field.filter_param}_min"].present? || params[:"#{field.filter_param}_max"].present?
-      when :bool then param_value(field, params) == "true"
+      when :bool then param_value(field, params) == bool_checked_value(field).to_s
       when :radio then param_value(field, params).present?
       when :multiselect then multiselect_values(field, params).any?
       end
@@ -91,7 +91,7 @@ module Filterable
     def filter_predicate(field, params)
       case field.filter_kind
       when :range then range_predicate(field, params)
-      when :bool then Arel::Table.new(field.table)[field.filter_column].eq(true)
+      when :bool then Arel::Table.new(field.table)[field.filter_column].eq(bool_checked_value(field))
       when :radio then Arel::Table.new(field.table)[field.filter_column].eq(param_value(field, params))
       when :multiselect then Arel::Table.new(field.table)[field.filter_column].in(multiselect_values(field, params))
       end
@@ -103,6 +103,11 @@ module Filterable
 
     def multiselect_values(field, params)
       Array(param_value(field, params)).select(&:present?)
+    end
+
+    # Defaults to real true; filter.checked_value overrides it for non-boolean columns.
+    def bool_checked_value(field)
+      field.filter[:checked_value] || true
     end
 
     def range_predicate(field, params)
