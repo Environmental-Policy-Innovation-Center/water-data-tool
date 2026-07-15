@@ -237,6 +237,8 @@ poverty_rate:
     format: percent               #   percent | currency | count | percent_change
 ```
 
+If you set `db_column`, know its blast radius: it only affects import (`FieldRegistry`'s ETL mapping) and export (`PublicWaterSystemExporter`'s CSV/GeoJSON column). Table display always reads the AR attribute named after the field *key*, never `db_column` — so a stale or wrong `db_column` silently exports a different column's value than what's shown on screen, with no error. See the `db_column` bullet under "Tests" below for the spec pattern that catches this.
+
 Notes for a filter:
 - **`kind`** picks the control: `range` (numeric slider), `radio` (one-of), `bool` (yes/no), `multiselect` (many-of). A numeric column → almost always `range`.
 - **`range` needs `coercion`** so the min/max are cast correctly — don't omit it on numeric filters.
@@ -341,6 +343,7 @@ Copy an existing field's assertions as your template — find one with the same 
 - **The import actually maps your file correctly (Path A)** → `spec/services/etl/importers/generic_spec.rb`. Drop a small fixture at `spec/fixtures/etl/my_new_file.csv` (a header row + a couple of data rows), then add a `#parse` assertion proving `header → column → cast` — e.g. `expect(parse_fixture("my_new_file").first).to include(my_field: <expected cast value>)`. This is the spec that confirms your data will import correctly, with **no S3 and no live DB needed**.
 - **Import wiring backstop** → `spec/services/etl/importer_coverage_spec.rb` enforces that every registered file is either generic-with-`source:` or listed in `custom_imports:` (never both). A new Path-A file must satisfy it — it's the check that catches a file registered in Step 2 but not wired in Step 3.
 - **Brand-new table, exported** → no new test needed, but `bin/ci`'s `spec/exporters/public_water_system_exporter_spec.rb` and `spec/requests/exports_spec.rb` will fail loudly (`PG::UndefinedTable: missing FROM-clause entry`) if Step 1's export join list entry was skipped — that's the existing coverage catching it, not a gap to fill.
+- **Set `db_column` on this field?** Add a value-assertion export spec: create a record with a distinct value for both the field's own column and whatever other column shares the table, export it, and assert the CSV cell equals the field's value (see `public_water_system_exporter_spec.rb`'s `"exports a field's own column value, not a different same-model column"` for the pattern). Nothing else in `bin/ci` checks this — a wrong `db_column` exports silently, with no error.
 
 ### 4. (Optional) Local dev data — how seeding works
 
