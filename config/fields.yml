@@ -732,3 +732,14 @@ fields:
     display: {label: "Impaired or threatened streams", sort: impaired_streams_303d, format: num, csv_label: "Streams with impaired or threatened surface waters"}
     filter: {kind: range, coercion: integer, label: "Streams with impaired or threatened surface waters", tooltip: impaired_streams, slider_label: "Number of streams"}
     histogram: {format: count}
+
+  # ── Certification summaries ──────────────────────────────────────────────────────
+  rra_certification:
+    model: certification_summary
+    source: {file: awia_certification, header: "rra_certification", cast: string}
+    display: {label: "Risk and resilience assessment", sort: rra_certification, format: str, csv_label: "Risk and resilience assessment"}
+    filter:
+      kind: bool
+      param: rra_certification
+      checked_value: Certified
+      label: "Risk and resilience assessment"
