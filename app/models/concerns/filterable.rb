@@ -16,20 +16,13 @@ module Filterable
 
     private
 
-    # Radio + multiselect filters. Each is its own single-filter category, so each ANDs (OR-of-one).
+    # Passthrough params with no owning manifest field.
     def apply_direct_filters(scope, params)
-      scope = scope.where(gw_sw_code: params[:gw_sw_code]) if params[:gw_sw_code].present?
-      scope = scope.where(owner_type: params[:owner_type]) if params[:owner_type].present?
-      scope = scope.where(primacy_type: params[:primacy_type]) if params[:primacy_type].present?
-      scope = scope.where(pop_cat_5: params[:pop_cat_5]) if params[:pop_cat_5].present?
-      scope = scope.where(symbology_field: params[:symbology_field]) if params[:symbology_field].present?
       scope = scope.where(stusps: params[:state]) if params[:state].present?
       scope
     end
 
-    # Range + bool filters combined per the layout: filters within one category OR together (one
-    # .where), and categories AND with one another. Column/table/coercion/join come from the manifest.
-    # A field not placed in the layout (URL-only) is its own AND group. See docs/FILTERING.md.
+    # OR within a category, AND across categories — see category_groups and docs/FILTERING.md.
     def apply_category_filters(scope, joined, params)
       category_groups.each do |fields|
         active = fields.select { |f| filter_active?(f, params) }
@@ -42,8 +35,7 @@ module Filterable
       [scope, joined]
     end
 
-    # Rate tier is a multiselect with custom value mapping (tier slug → stored enum), so it stays
-    # out of the generic range applier. Its tiers OR; the filter ANDs with the rest.
+    # Kept out of the generic path — needs tier slug → stored enum translation before hitting SQL.
     def apply_rate_tier_filter(scope, joined, params)
       tiers = Array(params[:most_common_rate_tier]).select(&:present?)
       return [scope, joined] if tiers.empty?
@@ -77,11 +69,12 @@ module Filterable
       scope
     end
 
-    # Range + bool fields grouped into OR-sets by layout category; a field not placed in the layout
-    # (URL-only) is its own AND singleton.
+    # Grouped by layout category (OR within, AND across); ungrouped fields are singletons.
+    # most_common_rate_tier is excluded — see apply_rate_tier_filter.
     def category_groups
       FieldRegistry.fields
-        .select { |f| [:range, :bool].include?(f.filter_kind) }
+        .select { |f| [:range, :bool, :radio, :multiselect].include?(f.filter_kind) }
+        .reject { |f| f.key == :most_common_rate_tier }
         .group_by { |f| FilterLayout.category_of[f.key] }
         .flat_map { |category, fields| category ? [fields] : fields.zip }
     end
@@ -89,7 +82,9 @@ module Filterable
     def filter_active?(field, params)
       case field.filter_kind
       when :range then params[:"#{field.filter_param}_min"].present? || params[:"#{field.filter_param}_max"].present?
-      when :bool then params[field.filter[:param].to_sym] == "true"
+      when :bool then param_value(field, params) == "true"
+      when :radio then param_value(field, params).present?
+      when :multiselect then multiselect_values(field, params).any?
       end
     end
 
@@ -97,7 +92,17 @@ module Filterable
       case field.filter_kind
       when :range then range_predicate(field, params)
       when :bool then Arel::Table.new(field.table)[field.filter_column].eq(true)
+      when :radio then Arel::Table.new(field.table)[field.filter_column].eq(param_value(field, params))
+      when :multiselect then Arel::Table.new(field.table)[field.filter_column].in(multiselect_values(field, params))
       end
+    end
+
+    def param_value(field, params)
+      params[field.filter[:param].to_sym]
+    end
+
+    def multiselect_values(field, params)
+      Array(param_value(field, params)).select(&:present?)
     end
 
     def range_predicate(field, params)
