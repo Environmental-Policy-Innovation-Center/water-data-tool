@@ -91,6 +91,9 @@ menus:
                 - stage_2_disinfectants_10yr
           - paperwork_violations_5yr
           - paperwork_violations_10yr
+      awia_certifications:
+        label: "America's Water Infrastructure Act Certifications"
+        filters: [rra_certification]
       notices: {label: "Notices", tooltip: boil_water_notices, filters: [total_notices]}
 
   population:
