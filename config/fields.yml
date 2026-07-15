@@ -163,7 +163,6 @@ fields:
 
   symbology_field:
     model: public_water_system
-    db_column: service_area_type
     display: {label: "Boundary type", sort: symbology_field, format: str, csv_label: "Boundary type"}
     filter:
       kind: radio
