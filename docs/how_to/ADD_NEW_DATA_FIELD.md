@@ -136,6 +136,8 @@ LEFT JOIN boil_water_summaries ON boil_water_summaries.pwsid = public_water_syst
 ```
 This is a third, separate hardcoded list every satellite table needs an entry in, powering CSV/GeoJSON export — it's unconditional, the same one-entry-per-`MODEL_CLASSES`-table shape as Step 1's model registry, not tied to whether any of the table's fields are displayed yet. Skip it and exporting any column later placed in `table_layout.yml` (Step 6) raises `PG::UndefinedTable: missing FROM-clause entry for table "..."` — do this now, alongside the model registry, so that error never happens.
 
+> **Expect a Brakeman failure here, and that's fine.** `ASSOCIATION_JOINS` is the exact code Brakeman's two `SQL Injection` warnings in `public_water_system_exporter.rb` are fingerprinted against (see `config/brakeman.ignore`). Editing it — adding your join line, as above — changes that fingerprint, so `bin/ci`'s Brakeman step (Step 7) will re-flag both warnings as new even though nothing unsafe changed. This isn't a real vulnerability to fix; it's a stale fingerprint. See the "Ruby static analysis" section of [FIX_BIN_CI_CHECK_FAILURES.md](FIX_BIN_CI_CHECK_FAILURES.md) for the `bin/brakeman -I` fix.
+
 **5. The factory** — `spec/factories/boil_water_summaries.rb`, needed by any spec that builds one of these rows:
 ```ruby
 FactoryBot.define do
@@ -213,6 +215,8 @@ Get any of the three wrong and there's **no error** — just a 404 on fetch or z
 awia_certification: expected exactly one of generic(etl_mapping)=false, custom_imports=false
 ```
 That's the backstop working as intended: a file can't be registered here and silently left unwired from the manifest. It goes green the moment Step 3 adds the `source:` block — nothing to fix yet, just confirmation you're mid-flow.
+
+**A fixture is also required now, separately from the above.** `spec/services/etl/importer_spec.rb`'s `"registered file importer return contracts"` block auto-generates a test **for every key in `FILE_IMPORTERS`**, and one of those tests reads `spec/fixtures/etl/<file_key>.csv` directly — so the full suite (`bin/ci`, Step 7) will fail with a missing-file error the moment this file is registered, whether or not you've gotten to writing your own fixture-based test yet. Add a minimal fixture now — a header row plus a couple of data rows — at `spec/fixtures/etl/my_new_file.csv`; you'll reuse it for the `generic_spec.rb` assertion in Step 7's "Tests" section anyway.
 
 Skip this entire step for Paths B, C, D — the file is already registered (B, C) or handled by a custom importer already in the map (D).
 

@@ -1,12 +1,12 @@
 {
   "ignored_warnings": [
     {
-      "fingerprint": "8074a51f6be2d2ea5633aece0154e4e23894282f29807d4f0f16ca55a3e380fd",
-      "note": "False positive. Interpolated values in fetch_feature_batch: (1) properties_sql — built from ColumnRegistry.geojson_columns, which derives sql_expr values from the fields.yml manifest at boot; all keys via conn.quote(), columns via conn.quote_column_name(); (2) filtered_ids_sql — AR scope .to_sql, all user filter values parameterised by AR before SQL is emitted; (3) quoted — conn.quote(last_pwsid); (4) ASSOCIATION_JOINS — frozen constant; (5) BATCH_SIZE — integer constant."
+      "fingerprint": "607cb8aff70da19621e49549c8f553f81110a2781960e8c04621a5c1f58685b1",
+      "note": "False positive. Interpolated values in fetch_feature_batch: (1) properties_sql — built from ColumnRegistry.geojson_columns, which derives sql_expr values from the fields.yml manifest at boot; all keys via conn.quote(), columns via conn.quote_column_name(); (2) filtered_ids_sql — AR scope .to_sql, all user filter values parameterised by AR before SQL is emitted; (3) quoted — conn.quote(last_pwsid); (4) ASSOCIATION_JOINS — frozen constant; (5) BATCH_SIZE — integer constant. Fingerprint updated 2026-07-15 after refactor/derive-export-sql-from-manifest shifted line numbers; reasoning unchanged."
     },
     {
-      "fingerprint": "5904e1eb185a2e42324e03d1cb60f31875ce92d79a2c019c62d119fab573ecda",
-      "note": "False positive. Interpolated values in fetch_csv_batch: (1) col_sql — built from ColumnRegistry.csv_columns (sql_expr values from the fields.yml manifest, frozen at boot), joined once before batch iteration; (2) ASSOCIATION_JOINS — frozen constant; (3) quoted_ids — pwsids from @scope.pluck(:pwsid) then each passed through conn.quote()."
+      "fingerprint": "f5b9a7f589c0b4f39d5f5896ebb2ac4fc88ddde5e6bb357fa7fcb391bf91acb8",
+      "note": "False positive. Interpolated values in fetch_csv_batch: (1) col_sql — built from ColumnRegistry.csv_columns, filtered by the request's cols param via a hash lookup (ColumnRegistry.visible/filter_map) against the fixed, manifest-derived column list — unmatched keys are dropped, never interpolated; sql_expr values themselves come from FieldDefinition#export_sql at boot; (2) ASSOCIATION_JOINS — frozen constant; (3) quoted_ids — pwsids from @scope.pluck(:pwsid) then each passed through conn.quote(). Fingerprint updated 2026-07-15 after refactor/derive-export-sql-from-manifest shifted line numbers; reasoning unchanged."
     }
   ]
 }
