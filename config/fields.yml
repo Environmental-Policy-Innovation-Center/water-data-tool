@@ -744,3 +744,14 @@ fields:
       param: rra_certification
       checked_value: Certified
       label: "Risk and resilience assessment"
+
+  erp_certification:
+    model: certification_summary
+    source: {file: awia_certification, header: "erp_certification", cast: string}
+    display: {label: "Emergency response plan", sort: erp_certification, format: str, csv_label: "Emergency response plan"}
+    filter:
+      kind: bool
+      tooltip: erp_certification
+      param: erp_certification
+      checked_value: Certified
+      label: "Emergency response plan"
