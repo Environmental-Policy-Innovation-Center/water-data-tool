@@ -53,6 +53,7 @@ class PublicWaterSystem < ApplicationRecord
   has_one :watershed_hazard, foreign_key: "pwsid", inverse_of: :public_water_system, dependent: :destroy
   has_one :boil_water_summary, foreign_key: "pwsid", inverse_of: :public_water_system, dependent: :destroy
   has_one :trend_datum, foreign_key: "pwsid", inverse_of: :public_water_system, dependent: :destroy
+  has_one :certification_summary, foreign_key: "pwsid", inverse_of: :public_water_system, dependent: :destroy
   has_many :place_system_crosswalks, foreign_key: "pwsid", dependent: :destroy
   has_many :cartographic_places, through: :place_system_crosswalks
 

@@ -17,7 +17,8 @@ class FieldRegistry
     trend_datum: "TrendDatum",
     environmental_justice: "EnvironmentalJustice",
     funding_summary: "FundingSummary",
-    watershed_hazard: "WatershedHazard"
+    watershed_hazard: "WatershedHazard",
+    certification_summary: "CertificationSummary"
   }.freeze
 
   def self.fields

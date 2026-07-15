@@ -58,13 +58,14 @@ class PublicWaterSystemExporter
 
   # SAFETY: all values are from frozen constants — never extend with user-supplied input.
   ASSOCIATION_JOINS = <<~SQL.freeze
-    LEFT JOIN violations_summaries   ON violations_summaries.pwsid   = public_water_systems.pwsid
-    LEFT JOIN boil_water_summaries   ON boil_water_summaries.pwsid   = public_water_systems.pwsid
-    LEFT JOIN demographics           ON demographics.pwsid           = public_water_systems.pwsid
-    LEFT JOIN trend_data             ON trend_data.pwsid             = public_water_systems.pwsid
-    LEFT JOIN environmental_justices ON environmental_justices.pwsid = public_water_systems.pwsid
-    LEFT JOIN funding_summaries      ON funding_summaries.pwsid      = public_water_systems.pwsid
-    LEFT JOIN watershed_hazards      ON watershed_hazards.pwsid      = public_water_systems.pwsid
+    LEFT JOIN violations_summaries    ON violations_summaries.pwsid    = public_water_systems.pwsid
+    LEFT JOIN boil_water_summaries    ON boil_water_summaries.pwsid    = public_water_systems.pwsid
+    LEFT JOIN demographics            ON demographics.pwsid            = public_water_systems.pwsid
+    LEFT JOIN trend_data              ON trend_data.pwsid              = public_water_systems.pwsid
+    LEFT JOIN environmental_justices  ON environmental_justices.pwsid  = public_water_systems.pwsid
+    LEFT JOIN funding_summaries       ON funding_summaries.pwsid       = public_water_systems.pwsid
+    LEFT JOIN watershed_hazards       ON watershed_hazards.pwsid       = public_water_systems.pwsid
+    LEFT JOIN certification_summaries ON certification_summaries.pwsid = public_water_systems.pwsid
   SQL
 
   def properties_sql
