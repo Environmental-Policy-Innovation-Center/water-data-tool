@@ -104,55 +104,63 @@ Reference: [Active Record Migrations](https://guides.rubyonrails.org/active_reco
 
 ### Brand-new table: the model, association, registry, factory, and spec
 
-Creating the table is only the first step — several more pieces go with it, all before you touch the manifest. Every existing satellite table (`demographics`, `watershed_hazards`, `boil_water_summaries`, …) follows the same shape; here's `certification_summaries` (added alongside the `rra_certification` field) as a concrete, real example.
+Creating the table is only the first step — several more pieces go with it, all before you touch the manifest. Every satellite table (`demographics`, `watershed_hazards`, `boil_water_summaries`, …) follows the same shape; here's `boil_water_summaries` as a concrete, real example.
 
-**1. The model** — `app/models/certification_summary.rb`:
+**1. The model** — `app/models/boil_water_summary.rb`:
 ```ruby
-class CertificationSummary < ApplicationRecord
-  belongs_to :public_water_system, foreign_key: "pwsid", primary_key: "pwsid", inverse_of: :certification_summary
+class BoilWaterSummary < ApplicationRecord
+  belongs_to :public_water_system, foreign_key: "pwsid", primary_key: "pwsid", inverse_of: :boil_water_summary
 
   validates :pwsid, presence: true
 end
 ```
-Just a `belongs_to` back to `PublicWaterSystem` and a presence validation on `pwsid` — that's the whole model for every satellite table in this app (add `include Histogrammable` only if one of the columns feeds a histogram). Don't hand-write the `# == Schema Information` comment block at the top — the `annotaterb` gem regenerates it automatically the next time a `db:*` task runs in development (see `lib/tasks/annotate_rb.rake`).
+Just a `belongs_to` back to `PublicWaterSystem` and a presence validation on `pwsid` — that's the whole model for every satellite table in this app (add `include Histogrammable` only if one of the columns feeds a histogram, as `WatershedHazard` does). Don't hand-write the `# == Schema Information` comment block at the top — the `annotaterb` gem regenerates it automatically the next time a `db:*` task runs in development (see `lib/tasks/annotate_rb.rake`).
 
-If the column holds a small fixed set of upstream values, a Rails `enum` is tempting — but only add one if something actually consumes its key-based interface, like `Demographic#most_common_rate_tier` (its key feeds `apply_rate_tier_filter`'s value translation and a dedicated `fmt_rate_tier` label lookup). An enum with nothing wired to it silently breaks table display: its reader returns the enum's *key* (`"certified"`), not the stored value (`"Certified"`) — this app added and then removed exactly that enum on `CertificationSummary` for this reason. Default to a plain string column; reach for `enum` only when you have a concrete second consumer for the key.
+If a column holds a small fixed set of upstream values, a Rails `enum` is tempting — but only add one if something actually consumes its key-based interface, like `Demographic#most_common_rate_tier` (its key feeds `apply_rate_tier_filter`'s value translation and a dedicated `fmt_rate_tier` label lookup). An enum with nothing wired to it silently breaks table display: its reader returns the enum's *key*, not the stored value. Default to a plain string column; reach for `enum` only when you have a concrete second consumer for the key.
 
 **2. The association** — add one line to `app/models/public_water_system.rb`, alongside its siblings:
 ```ruby
-has_one :certification_summary, foreign_key: "pwsid", inverse_of: :public_water_system, dependent: :destroy
+has_one :boil_water_summary, foreign_key: "pwsid", inverse_of: :public_water_system, dependent: :destroy
 ```
-This is the line Step 1's rule refers to — its name (`:certification_summary`) is exactly the `model:` value you'll write in `fields.yml` (Step 3).
+This is the line Step 1's rule refers to — its name (`:boil_water_summary`) is exactly the `model:` value you'll write in `fields.yml` (Step 3).
 
 **3. The manifest's model registry** — add one line to `MODEL_CLASSES` in `app/fields/field_registry.rb`, alongside its siblings:
 ```ruby
-certification_summary: "CertificationSummary"
+boil_water_summary: "BoilWaterSummary"
 ```
-This is a separate, hardcoded map from the manifest `model:` symbol to the actual Ruby class — `FieldRegistry.model_class` looks up here, not by guessing a class name from the symbol. Skip it and `fields.yml` will raise `KeyError: key not found` the moment Step 3 writes a field with `model: certification_summary` — do this now so that error never happens.
+This is a separate, hardcoded map from the manifest `model:` symbol to the actual Ruby class — `FieldRegistry.model_class` looks up here, not by guessing a class name from the symbol. Skip it and `fields.yml` will raise `KeyError: key not found` the moment Step 3 writes a field with `model: boil_water_summary` — do this now so that error never happens.
 
 **4. The export join list** — add one line to `ASSOCIATION_JOINS` in `app/exporters/public_water_system_exporter.rb`, alongside its siblings:
 ```ruby
-LEFT JOIN certification_summaries ON certification_summaries.pwsid = public_water_systems.pwsid
+LEFT JOIN boil_water_summaries ON boil_water_summaries.pwsid = public_water_systems.pwsid
 ```
 This is a third, separate hardcoded list every satellite table needs an entry in, powering CSV/GeoJSON export — it's unconditional, the same one-entry-per-`MODEL_CLASSES`-table shape as Step 1's model registry, not tied to whether any of the table's fields are displayed yet. Skip it and exporting any column later placed in `table_layout.yml` (Step 6) raises `PG::UndefinedTable: missing FROM-clause entry for table "..."` — do this now, alongside the model registry, so that error never happens.
 
-**5. The factory** — `spec/factories/certification_summaries.rb`, needed by any spec that builds one of these rows:
+**5. The factory** — `spec/factories/boil_water_summaries.rb`, needed by any spec that builds one of these rows:
 ```ruby
 FactoryBot.define do
-  factory :certification_summary do
+  factory :boil_water_summary do
     association :public_water_system
     pwsid { public_water_system.pwsid }
-    rra_certification { ["Certified", "Uncertified"].sample }
+    first_advisory_date { "2018-06-15" }
+    last_advisory_date { "2021-09-03" }
+    total_notices { 3 }
+    state_reporting_year_min { "2015" }
+    state_reporting_year_max { "2023" }
+    state { "Vermont" }
+    tooltip_text { "Vermont has reported boil water notices since 2015." }
+    download_url { "https://example.com/vt-bwn.csv" }
+    date_range_display { "2015–2023" }
   end
 end
 ```
-Most satellite factories default to one fixed value; this one varies since the field only has two states. Pin an explicit value in specs that need one: `build(:certification_summary, rra_certification: "Certified")`.
+Most satellite factories default to fixed values like this. If a field only has a couple of possible states, a factory can vary it instead (e.g. `{ ["Certified", "Uncertified"].sample }`) — pin an explicit value in specs that need one.
 
-**6. The model spec** — `spec/models/certification_summary_spec.rb`. Every satellite model spec in this app asserts the same two things and nothing more — the association and the presence validation:
+**6. The model spec** — `spec/models/boil_water_summary_spec.rb`. Every satellite model spec in this app asserts the same two things and nothing more — the association and the presence validation:
 ```ruby
 require "rails_helper"
 
-RSpec.describe CertificationSummary, type: :model do
+RSpec.describe BoilWaterSummary, type: :model do
   describe "associations" do
     it { is_expected.to belong_to(:public_water_system).with_foreign_key("pwsid") }
   end
@@ -162,9 +170,9 @@ RSpec.describe CertificationSummary, type: :model do
   end
 end
 ```
-Copy `spec/models/boil_water_summary_spec.rb` or `spec/models/watershed_hazard_spec.rb` verbatim and swap the class name — there's no field-specific behavior to test here; that belongs in the generic-importer spec (Step 7) instead.
+Copy this (or `spec/models/watershed_hazard_spec.rb`) verbatim and swap the class name — there's no field-specific behavior to test here; that belongs in the generic-importer spec (Step 7) instead.
 
-**Run it before touching the model.** `bundle exec rspec spec/models/certification_summary_spec.rb` should fail red with no `belongs_to` / `validates` yet — then fill in the model and rerun until green. Same Red → Green discipline `CLAUDE.md` mandates for every model, concern, and job in this app.
+**Run it before touching the model.** `bundle exec rspec spec/models/<model>_spec.rb` should fail red with no `belongs_to` / `validates` yet — then fill in the model and rerun until green. Same Red → Green discipline `CLAUDE.md` mandates for every model, concern, and job in this app.
 
 **Once it's green, re-annotate.** Run `bin/rails db:migrate` again — harmless with nothing pending, but it still fires the `annotaterb` hook (`lib/tasks/annotate_rb.rake`) — or run `bundle exec annotaterb models` directly. `.annotaterb.yml` has `exclude_factories: false` and `exclude_tests: false`, so this stamps the `# == Schema Information` block onto the factory and spec files too, not just the model.
 
@@ -242,7 +250,7 @@ If you set `db_column`, know its blast radius: it only affects import (`FieldReg
 Notes for a filter:
 - **`kind`** picks the control: `range` (numeric slider), `radio` (one-of), `bool` (yes/no), `multiselect` (many-of). A numeric column → almost always `range`.
 - **`range` needs `coercion`** so the min/max are cast correctly — don't omit it on numeric filters.
-- **`bool` on a non-boolean column needs `checked_value`.** The predicate defaults to comparing against a real boolean `true`; if the column is a two-value string instead (an enum-like column, e.g. `rra_certification`'s `Certified`/`Uncertified`), set `checked_value:` to whatever "checked" should compare against. See the `fields.yml` header for the shape and `rra_certification` for a real example.
+- **`bool` on a non-boolean column needs `checked_value`.** The predicate defaults to comparing against a real boolean `true`; if the column is a two-value string instead (an enum-like column, e.g. `Certified`/`Uncertified`), set `checked_value:` to whatever "checked" should compare against. See the `fields.yml` header for the shape.
 - **`radio` / `multiselect` need an `options:` list** instead of a `label`; `range` / `bool` never use `options`. See the `fields.yml` header for the `options:` shape.
 - **The URL param is permitted automatically.** `FieldRegistry.permit_arguments` (in `app/fields/field_registry.rb`) derives it from `filter.kind` — there is no permit code to edit.
 
