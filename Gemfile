@@ -39,7 +39,7 @@ gem "activerecord-postgis-adapter", "~> 11.1.1"
 gem "csv", "~> 3.3.5"
 
 # Use Active Storage variants [https://guides.rubyonrails.org/active_storage_overview.html#transforming-images]
-gem "image_processing", "~> 1.14.0"
+gem "image_processing", "~> 2.0.2"
 
 # Structured, single-line logs (and SQL metadata) instead of verbose multi-line Rails logs — easier to scan in production and in log aggregators [https://github.com/roidrage/lograge]
 gem "lograge", "~> 0.14.0"
