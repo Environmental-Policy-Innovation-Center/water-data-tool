@@ -116,7 +116,7 @@ boil_water_notices_states:
     source_url: "https://health.ri.gov/drinking-water-quality/information/public-water-emergency-information-consumers"
   TX:
     text: "The last update of this dataset was completed on April 17th, 2024 through a Freedom of Information Act Request (FOIA). This is not a comprehensive record, and we are working to automatically update this dataset in the future using the data contained in the source link. Please refer to the source link for the most current information, as it is provided on the state SDWIS website."
-    source_url: "https://dww2.tceq.texas.gov/DWW/JSP/SearchDispatch?number=&name=&ActivityStatusCD=All&county=All&WaterSystemType=All&SourceWaterType=All&SampleType=null&begin_date=10%2F28%2F2023&end_date=10%2F28%2F2025&action=Search+For+Water+Systems"
+    source_url: "https://dwv.tceq.texas.gov/"
   WA:
     text: "Continuous data collection started on Sept 12th, 2025, and updates are completed quarterly. This is not a comprehensive record, as water system IDs are not always provided. Please refer to the source link for the most current information."
     source_url: "https://doh.wa.gov/community-and-environment/drinking-water/active-alerts?county=All&combine="
