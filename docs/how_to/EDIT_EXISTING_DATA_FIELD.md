@@ -20,7 +20,7 @@ See also:
 | CSV export header | `fields.yml` → `display.csv_label` | |
 | Whether it's sortable / the sort param | `fields.yml` → `display.sort` | omit to make it unsortable |
 | Filter menu label | `fields.yml` → `filter.label` | distinct from `display.label` |
-| Filter kind (range / radio / bool / multiselect) | `fields.yml` → `filter.kind` | also revisit options / coercion |
+| Filter kind (range / radio / bool / multiselect) | `fields.yml` → `filter.kind` | also revisit options / coercion; switching to `bool` on a non-boolean column also needs `checked_value` |
 | Histogram format | `fields.yml` → `histogram.format` | |
 | Tooltip copy | `config/tooltips.yml` | manifest references it by key |
 | **Which menu / category a filter lives in** | `config/filter_layout.yml` | **changes AND/OR — see below** |
@@ -51,6 +51,8 @@ So moving a filter into another category, or splitting one category into two, **
 - **Change a format** → `fields.yml` `display.format` (and `histogram.format` if charted).
 - **Make a shown filter URL-only** → remove its key from the layout file. No flag needed — a filterable field absent from the layout is filterable by its param but hidden from the menu.
 - **Rename the field key** → touches the manifest key plus its references in both layout files (and any spec referencing the param). Treat it like a small remove + add; grep the old key first.
+- **Switch a filter to `kind: bool` on a non-boolean column** → also set `filter.checked_value` (see `ADD_NEW_DATA_FIELD.md` Step 3). Without it the predicate compares against a literal `true`, which either matches nothing or raises a Postgres type error against a string column.
+- **Add a Rails `enum` to an existing column** → only if something will actually consume the enum's *key* (a filter doing value translation, a dedicated display formatter — see `Demographic#most_common_rate_tier`). Otherwise the model's attribute reader returns the key instead of the stored value, silently breaking that field's table display. See `ADD_NEW_DATA_FIELD.md` Step 1 for the full explanation and the `CertificationSummary` example this app hit.
 
 ---
 
