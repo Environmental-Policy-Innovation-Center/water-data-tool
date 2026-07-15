@@ -27,6 +27,14 @@ RSpec.describe PublicWaterSystemExporter do
       expect(rows[1]).to include("Test Water Co")
     end
 
+    it "exports a field's own column value, not a different same-model column" do
+      # Regression check: symbology_field and service_area_type are distinct columns on the same
+      # table; a stale db_column mapping previously made "Boundary type" export service_area_type's
+      # value instead of symbology_field's.
+      boundary_type_index = rows.first.index("Boundary type")
+      expect(rows[1][boundary_type_index]).to eq(pws.symbology_field)
+    end
+
     it "preserves sort order from the scope" do
       create(:public_water_system, pws_name: "Alpha Water")
       scope = PublicWaterSystem.order(pws_name: :asc)
