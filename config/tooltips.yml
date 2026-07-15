@@ -9,6 +9,7 @@ filter_menus:
 
   # Compliance — categories
   violations: "Violations occur when a water system fails to meet drinking water standards. Systems with violations, especially health-based ones, can face penalties and are required to notify customers."
+  awia_certifications: "Some water systems are required to submit assessments and plans to comply with the America's Water Infrastructure Act."
   boil_water_notices: "Boil water notices are issued when there is a potential for bacterial contamination in the tap water, often due to issues like loss of pressure from main breaks, equipment failure, or flooding. These can be planned or unplanned."
 
   # Population — categories
@@ -28,6 +29,9 @@ filter_menus:
   total_coliform: "Violations for coliforms occur when more than five percent of samples taken from public water systems contain coliforms."
   stage_1_disinfectants: "Violations for stage 1 disinfectants occur when public water systems exceed the maximum contaminant levels for disinfectants and byproducts."
   stage_2_disinfectants: "Violations for stage 2 disinfectants occur when public water systems exceed the maximum exposures for total trihalomethanes and haloacetic acids, byproducts in water disinfected with chlorine or chloramine."
+
+  # AWIA Certifications
+  rra_certification: "This assessment evaluates the threat of potential malevolent acts and natural hazards."
 
   # Population — Change
   population_change: "Population change shows the percent change in total population served by the water system from 2021 & 2011."

@@ -740,6 +740,7 @@ fields:
     display: {label: "Risk and resilience assessment", sort: rra_certification, format: str, csv_label: "Risk and resilience assessment"}
     filter:
       kind: bool
+      tooltip: rra_certification
       param: rra_certification
       checked_value: Certified
       label: "Risk and resilience assessment"
