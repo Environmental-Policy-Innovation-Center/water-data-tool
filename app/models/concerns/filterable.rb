@@ -107,7 +107,7 @@ module Filterable
 
     # Defaults to real true; filter.checked_value overrides it for non-boolean columns.
     def bool_checked_value(field)
-      field.filter[:checked_value] || true
+      field.filter.fetch(:checked_value, true)
     end
 
     def range_predicate(field, params)
