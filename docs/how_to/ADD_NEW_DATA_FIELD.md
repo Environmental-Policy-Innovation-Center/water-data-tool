@@ -102,6 +102,72 @@ Reference: [Active Record Migrations](https://guides.rubyonrails.org/active_reco
 
 > `poverty_rate` example: it lives on the `demographic` table as a `decimal` column. A migration added that column before the manifest referenced it.
 
+### Brand-new table: the model, association, registry, factory, and spec
+
+Creating the table is only the first step — several more pieces go with it, all before you touch the manifest. Every existing satellite table (`demographics`, `watershed_hazards`, `boil_water_summaries`, …) follows the same shape; here's `certification_summaries` (added alongside the `rra_certification` field) as a concrete, real example.
+
+**1. The model** — `app/models/certification_summary.rb`:
+```ruby
+class CertificationSummary < ApplicationRecord
+  belongs_to :public_water_system, foreign_key: "pwsid", primary_key: "pwsid", inverse_of: :certification_summary
+
+  validates :pwsid, presence: true
+end
+```
+Just a `belongs_to` back to `PublicWaterSystem` and a presence validation on `pwsid` — that's the whole model for every satellite table in this app (add `include Histogrammable` only if one of the columns feeds a histogram). Don't hand-write the `# == Schema Information` comment block at the top — the `annotaterb` gem regenerates it automatically the next time a `db:*` task runs in development (see `lib/tasks/annotate_rb.rake`).
+
+If the column holds a small fixed set of upstream values, a Rails `enum` is tempting — but only add one if something actually consumes its key-based interface, like `Demographic#most_common_rate_tier` (its key feeds `apply_rate_tier_filter`'s value translation and a dedicated `fmt_rate_tier` label lookup). An enum with nothing wired to it silently breaks table display: its reader returns the enum's *key* (`"certified"`), not the stored value (`"Certified"`) — this app added and then removed exactly that enum on `CertificationSummary` for this reason. Default to a plain string column; reach for `enum` only when you have a concrete second consumer for the key.
+
+**2. The association** — add one line to `app/models/public_water_system.rb`, alongside its siblings:
+```ruby
+has_one :certification_summary, foreign_key: "pwsid", inverse_of: :public_water_system, dependent: :destroy
+```
+This is the line Step 1's rule refers to — its name (`:certification_summary`) is exactly the `model:` value you'll write in `fields.yml` (Step 3).
+
+**3. The manifest's model registry** — add one line to `MODEL_CLASSES` in `app/fields/field_registry.rb`, alongside its siblings:
+```ruby
+certification_summary: "CertificationSummary"
+```
+This is a separate, hardcoded map from the manifest `model:` symbol to the actual Ruby class — `FieldRegistry.model_class` looks up here, not by guessing a class name from the symbol. Skip it and `fields.yml` will raise `KeyError: key not found` the moment Step 3 writes a field with `model: certification_summary` — do this now so that error never happens.
+
+**4. The export join list** — add one line to `ASSOCIATION_JOINS` in `app/exporters/public_water_system_exporter.rb`, alongside its siblings:
+```ruby
+LEFT JOIN certification_summaries ON certification_summaries.pwsid = public_water_systems.pwsid
+```
+This is a third, separate hardcoded list every satellite table needs an entry in, powering CSV/GeoJSON export — it's unconditional, the same one-entry-per-`MODEL_CLASSES`-table shape as Step 1's model registry, not tied to whether any of the table's fields are displayed yet. Skip it and exporting any column later placed in `table_layout.yml` (Step 6) raises `PG::UndefinedTable: missing FROM-clause entry for table "..."` — do this now, alongside the model registry, so that error never happens.
+
+**5. The factory** — `spec/factories/certification_summaries.rb`, needed by any spec that builds one of these rows:
+```ruby
+FactoryBot.define do
+  factory :certification_summary do
+    association :public_water_system
+    pwsid { public_water_system.pwsid }
+    rra_certification { ["Certified", "Uncertified"].sample }
+  end
+end
+```
+Most satellite factories default to one fixed value; this one varies since the field only has two states. Pin an explicit value in specs that need one: `build(:certification_summary, rra_certification: "Certified")`.
+
+**6. The model spec** — `spec/models/certification_summary_spec.rb`. Every satellite model spec in this app asserts the same two things and nothing more — the association and the presence validation:
+```ruby
+require "rails_helper"
+
+RSpec.describe CertificationSummary, type: :model do
+  describe "associations" do
+    it { is_expected.to belong_to(:public_water_system).with_foreign_key("pwsid") }
+  end
+
+  describe "validations" do
+    it { is_expected.to validate_presence_of(:pwsid) }
+  end
+end
+```
+Copy `spec/models/boil_water_summary_spec.rb` or `spec/models/watershed_hazard_spec.rb` verbatim and swap the class name — there's no field-specific behavior to test here; that belongs in the generic-importer spec (Step 7) instead.
+
+**Run it before touching the model.** `bundle exec rspec spec/models/certification_summary_spec.rb` should fail red with no `belongs_to` / `validates` yet — then fill in the model and rerun until green. Same Red → Green discipline `CLAUDE.md` mandates for every model, concern, and job in this app.
+
+**Once it's green, re-annotate.** Run `bin/rails db:migrate` again — harmless with nothing pending, but it still fires the `annotaterb` hook (`lib/tasks/annotate_rb.rake`) — or run `bundle exec annotaterb models` directly. `.annotaterb.yml` has `exclude_factories: false` and `exclude_tests: false`, so this stamps the `# == Schema Information` block onto the factory and spec files too, not just the model.
+
 ---
 
 ## Step 2 — Register the new source file  (Path A only)
@@ -122,19 +188,23 @@ FILE_EXTENSIONS = {
 }.freeze
 ```
 
-### The three-name rule (get this exactly right)
+### One filename, three places
 
-One string ties everything together. These **three must match character-for-character**:
+Start from the file's name in the S3 bucket — say `my_new_file.csv` — and strip the extension: `my_new_file`. Use that exact string, unchanged, in three places:
 
-1. the key in `FILE_IMPORTERS` / `FILE_EXTENSIONS` above (`my_new_file`),
-2. the `source: {file: my_new_file, ...}` value you'll write in Step 3,
-3. the **object name in the S3 bucket**, minus extension — the importer fetches `"<ETL_SOURCE_URL>/my_new_file.csv"`.
-
-If any of the three disagree, you get **no error** — just a 404 on fetch or zero rows loaded. When an import "does nothing," check this first.
+1. The `FILE_IMPORTERS` / `FILE_EXTENSIONS` keys above.
+2. The `source: {file: my_new_file, ...}` value you'll write in `fields.yml` (Step 3) — this is what actually turns the registration into a working import.
+3. The S3 object name itself — the importer fetches `"<ETL_SOURCE_URL>/my_new_file.csv"` literally, so the bucket filename has to match too.
 
 > **Getting the file into the bucket:** the importer reads over HTTP from `ENV["ETL_SOURCE_URL"]` (the staged-data S3 bucket; see `.env` / `.env.example`). A *new* file has to be uploaded there first, named `my_new_file.csv`.
 
-There **is** one backstop: `spec/services/etl/importer_coverage_spec.rb` fails if you register a file here but forget to give it `source:` blocks in the manifest (Step 3) — so a registered-but-unwired file won't pass `bin/ci`. Nothing catches the reverse (a file you never register), which is why the three-name rule matters.
+Get any of the three wrong and there's **no error** — just a 404 on fetch or zero rows loaded. If an import "does nothing," this is the first thing to check.
+
+**Expect a failure here, and that's fine.** Right after this step — file registered, but `fields.yml` not touched yet — run `bundle exec rspec spec/services/etl/importer_coverage_spec.rb`. It fails, something like:
+```
+awia_certification: expected exactly one of generic(etl_mapping)=false, custom_imports=false
+```
+That's the backstop working as intended: a file can't be registered here and silently left unwired from the manifest. It goes green the moment Step 3 adds the `source:` block — nothing to fix yet, just confirmation you're mid-flow.
 
 Skip this entire step for Paths B, C, D — the file is already registered (B, C) or handled by a custom importer already in the map (D).
 
@@ -152,17 +222,25 @@ poverty_rate:
     file: epa_sabs_xwalk          #   must equal the FILE_IMPORTERS key (Step 2) AND the bucket object name
     header: "hh_below_pov_per"    #   the column's EXACT name in the CSV — always quoted, copied verbatim
     cast: decimal                 #   integer | decimal | string | score (0–1 → %) | bool
+  display:                        # omit if not shown as a table column
+    label: "Households below poverty line"   #   <th> header text — often differs from filter.label
+    sort: poverty_rate            #   sort param (omit → not sortable); may differ from key
+    format: pct                   #   str | num | dec | pct | cur | bool | check | link | copy
+    csv_label: "Households below the poverty line (%)"   #   verbose CSV header
   filter:                         # omit if not filterable
     kind: range                   #   range | radio | bool | multiselect
     coercion: decimal             #   range only: decimal | integer — how the slider values are cast
-    label: "Poverty rate"         #   the label shown in the filter menu
+    label: "Poverty rate"         #   the MENU label shown in the filter — often differs from display.label
     tooltip: poverty_rate         #   a key into config/tooltips.yml (Step 5); omit if none
     slider_label: "Percentage of households"   # range only: caption under the slider; omit if none
+  histogram:                      # omit if not histogram-capable
+    format: percent               #   percent | currency | count | percent_change
 ```
 
 Notes for a filter:
 - **`kind`** picks the control: `range` (numeric slider), `radio` (one-of), `bool` (yes/no), `multiselect` (many-of). A numeric column → almost always `range`.
 - **`range` needs `coercion`** so the min/max are cast correctly — don't omit it on numeric filters.
+- **`bool` on a non-boolean column needs `checked_value`.** The predicate defaults to comparing against a real boolean `true`; if the column is a two-value string instead (an enum-like column, e.g. `rra_certification`'s `Certified`/`Uncertified`), set `checked_value:` to whatever "checked" should compare against. See the `fields.yml` header for the shape and `rra_certification` for a real example.
 - **`radio` / `multiselect` need an `options:` list** instead of a `label`; `range` / `bool` never use `options`. See the `fields.yml` header for the `options:` shape.
 - **The URL param is permitted automatically.** `FieldRegistry.permit_arguments` (in `app/fields/field_registry.rb`) derives it from `filter.kind` — there is no permit code to edit.
 
@@ -175,7 +253,7 @@ Notes for a filter:
 
 ## Step 4 — `config/filter_layout.yml`: place the filter (if filterable)
 
-Add your field key to a category's `filters:` list. **Placement is not cosmetic — it sets the boolean logic:**
+Add your field key to a category's `filters:` list. **Placement determines more than where the filter appears — it also decides whether it ORs or ANDs with the filters around it:**
 
 - Filters in the **same category** are **OR**'d together.
 - Filters in **different categories** are **AND**'d together.
@@ -256,11 +334,13 @@ Demographic.first.poverty_rate                    # spot-check one
 
 Copy an existing field's assertions as your template — find one with the same `kind` / capability and adapt the key, label, and values.
 
+- **New model (brand-new table)** → `spec/models/<model>_spec.rb` — see Step 1's model/spec walkthrough for the base `associations` + `validations` pattern every satellite model follows.
 - **Filter behavior** → `spec/models/concerns/filterable_spec.rb`. This exercises `PublicWaterSystem.apply_filters(...)`; add a case like the existing ones (e.g. `apply_filters(symbology_field: "Modeled")`) asserting your filter includes/excludes the right rows.
 - **Filter renders in its menu** → `spec/requests/home_spec.rb` — the server-render specs that walk `filter_layout.yml` and assert each menu/tab renders.
 - **Column** → `spec/columns/table_layout_spec.rb`.
 - **The import actually maps your file correctly (Path A)** → `spec/services/etl/importers/generic_spec.rb`. Drop a small fixture at `spec/fixtures/etl/my_new_file.csv` (a header row + a couple of data rows), then add a `#parse` assertion proving `header → column → cast` — e.g. `expect(parse_fixture("my_new_file").first).to include(my_field: <expected cast value>)`. This is the spec that confirms your data will import correctly, with **no S3 and no live DB needed**.
 - **Import wiring backstop** → `spec/services/etl/importer_coverage_spec.rb` enforces that every registered file is either generic-with-`source:` or listed in `custom_imports:` (never both). A new Path-A file must satisfy it — it's the check that catches a file registered in Step 2 but not wired in Step 3.
+- **Brand-new table, exported** → no new test needed, but `bin/ci`'s `spec/exporters/public_water_system_exporter_spec.rb` and `spec/requests/exports_spec.rb` will fail loudly (`PG::UndefinedTable: missing FROM-clause entry`) if Step 1's export join list entry was skipped — that's the existing coverage catching it, not a gap to fill.
 
 ### 4. (Optional) Local dev data — how seeding works
 

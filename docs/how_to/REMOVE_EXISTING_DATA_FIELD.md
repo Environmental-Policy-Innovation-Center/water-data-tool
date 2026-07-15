@@ -24,6 +24,26 @@ Nothing else is needed for a fully manifest-driven field: `permit_arguments`, `s
 
 ---
 
+## Removing a whole satellite table (not just a field)
+
+If the field you're removing was the *last* field on its satellite table, remove the table too —
+this mirrors `ADD_NEW_DATA_FIELD.md`'s "Brand-new table" subsection, in reverse:
+
+1. **The model** — delete `app/models/<model>.rb`.
+2. **The association** — remove the `has_one`/`has_many` line from `app/models/public_water_system.rb`.
+3. **The manifest's model registry** — remove the entry from `MODEL_CLASSES` in `app/fields/field_registry.rb`.
+4. **The export join list** — remove the `LEFT JOIN` line from `ASSOCIATION_JOINS` in
+   `app/exporters/public_water_system_exporter.rb`. This isn't optional cleanup: a stale join to a
+   dropped table raises `PG::UndefinedTable: relation does not exist` on the next export, the same
+   failure mode as forgetting to add it in the first place.
+5. **The factory and model spec** — delete `spec/factories/<table>.rb` and `spec/models/<model>_spec.rb`.
+6. **A migration** — `drop_table :<table_name>`.
+
+Each of these fails loudly if missed (`KeyError`, `PG::UndefinedTable`, or a `NameError` on the deleted
+constant) — none of it fails silently, so `bin/ci` will catch a skipped step.
+
+---
+
 ## The long version: removing a custom control kind
 
 A field with a **custom filter kind** (e.g. the removed Place filter, `kind: place`) has extra wiring that does *not* derive from the manifest. Grep the field/param name and expect to touch each of these:

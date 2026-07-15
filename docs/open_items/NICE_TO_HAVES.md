@@ -100,6 +100,18 @@ Would run post-import and report to a Slack channel or log. Useful for catching 
 
 ---
 
+### Filters: Case-insensitive string matching
+
+`Filterable`'s `radio`/`multiselect`/`bool` predicates use plain Arel `.eq`/`.in` — no case
+normalization. Filtering only works today because every manifest option value is hand-typed to
+match the DB's exact casing (confirmed: `apply_filters(gw_sw_code: "Groundwater")` returns 33,837
+rows, `apply_filters(gw_sw_code: "groundwater")` returns 0). Low priority — no known field has
+inconsistent casing today — but worth downcasing both sides of the comparison at some point so a
+manifest typo or a source-data casing drift fails loudly (wrong results now) rather than silently
+(zero results).
+
+---
+
 ### application.css: Confirm Defaults and Clean Up
 
 `app/assets/tailwind/application.css` has some leftover notes and may have unconfirmed
