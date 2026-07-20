@@ -53,6 +53,14 @@ RSpec.describe Etl::Importers::Generic do
       expect(parse_fixture("pwsid_funded_highlevel_summary").first)
         .to include(times_funded: 2, total_srf_assistance: BigDecimal("850000.00"))
     end
+
+    it "trims whitespace-padded pwsid values (some source files pad fixed-width fields)" do
+      content = File.read(Rails.root.join("spec/fixtures/etl/national_bwn_highlevel_summary.csv"))
+        .sub("VT0000001", "VT0000001   ")
+      rows = described_class.new(file_url: "https://example.test/national_bwn_highlevel_summary.csv", last_updated: 1.day.ago)
+        .parse(content)
+      expect(rows.first[:pwsid]).to eq("VT0000001")
+    end
   end
 
   describe "#import! upserts into the manifest-resolved model" do

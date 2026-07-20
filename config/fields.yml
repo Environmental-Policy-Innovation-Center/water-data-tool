@@ -331,7 +331,8 @@ fields:
     model: boil_water_summary
     source: {file: national_bwn_highlevel_summary, header: "total_bwn", cast: integer}
     display: {label: "Boil water notices", sort: total_notices, format: num, csv_label: "Boil water notices"}
-    filter: {kind: range, param_base: boil_water_notices, coercion: integer, label: "Boil water notices", control: notices}
+    filter: {kind: range, param_base: boil_water_notices, coercion: integer, label: "Boil water notices", control: notices, slider_label: "Number of notices"}
+    histogram: {format: count}
 
   # Loaded but not shown (boil-water columns).
   first_advisory_date:

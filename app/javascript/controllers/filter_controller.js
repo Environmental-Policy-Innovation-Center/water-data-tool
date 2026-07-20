@@ -11,6 +11,19 @@ import { syncToUrl } from "url_sync"
 // Menu open/close lives in filter_menu_controller. Responsive layout in filter_layout_controller.
 export default class extends Controller {
   #tableLoaded = false
+  #rangeResyncTimer = null
+  #lastKnownState = null
+  #onFiltersStateChanged = () => {
+    const state = FilterState.get().state ?? ""
+    const stateChanged = state !== this.#lastKnownState
+    this.#lastKnownState = state
+    this.#updateBadges()
+    this.#updateGeoTitle()
+    if (stateChanged) {
+      this.#refreshCheckedRangeDefaults()
+      this.#reloadTableFrame()
+    }
+  }
 
   // Syncs sort/direction from the server-rendered table state into the page URL after each frame load.
   // Reading from #table-query-state (server-rendered) is authoritative — it reflects what the server
@@ -33,15 +46,24 @@ export default class extends Controller {
   connect() {
     document.addEventListener("table:show", this.#onTableShow)
     document.addEventListener("filter:layout-changed", this.#onLayoutChanged)
+    document.addEventListener("filters:changed", this.#onFiltersStateChanged)
+    document.addEventListener("slider:state-reload", this.#onSliderStateReload)
     document.getElementById("data-table")?.addEventListener("turbo:frame-load", this.#onTableFrameLoad)
-    this.#restoreFromUrl()
-    this.#updateBadges()
-    this.#updateGeoTitle()
+    this.#lastKnownState = FilterState.get().state ?? ""
+    this.#refreshSubcatParents()
+    // Avoid running these twice — #restoreFromUrl already triggers them when params exist.
+    if (!this.#restoreFromUrl()) {
+      this.#updateBadges()
+      this.#updateGeoTitle()
+    }
   }
 
   disconnect() {
     document.removeEventListener("table:show", this.#onTableShow)
     document.removeEventListener("filter:layout-changed", this.#onLayoutChanged)
+    document.removeEventListener("filters:changed", this.#onFiltersStateChanged)
+    document.removeEventListener("slider:state-reload", this.#onSliderStateReload)
+    clearTimeout(this.#rangeResyncTimer)
     document.getElementById("data-table")?.removeEventListener("turbo:frame-load", this.#onTableFrameLoad)
   }
 
@@ -51,8 +73,6 @@ export default class extends Controller {
     FilterState.set({ ...this.#currentStateScope(), ...this.#collectFilters() })
     SelectionState.clear()
     syncToUrl()
-    this.#updateBadges()
-    this.#updateGeoTitle()
     document.dispatchEvent(new CustomEvent("filters:changed"))
     this.dispatch("applied")
     this.#reloadStatsFrame()
@@ -144,6 +164,11 @@ export default class extends Controller {
     }
   }
 
+  hideHistogramPanel(panelId) {
+    this.#hideAndResetSlider(document.getElementById(panelId))
+    this.#setToggleArrow(panelId, false)
+  }
+
   // Collapses/expands the subcat panel independently of the parent checkbox.
   toggleSubcatPanel(event) {
     event.preventDefault()
@@ -162,16 +187,7 @@ export default class extends Controller {
   // ignores anything that isn't a row gate checkbox (e.g. slider text inputs).
   syncParentFromSubcat(event) {
     if (event.target.type !== "checkbox") return
-    const panel = event.currentTarget
-    const rows = [...panel.querySelectorAll("[data-filter-kind='range']")]
-    if (rows.length === 0) return
-
-    const checkedCount = rows.filter(row => row.querySelector("input[type='checkbox']")?.checked).length
-    const parentEl = this.element.querySelector(`input[type='checkbox'][data-panel-id='${CSS.escape(panel.id)}']`)
-    if (parentEl) {
-      parentEl.checked = checkedCount === rows.length
-      parentEl.indeterminate = checkedCount > 0 && checkedCount < rows.length
-    }
+    this.#syncParentCheckbox(event.currentTarget)
 
     const sliderPanel = event.target.closest("[data-filter-kind='range']")?.querySelector("[data-slider-field-value]")
     if (!sliderPanel) return
@@ -222,6 +238,54 @@ export default class extends Controller {
   }
 
   #onLayoutChanged = () => this.#updateBadges()
+
+  #onSliderStateReload = () => {
+    clearTimeout(this.#rangeResyncTimer)
+    this.#rangeResyncTimer = setTimeout(() => {
+      FilterState.set({ ...FilterState.get(), ...this.#collectRangeParams() })
+      syncToUrl()
+      // Re-restores range params once each checked slider's fresh domain resolves.
+      document.dispatchEvent(new CustomEvent("filters:changed"))
+      this.#reloadTableFrame()
+    }, 50)
+  }
+
+  #refreshCheckedRangeDefaults() {
+    for (const el of this.element.querySelectorAll("[data-filter-kind='range']")) {
+      const checkbox = el.querySelector("input[type='checkbox']")
+      if (!checkbox?.checked || checkbox.disabled) continue
+      const sliderPanel = el.querySelector("[data-slider-field-value]")
+      if (!sliderPanel || !sliderPanel.classList.contains("hidden")) continue
+      this.#populateSliderDefaults(sliderPanel)
+    }
+  }
+
+  // A range filter's param name comes from the control itself, or (for a subcat row with no
+  // filter-param of its own) from the slider panel it wraps.
+  #rangeBaseParam(el, sliderPanel) {
+    return el.dataset.filterParam || sliderPanel?.dataset.sliderFieldValue
+  }
+
+  #rangeParamsForElement(el) {
+    if (!el.querySelector("input[type='checkbox']")?.checked) return null
+    const sliderPanel = el.querySelector("[data-slider-field-value]")
+    const base = this.#rangeBaseParam(el, sliderPanel)
+    if (!base) return null
+    const minVal = sliderPanel.querySelector("[data-slider-target='minInput']")?.value
+    const maxVal = sliderPanel.querySelector("[data-slider-target='maxInput']")?.value
+    const p = {}
+    if (minVal) p[`${base}_min`] = minVal
+    if (maxVal) p[`${base}_max`] = maxVal
+    return Object.keys(p).length ? p : null
+  }
+
+  #collectRangeParams() {
+    const p = {}
+    for (const el of this.element.querySelectorAll("[data-filter-kind='range']")) {
+      Object.assign(p, this.#rangeParamsForElement(el) || {})
+    }
+    return p
+  }
 
   #onTableShow = () => {
     this.#tableLoaded = true
@@ -283,14 +347,7 @@ export default class extends Controller {
           break
         }
         case "range": {
-          if (!el.querySelector("input[type='checkbox']")?.checked) break
-          const sliderPanel = el.querySelector("[data-slider-field-value]")
-          const base = sliderPanel?.dataset.sliderFieldValue
-          if (!base) break
-          const minVal = sliderPanel.querySelector("[data-slider-target='minInput']")?.value
-          const maxVal = sliderPanel.querySelector("[data-slider-target='maxInput']")?.value
-          if (minVal) p[`${base}_min`] = minVal
-          if (maxVal) p[`${base}_max`] = maxVal
+          Object.assign(p, this.#rangeParamsForElement(el) || {})
           break
         }
         case "range_select": {
@@ -315,21 +372,23 @@ export default class extends Controller {
   }
 
   // The DOM is server-rendered with active filter state, so restore only re-seeds JS state and frames.
+  // Returns whether it dispatched filters:changed, so callers can skip redundant follow-up work.
   #restoreFromUrl() {
-    if (!window.location.search) return
+    if (!window.location.search) return false
 
     const sp = new URLSearchParams(window.location.search)
     const encoded = sp.get("encoded")
-    if (!encoded) return
+    if (!encoded) return false
 
     const params = decodeState(encoded).filters ?? {}
-    if (Object.keys(params).length === 0) return
+    if (Object.keys(params).length === 0) return false
 
-    this.#loadVisibleSliders()
     FilterState.set(params)
+    this.#loadVisibleSliders()
     document.dispatchEvent(new CustomEvent("filters:changed"))
     this.#reloadStatsFrame()
     this.#reloadTableFrame()
+    return true
   }
 
   // Per-menu active-filter counts from the applied state, derived from the data-filter-* contract.
@@ -375,7 +434,8 @@ export default class extends Controller {
           break
         }
         case "range": {
-          const base = el.querySelector("[data-slider-field-value]")?.dataset.sliderFieldValue
+          const sliderPanel = el.querySelector("[data-slider-field-value]")
+          const base = this.#rangeBaseParam(el, sliderPanel)
           if (base && (isSet(`${base}_min`) || isSet(`${base}_max`))) add(group, 1)
           break
         }
@@ -458,5 +518,23 @@ export default class extends Controller {
     this.element.querySelectorAll("[data-controller~='slider']").forEach(panel => {
       if (!panel.classList.contains("hidden")) this.#loadSlider(panel)
     })
+  }
+
+  // Sets a subcat parent's checked/indeterminate state from its currently-rendered child rows.
+  #syncParentCheckbox(panel) {
+    const rows = [...panel.querySelectorAll("[data-filter-kind='range']")]
+    if (rows.length === 0) return
+
+    const checkedCount = rows.filter(row => row.querySelector("input[type='checkbox']")?.checked).length
+    const parentEl = this.element.querySelector(`input[type='checkbox'][data-panel-id='${CSS.escape(panel.id)}']`)
+    if (parentEl) {
+      parentEl.checked = checkedCount === rows.length
+      parentEl.indeterminate = checkedCount > 0 && checkedCount < rows.length
+    }
+  }
+
+  // A restored partial parent needs this — syncParentFromSubcat only fires on live changes.
+  #refreshSubcatParents() {
+    this.element.querySelectorAll("[data-subcat-panel]").forEach(panel => this.#syncParentCheckbox(panel))
   }
 }

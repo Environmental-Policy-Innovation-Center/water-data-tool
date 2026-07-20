@@ -1,7 +1,17 @@
+import { decodeState } from "url_state_codec"
+
+// Seeded at module load (not reactively in filter_controller#connect) so every controller sees
+// the restored state from its first read, regardless of Stimulus's controller registration order.
+const seedFromUrl = () => {
+  const encoded = new URLSearchParams(window.location.search).get("encoded")
+  if (!encoded) return {}
+  return decodeState(encoded).filters ?? {}
+}
+
 // Shared singleton for the most recently applied filter params.
 // filter_controller writes here when the user clicks Apply;
 // other controllers (export, stats) read here to build their requests.
-let current = {}
+let current = seedFromUrl()
 export const get = () => current
 export const set = (params) => { current = { ...params } }
 

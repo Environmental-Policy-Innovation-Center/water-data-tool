@@ -113,11 +113,10 @@ module HomeHelper
     BLOCK_FILTER_CONTROLS.include?(filter_control_for(first))
   end
 
-  # Slider value format: the histogram bin format, else the column's display format; "count" → none.
+  # Slider value format: histogram bin format, else column display format.
   def slider_format_for(field)
-    fmt = (field.histogram && field.histogram[:format]) ||
+    (field.histogram && field.histogram[:format]) ||
       SLIDER_FORMAT_BY_DISPLAY[field.display && field.display[:format]]
-    fmt unless fmt == "count"
   end
 
   # A radio/multiselect option's checked state: when the param is set, whether it
@@ -134,6 +133,19 @@ module HomeHelper
     numeric = steps.map { |n| [n.to_s, n.to_s] }
     choices = (bound == :min) ? [sentinel] + numeric : numeric + [sentinel]
     options_for_select(choices, filter_range_value(param, bound).presence || sentinel.last)
+  end
+
+  def bwn_tooltips_html_json
+    @bwn_tooltips_html_json ||= BoilWaterStateConfig.config.each_with_object({}) do |(stusps, data), hash|
+      text = data["text"].to_s
+      source_url = data["source_url"]
+      parts = [text]
+      if source_url.present?
+        link = render(UI::ExternalLinkComponent.new(url: source_url, classes: "font-medium", aria_label: "View source data for boil water notices")) { "View source data" }
+        parts << content_tag(:div, link, class: "mt-2")
+      end
+      hash[stusps.to_s.upcase] = safe_join(parts)
+    end.to_json
   end
 
   def tooltip_icon(text)

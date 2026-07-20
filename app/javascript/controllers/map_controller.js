@@ -947,7 +947,7 @@ export default class extends Controller {
 
   #setStateFilter(state) {
     FilterState.set({
-      ...FilterState.get(),
+      ...this.#withoutRangeParams(FilterState.get()),
       state: state.stusps,
       state_name: state.name
     })
@@ -956,12 +956,28 @@ export default class extends Controller {
   }
 
   #clearStateFilter() {
-    const filters = { ...FilterState.get() }
+    const filters = this.#withoutRangeParams(FilterState.get())
     delete filters.state
     delete filters.state_name
     FilterState.set(filters)
     syncToUrl()
     document.dispatchEvent(new CustomEvent("filters:changed"))
+  }
+
+  // Strips _min/_max only for slider-backed ("range") filters — their histogram domain is
+  // state-specific. A range_select filter (e.g. density) has a fixed domain and should persist.
+  #withoutRangeParams(filters) {
+    const stateScopedBases = new Set(
+      [...this.element.querySelectorAll("[data-filter-kind='range']")]
+        .map(el => el.dataset.filterParam || el.querySelector("[data-slider-field-value]")?.dataset.sliderFieldValue)
+        .filter(Boolean)
+    )
+    return Object.fromEntries(
+      Object.entries(filters).filter(([k]) => {
+        const base = k.endsWith("_min") || k.endsWith("_max") ? k.slice(0, -4) : null
+        return base === null || !stateScopedBases.has(base)
+      })
+    )
   }
 
   async #lookupState(center) {
