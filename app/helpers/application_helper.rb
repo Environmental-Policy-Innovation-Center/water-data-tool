@@ -13,6 +13,8 @@ module ApplicationHelper
 
   FILTER_INFO_BUTTON_CLASSES = "ml-1 text-neutral-400 [@media(hover:hover)]:hover:text-neutral-600".freeze
 
+  FILTER_CHECKBOX_CLASSES = "toggle mt-0.5 shrink-0".freeze
+
   COLLAPSE_TOGGLE_ICON_CLASSES = "size-3.5 shrink-0 -rotate-90 text-neutral-700 transition-transform duration-150".freeze
 
   DOWNLOAD_STATES = [
@@ -47,6 +49,7 @@ module ApplicationHelper
   end
 
   def download_states = DOWNLOAD_STATES
+  def filter_checkbox_classes = FILTER_CHECKBOX_CLASSES
   def filter_info_button_classes = FILTER_INFO_BUTTON_CLASSES
   def filter_row_classes = FILTER_ROW_CLASSES
   def focus_ring_classes = FOCUS_RING_CLASSES

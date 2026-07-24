@@ -164,7 +164,7 @@ RSpec.describe "map_controller state selection" do
       eval(source)
 
       const controller = new MapController()
-      controller.element = { dataset: {} }
+      controller.element = { dataset: {}, querySelectorAll: () => [] }
       controller.tileUrlValue = "/tiles/{z}/{x}/{y}.mvt"
       #{controller_setup}
       controller.connect()
@@ -251,7 +251,7 @@ RSpec.describe "map_controller state selection" do
       eval(source)
 
       const controller = new MapController()
-      controller.element = { dataset: {} }
+      controller.element = { dataset: {}, querySelectorAll: () => [] }
       controller.tileUrlValue = "/tiles/{z}/{x}/{y}.mvt"
       controller.connect()
       mapStub.handlers.load()
@@ -303,7 +303,7 @@ RSpec.describe "map_controller state selection" do
         eval(source)
 
         const controller = new MapController()
-        controller.element = { dataset: { selectedState: "CO", selectedStateName: "Colorado" } }
+        controller.element = { dataset: { selectedState: "CO", selectedStateName: "Colorado" }, querySelectorAll: () => [] }
         controller.selectedState = { stusps: "CO", name: "Colorado", geoid: "08" }
         controller.filteredPwsids = null
         controller.hoverPopup = null
@@ -365,7 +365,7 @@ RSpec.describe "map_controller state selection" do
 
         const appliedFilters = []
         const controller = new MapController()
-        controller.element = { dataset: { selectedState: "CO", selectedStateName: "Colorado" } }
+        controller.element = { dataset: { selectedState: "CO", selectedStateName: "Colorado" }, querySelectorAll: () => [] }
         controller.selectedState = { stusps: "CO", name: "Colorado", geoid: "08" }
         controller.filteredPwsids = null
         controller.hoverPopup = null
@@ -477,7 +477,7 @@ RSpec.describe "map_controller state selection" do
       eval(source)
 
       const controller = new MapController()
-      controller.element = { dataset: {} }
+      controller.element = { dataset: {}, querySelectorAll: () => [] }
       controller.tileUrlValue = "/tiles/{z}/{x}/{y}.mvt"
       controller.connect()
       mapStub.handlers.load()
@@ -532,7 +532,7 @@ RSpec.describe "map_controller state selection" do
       eval(source)
 
       const controller = new MapController()
-      controller.element = { dataset: { selectedState: "CO", selectedStateName: "Colorado" } }
+      controller.element = { dataset: { selectedState: "CO", selectedStateName: "Colorado" }, querySelectorAll: () => [] }
       controller.selectedState = { stusps: "CO", name: "Colorado", geoid: "08" }
       controller.filteredPwsids = null
       controller.hoverPopup = null
@@ -595,7 +595,7 @@ RSpec.describe "map_controller state selection" do
 
       const controller = new MapController()
       let flyToCalled = false
-      controller.element = { dataset: {} }
+      controller.element = { dataset: {}, querySelectorAll: () => [] }
       controller.hoverPopup = null
       controller.clickPopup = null
       controller.filteredPwsids = null
@@ -702,7 +702,7 @@ RSpec.describe "map_controller state selection" do
       eval(source)
 
       const controller = new MapController()
-      controller.element = { dataset: {} }
+      controller.element = { dataset: {}, querySelectorAll: () => [] }
       controller.tileUrlValue = "/tiles/{z}/{x}/{y}.mvt"
       controller.connect()
       mapStub.handlers.load()
@@ -803,7 +803,7 @@ RSpec.describe "map_controller state selection" do
       eval(source)
 
       const controller = new MapController()
-      controller.element = { dataset: {} }
+      controller.element = { dataset: {}, querySelectorAll: () => [] }
       controller.tileUrlValue = "/tiles/{z}/{x}/{y}.mvt"
       controller.connect()
       mapStub.handlers.load()
@@ -932,7 +932,7 @@ RSpec.describe "map_controller state selection" do
       eval(source)
 
       const controller = new MapController()
-      controller.element = { dataset: {} }
+      controller.element = { dataset: {}, querySelectorAll: () => [] }
       controller.tileUrlValue = "/tiles/{z}/{x}/{y}.mvt"
       controller.connect()
       mapStub.handlers.load()
@@ -1095,7 +1095,7 @@ RSpec.describe "map_controller state selection" do
       eval(source)
 
       const controller = new MapController()
-      controller.element = { dataset: {} }
+      controller.element = { dataset: {}, querySelectorAll: () => [] }
       controller.tileUrlValue = "/tiles/{z}/{x}/{y}.mvt"
       controller.connect()
       mapStub.handlers.load()
@@ -1198,7 +1198,7 @@ RSpec.describe "map_controller state selection" do
       eval(source)
 
       const controller = new MapController()
-      controller.element = { dataset: {} }
+      controller.element = { dataset: {}, querySelectorAll: () => [] }
       controller.tileUrlValue = "/tiles/{z}/{x}/{y}.mvt"
       controller.connect()
       mapStub.handlers.load()
@@ -1307,7 +1307,7 @@ RSpec.describe "map_controller state selection" do
       eval(source)
 
       const controller = new MapController()
-      controller.element = { dataset: {} }
+      controller.element = { dataset: {}, querySelectorAll: () => [] }
       controller.tileUrlValue = "/tiles/{z}/{x}/{y}.mvt"
       controller.connect()
       mapStub.handlers.load()
@@ -1591,7 +1591,7 @@ RSpec.describe "map_controller state selection" do
       eval(source)
 
       const controller = new MapController()
-      controller.element = { dataset: {} }
+      controller.element = { dataset: {}, querySelectorAll: () => [] }
       controller.tileUrlValue = "/tiles/{z}/{x}/{y}.mvt"
       controller.popupTemplateTarget = { content: { firstElementChild: new PopupRoot() } }
       controller.connect()
@@ -1898,7 +1898,7 @@ RSpec.describe "map_controller state selection" do
       eval(source)
 
       const controller = new MapController()
-      controller.element = { dataset: {} }
+      controller.element = { dataset: {}, querySelectorAll: () => [] }
       controller.tileUrlValue = "/tiles/{z}/{x}/{y}.mvt"
       controller.popupTemplateTarget = { content: { firstElementChild: new PopupRoot() } }
       controller.connect()
@@ -2053,7 +2053,7 @@ RSpec.describe "map_controller state selection" do
         eval(source)
 
         const controller = new MapController()
-        controller.element = { dataset: {} }
+        controller.element = { dataset: {}, querySelectorAll: () => [] }
         controller.tileUrlValue = "/tiles/{z}/{x}/{y}.mvt"
         controller.connect()
         mapStub.handlers.load()
@@ -2078,6 +2078,117 @@ RSpec.describe "map_controller state selection" do
           throw new Error(`expected latest geocoder center to win, got ${JSON.stringify(lastFlyTo.center)}`)
         }
       })()
+    JS
+
+    run_node_script(script)
+  end
+
+  it "strips histogram min/max params but preserves other filters when switching states" do
+    script = <<~JS
+      const fs = require("fs")
+      class Controller {}
+      const filterStateCurrent = {
+        state: "CO",
+        state_name: "Colorado",
+        gw_sw_code: "Groundwater",
+        boil_water_notices_min: "1",
+        boil_water_notices_max: "45",
+        density_min: "500",
+        density_max: "5000"
+      }
+      const rangeEls = [{ dataset: { filterParam: "boil_water_notices" }, querySelector: () => null }]
+      const FilterState = {
+        get: () => ({ ...filterStateCurrent }),
+        set: (params) => {
+          Object.keys(filterStateCurrent).forEach((key) => delete filterStateCurrent[key])
+          Object.assign(filterStateCurrent, params)
+        },
+        toUrlParams: () => new URLSearchParams(filterStateCurrent)
+      }
+      global.document = {
+        head: { querySelector: () => ({ content: "token" }) },
+        querySelector: () => null,
+        getElementById: () => null,
+        addEventListener: () => {},
+        removeEventListener: () => {},
+        dispatchEvent: () => {}
+      }
+      global.CustomEvent = class {
+        constructor(type) { this.type = type }
+      }
+      global.history = { replaceState: () => {} }
+      global.window = {
+        location: new URL("http://example.test/"),
+        mapboxgl: {}
+      }
+      global.Turbo = { visit: () => {} }
+
+      class MapStub {
+        constructor() {
+          this.handlers = {}
+          this.zoom = 6
+          globalThis.mapStub = this
+        }
+
+        dragRotate = { disable: () => {} }
+        touchZoomRotate = { disableRotation: () => {} }
+        getStyle() { return { layers: [{ id: "base-line", type: "line" }] } }
+        getCanvas() { return { style: {} } }
+        getZoom() { return this.zoom }
+        addControl() {}
+        addSource() {}
+        addLayer() {}
+        setPaintProperty() {}
+        getLayer() { return true }
+        setFilter() {}
+        setMaxZoom() {}
+        fitBounds() {}
+        querySourceFeatures() { return [] }
+        setFeatureState() {}
+        removeFeatureState() {}
+        jumpTo() {}
+        flyTo() {}
+        once() {}
+        on(event, layerOrCallback, callback) {
+          if (callback) {
+            this.handlers[`${event}:${layerOrCallback}`] = callback
+          } else {
+            this.handlers[event] = layerOrCallback
+          }
+        }
+      }
+
+      window.mapboxgl.Map = MapStub
+      window.mapboxgl.NavigationControl = class {}
+
+      let source = fs.readFileSync(#{controller_source_path.to_s.inspect}, "utf8")
+      source = source.replace(/^import .*\\n/gm, "")
+      source = source.replace("export default class extends Controller", "globalThis.MapController = class extends Controller")
+      eval(source)
+
+      const controller = new MapController()
+      controller.element = {
+        dataset: { selectedState: "CO", selectedStateName: "Colorado" },
+        querySelectorAll: (selector) => selector === "[data-filter-kind='range']" ? rangeEls : []
+      }
+      controller.selectedState = { stusps: "CO", name: "Colorado", geoid: "08" }
+      controller.mapMode = "state"
+      controller.tileUrlValue = "/tiles/{z}/{x}/{y}.mvt"
+      controller.connect()
+      mapStub.handlers.load()
+
+      mapStub.handlers["click:states"]({
+        lngLat: { lng: -99.0, lat: 31.0 },
+        features: [{ properties: { stusps: "TX", name: "Texas", geoid: "48" } }]
+      })
+
+      if (filterStateCurrent.state !== "TX") throw new Error(`expected state TX, got ${filterStateCurrent.state}`)
+      if (filterStateCurrent.state_name !== "Texas") throw new Error(`expected state_name Texas, got ${filterStateCurrent.state_name}`)
+      if (filterStateCurrent.gw_sw_code !== "Groundwater") throw new Error(`expected gw_sw_code preserved, got ${filterStateCurrent.gw_sw_code}`)
+      if (filterStateCurrent.boil_water_notices_min != null) throw new Error("expected boil_water_notices_min stripped")
+      if (filterStateCurrent.boil_water_notices_max != null) throw new Error("expected boil_water_notices_max stripped")
+      if (filterStateCurrent.density_min !== "500") throw new Error(`expected density_min (range_select, fixed domain) preserved, got ${filterStateCurrent.density_min}`)
+      if (filterStateCurrent.density_max !== "5000") throw new Error(`expected density_max (range_select, fixed domain) preserved, got ${filterStateCurrent.density_max}`)
     JS
 
     run_node_script(script)

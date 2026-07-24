@@ -1,6 +1,7 @@
 import { Controller } from "@hotwired/stimulus"
+import * as FilterState from "filter_state"
 
-// Histogram data is global (not per-user or per-filter scope), so keying on field is stable.
+// Keyed by "field|state" so each state gets its own cached histogram.
 const CACHE = new Map()
 const SVG_H = 100       // bar + handle area
 const X_AXIS_H = 12     // tick lines below the handle baseline
@@ -18,7 +19,7 @@ const NS = "http://www.w3.org/2000/svg"
 
 export default class extends Controller {
   static values = { field: String, url: String, format: String }
-  static targets = ["chart", "minLabel", "maxLabel", "minInput", "maxInput", "zeroLabel", "minTextInput", "maxTextInput"]
+  static targets = ["chart", "axisRow", "minLabel", "maxLabel", "minInput", "maxInput", "zeroLabel", "minTextInput", "maxTextInput"]
 
   #bins = []
   #domMin = 0
@@ -33,6 +34,7 @@ export default class extends Controller {
   #tipTextW = { min: 0, max: 0, hover: 0 }
   #minHandle = null
   #maxHandle = null
+  #topHandle = "max"  // whichever handle was moved most recently renders on top when they overlap
   #bars = []
   #rect = null
   #svgW = 0
@@ -40,7 +42,33 @@ export default class extends Controller {
   #needsDefaults = false
   #minSet = false
   #maxSet = false
+  #minPlaceholder = ""
+  #maxPlaceholder = ""
   #loadPromise = null
+  #loadedState = null
+  #reloadedForState = false
+  #handleStateChange = () => {
+    const newState = FilterState.get().state ?? ""
+    if (this.#loadedState === null || newState === this.#loadedState) return
+
+    this.#loadedState = null
+    this.#loadPromise = null
+    this.#minSet = false
+    this.#maxSet = false
+    this.minInputTarget.value = ""
+    this.maxInputTarget.value = ""
+    this.#needsDefaults = true
+
+    if (this.#bins.length) {
+      this.#bins = []
+      while (this.chartTarget.firstChild) this.chartTarget.firstChild.remove()
+    }
+
+    if (!this.element.classList.contains("hidden")) {
+      this.#reloadedForState = true
+      this.load()
+    }
+  }
 
   connect() {
     this.#ro = new ResizeObserver(entries => {
@@ -51,38 +79,51 @@ export default class extends Controller {
       if (this.#bins.length) this.#draw()
     })
     this.#ro.observe(this.chartTarget)
+    document.addEventListener("filters:changed", this.#handleStateChange)
+
+    if (this.hasMinTextInputTarget) this.#minPlaceholder = this.minTextInputTarget.placeholder
+    if (this.hasMaxTextInputTarget) this.#maxPlaceholder = this.maxTextInputTarget.placeholder
 
     if (!this.element.classList.contains("hidden")) this.load()
   }
 
+  // Guards on #loadedState, not #bins.length — a state can legitimately have zero matching rows.
   async load() {
     const field = this.fieldValue
     if (!field) return
-    if (this.#bins.length) return
+    const state = FilterState.get().state ?? ""
+    if (this.#loadedState === state) return
 
     if (!this.#loadPromise) {
-      this.#loadPromise = this.#fetchHistogram(field)
+      this.#loadPromise = this.#fetchHistogram(field, state)
     }
 
     const data = await this.#loadPromise
-    if (!data || this.#bins.length) return
-    this.#init(data)
+    if (!data || this.#loadedState === state) return
+    const wasStateReload = this.#reloadedForState
+    this.#reloadedForState = false
+    this.#loadedState = state
+    this.#init(data, wasStateReload)
   }
 
-  #fetchHistogram(field) {
-    if (!CACHE.has(field)) {
-      CACHE.set(field,
-        fetch(`${this.urlValue}?field=${encodeURIComponent(field)}`)
+  #fetchHistogram(field, state = "") {
+    const cacheKey = `${field}|${state}`
+    if (!CACHE.has(cacheKey)) {
+      const params = new URLSearchParams({field})
+      if (state) params.set("state", state)
+      CACHE.set(cacheKey,
+        fetch(`${this.urlValue}?${params}`)
           .then(resp => resp.ok ? resp.json() : null)
           .catch(() => null)
       )
     }
 
-    return CACHE.get(field)
+    return CACHE.get(cacheKey)
   }
 
   disconnect() {
     this.#ro?.disconnect()
+    document.removeEventListener("filters:changed", this.#handleStateChange)
     this.chartTarget.removeEventListener("pointerdown", this.#onDown)
     this.chartTarget.removeEventListener("pointermove", this.#onMove)
     this.chartTarget.removeEventListener("pointerup", this.#onUp)
@@ -111,7 +152,8 @@ export default class extends Controller {
   // If histogram data hasn't loaded yet, sets a flag so #init applies defaults once fetch resolves.
   populateDefaultsIfEmpty() {
     this.load()
-    if (!this.#bins.length) {
+    if (this.#loadedState === null) {
+      // Keyed on #loadedState, not #bins.length — a field can legitimately have zero rows.
       this.#needsDefaults = true
       return
     }
@@ -127,8 +169,9 @@ export default class extends Controller {
     this.#onTextChange(which, event)
   }
 
-  #init({ bins, domain_min, domain_max }) {
+  #init({ bins, domain_min, domain_max }, stateReload = false) {
     this.#bins = bins
+    this.#syncEmptyState()
 
     const fmt = this.formatValue
     if (fmt === "percent") {
@@ -140,23 +183,38 @@ export default class extends Controller {
     } else {
       // count and currency: floor at 1 so scale always starts at 1 / $1
       domain_min = Math.min(domain_min, 1)
-      // Extend past data max so bars end with visual breathing room before the track edge.
-      domain_max = this.#niceMax(domain_min, domain_max)
+      if (this.#isSmallCountDomain()) {
+        // Few discrete integer values — keep the true max rather than padding it.
+        domain_max = Math.ceil(domain_max)
+      } else {
+        // Extend past data max so bars end with visual breathing room before the track edge.
+        domain_max = this.#niceMax(domain_min, domain_max)
+      }
     }
 
     this.#domMin = domain_min
     this.#domMax = domain_max
-    this.#curMin = domain_min
-    this.#curMax = domain_max
 
-    const minVal = this.minInputTarget.value
-    const maxVal = this.maxInputTarget.value
+    if (stateReload) {
+      this.#minSet = false
+      this.#maxSet = false
+      this.#curMin = domain_min
+      this.#curMax = domain_max
+      this.minInputTarget.value = ""
+      this.maxInputTarget.value = ""
+    } else {
+      this.#curMin = domain_min
+      this.#curMax = domain_max
 
-    if (minVal) this.#curMin = parseFloat(minVal)
-    if (maxVal) this.#curMax = parseFloat(maxVal)
+      const minVal = this.minInputTarget.value
+      const maxVal = this.maxInputTarget.value
 
-    if (!minVal) this.minInputTarget.value = this.#curMin
-    if (!maxVal) this.maxInputTarget.value = this.#curMax
+      if (minVal) this.#curMin = parseFloat(minVal)
+      if (maxVal) this.#curMax = parseFloat(maxVal)
+
+      if (!minVal) this.minInputTarget.value = this.#curMin
+      if (!maxVal) this.maxInputTarget.value = this.#curMax
+    }
 
     this.#draw()
     // SR-only labels for screen readers — visual labels are rendered in the SVG x-axis.
@@ -164,10 +222,50 @@ export default class extends Controller {
     this.maxLabelTarget.textContent = this.#fmt(domain_max)
     if (this.hasZeroLabelTarget) this.zeroLabelTarget.textContent = "0"
     this.#syncTextInputs()
-    if (this.#needsDefaults) {
+    if (stateReload || this.#needsDefaults) {
       this.#needsDefaults = false
       this.populateDefaultsIfEmpty()
     }
+    if (stateReload) {
+      this.element.dispatchEvent(new CustomEvent("slider:state-reload", { bubbles: true }))
+    }
+  }
+
+  // True when a count histogram has few enough distinct integer values (server caps bins at 30)
+  // to render as discrete category bars instead of a continuous scale.
+  #isSmallCountDomain() {
+    return this.formatValue === "count" && this.#bins.length > 0 && this.#bins.length < 30
+  }
+
+  // No data for this field/scope — collapse the chart and disable manual entry (it would
+  // otherwise clamp to a domain edge and send a misleading filter).
+  #syncEmptyState() {
+    const empty = this.#bins.length === 0
+    this.chartTarget.classList.toggle("hidden", empty)
+    if (this.hasAxisRowTarget) this.axisRowTarget.classList.toggle("hidden", empty)
+    if (this.hasMinTextInputTarget) {
+      this.minTextInputTarget.disabled = empty
+      this.minTextInputTarget.placeholder = empty ? "No data" : this.#minPlaceholder
+    }
+    if (this.hasMaxTextInputTarget) {
+      this.maxTextInputTarget.disabled = empty
+      this.maxTextInputTarget.placeholder = empty ? "No data" : this.#maxPlaceholder
+    }
+  }
+
+  // Brings a handle to the front of the SVG paint order (and therefore pointer hit-testing)
+  // so the one most recently moved stays grabbable even if it lands on top of the other.
+  #raiseHandle(which) {
+    this.#topHandle = which
+    const g = which === "min" ? this.#minHandle : this.#maxHandle
+    if (g) this.chartTarget.appendChild(g)
+  }
+
+  // A bar with square bottom corners and rounded top corners, capped so the radius never
+  // exceeds half the bar's own height or width (needed for short/thin bars).
+  #roundedBarPath(bx, by, bw, height) {
+    const r = Math.min(3, height / 2, bw / 2)
+    return `M ${bx} ${by + height} L ${bx} ${by + r} Q ${bx} ${by} ${bx + r} ${by} L ${bx + bw - r} ${by} Q ${bx + bw} ${by} ${bx + bw} ${by + r} L ${bx + bw} ${by + height} Z`
   }
 
   #draw() {
@@ -190,11 +288,32 @@ export default class extends Controller {
     if (!this.#bins.length) return
 
     if (this.#domMin === this.#domMax) {
-      svg.appendChild(this.#el("line", {
-        x1: PAD_L, x2: this.#svgW - PAD_R,
-        y1: HANDLE_Y, y2: HANDLE_Y,
-        stroke: BLUE, "stroke-width": 2
-      }))
+      // Every system shares this single value — draw one full-width bar rather than a bare line.
+      const barArea = SVG_H - HANDLE_R * 2 - 2 - BAR_TOP_PAD
+      const total = this.#bins.reduce((sum, bin) => sum + bin.count, 0)
+      const bx = PAD_L
+      const bw = this.#svgW - PAD_L - PAD_R
+      const by = HANDLE_Y - barArea
+      if (total > 0 && bw > 0) {
+        const d = this.#roundedBarPath(bx, by, bw, barArea)
+        // #colorBars() needs a bin-max strictly greater than domMin (half-open interval) to color this blue.
+        const bar = this.#el("path", { d, fill: BLUE, "data-bin-min": this.#domMin, "data-bin-max": this.#domMax + 1, "aria-hidden": "true" })
+        svg.appendChild(bar)
+        this.#bars.push(bar)
+
+        const label = total === 1 ? "1 utility" : `${total.toLocaleString("en-US")} utilities`
+        const hit = this.#el("rect", {
+          x: bx, y: by, width: bw, height: barArea,
+          fill: "transparent", "pointer-events": "all", "aria-hidden": "true"
+        })
+        hit.addEventListener("pointerenter", () => this.#showHoverTip(label, this.#svgW / 2, by))
+        hit.addEventListener("pointerleave", () => this.#hideTip("hover"))
+        hit.addEventListener("pointerup", (e) => { if (e.pointerType === "touch") this.#hideTip("hover") })
+        this.#tipHover = this.#makeTip("dark")
+        svg.appendChild(hit)
+        svg.appendChild(this.#tipHover.g)
+      }
+      this.#drawYAxis(svg, total, total ? Math.sqrt(total) : 1, barArea)
       this.#drawXAxis(svg)
       this.#minHandle = this.#addHandle("min", PAD_L)
       this.#maxHandle = this.#addHandle("max", this.#svgW - PAD_R)
@@ -211,20 +330,28 @@ export default class extends Controller {
     // Square root scale: water data is right-skewed — most systems cluster at low values with a
     // long sparse tail. Sqrt lifts small bars enough to show the distribution shape without
     // flattening them like linear would. Gentler than log, and safe for zero-count bins.
+    const isSmallCount = this.#isSmallCountDomain()
+    const trackL = PAD_L
+    const trackR = this.#svgW - PAD_R
     const hitRects = []
-    this.#bins.forEach((bin) => {
+    this.#bins.forEach((bin, i) => {
       const h = bin.count > 0 && maxCount ? Math.max(1, (Math.sqrt(bin.count) / sqrtMax) * barArea) : 0
-      // Value-based positioning: use the bin's theoretical boundaries via #valToX so bars
-      // stay aligned with handle positions regardless of domain extension (e.g. niceMax).
-      const binLeft  = this.#valToX(bin.min)
-      const binRight = Math.min(this.#valToX(bin.max), this.#svgW - PAD_R)
+      let binLeft, binRight
+      if (isSmallCount) {
+        // Few discrete integer values (e.g. 1-2 notices) — divide the track evenly by index
+        // instead of by value so each gets a full-width bar rather than a sliver.
+        binLeft  = trackL + (i / this.#bins.length) * (trackR - trackL)
+        binRight = trackL + ((i + 1) / this.#bins.length) * (trackR - trackL)
+      } else {
+        // Value-based positioning: use the bin's theoretical boundaries via #valToX so bars
+        // stay aligned with handle positions regardless of domain extension (e.g. niceMax).
+        binLeft  = this.#valToX(bin.min)
+        binRight = Math.min(this.#valToX(bin.max), trackR)
+      }
       const bx = binLeft + gap / 2
       const bw = Math.max(1, binRight - binLeft - gap)
       const by = HANDLE_Y - h
-      const r  = h > 0 ? Math.min(3, h / 2, bw / 2) : 0
-      const d  = h > 0
-        ? `M ${bx} ${by + h} L ${bx} ${by + r} Q ${bx} ${by} ${bx + r} ${by} L ${bx + bw - r} ${by} Q ${bx + bw} ${by} ${bx + bw} ${by + r} L ${bx + bw} ${by + h} Z`
-        : ""
+      const d  = h > 0 ? this.#roundedBarPath(bx, by, bw, h) : ""
       const bar = this.#el("path", { d, "data-bin-min": bin.min, "data-bin-max": bin.max, "aria-hidden": "true" })
       svg.appendChild(bar)
       this.#bars.push(bar)
@@ -259,8 +386,13 @@ export default class extends Controller {
     svg.appendChild(this.#tipMax.g)
     svg.appendChild(this.#tipHover.g)
 
-    this.#minHandle = this.#addHandle("min", this.#valToX(this.#curMin))
-    this.#maxHandle = this.#addHandle("max", this.#valToX(this.#curMax))
+    // Add handles in DOM order with #topHandle last, so it stays paintable/clickable if overlapping.
+    const handleOrder = this.#topHandle === "min" ? ["max", "min"] : ["min", "max"]
+    handleOrder.forEach(which => {
+      const x = this.#valToX(which === "min" ? this.#curMin : this.#curMax)
+      if (which === "min") this.#minHandle = this.#addHandle("min", x)
+      else this.#maxHandle = this.#addHandle("max", x)
+    })
     this.#setHandleActive("min")
     this.#setHandleActive("max")
     this.#colorBars()
@@ -281,9 +413,10 @@ export default class extends Controller {
     const tickTop = baseY
     const tickBot = tickTop + 6
 
-    ticks.forEach(({ value }) => {
+    ticks.forEach(({ value, x }) => {
+      const tickX = x ?? this.#valToX(value)
       svg.appendChild(this.#el("line", {
-        x1: this.#valToX(value), x2: this.#valToX(value),
+        x1: tickX, x2: tickX,
         y1: tickTop, y2: tickBot,
         stroke: NEUTRAL_700, "stroke-width": 1.5
       }))
@@ -306,6 +439,14 @@ export default class extends Controller {
         { value: 100 },
         { value: 200 }
       ]
+    }
+
+    if (this.#isSmallCountDomain()) {
+      // Ends are already marked by the handles — only mark the splits between bars.
+      const trackL = PAD_L
+      const trackR = this.#svgW - PAD_R
+      const n = this.#bins.length
+      return Array.from({length: n - 1}, (_, i) => ({x: trackL + ((i + 1) / n) * (trackR - trackL)}))
     }
 
     // count / currency: auto-select up to 5 evenly-spaced round ticks
@@ -413,8 +554,7 @@ export default class extends Controller {
       } else {
         this.#curMax = Math.max(Math.min(this.#domMax, newVal), this.#curMin)
       }
-      const curVal = which === "min" ? this.#curMin : this.#curMax
-      this.#moveHandle(which, this.#valToX(curVal))
+      this.#raiseAndMoveHandle(which)
       this.#updateAriaHandle(which)
       this.#setHandleActive(which)
       this.#colorBars()
@@ -430,6 +570,13 @@ export default class extends Controller {
   #moveHandle(which, x) {
     const h = which === "min" ? this.#minHandle : this.#maxHandle
     if (h) h.setAttribute("transform", `translate(${x}, ${HANDLE_Y})`)
+  }
+
+  // Brings a handle to the front and repositions it at its current value — used wherever a
+  // keyboard/typed edit changes #curMin/#curMax directly (drag instead goes through #onMove).
+  #raiseAndMoveHandle(which) {
+    this.#raiseHandle(which)
+    this.#moveHandle(which, this.#valToX(which === "min" ? this.#curMin : this.#curMax))
   }
 
   #activateHandle(which) {
@@ -481,6 +628,7 @@ export default class extends Controller {
 
     this.#dragging = handle.dataset.handle
     this.#rect = this.chartTarget.getBoundingClientRect()
+    this.#raiseHandle(this.#dragging)
     this.#activateHandle(this.#dragging)
     this.chartTarget.setPointerCapture(event.pointerId)
     this.chartTarget.addEventListener("pointermove", this.#onMove)
@@ -723,8 +871,7 @@ export default class extends Controller {
         this.maxInputTarget.value = this.#curMax
         this.#maxSet = false
       }
-      const val = which === "min" ? this.#curMin : this.#curMax
-      this.#moveHandle(which, this.#valToX(val))
+      this.#raiseAndMoveHandle(which)
       this.#updateAriaHandle(which)
       this.#setHandleActive(which)
       this.#colorBars()
@@ -755,7 +902,7 @@ export default class extends Controller {
 
     event.currentTarget.value = this.#fmtTextInput(clamped)
 
-    this.#moveHandle(which, this.#valToX(clamped))
+    this.#raiseAndMoveHandle(which)
     this.#updateAriaHandle(which)
     this.#setHandleActive(which)
     this.#colorBars()

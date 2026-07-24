@@ -359,6 +359,17 @@ RSpec.describe Filterable, type: :model do
         expect(results).to include(many_notices)
         expect(results).not_to include(few_notices)
       end
+
+      it "filters by boil_water_notices_max" do
+        few_notices = create(:public_water_system)
+        many_notices = create(:public_water_system)
+        create(:boil_water_summary, public_water_system: few_notices, total_notices: 1)
+        create(:boil_water_summary, public_water_system: many_notices, total_notices: 8)
+
+        results = PublicWaterSystem.apply_filters(boil_water_notices_max: "5")
+        expect(results).to include(few_notices)
+        expect(results).not_to include(many_notices)
+      end
     end
 
     context "demographic filters" do
