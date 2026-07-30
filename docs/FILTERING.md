@@ -169,7 +169,7 @@ different category in the layout — no code change.
   - Non-health violations in the last 5 years *(Group)* ~ range
   - Non-health violations in the last 10 years *(Group)* ~ range
 - **Notices** *(Category)*
-  - Boil water notices 🚫 *(Map UI is a disabled placeholder only—it carries no `data-filter-kind`, so `filter_controller.js` never collects it and Apply does not send params. The server already permits and applies `boil_water_notices_min` / `max` via `boil_water_summaries` (`config/fields.yml`, `Filterable`). The legacy app enabled this filter only for selected geographies because BWN coverage was treated as incomplete; that Stimulus behavior is not re‑implemented yet.)*
+  - Boil water notices *(Group)* ~ range — a `data-filter-kind="range"` row like any other, plus a `data-controller="bwn-filter"` stack for state gating. See [State-gated filters (BWN pattern)](#state-gated-filters-bwn-pattern) below.
 
 ---
 
@@ -243,6 +243,10 @@ URL params use full DB column names (e.g. `groundwater_rule_5yr_min=3`). A short
 
 **Collection:** `filter_controller.js` still does `if (minVal)` / `if (maxVal)` when building params, so an input that is literally empty omits that key. That matters only in edge cases: e.g. Apply before the histogram request has finished (inputs not yet filled), a bookmark/URL that restored only one bound, or right after `resetToFullRange()` which clears inputs to `""` until defaults run again. **`Filterable`** applies each present bound separately; there is no server-side guard that both must exist together.
 
+### Range filters persist across a state change; only histogram-backed ones get fresh defaults
+
+`map_controller.js`'s `#withoutRangeParams` strips `_min`/`_max` from `FilterState` on any state change, but only for `data-filter-kind="range"` fields — resolved from the DOM the same way as `#rangeBaseParam` in `filter_controller.js`. A `range_select` field (density, size) has a fixed dropdown-step domain, not a per-state histogram, so it's left alone and keeps filtering (and its badge) across any state, same as every non-range kind. See `docs/HISTORGRAMS.md`'s State scoping section for why the histogram-backed ones need the strip at all.
+
 ### Badge counting rule
 
 Badge counts are driven entirely by `FilterState` (the applied URL params snapshot) — never by DOM checkbox state. Counts only update on Apply, which is when FilterState is written. This eliminates any divergence between the displayed count and what was actually last applied.
@@ -284,6 +288,21 @@ Everything in the Violations category ORs together: the **Open violations** bool
 Health 10yr sub_filters, and the Non-health (paperwork) 5yr/10yr ranges. A system matches if **any** of
 them is satisfied. The `health_5yr`/`health_10yr` parents are visual only (collapse + check-all) — they do
 not form a separate OR sub-group; the whole category is one flat OR.
+
+### State-gated filters (BWN pattern)
+
+Boil water notices is only meaningful in states where the underlying data source has coverage (13 states as of this writing — `BoilWaterStateConfig.states`). Rather than a special case in `Filterable` or `filter_controller.js`, gating is its own small, generic-shaped stack:
+
+- **`BoilWaterStateConfig`** (`app/services/boil_water_state_config.rb`) — reads the `boil_water_notices_states` block of `config/tooltips.yml` (each entry: a methodology `text` + `source_url`) and exposes `.states`, `.bwn_state?(stusps)`, and `.states_json`. The filter's row is still an ordinary `data-filter-kind="range"` control — `Filterable` and `filter_controller.js` need no BWN-specific code.
+- **`bwn_filter_controller.js`** — a second Stimulus controller stacked on the same `<li>` (`data-controller="bwn-filter"`). On every `filters:changed` event it checks whether the current geo `state` is in `bwnStatesValue`: if not, disables and unchecks the row's checkbox and hides its slider panel; if so, enables it and shows a per-state tooltip (`tooltipsValue[stusps]`, rendered via `HomeHelper#bwn_tooltips_html_json`) with a "View source data" link.
+- **Persistence across BWN states:** `#syncCheckbox` only forces the checkbox off (and hides the panel) when the new state *isn't* BWN-eligible. Moving between two BWN states leaves it exactly as the user left it, same as any other range filter, so `#refreshCheckedRangeDefaults` repopulates the new state's domain defaults instead of the filter silently dropping.
+- **Race-safety:** `filter_state.js` seeds `FilterState` from the URL at module-evaluation time rather than reactively in `filter_controller#connect`, so every controller — including `bwn-filter`, regardless of Stimulus's controller registration order — sees the restored state from its first read. This closes the connect-order race generically; `bwn_filter_controller.js` needs no BWN-specific defensive logic for it.
+
+This pattern (own controller + a small state-derived config service) is the template for any future filter that should only be active/visible for a subset of geographies — no changes needed to the generic filter/badge/collect pipeline.
+
+### Subcat parent checkbox reflects restored state, not just live changes
+
+A subcat parent's `checked`/`indeterminate` state (see [Taxonomy](#taxonomy) above) was only ever recomputed by `syncParentFromSubcat`, which reacts to a live `change` event bubbling from inside the panel. A hard refresh or shared URL renders each child checkbox correctly server-side but never fires that event — so a partially-active parent (e.g. one of ten Health violations (5yr) sub-fields restored from a URL) rendered flatly unchecked instead of indeterminate, hiding that a filter was actually active. `filter_controller.js` now runs the same computation (`#syncParentCheckbox`, extracted so both paths share it) once for every subcat parent on `connect()` (`#refreshSubcatParents`), not just in response to live toggles.
 
 ---
 

@@ -220,5 +220,18 @@ RSpec.describe Histogrammable, type: :model do
         expect(result[:bins].last[:max]).to be_within(0.0001).of(51)
       end
     end
+
+    context "boil water summary" do
+      it "uses count format bins for total_notices" do
+        pws = create(:public_water_system)
+        create(:boil_water_summary, public_water_system: pws, pwsid: pws.pwsid, total_notices: 12)
+
+        result = BoilWaterSummary.histogram_bins(:total_notices, format: "count")
+        expect(result[:domain_min]).to eq(12)
+        expect(result[:domain_max]).to eq(12)
+        expect(result[:bins].length).to eq(1)
+        expect(result[:bins].sum { |b| b[:count] }).to eq(1)
+      end
+    end
   end
 end

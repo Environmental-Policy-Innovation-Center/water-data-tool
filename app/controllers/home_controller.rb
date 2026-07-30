@@ -22,15 +22,11 @@ class HomeController < ApplicationController
     preloads = [:violations_summary, :demographic, :trend_datum, :environmental_justice,
       :funding_summary, :watershed_hazard, :boil_water_summary]
     @pagy, @systems = pagy(scope.preload(preloads).order(order_clause))
-    @columns = visible_columns
+    @columns = ColumnRegistry.visible(keys: column_state.visible_col_keys)
     render partial: "home/table"
   end
 
   private
-
-  def visible_columns
-    ColumnRegistry.visible(keys: column_state.visible_col_keys)
-  end
 
   def parse_cols_param
     column_state.visible_col_keys
