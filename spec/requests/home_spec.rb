@@ -53,12 +53,12 @@ RSpec.describe "Home", type: :request do
       expect(response.body).to include("https://cdn.example.test/methodology.pdf")
     end
 
-    it "renders the datasets catalog with all 27 dataset cards" do
+    it "renders the datasets catalog with all 28 dataset cards" do
       get root_path
       expect(response.body).to include("Community Water System Service Area Boundaries")
       expect(response.body).to include("Safe Drinking Water Information System")
       expect(response.body).to include("Texas Drinking Water Advisories")
-      expect(response.body.scan("grid-item").count).to eq(27)
+      expect(response.body.scan("grid-item").count).to eq(28)
     end
 
     it "renders dataset source links and metadata" do
