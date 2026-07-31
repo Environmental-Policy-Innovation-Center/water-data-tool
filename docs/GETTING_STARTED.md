@@ -159,7 +159,7 @@ You do **not** need AWS credentials for local development — those are only for
 With Docker Desktop running:
 
 ```bash
-docker compose up -d
+DOCKER_DEFAULT_PLATFORM=linux/amd64 docker compose up -d
 ```
 
 This starts a PostGIS-enabled PostgreSQL container on `localhost:5432`, preconfigured with the `postgres` / `postgres` credentials the app expects. It keeps running in the background until you stop it with `docker compose down`.

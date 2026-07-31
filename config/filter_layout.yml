@@ -94,7 +94,7 @@ menus:
       awia_certifications:
         label: "America's Water Infrastructure Act Certifications"
         tooltip: awia_certifications
-        filters: [rra_certification]
+        filters: [erp_certification, rra_certification]
       notices: {label: "Notices", tooltip: boil_water_notices, filters: [total_notices]}
 
   population:

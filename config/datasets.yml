@@ -214,6 +214,19 @@ datasets:
       - "Income variables were adjusted for inflation using methods identical to the BLS CPI Inflation calculator"
       - "Calculated from 5-year ACS estimates from 2011 and 2021. See Github methods & documentation for more details"
 
+  - title: "America's Water Infrastructure Act Certifications"
+    source: "epa"
+    source_name: "U.S. Environmental Protection Agency (EPA)"
+    source_url: "https://awsedap.epa.gov/public/extensions/awia-active-utility-public-data/index.html"
+    frequency: "quarterly"
+    date: "2026-05-29"
+    description: >
+      This dataset contains information on whether community water systems have submitted a risk & resilience assessment (RRA) 
+      and emergency response plans (ERP) for the latest compliance cycle. 
+    caveats:
+      - "This dataset represents a point in time and is updated on a quarterly basis, please refer to the EPA website for the latest information"
+      - "Only water systems that serve more than 3,300 people are required to develop RRAs & ERPs"
+
   - title: "West Virginia Drinking Water Advisories"
     source: "WV-Department-of-Health-and-Human-Services"
     source_name: "WV Department of Health and Human Services"

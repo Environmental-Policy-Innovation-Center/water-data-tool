@@ -3,6 +3,7 @@
 # Table name: certification_summaries
 #
 #  id                :bigint           not null, primary key
+#  erp_certification :string
 #  pwsid             :string           not null
 #  rra_certification :string
 #  created_at        :datetime         not null

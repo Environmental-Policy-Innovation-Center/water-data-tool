@@ -32,6 +32,7 @@ filter_menus:
 
   # AWIA Certifications
   rra_certification: "This assessment evaluates the threat of potential malevolent acts and natural hazards."
+  erp_certification: "Findings of the risk and resilience assessment are used to develop strategies and plans to improve system resilience."
 
   # Population — Change
   population_change: "Population change shows the percent change in total population served by the water system from 2021 & 2011."

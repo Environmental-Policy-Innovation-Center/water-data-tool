@@ -79,6 +79,7 @@ categories:
       - paperwork_violations_10yr
       - total_notices
       - rra_certification
+      - erp_certification
 
   demographics:
     label: "Demographics"
